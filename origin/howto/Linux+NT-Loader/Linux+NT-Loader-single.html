@@ -1,0 +1,259 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 3.2 Final//EN">
+<HTML>
+<HEAD>
+ <META NAME="GENERATOR" CONTENT="LinuxDoc-Tools 0.9.72">
+ <TITLE>NT OS Loader + Linux mini-HOWTO</TITLE>
+</HEAD>
+<BODY>
+<H1>NT OS Loader + Linux mini-HOWTO</H1>
+
+<H2>Bernd Reichert, &lt;reichert@dial.eunet.ch&gt;</H2>v1.11, 2 September 1997
+<H2><A NAME="s1">1. Abstract</A></H2>
+
+<P>This document describes the use of the Windows NT boot loader to
+start Linux.
+This procedures have been tested with Windows NT 4.0 WS and Linux 2.0.</P>
+
+<H2><A NAME="s2">2. How does the NT OS Loader work</A></H2>
+
+<P>The NT OS loader likes to have the boot sector from the other
+operating systems available as a file. It reads this file and 
+starts the operating system selected, i.e. either Windows NT in 
+different Modes or any other OS.</P>
+
+<H2><A NAME="s3">3. Tips on how to install Windows NT and Linux on the same System</A></H2>
+
+<H2><A NAME="ss3.1">3.1 Windows NT installation</A>
+</H2>
+
+<P>Try to install Windows NT first. If you want to use NTFS for your Windows 
+NT-partition, keep in mind, that the todays production version of Linux
+cannot access NTFS partitions. 
+An alpha driver that can read NTFS-Partitions is available at 
+<CODE>http://www.informatik.hu-berlin.de/~loewis/ntfs</CODE>.
+You may create a separate FAT-Partition for data exchange 
+or you have to use DOS-formatted floppies.</P>
+
+<H2><A NAME="ss3.2">3.2 Partitioning</A>
+</H2>
+
+<P>Another Mini-howto recommends not to use NTs "Disk Administartor" 
+to create the Linux swap- and root-partitions. It is sufficient to 
+see the free space there. I also recommend to use linux's fdisk later.</P>
+
+<H2><A NAME="ss3.3">3.3 Linux installation</A>
+</H2>
+
+<P>Now boot linux from diskettes, create the swap and root-partition.
+Fdisk assumes the ntfs-partition to be a HPFS-partition. 
+This is normal.
+Boot again from diskettes and install Linux as you like.</P>
+
+<P>Just in case the installation procedure suggests that you could mount 
+the HPFS partition which it has found: Ignore it. </P>
+
+<H2><A NAME="ss3.4">3.4 Lilo</A>
+</H2>
+
+<P>When you come to the Lilo-Section, specify your Linux-root-partition 
+as your boot device because the Master Boot Record (MBR) of your
+harddisk is owned by Windows NT. This means that the root-entry and
+the boot-entry in your <CODE>/etc/lilo.conf</CODE> have the same value.
+If you have a IDE-harddisk and your Linux-partition is the second 
+partition, your boot-entry in <CODE>/etc/lilo.conf</CODE> looks like:</P>
+<P>
+<BLOCKQUOTE><CODE>
+<PRE>
+boot=/dev/hda2
+</PRE>
+</CODE></BLOCKQUOTE>
+</P>
+<P>If you have two disks and your Linux resides on the first partition
+of your second disk, your boot-entry in <CODE>/etc/lilo.conf</CODE> looks like:</P>
+<P>
+<BLOCKQUOTE><CODE>
+<PRE>
+boot=/dev/hdb1
+</PRE>
+</CODE></BLOCKQUOTE>
+</P>
+<P>Run lilo with a kernel that matches your system. 
+Check the kernel by booting from diskette first if you are not sure.</P>
+
+<P>If you cannot boot Windows NT now, you have a problem.
+I hope you have created a repair-disk recently.</P>
+
+
+<H2><A NAME="s4">4. Bootpart</A></H2>
+
+<P>There is a NT-programm called bootpart written by G. Vollant that can do
+the jobs from the next two points for you. Bootpart is available at 
+<CODE>http://ourworld.compuserve.com/homepages/gvollant/bootpart.htm</CODE>.</P>
+
+<P>If you want to know how things are working together, use the procedures 
+described in point 5 and 6.</P>
+
+
+<H2><A NAME="s5">5. The Linux part of the work</A></H2>
+
+<P>You have to boot from diskettes until the NT-part is fixed.</P>
+
+<P>Now you have to peel the bootsector from your Linux-root-Partition.
+With /dev/hda2 as your linux-partition, the dd-command is:</P>
+<P>
+<BLOCKQUOTE><CODE>
+<PRE>
+# dd if=/dev/hda2 of=/bootsect.lnx bs=512 count=1
+</PRE>
+</CODE></BLOCKQUOTE>
+</P>
+<P>There is something wrong if your bootsect.lnx has more 
+than 512 bytes.</P>
+<P>Now copy the file bootsect.lnx to a DOS-formated floppy if this is 
+your way to transfer files to the NTFS-Windows-partition.</P>
+<P>You can copy it with </P>
+<P>
+<BLOCKQUOTE><CODE>
+<PRE>
+# mcopy /bootsect.lnx a:
+</PRE>
+</CODE></BLOCKQUOTE>
+</P>
+<P>or with</P>
+<P>
+<BLOCKQUOTE><CODE>
+<PRE>
+# mount -t msdos /dev/fd0 /mnt
+# copy /bootsect.lnx /mnt
+# umount /mnt
+</PRE>
+</CODE></BLOCKQUOTE>
+</P>
+
+
+<H2><A NAME="s6">6. The Windows NT part of the work</A></H2>
+
+<P>Copy the file from the diskette to <CODE>C:\\bootsect.lnx</CODE>. I don't tell you
+how to do that.</P>
+<P>What lilo.conf is for linux is <CODE>c:\\boot.ini</CODE> for Windows NT.
+Remove the, system- and the read-only-attribute before you 
+can modify it with:</P>
+<P>
+<BLOCKQUOTE><CODE>
+<PRE>
+C:\attrib -s -r c:\boot.ini 
+</PRE>
+</CODE></BLOCKQUOTE>
+</P>
+<P>Now change the file boot.ini with an editor, notepad for example, as follows: </P>
+<P>
+<BLOCKQUOTE><CODE>
+<PRE>
+[boot loader]
+timeout=30
+default=multi(0)disk(0)rdisk(0)partition(1)\WINNT
+[operating systems]
+multi(0)disk(0)rdisk(0)partition(1)\WINNT="Windows NT Workstation ... 
+multi(0)disk(0)rdisk(0)partition(1)\WINNT="Windows NT Workstation ...
+C:\BOOTSECT.LNX="Linux"
+</PRE>
+</CODE></BLOCKQUOTE>
+</P>
+<P>Only the last line has been added in this example.
+Restore the attributes after you have saved <CODE>boot.ini</CODE> with: </P>
+<P>
+<BLOCKQUOTE><CODE>
+<PRE>
+C:\attrib +s +r c:\boot.ini 
+</PRE>
+</CODE></BLOCKQUOTE>
+</P>
+<P>After a shutdown of your Windows NT and a restart your should
+see the following:</P>
+<P>
+<BLOCKQUOTE><CODE>
+<PRE>
+  OS Loader V4.00
+ 
+  Please select the operating system to start:
+
+  Windows NT Workstation Version 4.0
+  Windows NT Workstation Version 4.0 [VGA mode]
+  Linux
+
+Select Linux and see
+
+  LILO loading zImage ....
+</PRE>
+</CODE></BLOCKQUOTE>
+</P>
+
+
+<H2><A NAME="s7">7. Play it again Sam</A></H2>
+
+<P>A new copy of bootsect.lnx must be transfererd to <CODE>C:\BOOTSECT.LNX</CODE>
+evry time the bootsector of your linux-partition has been modified.
+This happens for example when you install a new kernel with lilo.   
+As you can see such a system in not ideal for testing experimental 
+kernels.</P>
+
+
+<H2><A NAME="s8">8. Troubleshooting </A></H2>
+
+<P>If things do not work as expected, check bootability with a floppy disk.
+With <CODE>/dev/hdb1</CODE> as your Linux-partition, your <CODE>/etc/lilo.conf</CODE> 
+has the following entries:</P>
+<P>
+<BLOCKQUOTE><CODE>
+<PRE>
+root=/dev/hdb1
+boot=/dev/fd0
+</PRE>
+</CODE></BLOCKQUOTE>
+</P>
+<P>Run lilo with a diskette inserted. Now try to boot from the diskette. 
+If your Linux on <CODE>/dev/hdb1</CODE> can't be 
+started, the NT OS loader will also fail to start it.  
+If you see a lot of <CODE>01 01 01 01</CODE>, your root-disk is not accessible.
+Check whether all your disks are known by the bios.</P>
+
+<P>If the floppy boots your Linux partition, you can peel of your 
+boot-sector for the NT OS loader with: </P>
+<P>
+<BLOCKQUOTE><CODE>
+<PRE>
+# dd if=/dev/fd0 of=/bootsect.lnx bs=512 count=1
+</PRE>
+</CODE></BLOCKQUOTE>
+</P>
+
+<P>You can keep this diskette as your rescue-diskette just in case
+your Windows NT installation breaks.</P>
+
+
+<H2><A NAME="s9">9. References</A></H2>
+
+<P>
+<UL>
+<LI>The Linux+WindowsNT mini-HOWTO</LI>
+<LI>The FAQ for FreeBSD 2.X</LI>
+</UL>
+</P>
+
+<H2><A NAME="s10">10. Acknowledgements</A></H2>
+
+<P>
+<UL>
+<LI>Thanks to Xiaoming Yi &lt;z3c20@ttacs.ttu.edu&gt; for the tip that
+the procedures work also with other disks than the first one.</LI>
+<LI>Thanks to Frank Dennler &lt;Frank.Dennler@zkb.ch&gt; for the
+diskette-trick.</LI>
+</UL>
+</P>
+
+<H2><A NAME="s11">11. Feedback</A></H2>
+
+<P>Any comments are welcome.</P>
+
+</BODY>
+</HTML>

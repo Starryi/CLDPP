@@ -1,0 +1,109 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1"><title>2. Installation</title><link rel="stylesheet" type="text/css" href="style.css"><meta name="generator" content="DocBook XSL Stylesheets V1.79.1"><link rel="home" href="index.html" title="Sybase Adaptive Server Enterprise / SQL Server HOWTO"><link rel="up" href="index.html" title="Sybase Adaptive Server Enterprise / SQL Server HOWTO"><link rel="prev" href="ar01s01.html" title="1. Introduction"><link rel="next" href="ar01s03.html" title="3. Configuring an ASE Server"></head><body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF"><div class="navheader"><table width="100%" summary="Navigation header"><tr><th colspan="3" align="center">2. Installation</th></tr><tr><td width="20%" align="left"><a accesskey="p" href="ar01s01.html">Prev</a> </td><th width="60%" align="center"> </th><td width="20%" align="right"> <a accesskey="n" href="ar01s03.html">Next</a></td></tr></table><hr></div><div class="sect1"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="install"></a>2. Installation</h2></div></div></div><p>
+The different versions of ASE for Linux that are available have slightly different installation and configuration procedures. The installation documents that come with the product are quite detailed so I will instead try to focus on some alternatives in order to avoid common problems. In particular, I will describe how to install without RPM since the RPM utility is a functionality unique to Linux and most Sybase DBAs with background from other types of UNIX prefer to avoid this format and use the traditional installation instead. However, I will also describe how you can play it safer when using RPM.
+</p><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="idm69"></a>2.1. Super-quick RPM installation for the impatient</h3></div></div></div><p>
+If you are just doing a test, simply install the <code class="filename">sybase-common</code> and <code class="filename">sybase-ase</code> RPMs using <span class="command"><strong>rpm -ihv</strong></span> as root. The installation should then create a sybase user and start the configuration scripts automatically. For version 11.0.3.3, only the <code class="filename">sybase-ase</code> package is needed.
+</p><pre class="screen">
+bash$ su - root
+Password:
+bash# rpm -ihv sybase-common-12.5-1.rpm sybase-ase-12.5-1.rpm
+</pre><p>
+I strongly recommend that you read through any text files shipped with the software (<code class="filename">README</code> for instance), and also the documents "Release Bulletin" and "Installation Guide" available on the Sybase documentation website (also known as SyBooks). These will contain lots of important information, and I have attempted to avoid duplication of those efforts as much as possible.
+</p></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="idm78"></a>2.2. Pre-install Steps For All Installations</h3></div></div></div><p>
+</p><div class="orderedlist"><ol class="orderedlist" type="1"><li class="listitem"><p>
+The first thing to check is whether your Linux installation is able to run the version of ASE you have selected. The RPM utility will attempt to check this during installation, but you can check the dependencies in advance with <span class="command"><strong>rpm -qRp &lt;package&gt;</strong></span>. RPM will check against the RPM database of installed products on your machine, if these have lower version numbers than the requirements you will get an error message and it is first necessary to update these packages to be able to install. Note that you will also get an error if the package name is not found in the RPM database. This can happen if you installed software without using RPM (e.g. compiled from source, not SRPMs) or the package has a different name from what the ASE packages list as dependencies (e.g. RedHat places the Linux kernel in a package named "kernel", SuSE uses k_deflt for the default kernel and other names for other supplied kernels such as k_smp). You can then check the kernel version with <span class="command"><strong>uname -r</strong></span> and the glibc version will most likely be what is reported by <span class="command"><strong>ldd --version</strong></span>, but also do <span class="command"><strong>ls -l /lib/</strong></span> and check the actual filenames that the symlinks <code class="filename">/lib/libc.so</code>, <code class="filename">/lib/libpthread.so</code> and <code class="filename">/lib/librt.so</code> link to.
+</p><div class="note" style="margin-left: 0.5in; margin-right: 0.5in;"><h3 class="title"><a name="cert"></a>Certified OS levels</h3><p>
+The distribution Sybase has chosen to certify on is RedHat. For installation of 11.0.3.3 or 11.9.2 you can probably use any distribution, for the newer enterprise features of 12.5.0.x you will have to check exactly which distribution is certified and only use that particular Linux distribution and release level. Don't expect anything else than the certified OS level to work. The installation document lists the minimum required kernel and glibc versions.</p></div><div class="important" style="margin-left: 0.5in; margin-right: 0.5in;"><h3 class="title">Glibc-specific issues</h3><p>
+There are some known issues with glibc that cause serious problems with ASE. Basically, you will see this as a Segmentation Fault when starting the server (the error log will say something about process infected with signal 11 and then dump out a stack trace.). These problems are seen above version 12.5.0.1 on any uncertified platform, including currently RedHat 9.0. You must use a certified Linux distribution and version (RedHat 7.2, RedHat Advanced Server 2.1) and make sure the proper fixes are in the i686 glibc libraries (update them from RedHat Network). In particular, at the time of this writing the current ASE version (12.5.0.3) does not work on the current RedHat version (9.0) - nor on the beta of the next Enterprise Server (3.0) due to glibc issues! RedHat is working on this, and the release of Enterprise Server should be in order. See RedHat bugs 90002 and 102995 as well as the research done by Sybase under CR 326398. Hopefully this will eventually trickle up to the FSF/GNU distribution point for glibc and then to the various other distributions.
+</p></div></li><li class="listitem"><p>Check the available disk space. You will initially need space for installing the binaries and for installing the system databases. This is listed in the Installation Guide, but you will need additional space for the databases you create and you will have to make some estimates of how much you need for this.
+</p><div class="table"><a name="idm99"></a><p class="title"><b>Table 1. Default Installation Directory</b></p><div class="table-contents"><table class="table" summary="Default Installation Directory" border="1"><colgroup><col align="left" class="col1"><col align="left" class="col2"><col align="left" class="col3"><col align="left" class="col4"></colgroup><thead><tr><th align="left">Version</th><th align="left">Minimum RAM Dedicated to ASE</th><th align="left">Application Disk Space</th><th align="left">System Database Devices</th></tr></thead><tbody><tr><td align="left">11.0.3.3</td><td align="left">&#732;15 MB</td><td align="left">110 MB</td><td align="left">17 MB master 12 MB sysprocsdev</td></tr><tr><td align="left">11.9.2.x</td><td align="left">&#732;32 MB</td><td align="left">140 MB</td><td align="left">25 MB master 45 MB sysprocsdev</td></tr><tr><td align="left">12.5.0.x</td><td align="left">&#732;50 MB</td><td align="left">215 MB</td><td align="left">30 MB master 100 MB sysprocsdev</td></tr></tbody></table></div></div><p><br class="table-break">
+
+</p></li><li class="listitem"><p>
+After checking that ASE can be installed, create the sybase user group and then the sybase user as a member of it. This is an ordinary user that will be used mainly for starting the database server, so the user has to own all the ASE-related files. I suggest you keep the home directory of this user together with the home directories of other normal users, instead of using the installation directory of the ASE software as a home directory. Use <span class="command"><strong>adduser</strong></span>, <span class="command"><strong>useradd</strong></span> or whatever GUI utility your distribution provides you with.
+</p><pre class="screen">
+bash$ su - root
+bash# groupadd sybase
+bash# useradd -g sybase -d /home/sybase -c "Sybase ASE DBA account" -p Hard2Guess sybase
+</pre><p>
+The installation scripts will not attempt to create the user if you have done so yourself first.
+</p></li></ol></div><p>
+</p><p>
+Once these steps are done, we are ready to unload the software onto the base directory that ASE will be installed in. By default, the RPM packages are configured to place this under <code class="filename">/opt/<em class="replaceable"><code>&lt;sybase-directory&gt;</code></em></code> where &lt;sybase-directory&gt; is:
+</p><div class="table"><a name="idm136"></a><p class="title"><b>Table 2. Default Installation Directory</b></p><div class="table-contents"><table class="table" summary="Default Installation Directory" border="1"><colgroup><col align="left" class="col1"><col align="left" class="col2"></colgroup><thead><tr><th align="left">Version</th><th align="left">Directory</th></tr></thead><tbody><tr><td align="left">11.0.3.3</td><td align="left">/opt/sybase/</td></tr><tr><td align="left">11.9.2.x</td><td align="left">/opt/sybase-11.9.2/</td></tr><tr><td align="left">12.5.0.x</td><td align="left">/opt/sybase-12.5/</td></tr></tbody></table></div></div><p><br class="table-break">
+
+You can choose a different location if you like, either with the <em class="parameter"><code>--relocate</code></em> parameter to <span class="command"><strong>rpm</strong></span>, or by unpacking to a different directory if you are converting to .tgz file first. Again, I recommend keeping a normal home directory for the sybase user, a directory for the ASE software and a third location for the database storage.
+</p></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="idm157"></a>2.3. Unloading the Software to Disk, Part 1: Making Some Considered Decisions</h3></div></div></div><p>
+After preparing the environment, it is time to write the software to disk. You can either install with RPM or convert the RPM packages to another format first. These options will be covered here, and why you would want to choose one or the other.
+</p><div class="sect3"><div class="titlepage"><div><div><h4 class="title"><a name="idm160"></a>2.3.1. The issues with RPM and how to avoid them</h4></div></div></div><p>
+So, why is RPM bad? Well, as long as you install the latest ASE patches on the latest working RedHat version with the latest patches you may not have a lot of problems. However, you may also find that the RPM installations will cause the following problems depending on exactly which version of ASE (or EBFs) you are installing on which RedHat version (or other distribution).
+</p><p>
+</p><div class="variablelist"><p class="title"><b>Known Problems with RPM and Their Workarounds</b></p><dl class="variablelist"><dt><span class="term">
+   <span class="bold"><strong>Problem:</strong></span> RPM installation of ASE or applying EBFs will truncate the <code class="filename">/etc/ld.so.conf</code> file.
+</span></dt><dd><p>
+   <span class="bold"><strong>Symptom:</strong></span> After RPM installation of ASE if will truncate your <code class="filename">/etc/ld.so.conf</code> file to 0 bytes, making your OS installation forget where shared libraries are found. This may affect X, sshd and several others.
+</p><p>
+<span class="bold"><strong>Caused by:</strong></span> the post-install scripts. You can view them with <span class="command"><strong>rpm -qp -scripts <em class="parameter"><code>&lt;package&gt;</code></em></strong></span>. They try to use a varaible named <code class="varname">$RPM_INSTALL_PREFIX</code> which is apparently not set by newer versions of the RPM utility.
+</p><p>
+<span class="bold"><strong>Kludge 1:</strong></span> first copy all the files that will be destroyed by the installation. <code class="filename">/etc/ld.so.conf</code>, <code class="filename">.profile</code> and <code class="filename">.cshrc</code> for the sybase user should be copied to a safe place before installing. Then install as per the Sybase instructions and copy the files back when you are done. When the correct <code class="filename">/etc/ld.so.conf</code> is in place, run <span class="command"><strong>ldconfig</strong></span> as root.
+</p><p>
+<span class="bold"><strong>Kludge 2:</strong></span> First set the <code class="varname">$RPM_INSTALL_PREFIX</code> to the top-level directory where the ASE files are to be installed (what will become <code class="varname">$SYBASE</code>).
+</p><p>
+<span class="bold"><strong>Kludge 3:</strong></span> Make RPM install without running the scripts; <span class="command"><strong>rpm -ihv --noscripts</strong></span>
+</p></dd><dt><span class="term"><span class="bold"><strong>Problem:</strong></span> .profile and .cshrc overwritten</span></dt><dd><p><span class="bold"><strong>Symptom:</strong></span> RPM installation will overwrite the <code class="filename">.profile</code> and <code class="filename">.cshrc</code> files in the $SYBASE directory. If this is the home directory of the sybase user and you have personalized these to include preferred settings you will have to rewrite them afterwards.</p><p><span class="bold"><strong>Caused by:</strong></span> The files are located in the $SYBASE/install/ directory in ASE 12.5. The script $SYBASE/install/sybinstall.sh which is called during RPM installation will copy these to $SYBASE.
+   </p><p><span class="bold"><strong>Kludge 1:</strong></span> Backup these files before installation, copy back after installation is done.</p><p><span class="bold"><strong>Kludge 2:</strong></span> Make RPM install without the scripts; <span class="command"><strong>rpm -ihv --noscripts</strong></span></p><p><span class="bold"><strong>Kludge 3:</strong></span> Create a home directory ($HOME) for the sybase user separate from the installation directory ($SYBASE).</p></dd><dt><span class="term">
+   <span class="bold"><strong>Problem:</strong></span> RPM claims that installed libraries or even the kernel are not of the approved version or not installed.
+</span></dt><dd><p><span class="bold"><strong>Problem:</strong></span> RPM installation reports that certain versions of OS rpms such as kernel or glibc must be installed, but you verify they are OK.</p><p><span class="bold"><strong>Caused by:</strong></span> RPM installations may fail if it is unable to determine whether you have the proper versions of kernel and glibc installed. For instance, SuSE calls its default kernel rpm package "k_deflt", other kernels are named after their main functionality (smp, athlon etc.). The Sybase RPMs search for "kernel" since that is what RedHat uses.</p><p><span class="bold"><strong>Kludge:</strong></span>Make absolutely sure you do actually have the required level of these packages. Then force-install with <span class="command"><strong>rpm -ihv --nodeps --force</strong></span>. </p></dd></dl></div><p>
+</p></div></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="idm221"></a>2.4. Unloading the Software to Disk, Part 2: Getting the Job Done</h3></div></div></div><p>
+Unless the above problem descriptions scared you, you may want to use RPM with a few extra modifications. Instead of letting RPM try to be helpful but end up causing trouble, we will disable the friendly attempts and have to do some manual corrections ourselves afterwards.
+</p><div class="sect3"><div class="titlepage"><div><div><h4 class="title"><a name="idm224"></a>2.4.1. The Manual RPM Installation</h4></div></div></div><p>
+Just to be on the safe side, we first copy out the files that are at risk; <code class="filename">/etc/ld.so.conf</code>, <code class="filename">&lt;sybase user home&gt;/.profile</code> and <code class="filename">&lt;sybase user home&gt;/.cshrc</code>.
+The switches I have chosen to add are:
+</p><table border="0" summary="Simple list" class="simplelist"><tr><td>--relocate</td></tr><tr><td>--nodeps</td></tr><tr><td>--noscripts</td></tr></table><p>
+Now, mount the CD or download the files with FTP and <span class="command"><strong>cd</strong></span> to this directory. As root, install the files with:
+</p><pre class="screen">
+<span class="command"><strong>rpm -ihv --relocate /opt/sybase-12.5=/opt/sybase --nodeps --noscripts sybase-common* sybase-ase*</strong></span>
+</pre><p>
+As part of the server configuration we now need to make the changes we disabled when we stopped the RPM scrips from excuting using the <code class="option">--noscripts</code>.
+</p></div><div class="sect3"><div class="titlepage"><div><div><h4 class="title"><a name="idm238"></a>2.4.2. Using the RPM Alternatives</h4></div></div></div><p>
+A couple of common utilities for installing without RPM are rpm2tgz and alien. You can use any of these to first convert into a tgz package and then unpack the files without running any of the RPM scripts. The distribuiton of the RPM utility also ships with a program called rpm2cpio which will convert to a cpio archive.
+</p><div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem"><p>
+alien: <a class="ulink" href="http://www.kitenet.net/programs/alien/" target="_top">http://www.kitenet.net/programs/alien/</a>
+</p></li><li class="listitem"><p>
+rpm2tgz: This is apparently the name of a utility shipped with Slackware and TurboLinux. The TurboLinux files indicate that it is simply a wrapper for rpm2cpio and cpio2tgz, the latter of these will actually unpack the cpio archive into a temporary directory and repack it as tgz.
+</p></li><li class="listitem"><p>
+rpm2cpio: This is part of the RedHat Package Manager (RPM) distribution so it should be installed if you have rpm installed. You will need cpio together with it.
+</p></li></ul></div><p>
+</p><p>
+The alien utility can either unpack the rpm using <span class="command"><strong>alien -g</strong></span>, or you can create a tgz archive with <span class="command"><strong>alien -t</strong></span>.
+</p><pre class="screen">
+bash$ su -
+Password:
+bash# alien -t sybase-ase*.rpm sybas-common*.rpm
+sybase-common-12.5.tgz generated
+sybase-ase-12.5.tgz generated
+</pre><p>
+</p><p>
+The rpm2tgz utility does the same thing, converts the rpm into a tgz archive.
+</p><pre class="screen">
+rpm2tgz sybase-ase*.rpm
+rpm2tgz sybase-common*.rpm
+</pre><p>
+</p><p>
+The distribution of RPM contains the rpm2cpio utility, it reads an rpm from a file or STDIN and outputs a cpio archive on STDOUT.
+</p><pre class="screen">
+rpm2cpio sybase-ase-12.5-3.i386.rpm &gt; sybase-ase-12.5-3.i386.cpio
+rpm2cpio sybase-common-12.5-3.i386.rpm &gt; sybase-common-12.5-3.i386.cpio
+</pre><p>
+</p><p>
+Once you have created a .tgz archive from the RPM, you can unpack it. Since the path in the archive is relative to /, you need to do this as root.
+</p><pre class="screen">
+bash$ su -
+Password:
+bash# tar -xvzf sybase-ase*.tgz
+bash# tar -xvzf sybase-common*.tgz
+</pre><p>
+
+For a cpio archive, unpack it with the cpio command:
+</p><pre class="screen">
+cpio --extract --make-directories --verbose
+</pre><p>
+</p></div></div></div><div class="navfooter"><hr><table width="100%" summary="Navigation footer"><tr><td width="40%" align="left"><a accesskey="p" href="ar01s01.html">Prev</a> </td><td width="20%" align="center"> </td><td width="40%" align="right"> <a accesskey="n" href="ar01s03.html">Next</a></td></tr><tr><td width="40%" align="left" valign="top">1. Introduction </td><td width="20%" align="center"><a accesskey="h" href="index.html">Home</a></td><td width="40%" align="right" valign="top"> 3. Configuring an ASE Server</td></tr></table></div></body></html>

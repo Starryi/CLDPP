@@ -1,0 +1,318 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1"><title>4. Installing Tomcat</title><link rel="stylesheet" type="text/css" href="style.css"><meta name="generator" content="DocBook XSL Stylesheets V1.79.1"><link rel="home" href="index.html" title="MMBase Installation HOWTO"><link rel="up" href="index.html" title="MMBase Installation HOWTO"><link rel="prev" href="ar01s03.html" title="3. Installing Java"><link rel="next" href="ar01s05.html" title="5.  Replacing Tomcat's default JSP compiler Jasper with IBM's Jikes compiler"></head><body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF"><div class="navheader"><table width="100%" summary="Navigation header"><tr><th colspan="3" align="center">4. Installing <span class="application">Tomcat</span></th></tr><tr><td width="20%" align="left"><a accesskey="p" href="ar01s03.html">Prev</a> </td><th width="60%" align="center"> </th><td width="20%" align="right"> <a accesskey="n" href="ar01s05.html">Next</a></td></tr></table><hr></div><div class="sect1"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="idm321"></a>4. Installing <span class="application">Tomcat</span></h2></div></div></div><p>
+Download a binary distribution of
+<span class="application">Tomcat</span>
+from the <span class="application">Apache Jakarta</span> website:
+</p><pre class="screen">
+  <a class="ulink" href="http://jakarta.apache.org/tomcat/" target="_top">http://jakarta.apache.org/tomcat/</a>
+</pre><p>
+</p><p>
+If you don't want to run the
+<span class="application">Tomcat</span> daemon as
+<code class="systemitem">root</code>,
+create a new user/group <code class="systemitem">tomcat</code>
+(first make sure that the
+<acronym class="acronym">UID</acronym> and <acronym class="acronym">GID</acronym>
+you use
+are still available
+by checking the files <code class="filename">/etc/passwd</code>
+and <code class="filename">/etc/group</code>):
+</p><pre class="programlisting">
+  
+  groupadd -g 220 tomcat
+  useradd -u 220 -g tomcat -c "Tomcat" -r -d /usr/local/tomcat -s "/sbin/nologin" tomcat
+  
+  </pre><p>
+</p><p>
+</p><div class="warning" style="margin-left: 0.5in; margin-right: 0.5in;"><h3 class="title">Warning</h3><p>
+You really should not use the
+<code class="systemitem">root</code> account
+to run the <span class="application">Tomcat</span> daemon;
+(using Tomcat version 4.1.27) we found out that this allows the
+<span class="application">MMBase</span>
+<code class="systemitem">admin</code> user
+to write backup dumps of his sites anywhere on the system.
+</p></div><p>
+</p><p>
+&lt;TODO: better solution available?&gt;
+</p><p>
+Extract the <span class="application">Tomcat</span> distribution
+in a new directory:
+</p><pre class="programlisting">
+  
+  cd /usr/local/
+  tar -zxvf .../jakarta-tomcat-xxx.tar.gz
+  
+  </pre><p>
+</p><p>
+</p><div class="note" style="margin-left: 0.5in; margin-right: 0.5in;"><h3 class="title">Note</h3><p>
+Version 4.1.27 came with a hot-fix:
+</p><pre class="programlisting">
+  
+  cd /usr/local/jakarta-tomcat-xxx/
+  tar -zxvf .../xxx-hotfix-xxx.tar.gz
+  
+  </pre><p>
+</p></div><p>
+</p><p>
+Change the ownership of the
+<span class="application">Tomcat</span> directory
+and make it available as
+<code class="filename">/usr/local/tomcat/</code>:
+</p><pre class="programlisting">
+  
+  chown -R tomcat:tomcat /usr/local/jakarta-tomcat-xxx
+  ln -s /usr/local/jakarta-tomcat-xxx /usr/local/tomcat
+  
+  </pre><p>
+</p><p>
+Open up the firewall for web access
+to the <span class="application">Tomcat</span> server
+by adding to the file
+<code class="filename">/etc/sysconfig/iptables</code>:
+</p><pre class="programlisting">
+  
+  -A RH-Lokkit-0-50-INPUT -p tcp -m tcp --dport 8080 --syn -j ACCEPT
+  
+  </pre><p>
+</p><p>
+You need to reboot your system to make this rule effective
+or restart the <span class="application">iptables</span> firewall:
+</p><pre class="programlisting">
+  
+  service iptables restart
+  
+  </pre><p>
+</p><p>
+</p><div class="tip" style="margin-left: 0.5in; margin-right: 0.5in;"><h3 class="title">Tip</h3><p>
+Since (for some odd reason) some network managers allow outgoing web
+connections only to
+<code class="systemitem"><acronym class="acronym">TCP</acronym> port 80</code>,
+there might be people around that cannot access your
+<span class="application">Tomcat</span>
+(and <span class="application">MMBase</span>) server
+through <code class="systemitem">port 8080</code>.
+Further <a class="link" href="ar01s12.html" title="12.  Connecting Apache and Tomcat using mod_jk2">below</a>
+we will explain how to install
+a <acronym class="acronym">JK 2</acronym> mapping or a reverse proxy
+in <span class="application">Apache</span>,
+so <span class="application">Tomcat</span>
+and <span class="application">MMBase</span>
+can be accessed through the
+<span class="application">Apache</span> web server
+at <code class="systemitem">port 80</code>.
+Apart from the port issue,
+this has the advantage that you can use
+<span class="application">Apache</span>
+to manage you <acronym class="acronym">SSL</acronym> connections
+and use your existing
+<span class="application">Apache</span>
+logs and statistics facilities
+for <span class="application">Tomcat</span>
+and <span class="application">MMBase</span> as well.
+</p><p>
+If you decide to use
+<span class="application">Apache</span>
+as a front-end to your
+<span class="application">Tomcat</span>
+and <span class="application">MMBase</span> server,
+there's no need to open up
+<code class="systemitem">port 8080</code>
+in your firewall.
+</p></div><p>
+</p><p>
+To run <span class="application">Tomcat</span>,
+set the <code class="envar">$CATALINA_HOME</code> environment variable:
+</p><pre class="programlisting">
+  
+  CATALINA_HOME=/usr/local/tomcat
+  
+  </pre><p>
+</p><p>
+and fire it up:
+</p><pre class="programlisting">
+  
+  /usr/local/tomcat/bin/startup.sh
+  
+  </pre><p>
+</p><p>
+Now you can access
+<span class="application">Tomcat</span>'s home page through
+(replace <em class="replaceable"><code>&lt;hostname&gt;</code></em> with your hostname):
+</p><pre class="programlisting">
+  
+  http://&lt;hostname&gt;:8080/
+  
+  </pre><p>
+</p><p>
+which should give you the <span class="application">Tomcat</span>
+welcome screen.
+</p><div class="screenshot"><div><img src="ApacheTomcat-600x420.png"></div></div><p>
+</p><p>
+To shutdown again:
+</p><pre class="programlisting">
+  
+  /usr/local/tomcat/bin/shutdown.sh
+  
+  </pre><p>
+</p><p>
+Since we want to automate the starting up and shutting down of the
+<span class="application">Tomcat</span> server,
+we create a file
+<code class="filename">/etc/rc.d/init.d/tomcat</code>
+to do this for us:
+</p><pre class="programlisting">
+  
+  #!/bin/sh
+  #
+  # Startup script for the Jakarta Tomcat Java Servlets and JSP server
+  #
+  # chkconfig: - 85 15
+  # description: Jakarta Tomcat Java Servlets and JSP server
+  # processname: tomcat
+  # pidfile: /var/run/tomcat.pid
+  # config:
+
+  # Source function library.
+  . /etc/rc.d/init.d/functions
+
+  # Source networking configuration.
+  . /etc/sysconfig/network
+
+  # Check that networking is up.
+  [ ${NETWORKING} = "no" ] &amp;&amp; exit 0
+
+  # Set Tomcat environment.
+  export JAVA_HOME=/usr/local/j2sdk
+  export CLASSPATH=.:/usr/local/j2sdk/lib/tools.jar:/usr/local/j2re/lib/rt.jar
+  export CATALINA_HOME=/usr/local/tomcat
+  export CATALINA_OPTS="-server -Xms64m -Xmx512m -Dbuild.compiler.emacs=true"
+  export PATH=/usr/local/j2sdk/bin:/usr/local/j2re/bin:$PATH
+
+  [ -f /usr/local/tomcat/bin/startup.sh ] || exit 0
+  [ -f /usr/local/tomcat/bin/shutdown.sh ] || exit 0
+
+  export PATH=$PATH:/usr/bin:/usr/local/bin
+
+  # See how we were called.
+  case "$1" in
+    start)
+          # Start daemon.
+          echo -n "Starting Tomcat: "
+          /usr/local/tomcat/bin/startup.sh
+          RETVAL=$?
+          echo
+          [ $RETVAL = 0 ] &amp;&amp; touch /var/lock/subsys/tomcat
+          ;;
+    stop)
+          # Stop daemons.
+          echo -n "Shutting down Tomcat: "
+          /usr/local/tomcat/bin/shutdown.sh
+          RETVAL=$?
+          echo
+          [ $RETVAL = 0 ] &amp;&amp; rm -f /var/lock/subsys/tomcat
+          ;;
+    restart)
+          $0 stop
+          $0 start
+          ;;
+    condrestart)
+         [ -e /var/lock/subsys/tomcat ] &amp;&amp; $0 restart
+         ;;
+    status)
+          status tomcat
+          ;;
+    *)
+          echo "Usage: $0 {start|stop|restart|status}"
+          exit 1
+  esac
+
+  exit 0
+  
+  </pre><p>
+</p><p>
+Set its ownership and access rights:
+</p><pre class="programlisting">
+  
+  chown root:root /etc/rc.d/init.d/tomcat
+  chmod 755 /etc/rc.d/init.d/tomcat
+  
+  </pre><p>
+</p><p>
+And add this init script to
+<span class="application">chkconfig</span>:
+</p><pre class="programlisting">
+  
+  chkconfig --add tomcat
+  chkconfig tomcat on
+  
+  </pre><p>
+</p><p>
+</p><div class="tip" style="margin-left: 0.5in; margin-right: 0.5in;"><h3 class="title">Tip</h3><p>
+Instead of creating your own init script,
+you can use the script that comes with
+the <span class="application">Tomcat</span> package:
+<code class="filename">/usr/local/tomcat/bin/catalina.sh</code>.
+Make sure you set
+the <span class="application">Tomcat</span> environment
+at the start of this script.
+Or create a short init script that calls
+the original <span class="application">Tomcat</span> init script.
+</p><p>
+See
+<a class="ulink" href="http://www.jguru.com/faq/view.jsp?EID=425628" target="_top">How can I start Tomcat as a daemon in Linux?</a>.
+</p></div><p>
+</p><p>
+</p><div class="tip" style="margin-left: 0.5in; margin-right: 0.5in;"><h3 class="title">Tip</h3><p>
+To install two (or even more) versions of
+<span class="application">Tomcat</span> server
+on the same system,
+increase the <code class="systemitem">port</code> numbers
+of the second server (e.g. by 10),
+by editing the configuration file
+<code class="filename">/usr/local/tomcat55/conf/server.xml</code>:
+</p><pre class="programlisting">
+  
+  &lt;Server port="8015" shutdown="SHUTDOWN"&gt;
+  ...
+  &lt;!-- Define a non-SSL HTTP/1.1 Connector on port 8080 --&gt;
+  &lt;Connector port="8090"
+      maxThreads="150" minSpareThreads="25" maxSpareThreads="75"
+      enableLookups="false" redirectPort="8453" acceptCount="100"
+      connectionTimeout="20000" disableUploadTimeout="true" /&gt;
+  ...
+  &lt;!-- Define a SSL HTTP/1.1 Connector on port 8443 --&gt;
+  &lt;!--
+  &lt;Connector port="8453"
+      maxThreads="150" minSpareThreads="25" maxSpareThreads="75"
+      enableLookups="false" disableUploadTimeout="true"
+      acceptCount="100" scheme="https" secure="true"
+      clientAuth="false" sslProtocol="TLS" /&gt;
+  --&gt;
+  ...
+  &lt;!-- Define an AJP 1.3 Connector on port 8009 --&gt;
+  &lt;Connector port="8019"
+      enableLookups="false" redirectPort="8453" protocol="AJP/1.3" /&gt;
+  ...
+  &lt;!-- Define a Proxied HTTP/1.1 Connector on port 8082 --&gt;
+  &lt;!-- See proxy documentation for more information about using this. --&gt;
+  &lt;!--
+  &lt;Connector port="8082"
+      maxThreads="150" minSpareThreads="25" maxSpareThreads="75"
+      enableLookups="false" acceptCount="100" connectionTimeout="20000"
+      proxyPort="80" disableUploadTimeout="true" /&gt;
+  --&gt;
+  
+  </pre><p>
+</p><p>
+Complete this second
+<span class="application">Tomcat</span> server installation
+as above for the first server,
+using adjusted directory and file names.
+</p></div><p>
+</p></div><div class="navfooter"><hr><table width="100%" summary="Navigation footer"><tr><td width="40%" align="left"><a accesskey="p" href="ar01s03.html">Prev</a> </td><td width="20%" align="center"> </td><td width="40%" align="right"> <a accesskey="n" href="ar01s05.html">Next</a></td></tr><tr><td width="40%" align="left" valign="top">3. Installing <span class="application">Java</span> </td><td width="20%" align="center"><a accesskey="h" href="index.html">Home</a></td><td width="40%" align="right" valign="top"> 5. 
+Replacing <span class="application">Tomcat</span>'s
+default <acronym class="acronym">JSP</acronym> compiler
+<span class="application">Jasper</span>
+with <acronym class="acronym">IBM</acronym>'s
+<span class="application">Jikes</span> compiler
+</td></tr></table></div></body></html>

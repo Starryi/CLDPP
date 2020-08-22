@@ -1,0 +1,351 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1"><title>4. Build Your Kernel</title><link rel="stylesheet" type="text/css" href="style.css"><meta name="generator" content="DocBook XSL Stylesheets V1.79.1"><link rel="home" href="index.html" title="Linux on the Sun JavaStation &#8482; NC HOWTO"><link rel="up" href="index.html" title="Linux on the Sun JavaStation &#8482; NC HOWTO"><link rel="prev" href="ar01s03.html" title="3. Background Requirements for Linux on a JavaStation&#8482;"><link rel="next" href="ar01s05.html" title="5. Build A JavaStation&#8482;-Ready FileSystem"></head><body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF"><div class="navheader"><table width="100%" summary="Navigation header"><tr><th colspan="3" align="center">4. Build Your Kernel</th></tr><tr><td width="20%" align="left"><a accesskey="p" href="ar01s03.html">Prev</a> </td><th width="60%" align="center"> </th><td width="20%" align="right"> <a accesskey="n" href="ar01s05.html">Next</a></td></tr></table><hr></div><div class="sect1"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="KernelBuildChapter"></a>4. Build Your Kernel</h2></div></div></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="KernelBuild-BeforeBeginningSection"></a>4.1. Before you begin</h3></div></div></div><p>
+This chapter assumes you wish to compile your own <span class="application">Linux
+</span> kernel for the <span class="productname">JavaStation</span>&#8482;.  
+If this is something you can not do, there are sample kernels pointed
+to at the end of this chapter.
+</p><p>
+This chapter assumes you already know how to compile 
+<span class="application">Linux</span> kernels in general, perhaps 
+on a <acronym class="acronym">PC</acronym>, a <acronym class="acronym">SPARC </acronym> server 
+running <span class="application">Linux</span>, or any of the 
+other <span class="application">Linux</span> ports.  If not, read the 
+Kernel-HOWTO and the README file of your kernel source. 
+</p><p>
+Compiling a kernel for a <span class="productname">JavaStation</span>&#8482; is not 
+much different than compiling a <span class="application">Linux kernel</span> 
+elsewhere.  You just need to know the right options to pick.  In general, 
+you're compiling for a <span class="hardware">Sun4M class architecture</span>, and 
+enabling <span class="productname">JavaStation</span>&#8482;-specific options.  The 
+following sections in this chapter will take you through the steps. 
+</p><p>
+While it may be possible to compile the <span class="productname">JavaStation</span>&#8482;
+-enabled kernel on alternate platforms by way of a cross-compiler, this 
+HOWTO assumes you will do it on a <span class="hardware">Linux/Sparc based server</span> 
+running in 32-bit mode.   Cross-compiling will not be covered, and 
+questions regarding it will not be entertained. 
+</p></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="KernelBuild-WorkIn32BitModeSection"></a>4.2. Make sure you use 32-bit mode</h3></div></div></div><p>
+When compiling your own <span class="productname">JavaStation</span>&#8482;-capable 
+kernel on a Sun server, you need to make sure the machine you work on is 
+set to 32-bit mode.  So, if you're on an Ultra-class machine, be sure to
+first switch to 32-bit mode before you begin compiling. 
+</p><p>
+To check what mode you're in, do a <strong class="userinput"><code>uname -a</code></strong>.  If it 
+says <span class="quote">&#8220;<span class="quote">sparc</span>&#8221;</span>, you're in 32-bit mode and don't have to do 
+anything.  If it reports <span class="quote">&#8220;<span class="quote">sparc64</span>&#8221;</span>, then you should perform
+a <strong class="userinput"><code>sparc32 bash</code></strong> first to switch to 32-bit mode.  A 
+subsequent <strong class="userinput"><code>uname -a</code></strong> should reflect the change. 
+</p></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="KernelBuild-KernelVersionSupportSection"></a>4.3. Supported <span class="application">Linux Kernel</span> Versions</h3></div></div></div><p>
+The kernel source revision you should use depends both on which model of 
+<span class="productname">JavaStation</span>&#8482; you have, and which series
+kernel you are using.  The current "stable" series of Linux kernels is 
+2.4.x, but as we will read in a minute, this may not be the best bet
+to use.
+</p><p>
+First, a few note on the 2.2.x and 2.3.x series.  
+<span class="productname">Mr. Coffee</span>&#8482; has had kernel support since about 
+kernel version 2.2.5, and definitely works out of the box with the 
+<span class="application">RedHat 6.0+/SPARC distribution kernels</span>. 
+<span class="productname">Krups</span>&#8482; support did not work well out of the 
+box until the latter 2.3.x kernel cycle.  Krups support was added
+in the early 2.3.x sequence, but the <span class="hardware">MMU</span> changes 
+to the 32-bit <span class="application"> SPARC kernel</span> had kept it from 
+compiling cleanly until later on.  
+</p><p>
+Kernels for both Mr. Coffee and Krups compiled cleanly by the HOWTO
+author with the Mar. 17, 2000 CVS kernel, and are included in the 
+Sample Kernels section.<span class="productname">. Krups</span>&#8482; support was
+backported into the 2.2.x kernels (where x&gt;15).  The latest 2.2.x 
+kernel "should" compile cleanly for the Mr. Coffee and Krups models, 
+but your mileage may vary.
+</p><p>
+Now onto the 2.4.x series.
+</p><p>
+The only kernel which has been tested and compiles cleanly for Mr. Coffee
+and Krups is version 2.4.2.  All other versions are broken or require a
+patch.
+</p><p>
+The reason for this is that the sparc32 branch of the kernel has not had 
+an active maintainer for many months.  Some are contributing fixes, but
+without an active maintainer things go slow.
+</p><p>
+There is another reason to be weary of the 2.4.x series.  From 2.4.0 through
+2.4.9, the VM of the kernel was found to be inadequate under heavy loads,
+and was subsequently replaced in 2.4.10+.  This was a big change for the
+so-called "stable" series of kernels.
+</p><p>
+To add further insult to injury, there have been security flaws detected
+in all of 2.2.x kernel series and up through 2.4.12.  This is patched
+in pre-2.2.20 and 2.4.12+.  As of this writing, 2.4.12+ has not been checked
+by the author as functioning on the JavaStations.
+</p><p>
+So basically, it has been a crap-shoot over which kernel to choose. 
+Try a few until you find one that suits you best.
+</p><p>
+If you can not get a kernel to compile, or wish to avoid the headache or
+trying, you may try the samples pointed to by this document.
+</p></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="KernelBuild-RequiredKernelConfigOptionsSection"></a>4.4. Required Kernel Configuration Options</h3></div></div></div><p>
+When you do your <strong class="userinput"><code>make config</code></strong> command to enter the
+kernel configuration stage, there are a few things you are required to 
+enable.  Note that the following option names are from a 2.2.x kernel, 
+and may be slightly different on a 2.4.x series kernel.   If in doubt,
+check the sample files later in the chapter.
+</p><p>
+For all <span class="productname">JavaStations</span>&#8482;, you want to enable 
+<acronym class="acronym">PCI</acronym> support: 
+</p><pre class="screen">
+CONFIG_PCI=y 
+</pre><p>
+Don't forget your mouse: 
+</p><pre class="screen">
+CONFIG_BUSMOUSE=y 
+CONFIG_SUN_MOUSE=y 
+</pre><p>
+You'll want video, done with the <span class="application">Linux framebuffer interface</span>: 
+</p><pre class="screen">
+CONFIG_FB_TCX=y (for Mr. Coffee) 
+CONFIG_FB_PCI=y 
+CONFIG_FB_IGA=y (for Krups/Espresso) 
+</pre><p>
+Audio is done with the <span class="hardware">Crystal Audio 4231 chipset</span>: 
+</p><pre class="screen">
+CONFIG_SPARCAUDIO=y 
+CONFIG_SPARCAUDIO_CS4231=y 
+</pre><p>
+Don't forget your network interface: 
+</p><pre class="screen">
+CONFIG_SUNLANCE=y (Mr. Coffee) 
+CONFIG_HAPPYMEAL=y (Krups/Espresso) 
+</pre><p>
+You'll no doubt need to support a filesystem: 
+</p><pre class="screen">
+CONFIG_EXT2_FS=y 
+</pre><p>
+You'll want <acronym class="acronym">IP</acronym> autoconfiguration, and 
+<acronym class="acronym">RARP</acronym>/<acronym class="acronym">BOOTP</acronym> support: 
+</p><pre class="screen">
+CONFIG_IP_PNP=y 
+CONFIG_IP_PNP_BOOTP=y 
+CONFIG_IP_PNP_RARP=y 
+</pre><p>
+When doing the <span class="quote">&#8220;<span class="quote">NFS-Root</span>&#8221;</span> filesystem configuration, you will 
+need both <acronym class="acronym">NFS</acronym> and <acronym class="acronym">NFS</acronym>-Root support: 
+</p><pre class="screen">
+CONFIG_NFS_FS=y 
+CONFIG_ROOT_NFS=y 
+</pre><p>
+When doing the <span class="quote">&#8220;<span class="quote">Embedded-Root</span>&#8221;</span> filesystem, configure both 
+<acronym class="acronym">RAM</acronym> disks and <span class="quote">&#8220;<span class="quote">initial ramdisk</span>&#8221;</span> support: 
+</p><pre class="screen">
+CONFIG_BLK_DEV_RAM=y 
+CONFIG_BLK_DEV_INITRD=y   (for 2.4.x, also configure size of ramdisk)
+</pre><p>
+You can get a working <span class="quote">&#8220;<span class="quote">.config</span>&#8221;</span> file which has the required
+options set later in this chapter. 
+</p></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="KernelBuild-EmbeddedRootFSPatchSection"></a>4.5. Necessary Patch for <span class="quote">&#8220;<span class="quote">Embedded-Root</span>&#8221;</span> FS Configurations</h3></div></div></div><p>
+If you have decided to go with the <span class="quote">&#8220;<span class="quote">Embedded-Root</span>&#8221;</span> filesystem
+option, you will want to make a patch to the <acronym class="acronym">RAM</acronym>disk 
+driver source first. 
+</p><p>
+The default size of a <acronym class="acronym">RAM</acronym> disk when using the <acronym class="acronym">RAM
+</acronym>disk driver is 4 <acronym class="acronym">MB</acronym>.  Chances are that you will 
+want an embedded filesystem of more than that size, particularly when you 
+start thinking about running an <span class="application">X server</span>, or 
+including a <span class="application">Java</span> runtime. 
+</p><p>
+You can do this for 2.2.x kernels by a manual edit yourself, or by using the 
+patch pointed to below.  The change is a one-line edit in the file 
+&lt;LINUXROOT&gt;/drivers/block/rd.c .  Look for a line that says: 
+</p><pre class="screen">
+int rd_size = 4096; /* Size of the RAM disks */ 
+</pre><p>
+and change it to the size of the <acronym class="acronym">RAMdisk</acronym> you wish.  
+Typically, most embedded systems are under 16 <acronym class="acronym">MB</acronym>, so 
+a common edit is to change the line to: 
+</p><pre class="screen">
+int rd_size = 4 * 4096; /* Size of the RAM disks */ 
+</pre><p>
+If you can not do this, the patch below makes the edit for you.
+</p><p>
+4MB to 16MB kernel patch file is at:
+<a class="ulink" href="http://dubinski-family.org/~jshowto/Files/patches/ramdisk_patch.txt" target="_top">
+     http://dubinski-family.org/~jshowto/Files/patches/ramdisk_patch.txt
+</a>
+</p><p>
+Kernels in the 2.4.x series allow you to select the amount of RAM
+as a configuration option.  The patch is no longer needed for those
+kernels.
+</p><p>
+It should also be noted in this section that there is currently a limit on the
+size of <span class="application">Linux</span> boot image for all 
+<span class="productname">JavaStation</span>&#8482; models, due to the implementation
+of <span class="application">PROLL</span>.  This limit is technically 8 
+<acronym class="acronym">MB</acronym>.  This topic is mentioned again in 
+the <span class="quote">&#8220;<span class="quote">Questions and TroubleShooting</span>&#8221;</span> section of this document.
+</p></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="KernelBuild-BuildTheKernelSection"></a>4.6. Build the <span class="productname">JavaStation</span>&#8482;-Ready Kernel</h3></div></div></div><p>
+To build the kernel, you type <strong class="userinput"><code>make vmlinux</code></strong>.  If you 
+come from an <span class="hardware">x86 </span> Linux background, you might be 
+surprised that you do not perform a <strong class="userinput"><code>make bzImage</code></strong>
+or <strong class="userinput"><code>make zImage</code></strong>.  Do not be alarmed: this command
+is correct.
+</p><p>
+When the compile is finished, you will find a file named <span class="quote">&#8220;<span class="quote">vmlinux
+</span>&#8221;</span> in the kernel source root directory.  You are almost ready to
+put this kernel to use.
+</p></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="KernelBuild-elftoaout"></a>4.7. Convert Kernel from ELF to a.out format</h3></div></div></div><p>
+You need to make one more change to your kernel before it is ready for
+use.  You need to convert it from <acronym class="acronym">ELF</acronym> to <acronym class="acronym">AOUT
+</acronym> executable format.  You can do this with the <span class="quote">&#8220;<span class="quote">elftoaout
+</span>&#8221;</span> utility included in most <span class="application">Linux/SPARC</span> 
+distributions. 
+</p><p>
+To convert your kernel image to the <acronym class="acronym">AOUT</acronym> executable format, 
+you issue the command: 
+</p><pre class="screen">
+<strong class="userinput"><code>elftoaout -o vmlinux.aout vmlinux </code></strong>
+</pre><p>
+You will probably now want to rename the image file to a longer name 
+which includes the current date and kernel revision you used, so as not 
+to get confused with when you have multiple boot kernel images down the road.
+</p><p>
+The elftoaout program should come with your SparcLinux distribution.
+If not, try VGER or your favorite kernel mirror.
+</p></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="KernelBuild-KernelSamplesSection"></a>4.8. <span class="productname">JavaStation</span>&#8482;-Ready Kernel Images, 
+System.map and .config File Samples</h3></div></div></div><p>
+Here are some sample <span class="quote">&#8220;<span class="quote">.config</span>&#8221;</span> and <span class="productname">JavaStation
+</span>&#8482;-ready kernel images.  They were prepared and donated
+to help get you up-to-speed quickly.
+</p><p>
+Warning: Some of these kernel images are considered out of date,
+and should be avoided in a production environment.  It is up to
+you to decide how much of a liability you feel running them holds.
+The document author and kernel contributors cannot be held liable
+for any damage caused by the use of these kernels.  They are provided
+with absolutely no warranties.
+</p><p>
+If for some reason you have troubles downloading, try holding left-shift
+on your browser as you click the link.  Kernel images are compressed
+with bzip2 compression.  They must be uncompressed before use.  Kernel
+images are already converted to a.out format.
+</p><p>
+If you mirror these files, or can verify they work on a machine not yet
+confirmed, <span class="emphasis"><em>PLEASE</em></span> email me so I can add your information
+here.
+</p><div class="sect3"><div class="titlepage"><div><div><h4 class="title"><a name="KernelBuild-2.3.99pre3_embedded_RSD"></a>4.8.1. 2.3.99pre3_embedded_RSD</h4></div></div></div><p>
+.config (md5sum c59329ceb2e831f2502c1e410ece141c):
+<a class="ulink" href="http://dubinski-family.org/~jshowto/Files/kernels/2.3.99pre3_embedded_RSD/config__2.3.99pre3_embedded_RSD.txt" target="_top">
+     http://dubinski-family.org/~jshowto/Files/kernels/2.3.99pre3_embedded_RSD/config__2.3.99pre3_embedded_RSD.txt</a>
+</p><p>
+kernel (md5sum 8e8d28b13961b92e3f95e4ba98f6f319):
+<a class="ulink" href="http://dubinski-family.org/~jshowto/Files/kernels/2.3.99pre3_embedded_RSD/vmlinux__2.3.99pre3_embedded_RSD.bz2" target="_top">
+ http://dubinski-family.org/~jshowto/Files/kernels/2.3.99pre3_embedded_RSD/vmlinux__2.3.99pre3_embedded_RSD.bz2
+</a>
+</p><p>
+System.map (md5sum 43205a86fcb0b16ecae7313d38fcbb2c):
+<a class="ulink" href="http://dubinski-family.org/~jshowto/Files/kernels/2.3.99pre3_embedded_RSD/system.map__2.3.99pre3_embedded_RSD.txt" target="_top">
+ http://dubinski-family.org/~jshowto/Files/kernels/2.3.99pre3_embedded_RSD/system.map__2.3.99pre3_embedded_RSD.txt
+</a>
+</p><p>
+Description:
+</p><p>
+This kernel is donated by Robert Dubinski.  It was used at Marquette 
+University to build an embedded root boot image.  This is based off of the
+Mar. 17, 2000 CVS kernel.  It includes support for both Mr. Coffee and
+Krups machines.
+</p><p>
+Tested on Mr. Coffee: YES
+</p><p>
+Tested on Krups: YES
+</p><p>
+Tested on Espresso: NO
+</p></div><div class="sect3"><div class="titlepage"><div><div><h4 class="title"><a name="KernelBuild-2.3.99pre3_nfsroot_RSD"></a>4.8.2. 2.3.99pre3_nfsroot_RSD</h4></div></div></div><p>
+.config (md5sum e715370346ac298555dd7ce099c8f80a):
+<a class="ulink" href="http://dubinski-family.org/~jshowto/Files/kernels/2.3.99pre3_nfsroot_RSD/config__2.3.99pre3_nfsroot_RSD.txt" target="_top">
+     http://dubinski-family.org/~jshowto/Files/kernels/2.3.99pre3_nfsroot_RSD/config__2.3.99pre3_nfsroot_RSD.txt</a>
+</p><p>
+kernel (md5sum fd141e8e8f639df67427d5ecd0ecba76):
+<a class="ulink" href="http://dubinski-family.org/~jshowto/Files/kernels/2.3.99pre3_nfsroot_RSD/vmlinux__2.3.99pre3_nfsroot_RSD.bz2" target="_top">
+ http://dubinski-family.org/~jshowto/Files/kernels/2.3.99pre3_nfsroot_RSD/vmlinux__2.3.99pre3_nfsroot_RSD.bz2
+</a>
+</p><p>
+System.map (md5sum fd141e8e8f639df67427d5ecd0ecba76):
+<a class="ulink" href="http://dubinski-family.org/~jshowto/Files/kernels/2.3.99pre3_nfsroot_RSD/system.map__2.3.99pre3_nfsroot_RSD.txt" target="_top">
+ http://dubinski-family.org/~jshowto/Files/kernels/2.3.99pre3_nfsroot_RSD/system.map__2.3.99pre3_nfsroot_RSD.txt
+</a>
+</p><p>
+Description:
+</p><p>
+This kernel is donated by Robert Dubinski.  It was used at Marquette 
+University to prototype a filesystem.  This is based off of the
+Mar. 17, 2000 CVS kernel.  It includes support for both Mr. Coffee and
+Krups machines.
+</p><p>
+Tested on Mr. Coffee: YES
+</p><p>
+Tested on Krups: YES
+</p><p>
+Tested on Espresso: NO
+</p></div><div class="sect3"><div class="titlepage"><div><div><h4 class="title"><a name="KernelBuild-2.4.2_embedded_RSD"></a>4.8.3. 2.4.2_embedded_RSD</h4></div></div></div><p>
+.config (md5sum dd1a9dd2e92b9b175b7ba747c94edca7):
+<a class="ulink" href="http://dubinski-family.org/~jshowto/Files/kernels/2.4.2_embedded_RSD/config__2.4.2_embedded_RSD.txt" target="_top">
+     http://dubinski-family.org/~jshowto/Files/kernels/2.4.2_embedded_RSD/config__2.4.2_embedded_RSD.txt</a>
+</p><p>
+kernel (md5sum 5a1592b7e0a37909ae16374296a7070e):
+<a class="ulink" href="http://dubinski-family.org/~jshowto/Files/kernels/2.4.2_embedded_RSD/vmlinux__2.4.2_embedded_RSD.bz2" target="_top">
+ http://dubinski-family.org/~jshowto/Files/kernels/2.4.2_embedded_RSD/vmlinux__2.4.2_embedded_RSD.bz2
+</a>
+</p><p>
+System.map (md5sum 1de202e0fab7a9e661bebc80255605b7):
+<a class="ulink" href="http://dubinski-family.org/~jshowto/Files/kernels/2.4.2_embedded_RSD/system.map__2.4.2_embedded_RSD.txt" target="_top">
+ http://dubinski-family.org/~jshowto/Files/kernels/2.4.2_embedded_RSD/system.map__2.4.2_embedded_RSD.txt
+</a>
+</p><p>
+Description:
+</p><p>
+This kernel is donated by Robert Dubinski.  It is a demonstration kernel
+for the 2.4.x series, and has not been tested...yet.  It includes support 
+for both Mr. Coffee and Krups machines.
+</p><p>
+Tested on Mr. Coffee: NO
+</p><p>
+Tested on Krups: NO
+</p><p>
+Tested on Espresso: NO
+</p></div><div class="sect3"><div class="titlepage"><div><div><h4 class="title"><a name="KernelBuild-2.4.2_nfsroot_RSD"></a>4.8.4. 2.4.2_nfsroot_RSD</h4></div></div></div><p>
+.config (md5sum cabd1d98613ad169b372666b7eaa869b):
+<a class="ulink" href="http://dubinski-family.org/~jshowto/Files/kernels/2.4.2_nfsroot_RSD/config__2.4.2_nfsroot_RSD.txt" target="_top">
+     http://dubinski-family.org/~jshowto/Files/kernels/2.4.2_nfsroot_RSD/config__2.4.2_nfsroot_RSD.txt</a>
+</p><p>
+kernel (md5sum c24f42f72c58920c00ac7ff7aaffadde):
+<a class="ulink" href="http://dubinski-family.org/~jshowto/Files/kernels/2.4.2_nfsroot_RSD/vmlinux__2.4.2_nfsroot_RSD.bz2" target="_top">
+ http://dubinski-family.org/~jshowto/Files/kernels/2.4.2_nfsroot_RSD/vmlinux__2.4.2_nfsroot_RSD.bz2
+</a>
+</p><p>
+System.map (md5sum 6af2b374c7d3fc3f97d48ab71b335062):
+<a class="ulink" href="http://dubinski-family.org/~jshowto/Files/kernels/2.4.2_nfsroot_RSD/system.map__2.4.2_nfsroot_RSD.txt" target="_top">
+ http://dubinski-family.org/~jshowto/Files/kernels/2.4.2_nfsroot_RSD/system.map__2.4.2_nfsroot_RSD.txt
+</a>
+</p><p>
+Description:
+</p><p>
+This kernel is donated by Robert Dubinski.  It is a demonstration kernel
+for the 2.4.x series, and has not been tested...yet.  It includes support 
+for both Mr. Coffee and Krups machines.
+</p><p>
+Tested on Mr. Coffee: NO
+</p><p>
+Tested on Krups: NO
+</p><p>
+Tested on Espresso: NO
+</p></div><div class="sect3"><div class="titlepage"><div><div><h4 class="title"><a name="KernelBuild-OutsideFileMirrors"></a>4.8.5. Outside kernel mirrors</h4></div></div></div><p>
+Other sites mirror the kernels here or other kernel samples.
+Here are a few known sites as of Oct-31-2001:
+</p><div class="orderedlist"><ol class="orderedlist" type="1"><li class="listitem"><p>
+<a class="ulink" href="ftp://atari-source.com/pub/javastation/" target="_top">
+ftp://atari-source.com/pub/javastation/
+</a>
+</p></li><li class="listitem"><p>
+<a class="ulink" href="http://people.redhat.com/pjones/krups/" target="_top">
+http://people.redhat.com/pjones/krups
+</a>
+</p></li></ol></div></div></div></div><div class="navfooter"><hr><table width="100%" summary="Navigation footer"><tr><td width="40%" align="left"><a accesskey="p" href="ar01s03.html">Prev</a> </td><td width="20%" align="center"> </td><td width="40%" align="right"> <a accesskey="n" href="ar01s05.html">Next</a></td></tr><tr><td width="40%" align="left" valign="top">3. Background Requirements for <span class="application">Linux</span> on a 
+<span class="productname">JavaStation</span>&#8482; </td><td width="20%" align="center"><a accesskey="h" href="index.html">Home</a></td><td width="40%" align="right" valign="top"> 5. Build A <span class="productname">JavaStation</span>&#8482;-Ready FileSystem</td></tr></table></div></body></html>

@@ -1,0 +1,54 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1"><title>5. Expanding a snapshot</title><link rel="stylesheet" type="text/css" href="style.css"><meta name="generator" content="DocBook XSL Stylesheets V1.79.1"><link rel="home" href="index.html" title="EVMS User Guide"><link rel="up" href="ch11.html" title="Chapter 11. Creating snapshots"><link rel="prev" href="ch11s04.html" title="4. Reinitializing a snapshot"><link rel="next" href="ch11s06.html" title="6. Deleting a snapshot"></head><body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF"><div class="navheader"><table width="100%" summary="Navigation header"><tr><th colspan="3" align="center">5. Expanding a snapshot</th></tr><tr><td width="20%" align="left"><a accesskey="p" href="ch11s04.html">Prev</a> </td><th width="60%" align="center">Chapter 11. Creating snapshots</th><td width="20%" align="right"> <a accesskey="n" href="ch11s06.html">Next</a></td></tr></table><hr></div><div class="sect1"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="idm1775"></a>5. Expanding a snapshot</h2></div></div></div><p>
+As mentioned in <a class="xref" href="ch11s02.html" title="2. Creating snapshot objects">Section 2, &#8220;Creating snapshot objects&#8221;</a>, as data is 
+copied from the original volume to the snapshot, the space available
+for the snapshot might fill up, causing the snapshot to be invalidated.
+This situation might cause your data backup to end prematurely, as the
+snapshot volume begins returning I/O errors after it is invalidated.
+</p><p>
+To solve this problem, EVMS now has the ability to expand the storage
+space for a snapshot object while the snapshot volume is active and mounted.
+This feature allows you to initially create a small snapshot object and expand
+the object as necessary as the space begins to fill up.
+</p><p>
+In order to expand the snapshot object, the underlying object must
+be expandable.
+Continuing the example from the previous sections, the object "snap" is
+built on the LVM region <code class="filename">lvm/Sample Container/Sample Region</code>.
+When we refer to expanding the "snap" object, the region
+<code class="filename">lvm/Sample Container/Sample Region</code> is the 
+object that actually gets
+expanded, and the object "snap" simply makes use of the new space on
+that region.
+Thus, to have expandable snapshots, you will usually want to build
+your snapshot objects on top of LVM regions that have extra freespace
+available in their LVM container.  DriveLink objects and some disk
+segments also work in certain situations.
+</p><p>
+One notable quirk about expanding snapshots is that the snapshot
+object and volume do not actually appear to expand after the operation
+is complete.
+Because the snapshot volume is supposed to be a frozen image of the original
+volume, the snapshot volume always has the same size as the original,
+even if the snapshot has been expanded.
+However, you can verify that the snapshot object is using the
+additional space by displaying the details for the snapshot object
+and comparing the percent-full field before and after the expand operation.
+</p><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="idm1784"></a>5.1. Using the EVMS GUI or Ncurses</h3></div></div></div><p>To create the snapshot using the GUI or Ncurses, follow these steps:
+	</p><div class="orderedlist"><ol class="orderedlist" type="1"><li class="listitem"><p>Select
+		<span class="guimenu">Actions</span> &#8594; <span class="guimenuitem">Expand</span> &#8594; <span class="guimenuitem">Volume</span>
+		to see a list of EVMS feature objects.
+		</p></li><li class="listitem"><p>Select the volume <span class="guimenuitem">/dev/evms/snap</span>.</p></li><li class="listitem"><p>Click or activate <span class="guibutton">Next</span>.</p></li><li class="listitem"><p>Select <span class="guimenuitem">lvm/Sample Container/Sample Region</span>.
+		This object is the object that will actually be expanded.	</p></li><li class="listitem"><p>Click or activate <span class="guibutton">Next</span>.</p></li><li class="listitem"><p>Select the options for expanding the LVM region,
+		including the amount of extra space to add to the region.
+		</p></li><li class="listitem"><p>Click or activate <span class="guibutton">Expand</span>.
+		</p></li></ol></div><p>Alternatively, you can perform the same steps using the context sensitive menus.</p><div class="orderedlist"><ol class="orderedlist" type="1"><li class="listitem"><p>From the <span class="guilabel">Volumes</span> panel, right click (or press <span class="keycap"><strong>Enter</strong></span> on) 
+<span class="guimenuitem">/dev/evms/snap</span>.
+</p></li><li class="listitem"><p>Select <span class="guibutton">Expand</span> from the popup menu.</p></li><li class="listitem"><p>Click or activate <span class="guibutton">Next</span>.</p></li><li class="listitem"><p>Select the region <span class="guimenuitem">lvm/Sample Container/Sample Region</span>. This is the object that will
+actually be expanded.</p></li><li class="listitem"><p>Click or activate <span class="guibutton">Next</span>.</p></li><li class="listitem"><p>Select the options for expanding the LVM region, including the
+amount of extra space to add to the region.</p></li><li class="listitem"><p>Click or activate <span class="guibutton">Expand</span>.</p></li></ol></div></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="idm1835"></a>5.2. Using the CLI</h3></div></div></div><p>The CLI expands volumes by targeting the object to be
+expanded.
+The CLI automatically handles expanding the volume and other objects above the volume
+in the volume stock.  As with a regular expand operation, the options are determined
+by the plug-in that owns the object being expanded.</p><p>Issue the following command to determine the expand options for the
+region <code class="filename">lvm/Sample Container/Sample Region</code>:</p><pre class="programlisting">query:region,region="lvm/Sample Container/Sample Region",lo</pre><p>The option to use for expanding this region is called "add_size."
+Issue the following command to expand the snapshot by 100 MB:</p><pre class="programlisting">expand:"lvm/Sample Container/Sample Region", add_size=100MB</pre></div></div><div class="navfooter"><hr><table width="100%" summary="Navigation footer"><tr><td width="40%" align="left"><a accesskey="p" href="ch11s04.html">Prev</a> </td><td width="20%" align="center"><a accesskey="u" href="ch11.html">Up</a></td><td width="40%" align="right"> <a accesskey="n" href="ch11s06.html">Next</a></td></tr><tr><td width="40%" align="left" valign="top">4. Reinitializing a snapshot </td><td width="20%" align="center"><a accesskey="h" href="index.html">Home</a></td><td width="40%" align="right" valign="top"> 6. Deleting a snapshot</td></tr></table></div></body></html>

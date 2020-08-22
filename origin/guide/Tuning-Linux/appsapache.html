@@ -1,0 +1,334 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN""http://www.w3.org/TR/html4/loose.dtd">
+<HTML
+><HEAD
+><TITLE
+>Apache web server</TITLE
+><META
+NAME="GENERATOR"
+CONTENT="Modular DocBook HTML Stylesheet Version 1.79"><LINK
+REL="HOME"
+TITLE="Tuning Linux"
+HREF="index.html"><LINK
+REL="UP"
+TITLE="Application Tuning"
+HREF="apps.html"><LINK
+REL="PREVIOUS"
+TITLE="Routers and firewalls"
+HREF="appsfirewall.html"><LINK
+REL="NEXT"
+TITLE="Samba File Sharing"
+HREF="appssamba.html"></HEAD
+><BODY
+CLASS="SECTION"
+BGCOLOR="#FFFFFF"
+TEXT="#000000"
+LINK="#0000FF"
+VLINK="#840084"
+ALINK="#0000FF"
+><DIV
+CLASS="NAVHEADER"
+><TABLE
+SUMMARY="Header navigation table"
+WIDTH="100%"
+BORDER="0"
+CELLPADDING="0"
+CELLSPACING="0"
+><TR
+><TH
+COLSPAN="3"
+ALIGN="center"
+>Tuning Linux</TH
+></TR
+><TR
+><TD
+WIDTH="10%"
+ALIGN="left"
+VALIGN="bottom"
+><A
+HREF="appsfirewall.html"
+ACCESSKEY="P"
+>Prev</A
+></TD
+><TD
+WIDTH="80%"
+ALIGN="center"
+VALIGN="bottom"
+>Chapter 7. Application Tuning</TD
+><TD
+WIDTH="10%"
+ALIGN="right"
+VALIGN="bottom"
+><A
+HREF="appssamba.html"
+ACCESSKEY="N"
+>Next</A
+></TD
+></TR
+></TABLE
+><HR
+ALIGN="LEFT"
+WIDTH="100%"></DIV
+><DIV
+CLASS="SECTION"
+><H1
+CLASS="SECTION"
+><A
+NAME="APPSAPACHE"
+>7.5. Apache web server</A
+></H1
+><P
+>      Apache works best when it is delivering static content.  But if you're
+      only delivering static content, you should consider using
+      <SPAN
+CLASS="APPLICATION"
+>Tux</SPAN
+>, the Linux kernel HTTP server.
+    </P
+><P
+>      There are a number of small quick-tips you can use to increase the
+      throughput and responsiveness of Apache.
+    </P
+><P
+>      One such tip is to turn off DNS resolving in Apache.  When Apache receives
+      a request to send data to a remote server, Apache will request a reverse
+      DNS lookup on that IP address.  While the requests winds its way through
+      the DNS heirarchy, Apache is stuck waiting for the answer before it can
+      send the page back to the requesting client.  By turning this feature off,
+      Apache will merely log the IP address without name in its log file, and
+      then deliver the page.  A problem with this is if the machine is cracked
+      through the web server, you will have to do your own reverse DNS lookup to
+      find out what country and domain the machine is from.  A way to have the
+      best of both worlds is to run a caching-only name server run on the local
+      network or on the web server box itself.  This allows Apache to quickly
+      get the DNS information, and store a hostname and domain instead of just
+      an IP address.
+    </P
+><P
+>      Cutting the size of graphic images is also a way to improve performance.
+      Using algorithms such as JPG or PNM will cut the size of the image file
+      without reducing the quality of the image by much.  This allows more image
+      files to go out per second.
+    </P
+><P
+>      Instead of reinventing the wheel, see if Apache has a module for the
+      feature you need.  Modules for authentication against SMB, NIS, and LDAP
+      servers all exist for Apache, and you will not have to add the
+      functionality to your server side scripts.
+    </P
+><P
+>      Make sure your database is tuned properly.  This has been covered in
+      <A
+HREF="appsdatabase.html"
+>Section 7.3</A
+>, but a poorly tuned database can slow
+      everything down.  If you expect heavy usage, do not put the database and
+      web server on the same machine.  One machine running the database, and
+      another running the web server connected by high speed (gigabit Ethernet)
+      will allow both machines to operate quickly.
+    </P
+><P
+>      Since so many web sites are using server-based applications and CGI, it
+      makes sense to take a look at the server interpreters being used.  If you
+      use a language like Java that is known to be pretty slow, you can expect
+      lower performance as compared to using applications compiled in C.
+    </P
+><P
+>      But Java has its own advantages over C.  The biggest is that Java is
+      designed to be much more portable than C is.  Since Java is an object
+      oriented language, its code reuse is much better, allowing delopers to
+      create applications quicky.
+    </P
+><P
+>      There are three other major server languages used by Apache.  These are
+      Perl, Python, and PHP.  All three are included in most Linux
+      distributions, and if they're not on your system, each is easy to install
+      and get working.
+    </P
+><DIV
+CLASS="SECTION"
+><H2
+CLASS="SECTION"
+><A
+NAME="APPSAPACHEPERL"
+>7.5.1. Perl</A
+></H2
+><P
+>        Perl is pretty much the granddaddy of CGI and server programs.  It has
+	excellent string manipulation abilities, plenty of libraries to let you
+	create web applications quickly, and has drivers for just about anything
+	you want to do.  It is known as the programmer's swiss army knife, and
+	for good reason.
+      </P
+><P
+>        The downside to perl is that it is an interpreted language, meaning each
+	time a perl application is run, the perl interpreter has to be loaded,
+	the application has to be loaded into memory, and the interpreter has to
+	compile the application.  This can create a heavy load on a system.
+      </P
+><P
+>        
+        The best way around this is to use the mod_perl library with
+	<SPAN
+CLASS="APPLICATION"
+>apache</SPAN
+>.  This library first loads the perl
+	interpreter so it is always in memory and ready to run.  It also caches
+	frequently-used perl CGI scripts in memory already in a precompiled
+	state.  When a perl application starts up, many of the bottlenecks
+	(loading and interpreting) have already been done.
+        The cost to the sysadmin and programmer is that mod_perl takes up a lot
+	of memory, and its memory use will increase as more perl scripts are
+	added to a web server.
+      </P
+><DIV
+CLASS="NOTE"
+><P
+></P
+><TABLE
+CLASS="NOTE"
+WIDTH="100%"
+BORDER="0"
+><TR
+><TD
+WIDTH="25"
+ALIGN="CENTER"
+VALIGN="TOP"
+><IMG
+SRC="../images/note.png"
+HSPACE="5"
+ALT="Note"></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+>	  Adding more memory and CPU speed to a machine running mod_perl will
+	  improve its performance.
+	</P
+></TD
+></TR
+></TABLE
+></DIV
+></DIV
+><DIV
+CLASS="SECTION"
+><H2
+CLASS="SECTION"
+><A
+NAME="APPSAPACHEPYTHON"
+>7.5.2. Python</A
+></H2
+><P
+>        Python was one of the first of the interpreted languages to implement
+	object oriented programming, allowing programmers to reuse and share
+	code.  It also learned a bit from perl and it's interpreted nature by
+	comiling python code into a pre-compiled format.  This format is not
+	portable like Java, but does much of the grunt work of compiling a
+	python application.  The python interpreter then spends less time
+	compiling the application each time it's run.
+      </P
+><P
+>        Programmers may cringe a bit when they start writing in python.  Syntax
+	is much more strict than C or Perl, using tabs and newlines to delineate
+	parts of code.  And, like perl, python requires the interpreter to load
+	into memory and run.
+      </P
+><P
+>        There is also a mod_python for apache that operates simiar to mod_perl.
+	More memory and CPU speed will be a great improvement.
+      </P
+></DIV
+><DIV
+CLASS="SECTION"
+><H2
+CLASS="SECTION"
+><A
+NAME="APPSAPACHEPHP"
+>7.5.3. PHP</A
+></H2
+><P
+>        PHP is a relative newcomer to the languages listed here.  But PHP was
+	designed for server side applications.  The interpreter is a module in
+	<SPAN
+CLASS="APPLICATION"
+>apache</SPAN
+>, and PHP code can exist within a HTML
+	page, allowing authors to combine the web page and application into one
+	file.
+      </P
+><P
+>        PHP has two downsides to it from a programer's perspective.  First, PHP
+	is still relatively new.  It is not quite as seasoned as Perl or Python,
+	each of which have over ten years worth of development behind them.
+	Second, PHP does not have modules that can be easily loaded and used
+	like Perl and Python have.  If your implementation of PHP does not have
+	the graphics libraries installes, you will have to recompile PHP and add
+	them in.  Neither of these should prevent you from giving a serious look
+	at using PHP for your server side application.
+      </P
+></DIV
+></DIV
+><DIV
+CLASS="NAVFOOTER"
+><HR
+ALIGN="LEFT"
+WIDTH="100%"><TABLE
+SUMMARY="Footer navigation table"
+WIDTH="100%"
+BORDER="0"
+CELLPADDING="0"
+CELLSPACING="0"
+><TR
+><TD
+WIDTH="33%"
+ALIGN="left"
+VALIGN="top"
+><A
+HREF="appsfirewall.html"
+ACCESSKEY="P"
+>Prev</A
+></TD
+><TD
+WIDTH="34%"
+ALIGN="center"
+VALIGN="top"
+><A
+HREF="index.html"
+ACCESSKEY="H"
+>Home</A
+></TD
+><TD
+WIDTH="33%"
+ALIGN="right"
+VALIGN="top"
+><A
+HREF="appssamba.html"
+ACCESSKEY="N"
+>Next</A
+></TD
+></TR
+><TR
+><TD
+WIDTH="33%"
+ALIGN="left"
+VALIGN="top"
+>Routers and firewalls</TD
+><TD
+WIDTH="34%"
+ALIGN="center"
+VALIGN="top"
+><A
+HREF="apps.html"
+ACCESSKEY="U"
+>Up</A
+></TD
+><TD
+WIDTH="33%"
+ALIGN="right"
+VALIGN="top"
+>Samba File Sharing</TD
+></TR
+></TABLE
+></DIV
+></BODY
+></HTML
+>

@@ -1,0 +1,180 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN""http://www.w3.org/TR/html4/loose.dtd">
+<HTML
+><HEAD
+><TITLE
+>How sessions work in the forums</TITLE
+><META
+NAME="GENERATOR"
+CONTENT="Modular DocBook HTML Stylesheet Version 1.79"><LINK
+REL="HOME"
+TITLE="PHP-Nuke: Management and Programming"
+HREF="index.html"><LINK
+REL="UP"
+TITLE="Session management"
+HREF="session-management.html"><LINK
+REL="PREVIOUS"
+TITLE="Session management"
+HREF="session-management.html"><LINK
+REL="NEXT"
+TITLE="How to eliminate session checks"
+HREF="eliminate-session-checks.html"></HEAD
+><BODY
+CLASS="SECT1"
+BGCOLOR="#FFFFFF"
+TEXT="#000000"
+LINK="#0000FF"
+VLINK="#840084"
+ALINK="#0000FF"
+><DIV
+CLASS="NAVHEADER"
+><TABLE
+SUMMARY="Header navigation table"
+WIDTH="100%"
+BORDER="0"
+CELLPADDING="0"
+CELLSPACING="0"
+><TR
+><TH
+COLSPAN="3"
+ALIGN="center"
+>PHP-Nuke: Management and Programming</TH
+></TR
+><TR
+><TD
+WIDTH="10%"
+ALIGN="left"
+VALIGN="bottom"
+><A
+HREF="session-management.html"
+ACCESSKEY="P"
+>Prev</A
+></TD
+><TD
+WIDTH="80%"
+ALIGN="center"
+VALIGN="bottom"
+>Chapter 10. Session management</TD
+><TD
+WIDTH="10%"
+ALIGN="right"
+VALIGN="bottom"
+><A
+HREF="eliminate-session-checks.html"
+ACCESSKEY="N"
+>Next</A
+></TD
+></TR
+></TABLE
+><HR
+ALIGN="LEFT"
+WIDTH="100%"></DIV
+><DIV
+CLASS="SECT1"
+><H1
+CLASS="SECT1"
+><A
+NAME="HOW-SESSIONS-WORK"
+>10.1. How sessions work in the forums</A
+></H1
+><P
+>phpBB uses sessions to "track" users as they move between pages, forums, topics, etc. A session is made up of a unique 32 character session_id which identifies the current users. This value is stored in the sessions table and either a temporary (i.e. it's deleted when the browser window is closed) cookie on the users machine or if that doesn't seem to be working it's appended to all URLs.</P
+><P
+>The problem with using just a session_id is that it becomes very easy to hijack (takeover) a session. All a user need do is obtain the session_id and add it to the url as they browse the board. If the id they grab happens to be a logged in admin or moderator ... well you get the picture.</P
+><P
+>What we do to help complicate the situation is also tie the session to the users IP. Using this method someone would need to spoof an IP and obtain the session_id in order to hijack a session, not incredibly difficult but certainly harder ... and with this sort of software it's really a case of making everything harder to do, thus disuading all but the most ardent "hackers" from bothering to attempt anything.</P
+><P
+>How do we obtain this IP? We check the availability of two variables, REMOTE_ADDR and HTTP_X_FORWARDED_FOR. Firstly we check for HTTP_X_ ..., this is typically set by "nice" proxies, caches, etc. and contains "an" IP which may be the users "real" IP or some other IP. If that does not exist or it contains a private or restricted IP range (several blocks of IPs are reserved by the international bodies responsible for IP allocation) we instead use the value contained in REMOTE_ADDR. This variable typically contains the users real IP.</P
+><P
+>However, problems arise with how some ISPs operate their systems. Instead of forwarding the users real IP or indeed a different but static IP they simply make available only the IP of the proxy being browsed. The larger ISPs do not use a single proxy or cache, the load upon it and data passing through it would be far too great. Instead they use several systems in a "proxy farm" (I tend to refer to it as something containing most of those letters ... ). A user browsing the web may be switched between these machines from one page to another (to help distribute load), with the IP changing as they go.</P
+><P
+>Obviously a problem then exists in that phpBB's ability to tie a users session to a unique id and an IP fails ... because the IP is constantly changing. There are some "nice" ISPs out there that run these farms within a single "class" or block of IPs, e.g. 1.2.3.4, 1.2.3.5, 1.2.3.6, etc.</P
+><P
+>This is why in a previous release of phpBB we introduced a slightly reduced IP checking system which now checks only the first three "quads" of an IP, i.e. 1.2.3.4 is checked only for 1.2.3 the 4 is discarded. Remember, that an IPv4 address is 32bits wide, this is generally presented in the form of four 8 bit numbers. By checking just the first three numbers (24bits) we neglect 8 bits or 255 (253 in practice) possible IPs ... that's 253 seperate potential proxies ... IOW enough machines for practically any ISP on the planet. However we can go further and reduce that checking to just the first "two quads", that ignores 255 * 253 IPs!</P
+><P
+>The problem is some ISPs don't arrange their IP allocation particularly well, either for historical or other reasons ... AOL is one significant culprit. So what happens is that users can jump between completely different Class A (this is a full 32bit block of IPs) networks, e.g. 100.100.100.100 to 200.100.40.40, etc. This renders IP validation completely useless for such situations</P
+><P
+>So you ask, "Okay, but why did 2.0.3 not cause all these Invalid_session errors?!". The answer is fairly simple. When you first visit phpBB (assuming you have autologin enabled) it looks to see if you have a session_id (either in a cookie or the URL). On a new visit you won't have such a session_id and so phpBB creates a new one. If you have autologin set it checks the relevant data and if that matches you are logged in with the appropriate user_id. You can then immediately browse the board, post messages, do admin tasks (if applicable), etc.</P
+><P
+>Now let's take a situation where a naughty person creates a bogus form on their site. You are (for some reason) browsing this form. However, unknown to you this form contains all the necessary data to delete a pile of topics in a given forum (you having moderator rights on a certain board). When you submit that form it will be transmitted to the appropriate website. No session exists so phpBB, as noted above creates a new one and immediately processes the form data ... all the relevant topics are deleted from the database and you only find out when the boards "The selected topics have been deleted" message appears ...</P
+><P
+>To help negate the effectiveness of this we backported some code from phpBB 2.2 and introduced additional code. The admin control panel now appends your session_id to every url. When you browse within that panel it checks the session_id in the url with that stored in the sessions table. If they match, great, if they don't it redirects you back to the ACP index. This will help prevent users accidently, without their knowledge suffering issues as noted above.</P
+><P
+>Similarly the Moderator control panel has the session_id appended to urls and carries out a check. The difference here is that it throws up an Invalid session if the ids do not match, note that redirection like the admin panel wouldn't alter the result here ... if you tried submitting data via the MCP with an invalid session you'd just be returned to MCP front page ... losing any data entered previously. Other issues with voting and posting were also addressed thanks to a concerned user notifying us. Thus similar checks were put in place there.</P
+><P
+>The problem is that for users whose session is forever being renewed due to their IP changing this extra level of checking can cause issues. For many ISPs the noted changing of 6 to 4 in the IP validation check will be sufficient ... however AOL crops up (as per usual in nearly all similar situations with all software ...) as the sore thumb.</P
+><P
+>"What can you do about it?" you may ask, very little is the response. We could remove the extra validation but that leaves a gap that frankly I'm not prepared to leave ... if hadn't addressed this I would make a handsome bet that at some near future point we would've had users shouting and screaming about how damage was done to their boards and why didn't we (phpBB) fix it if we knew about it</P
+><P
+>What else can we do? As I said, very little that won't impact users completely unaffected by this issue (of which I'm betting there are a great many) ... in phpBB 2.2 we are introducing a feature to set the level of IP validation by the ACP, including disabling it completely. However disabling IP validation will, as noted leave your users open to simplified hijacking. For many people this may not be a problem and thus could be a solution. To do this in phpBB 2.0 you need to either remove the validation code from sessions.php or change the 6 to a 0 (the relevant lines are as noted in this topic). Be aware of what you are doing though and keep quiet about it ... if people don't know IP validation isn't operational they may believe it still is. If you have security issues you can trace to users sessions being hijacked we don't want to know about it</P
+><P
+>We could introduce a change to sessions whereby what happens when a new session is created is "weakened". What do I mean by weakened? Well, at present we generate a new session whenever we cannot validate an existing one. Instead what we could do is compare the users current session_id (if they have one) with that in the database. If a match is found and the time differential is some "small" number we instead continue that session. The problem here is that it's just as open to hijacking as removing IP validation. Why? Because that check will ignore the users IP and care only about the session_id ... and thus isn't something I'm keen on without direct admin control.</P
+><P
+>We could, as per a new Mod listed elsewhere on the board, ignore IP validation whenever the users IP is within a given list. While this isn't as bad as removing validation completely it's not terribly far off. Why? Because instead of having to go to some trouble to obtain a users current IP you can instead (given you know a user connects via a given ISP or proxy) just look it up ... you still need to spoof it but a step has been removed ... and as noted previously all we can do is make these peoples lives harder. There are additional issues with the extra processing required (which may or may not be significant depending on the number of IPs, users browsing, etc.) and of keeping the list up to date.</P
+><P
+>We could append a random set of alphanumerics to every single page, changing the value of it with every page view and storing the new data in the sessions table. This would add protection because a hijacker would need not only the session_id but also the current unique identifier. Of all the ideas this is probably my favourite and may make it into a future release (unless I've missed something obvious which renders it useless or bad for performance!).</P
+></DIV
+><DIV
+CLASS="NAVFOOTER"
+><HR
+ALIGN="LEFT"
+WIDTH="100%"><TABLE
+SUMMARY="Footer navigation table"
+WIDTH="100%"
+BORDER="0"
+CELLPADDING="0"
+CELLSPACING="0"
+><TR
+><TD
+WIDTH="33%"
+ALIGN="left"
+VALIGN="top"
+><A
+HREF="session-management.html"
+ACCESSKEY="P"
+>Prev</A
+></TD
+><TD
+WIDTH="34%"
+ALIGN="center"
+VALIGN="top"
+><A
+HREF="index.html"
+ACCESSKEY="H"
+>Home</A
+></TD
+><TD
+WIDTH="33%"
+ALIGN="right"
+VALIGN="top"
+><A
+HREF="eliminate-session-checks.html"
+ACCESSKEY="N"
+>Next</A
+></TD
+></TR
+><TR
+><TD
+WIDTH="33%"
+ALIGN="left"
+VALIGN="top"
+>Session management</TD
+><TD
+WIDTH="34%"
+ALIGN="center"
+VALIGN="top"
+><A
+HREF="session-management.html"
+ACCESSKEY="U"
+>Up</A
+></TD
+><TD
+WIDTH="33%"
+ALIGN="right"
+VALIGN="top"
+>How to eliminate session checks</TD
+></TR
+></TABLE
+></DIV
+></BODY
+></HTML
+>

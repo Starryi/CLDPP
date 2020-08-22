@@ -1,0 +1,80 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1"><title>1. boot parameters</title><link rel="stylesheet" type="text/css" href="style.css"><meta name="generator" content="DocBook XSL Stylesheets V1.79.1"><link rel="home" href="index.html" title="The Linux 2.4 SCSI subsystem HOWTO"><link rel="up" href="ch08.html" title="Chapter 8. Mid Level, Unifying layer"><link rel="prev" href="ch08.html" title="Chapter 8. Mid Level, Unifying layer"><link rel="next" href="ch08s02.html" title="2. module parameters"></head><body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF"><div class="navheader"><table width="100%" summary="Navigation header"><tr><th colspan="3" align="center">1. boot parameters</th></tr><tr><td width="20%" align="left"><a accesskey="p" href="ch08.html">Prev</a> </td><th width="60%" align="center">Chapter 8. Mid Level, Unifying layer</th><td width="20%" align="right"> <a accesskey="n" href="ch08s02.html">Next</a></td></tr></table><hr></div><div class="sect1"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="mlbparams"></a>1. boot parameters</h2></div></div></div><p>
+SCSI drivers that are built into the kernel are checked in a pre-determined
+order to see if HBAs that they can control are present. The user has no
+control over this order which in most cases is
+arbitrary but in the case of some older ISA adapters is required to stop
+misidentification
+<a href="#ftn.idm371" class="footnote" name="idm371"><sup class="footnote">[6]</sup></a>
+.
+</p><pre class="programlisting">
+
+scsi_logging=&lt;n&gt;
+    where &lt;n&gt; is 0 to turn logging off
+    where &lt;n&gt; is non-zero to turn logging on
+
+max_scsi_luns=&lt;n&gt;
+    where &lt;n&gt; is a number between 1 and 8 (&lt; lk 2.4.7),
+    	&gt;= lk 2.4.7 the upper limit can be much larger
+
+scsi_allow_ghost_devices=&lt;n&gt;
+    where (&lt;n&gt; - 1) is the maximum lu number to ghost if the
+        the corresponding device is offline. When &lt;n&gt;==0
+        (default) then don't ghost any devices (in lk 2.4.26
+        and later)
+
+scsihosts=host0:hosts1::host3 
+</pre><p>
+</p><p>
+The recently introduced devfs defines a "scsihosts"
+boot time parameter to give the user some control over this. See the
+devfs documentation [ref: <a class="link" href="apf.html#W5">W5</a>] for a description.
+The host names given in the list to the "scsihosts" boot option are
+the names of lower level drivers (e.g. "scsihosts=advansys:imm::ide-scsi").
+<a href="#ftn.idm377" class="footnote" name="idm377"><sup class="footnote">[7]</sup></a>
+<a href="#ftn.idm383" class="footnote" name="idm383"><sup class="footnote">[8]</sup></a>
+Devfs does not need to be present for "scsihosts" to be used. The
+"scsihosts" parameter, if given, is echoed during in the boot up messages.
+For example:
+</p><pre class="programlisting">
+scsi: host order: advansys:imm::ide-scsi
+</pre><p>
+Also if multiple HBA are present in a system then they are scanned in
+a fixed order (see footnote). The "scsihosts" parameter only effects how
+these HBAs are indexed (i.e. which SCSI adapter numbers are associated with
+them by the kernel). In the above example, if the "imm" driver is not found
+during boot up, then the scsi adapter number "1" is not allocated. If the
+"imm" driver is later loaded as a module, then it will adopt scsi adapter
+number "1". If a driver that is not named in "scsihosts" is found, then
+it will get the next available scsi adapter number (e.g. a built in
+aic7xxx driver would get scsi adapter number "2" in the above example).
+</p><p>
+A full list of kernel parameters with some explanations can be found
+in the file <code class="filename">/usr/src/linux/Documentation/kernel-parameters.txt
+</code>.
+</p><div class="footnotes"><br><hr style="width:100; text-align:left;margin-left: 0"><div id="ftn.idm371" class="footnote"><p><a href="#idm371" class="para"><sup class="para">[6] </sup></a>
+PCI adapters are much "safer" for initialization code than the older ISA
+adapters. Hence the order of initialization of PCI adapters is unlikely
+to lead to lockups. In this case the order of initialization (and thus
+SCSI adapter numbers) of built in drivers may be modified by changing the
+order of entries in the SCSI subsystem Makefile (<code class="filename">
+/usr/src/linux/drivers/scsi/Makefile</code>). Beware: some adapters
+may be recognized by more than one lower level driver (e.g. those
+based on NCR chipsets).
+</p></div><div id="ftn.idm377" class="footnote"><p><a href="#idm377" class="para"><sup class="para">[7] </sup></a>
+Either comma or colon can be delimiters for "scsihosts". This means that
+"scsihosts=advansys,imm,,ide-scsi" is also valid. Also if a machine's
+boot sequence involves an "initrd" stage (look in 
+<code class="filename">/etc/grub.conf</code> or <code class="filename">/etc/lilo.conf</code>
+to find out if this is the case), then the <span class="command"><strong>mkinitrd</strong></span>
+command should be run after a change to the "scsihosts" boot time parameter.
+This will generate a new initrd image that needs to be put in the
+correct place (most probably in the <code class="filename">/boot</code>
+directory).
+</p></div><div id="ftn.idm383" class="footnote"><p><a href="#idm383" class="para"><sup class="para">[8] </sup></a>
+Using "scsihosts" can lead to a situation in which the computer's BIOS finds
+the boot track (and hence boot time parameters set in lilo or grub) on one
+disk while the kernel finds the root partition on another disk. This can
+be quite confusing when it is unplanned. Hence after changing (or adding)
+"scsihosts" in lilo or grub's configuration, it may be wise to boot the
+machine to see which disks are accessed.
+</p></div></div></div><div class="navfooter"><hr><table width="100%" summary="Navigation footer"><tr><td width="40%" align="left"><a accesskey="p" href="ch08.html">Prev</a> </td><td width="20%" align="center"><a accesskey="u" href="ch08.html">Up</a></td><td width="40%" align="right"> <a accesskey="n" href="ch08s02.html">Next</a></td></tr><tr><td width="40%" align="left" valign="top">Chapter 8. Mid Level, Unifying layer </td><td width="20%" align="center"><a accesskey="h" href="index.html">Home</a></td><td width="40%" align="right" valign="top"> 2. module parameters</td></tr></table></div></body></html>

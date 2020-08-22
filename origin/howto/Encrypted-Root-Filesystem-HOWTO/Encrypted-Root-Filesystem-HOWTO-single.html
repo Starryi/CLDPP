@@ -1,0 +1,440 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1"><title>Encrypted Root Filesystem HOWTO</title><link rel="stylesheet" type="text/css" href="style.css"><meta name="generator" content="DocBook XSL Stylesheets V1.79.1"><meta name="description" content="This document explains how to make your personal data secure by encrypting your Linux root filesystem using strong cryptography."></head><body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF"><div class="article"><div class="titlepage"><div><div><h2 class="title"><a name="Encrypted-Root-Filesystem-HOWTO"></a>Encrypted Root Filesystem HOWTO</h2></div><div><div class="author"><h3 class="author"><span class="firstname">Christophe</span> <span class="surname">Devine</span></h3></div></div><div><div class="legalnotice"><a name="idm9"></a><p>
+This HOWTO is released under the GNU Free Documentation License
+Version 1.2.
+        </p></div></div><div><div class="revhistory"><table style="border-style:solid; width:100%;" summary="Revision History"><tr><th align="left" valign="top" colspan="3"><b>Revision History</b></th></tr><tr><td align="left">Revision v1.3</td><td align="left">2005-03-13</td><td align="left">cd</td></tr><tr><td align="left" colspan="3">Updated the packages version.</td></tr><tr><td align="left">Revision v1.2</td><td align="left">2004-10-20</td><td align="left">cd</td></tr><tr><td align="left" colspan="3">Updated the packages version.</td></tr><tr><td align="left">Revision v1.1</td><td align="left">2003-12-01</td><td align="left">cd</td></tr><tr><td align="left" colspan="3">Added support for GRUB.</td></tr><tr><td align="left">Revision v1.0</td><td align="left">2003-09-24</td><td align="left">cd</td></tr><tr><td align="left" colspan="3">Initial release, reviewed by LDP.</td></tr><tr><td align="left">Revision v0.9</td><td align="left">2003-09-11</td><td align="left">cd</td></tr><tr><td align="left" colspan="3">Updated and converted to DocBook XML.</td></tr></table></div></div><div><div class="abstract"><p class="title"><b>Abstract</b></p><p>
+This document explains how to make your personal data secure
+by encrypting your Linux root filesystem using strong cryptography.
+        </p></div></div></div><hr></div><div class="toc"><p><b>Table of Contents</b></p><dl class="toc"><dt><span class="sect1"><a href="#preparing-system">1. Preparing the system</a></span></dt><dd><dl><dt><span class="sect2"><a href="#partition-layout">1.1. Setting up the partition layout</a></span></dt><dt><span class="sect2"><a href="#debian-packages">1.2. Required packages</a></span></dt><dt><span class="sect2"><a href="#install-kernel-2.4">1.3. Installing Linux-2.4.29</a></span></dt><dt><span class="sect2"><a href="#install-kernel-2.6">1.4. Installing Linux-2.6.10</a></span></dt><dt><span class="sect2"><a href="#install-util-linux">1.5. Installing util-linux-2.12p</a></span></dt></dl></dd><dt><span class="sect1"><a href="#encrypt-root-filesystem">2. Creating the encrypted root filesystem</a></span></dt><dt><span class="sect1"><a href="#setup-boot-device">3. Setting up the boot device</a></span></dt><dd><dl><dt><span class="sect2"><a href="#initial-ramdisk">3.1. Creating the ramdisk</a></span></dt><dt><span class="sect2"><a href="#bootable-cd">3.2. Booting from a CD-ROM</a></span></dt><dt><span class="sect2"><a href="#boot-partition">3.3. Booting from a HD partition</a></span></dt></dl></dd><dt><span class="sect1"><a href="#final-steps">4. Final steps</a></span></dt><dt><span class="sect1"><a href="#about">5. About this HOWTO</a></span></dt></dl></div><div class="sect1"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="preparing-system"></a>1. Preparing the system</h2></div></div></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="partition-layout"></a>1.1. Setting up the partition layout</h3></div></div></div><p>
+Your hard disk (hda) should contain at least three partitions:
+        </p><div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem"><p>
+hda1: this small unencrypted partition will ask for
+a password in order to mount the encrypted root filesystem.
+            </p></li><li class="listitem"><p>
+hda2: this partition will contain your encrypted root filesystem;
+make sure it is large enough.
+            </p></li><li class="listitem"><p>
+hda3: this partition holds the current GNU/Linux system.
+            </p></li></ul></div><p>
+        </p><p>
+At this point, both hda1 and hda2 are unused. hda3 is where your
+Linux distribution is currently installed; /usr and /boot must
+<span class="emphasis"><em>not</em></span> be separated from this partition.
+        </p><p>
+Here's an example of what your partition layout might look like:
+        </p><p>
+</p><pre class="screen"># fdisk -l /dev/hda
+
+Disk /dev/hda: 255 heads, 63 sectors, 2432 cylinders
+Units = cylinders of 16065 * 512 bytes
+
+   Device Boot    Start       End    Blocks   Id  System
+/dev/hda1             1         1      8001   83  Linux
+/dev/hda2             2       263   2104515   83  Linux
+/dev/hda3           264       525   2104515   83  Linux
+/dev/hda4           526      2047  12225465   83  Linux</pre><p>
+        </p></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="debian-packages"></a>1.2. Required packages</h3></div></div></div><p>
+If you use Debian, the following packages are mandatory:
+        </p><p>
+</p><pre class="screen">apt-get install gcc make libncurses5-dev patch bzip2 wget</pre><p>
+        </p><p>
+To make copy &amp; paste easier, you should also install:
+        </p><p>
+</p><pre class="screen">apt-get install lynx gpm</pre><p>
+        </p></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="install-kernel-2.4"></a>1.3. Installing Linux-2.4.29</h3></div></div></div><p>
+There are two main projects which add loopback encryption support in the
+kernel: cryptoloop and loop-AES. This howto is based on loop-AES, since it
+features an extremely fast and highly optimized implementation of Rijndael
+in assembly language, and therefore provides maximum performance if
+you have an IA-32 (x86) CPU. Besides, there are some
+<a class="ulink" href="http://groups.google.com/groups?selm=1emrG-1Ck-25%40gated-at.bofh.it" target="_top">security concerns</a>
+about cryptoloop.
+        </p><p>
+First of all, download and unpack the loop-AES package:
+        </p><p>
+</p><pre class="screen">cd /usr/src
+wget http://loop-aes.sourceforge.net/loop-AES/loop-AES-v3.0b.tar.bz2
+tar -xvjf loop-AES-v3.0b.tar.bz2</pre><p>
+        </p><p>
+Then you must download and patch the kernel source:
+        </p><p>
+</p><pre class="screen">wget http://ftp.kernel.org/pub/linux/kernel/v2.4/linux-2.4.29.tar.bz2
+tar -xvjf linux-2.4.29.tar.bz2
+cd linux-2.4.29
+rm include/linux/loop.h drivers/block/loop.c
+patch -Np1 -i ../loop-AES-v3.0b/kernel-2.4.28.diff</pre><p>
+        </p><p>
+Setup the keyboard map:
+        </p><p>
+</p><pre class="screen">dumpkeys | loadkeys -m - &gt; drivers/char/defkeymap.c</pre><p>
+        </p><p>
+Next, configure your kernel; make sure the following options are set:
+        </p><p>
+</p><pre class="screen">make menuconfig
+
+    Block devices  ---&gt;
+
+        &lt;*&gt; Loopback device support
+        [*]   AES encrypted loop device support (NEW)
+
+        &lt;*&gt; RAM disk support
+        (4096)   Default RAM disk size (NEW)
+        [*]   Initial RAM disk (initrd) support
+
+    File systems  ---&gt;
+
+        &lt;*&gt; Ext3 journalling file system support
+        &lt;*&gt; Second extended fs support
+
+(important note: do not enable /dev file system support)</pre><p>
+        </p><p>
+Compile the kernel and install it:
+        </p><p>
+</p><pre class="screen">make dep bzImage
+make modules modules_install
+cp arch/i386/boot/bzImage /boot/vmlinuz</pre><p>
+        </p><p>
+If grub is your bootloader, update /boot/grub/menu.lst
+or /boot/grub/grub.conf:
+        </p><p>
+</p><pre class="screen">cat &gt; /boot/grub/menu.lst &lt;&lt; EOF
+default 0
+timeout 10
+color green/black light-green/black
+title Linux
+    root (hd0,2)
+    kernel /boot/vmlinuz ro root=/dev/hda3
+EOF</pre><p>
+        </p><p>
+Otherwise, update /etc/lilo.conf and run lilo:
+        </p><p>
+</p><pre class="screen">cat &gt; /etc/lilo.conf &lt;&lt; EOF
+lba32
+boot=/dev/hda
+prompt
+timeout=60
+image=/boot/vmlinuz
+    label=Linux
+    read-only
+    root=/dev/hda3
+EOF
+lilo</pre><p>
+        </p><p>
+You may now restart the system.
+        </p></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="install-kernel-2.6"></a>1.4. Installing Linux-2.6.10</h3></div></div></div><p>
+Proceed as described in the previous section, using loop-aes'
+<span class="emphasis"><em>kernel-2.6.10.diff</em></span> patch instead, and make
+sure cryptoloop support is <span class="emphasis"><em>not</em></span> activated.
+Note that modules support require that you have the module-init-tools
+package installed.
+        </p></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="install-util-linux"></a>1.5. Installing util-linux-2.12p</h3></div></div></div><p>
+The losetup program, which is part of the util-linux package, must be
+patched and recompiled in order to add strong cryptography support.
+Download, unpack and patch util-linux:
+        </p><p>
+</p><pre class="screen">cd /usr/src
+wget http://ftp.kernel.org/pub/linux/utils/util-linux/util-linux-2.12p.tar.bz2
+tar -xvjf util-linux-2.12p.tar.bz2
+cd util-linux-2.12p
+patch -Np1 -i ../loop-AES-v3.0b/util-linux-2.12p.diff</pre><p>
+        </p><p>
+To use passwords that are less than 20 characters, enter:
+        </p><p>
+</p><pre class="screen">CFLAGS="-O2 -DLOOP_PASSWORD_MIN_LENGTH=8"; export CFLAGS</pre><p>
+        </p><p>
+Security is certainly your major concern. For this reason, please do not
+enable passwords shorter than 20 characters. Data privacy is not free,
+one has to 'pay' in form of long passwords.
+        </p><p>
+Compile losetup and install it as root:
+        </p><p>
+</p><pre class="screen">./configure &amp;&amp; make lib mount
+mv -f /sbin/losetup /sbin/losetup~
+rm -f /usr/share/man/man8/losetup.8*
+cd mount
+gzip losetup.8
+cp losetup /sbin
+cp losetup.8.gz /usr/share/man/man8/
+chattr +i /sbin/losetup</pre><p>
+        </p></div></div><div class="sect1"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="encrypt-root-filesystem"></a>2. Creating the encrypted root filesystem</h2></div></div></div><p>
+Fill the target partition with random data:
+    </p><p>
+</p><pre class="screen">shred -n 1 -v /dev/hda2</pre><p>
+    </p><p>
+Setup the encrypted loopback device:
+    </p><p>
+</p><pre class="screen">losetup -e aes256 -S xxxxxx /dev/loop0 /dev/hda2</pre><p>
+    </p><p>
+To prevent optimized dictionary attacks, it is recommended to add
+the -S xxxxxx option, where "xxxxxx" is your randomly chosen
+seed (for example, you might choose "gPk4lA"). Write down your seed on
+a piece of paper so that you don't loose it afterwards. Also, in order
+to avoid boot-time problems with the keyboard map, do not use non-ASCII
+characters (accents, etc.) in your password. The
+<a class="ulink" href="http://www.diceware.com/" target="_top">Diceware</a> site offers
+a simple way to create strong, yet easy to remember, passphrases.
+    </p><p>
+Now create the ext3 filesystem:
+    </p><p>
+</p><pre class="screen">mke2fs -j /dev/loop0</pre><p>
+    </p><p>
+Check that the password you entered is correct:
+    </p><p>
+</p><pre class="screen">losetup -d /dev/loop0
+losetup -e aes256 -S xxxxxx /dev/loop0 /dev/hda2</pre><p>
+    </p><p>
+</p><pre class="screen">mkdir /mnt/efs
+mount /dev/loop0 /mnt/efs</pre><p>
+    </p><p>
+You can compare the encrypted and unencrypted data:
+    </p><p>
+</p><pre class="screen">xxd /dev/hda2  | less
+xxd /dev/loop0 | less</pre><p>
+    </p><p>
+It's time to install your encrypted Linux system. If you use a GNU/Linux
+distribution (such as Debian, Slackware, Gentoo, Mandrake, RedHat/Fedora,
+SuSE, etc.), run the following command:
+    </p><p>
+</p><pre class="screen">cp -avx / /mnt/efs</pre><p>
+    </p><p>
+If you use the Linux From Scratch book, proceed as described in
+the manual, with the modifications below:
+        </p><div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem"><p>Chapter 6 - Installing util-linux:</p><p>Apply the loop-AES patch after unpacking the sources.</p></li><li class="listitem"><p>Chapter 8 - Making the LFS system bootable:</p><p>Refer to the next section (Setting up the boot device).</p></li></ul></div><p>
+    </p></div><div class="sect1"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="setup-boot-device"></a>3. Setting up the boot device</h2></div></div></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="initial-ramdisk"></a>3.1. Creating the ramdisk</h3></div></div></div><p>
+To begin with, chroot inside the encrypted partition and create
+the boot device mount point:
+        </p><p>
+</p><pre class="screen">chroot /mnt/efs
+mkdir /loader</pre><p>
+        </p><p>
+Then, create the initial ramdisk (initrd), which will be needed
+afterwards:
+        </p><p>
+</p><pre class="screen">cd
+dd if=/dev/zero of=initrd bs=1k count=4096
+mke2fs -F initrd
+mkdir ramdisk
+mount -o loop initrd ramdisk</pre><p>
+        </p><p>
+If you're using grsecurity, you may get a "Permission denied" error
+message; in this case you'll have to run the mount command outside chroot.
+        </p><p>
+Create the filesystem hierarchy and copy the required files in it:
+    </p><p>
+</p><pre class="screen">mkdir ramdisk/{bin,dev,lib,mnt,sbin}
+cp /bin/{bash,mount} ramdisk/bin/
+ln -s bash ramdisk/bin/sh
+mknod -m 600 ramdisk/dev/console c 5 1
+mknod -m 600 ramdisk/dev/hda2    b 3 2
+mknod -m 600 ramdisk/dev/loop0   b 7 0
+cp /lib/{ld-linux.so.2,libc.so.6,libdl.so.2} ramdisk/lib/
+cp /lib/{libncurses.so.5,libtermcap.so.2}    ramdisk/lib/
+cp /sbin/{losetup,pivot_root} ramdisk/sbin/</pre><p>
+    </p><p>
+It's ok if you see a message like "/lib/libncurses.so.5: No such file
+or directory", or "/lib/libtermcap.so.2: No such file or directory";
+bash only requires one of these two libraries. You can check which one
+is actually required with:
+    </p><p>
+</p><pre class="screen">ldd /bin/bash</pre><p>
+    </p><p>
+Compile the sleep program, which will prevent the password prompt
+being flooded by kernel messages (such as usb devices being registered).
+    </p><p>
+</p><pre class="screen">cat &gt; sleep.c &lt;&lt; "EOF"
+#include &lt;unistd.h&gt;
+#include &lt;stdlib.h&gt;
+
+int main( int argc, char *argv[] )
+{
+    if( argc == 2 )
+        sleep( atoi( argv[1] ) );
+
+    return( 0 );
+}
+EOF
+
+gcc -s sleep.c -o ramdisk/bin/sleep
+rm sleep.c</pre><p>
+    </p><p>
+Create the init script:
+    </p><p>
+</p><pre class="screen">cat &gt; ramdisk/sbin/init &lt;&lt; "EOF"
+#!/bin/sh
+
+/bin/sleep 3
+
+echo -n "Enter seed value: "
+read SEED
+
+/sbin/losetup -e aes256 -S $SEED /dev/loop0 /dev/hda2
+/bin/mount -r -n -t ext3 /dev/loop0 /mnt
+
+while [ $? -ne 0 ]
+do
+    /sbin/losetup -d /dev/loop0
+    /sbin/losetup -e aes256 -S $SEED /dev/loop0 /dev/hda2
+    /bin/mount -r -n -t ext3 /dev/loop0 /mnt
+done
+
+cd /mnt
+/sbin/pivot_root . loader
+exec /usr/sbin/chroot . /sbin/init
+EOF
+
+chmod 755 ramdisk/sbin/init</pre><p>
+    </p><p>
+Umount the loopback device and compress the initrd:
+    </p><p>
+</p><pre class="screen">umount -d ramdisk
+rmdir ramdisk
+gzip initrd
+mv initrd.gz /boot/</pre><p>
+    </p></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="bootable-cd"></a>3.2. Booting from a CD-ROM</h3></div></div></div><p>
+I strongly advise you to start your system with a read-only
+media, such as a bootable CD-ROM.
+        </p><p>
+Download and unpack syslinux:
+        </p><p>
+</p><pre class="screen">wget http://ftp.kernel.org/pub/linux/utils/boot/syslinux/syslinux-3.07.tar.bz2
+tar -xvjf syslinux-3.07.tar.bz2</pre><p>
+        </p><p>
+Configure isolinux:
+        </p><p>
+</p><pre class="screen">mkdir bootcd
+cp /boot/{vmlinuz,initrd.gz} syslinux-3.07/isolinux.bin bootcd
+echo "DEFAULT /vmlinuz initrd=initrd.gz ro root=/dev/ram0" \
+    &gt; bootcd/isolinux.cfg</pre><p>
+        </p><p>
+Create and burn the bootable cd-rom iso image:
+        </p><p>
+</p><pre class="screen">mkisofs -o bootcd.iso -b isolinux.bin -c boot.cat \
+        -no-emul-boot -boot-load-size 4 -boot-info-table \
+        -J -hide-rr-moved -R bootcd/
+
+cdrecord -dev 0,0,0 -speed 4 -v bootcd.iso
+
+rm -rf bootcd{,.iso}</pre><p>
+        </p></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="boot-partition"></a>3.3. Booting from a HD partition</h3></div></div></div><p>
+The boot partition can come in handy if you happen to lose your bootable
+CD. <span class="emphasis"><em>Remember that hda1 is a writable media and is thus insecure;
+use it only in case of emergency!</em></span>
+        </p><p>
+Create and mount the ext2 filesystem:
+        </p><p>
+</p><pre class="screen">dd if=/dev/zero of=/dev/hda1 bs=8192
+mke2fs /dev/hda1
+mount /dev/hda1 /loader</pre><p>
+        </p><p>
+Copy the kernel and the initial ramdisk:
+        </p><p>
+</p><pre class="screen">cp /boot/{vmlinuz,initrd.gz} /loader</pre><p>
+        </p><p>
+If you use grub:
+        </p><p>
+</p><pre class="screen">mkdir /loader/boot
+cp -av /boot/grub /loader/boot/
+cat &gt; /loader/boot/grub/menu.lst &lt;&lt; EOF
+default 0
+timeout 10
+color green/black light-green/black
+title Linux
+    root (hd0,0)
+    kernel /vmlinuz ro root=/dev/ram0
+    initrd /initrd.gz
+EOF
+grub-install --root-directory=/loader /dev/hda
+umount /loader</pre><p>
+        </p><p>
+If you use lilo:
+        </p><p>
+</p><pre class="screen">mkdir /loader/{boot,dev,etc}
+cp /boot/boot.b /loader/boot/
+mknod -m 600 /loader/dev/hda  b 3 0
+mknod -m 600 /loader/dev/hda1 b 3 1
+mknod -m 600 /loader/dev/hda2 b 3 2
+mknod -m 600 /loader/dev/hda3 b 3 3
+mknod -m 600 /loader/dev/hda4 b 3 4
+mknod -m 600 /loader/dev/ram0 b 1 0
+cat &gt; /loader/etc/lilo.conf &lt;&lt; EOF
+lba32
+boot=/dev/hda
+prompt
+timeout=60
+image=/vmlinuz
+    label=Linux
+    initrd=/initrd.gz
+    read-only
+    root=/dev/ram0
+EOF
+lilo -r /loader
+umount /loader</pre><p>
+        </p></div></div><div class="sect1"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="final-steps"></a>4. Final steps</h2></div></div></div><p>
+Still inside chroot, modify /etc/fstab so that it contains:
+    </p><p>
+</p><pre class="screen">/dev/loop0      /               ext3    defaults       0       1</pre><p>
+    </p><p>
+Delete /etc/mtab and exit from chroot. Finally, run "umount -d /mnt/efs"
+and reboot. If something goes wrong, you can still boot your unencrypted
+partition by entering "Linux root=/dev/hda3" at the LILO: prompt.
+    </p><p>
+If everything went well, you can now re-partition your disk and encrypt
+hda3 as well as hda4. In the following scripts, we assume that hda3 will
+hold the swap device and hda4 will contain /home; you should initialize
+both partitions first:
+    </p><p>
+</p><pre class="screen">shred -n 1 -v /dev/hda3
+shred -n 1 -v /dev/hda4
+losetup -e aes256 -S xxxxxx /dev/loop1 /dev/hda3
+losetup -e aes256 -S xxxxxx /dev/loop2 /dev/hda4
+mkswap /dev/loop1
+mke2fs -j /dev/loop2</pre><p>
+    </p><p>
+Then create a script in the system startup directory and update fstab:
+    </p><p>
+</p><pre class="screen">cat &gt; /etc/init.d/loop &lt;&lt; "EOF"
+#!/bin/sh
+
+if [ "`/usr/bin/md5sum /dev/hda1`" != \
+     "5671cebdb3bed87c3b3c345f0101d016  /dev/hda1" ]
+then
+    echo -n "WARNING! hda1 integrity verification FAILED - press enter."
+    read
+fi
+
+echo "1st password chosen above" | \
+    /sbin/losetup -p 0 -e aes256 -S xxxxxx /dev/loop1 /dev/hda3
+
+echo "2nd password chosen above" | \
+    /sbin/losetup -p 0 -e aes256 -S xxxxxx /dev/loop2 /dev/hda4
+
+/sbin/swapon /dev/loop1
+
+for i in `seq 0 63`
+do
+    echo -n -e "\33[10;10]\33[11;10]" &gt; /dev/tty$i
+done
+
+EOF
+
+chmod 700 /etc/init.d/loop
+ln -s ../init.d/loop /etc/rcS.d/S00loop
+vi /etc/fstab
+...
+/dev/loop2      /home           ext3    defaults       0       2</pre><p>
+    </p></div><div class="sect1"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="about"></a>5. About this HOWTO</h2></div></div></div><p>
+The Encrypted Root Filesystem HOWTO was first written in november 2002 for the
+<a class="ulink" href="http://www.linuxfromscratch.org/lfs/news.html" target="_top">Linux From Scratch</a>
+project. I'd like to thank the many people who have since contributed to
+this document (in reverse chronological order): Micha Borrmann,
+Dennis Lemckert, Oleg Vyushin, Ellen Bokhorst, Daczi László, Gaetano Zappulla,
+Guillaume Lehmann, Claude Thomassin, Jean-Philippe Guérard, Luc Vo Van,
+Jacobus Brink, Ernesto Pérez Estévez, Matthew Ploessel, Mike Lorek,
+Lars Bungum, Michael Shields, Julien Perrot, Grant Stephenson, Cary W. Gilmer,
+James Howells, Pedro Baez, Josh Purinton, Jari Ruusu and Zibeli Aton.
+    </p><p>
+This HOWTO has been translated in various languages:
+    </p><div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem"><p><a class="ulink" href="http://www.traduc.org/docs/HOWTO/lecture/Encrypted-Root-Filesystem-HOWTO.html" target="_top">French</a></p></li><li class="listitem"><p><a class="ulink" href="http://www.linux.it/~gaetano/erfs/" target="_top">Italian</a></p></li><li class="listitem"><p><a class="ulink" href="http://tldp.fsf.hu/HOWTO/Encrypted-Root-Filesystem-HOWTO-hu/" target="_top">Hungarian</a></p></li><li class="listitem"><p><a class="ulink" href="http://doc.nl.linux.org/HOWTO/Encrypted-Root-Filesystem-HOWTO-NL/article.html" target="_top">Dutch</a></p></li></ul></div><p>
+    </p><p>
+Please send any comment to
+<a class="ulink" href="http://www.cr0.net:8040/about/" target="_top">Christophe Devine</a>.
+    </p></div></div></body></html>

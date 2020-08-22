@@ -1,0 +1,70 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1"><title>5. Kerberos Server Replication</title><link rel="stylesheet" type="text/css" href="style.css"><meta name="generator" content="DocBook XSL Stylesheets V1.79.1"><link rel="home" href="index.html" title="Kerberos Infrastructure HOWTO"><link rel="up" href="index.html" title="Kerberos Infrastructure HOWTO"><link rel="prev" href="ar01s04.html" title="4. Time Synchronization"><link rel="next" href="ar01s06.html" title="6. Client Configuration"></head><body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF"><div class="navheader"><table width="100%" summary="Navigation header"><tr><th colspan="3" align="center">5. Kerberos Server Replication</th></tr><tr><td width="20%" align="left"><a accesskey="p" href="ar01s04.html">Prev</a> </td><th width="60%" align="center"> </th><td width="20%" align="right"> <a accesskey="n" href="ar01s06.html">Next</a></td></tr></table><hr></div><div class="section"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="server-replication"></a>5. Kerberos Server Replication</h2></div></div></div><div class="section"><div class="titlepage"><div><div><h3 class="title"><a name="replication"></a>5.1. Description of Replication</h3></div></div></div><p>
+Kerberos was designed to allow for a Master/Slave replication cluster.  While a Kerberos cluster can consist of any number of hosts, it is recommended that you have at least two.  A master which serves as the primary server and at least one slave which is available as a backup to the master.  The master and slave servers may be thought of as Primary and Secondary servers respectively.
+</p><p>
+Kerberos stores all of its information, both account and policy data, in application databases.  The Kerberos software distribution includes software for replicating, or copying, this data to other servers.
+</p><p>
+Kerberos client applications are designed to attempt authentication against secondary servers if the primary master is down.  Therefore you do not need to do any extra work during a system failure to fail over your Kerberos authentication service to the backup server.  However, the administrative features of Kerberos do not provide for automatic failover.
+</p><p>
+In the event that your primary server fails, <span class="application">kadmind</span> will be unavailable. Therefore, administrative functions will be unavailable until the primary server is restored or replace.  Specifically, principal management, key creation, and key changes, cannot be done during a primary server failure.
+</p></div><div class="section"><div class="titlepage"><div><div><h3 class="title"><a name="implementation"></a>5.2. Implementation</h3></div></div></div><p>
+Server replication is handled by the <span class="application">kprop</span> command. <span class="application">kprop</span> must be run on the primary master KDC.  It should be run in a scheduled cron job to keep the principal database in sync across all servers.
+</p><p>
+The first step in setting up replication, is to set up ACLs for <span class="application">kpropd</span>.  The <span class="application">kpropd</span> acl filename is by default located at <code class="filename">/var/Kerberos/krb5kdc/kpropd.acl</code>.  In our example, it would have the following contents:
+</p><p>
+</p><pre class="screen">
+host/kerberos1.gnud.ie@GNUD.IE
+host/kerberos2.gnud.ie@GNUD.IE
+</pre><p>
+</p><p>
+The <code class="filename">kpropd.acl</code> file should only exist on the slave Kerberos server. In Fedora derived GNU/Linux, <span class="application">kadmin</span> will not run on a Kerberos server on which <code class="filename">/var/Kerberos/krb5kdc/kpropd.acl</code> exists.
+</p><p>
+Next you'll need to create host keys for your master and slave Kerberos servers:
+</p><p>
+</p><pre class="screen">
+{Kerberos1}bash# kadmin.local
+{Kerberos1}kadmin.local:  addprinc -randkey host/kerberos1.gnud.ie
+{Kerberos1}kadmin.local:  addprinc -randkey host/kerberos2.gnud.ie
+</pre><p>
+</p><p>
+The next step is to extract these keys to the keytab file.  The keytab file is a keyring which contains the cryptographic keys
+needed to authenticate with the KDC.  Extraction of keys to the keytab is done with the <span class="application">ktadd</span> sub command:
+</p><p>
+</p><pre class="screen">
+{Kerberos1}kadmin.local:  ktadd host/kerberos1.gnud.ie
+{Kerberos1}kadmin.local:  ktadd host/kerberos2.gnud.ie
+</pre><p>
+</p><p>
+Finally, we want to copy the keytab over to the slave server so that it has the keys it needs available to authenticate.
+</p><p>
+</p><pre class="screen">
+{Kerberos2}bash# scp root@kerberos1.gnud.ie:/etc/krb5.keytab /etc
+</pre><p>
+</p><p>
+Here is a crontab entry from the master Kerberos server used to synchronize principal databases every fifteen minutes:
+</p><pre class="screen">
+15 * * * * /usr/local/bin/krb5prop.sh
+</pre><p>
+</p><p>
+Here are the contents of the <code class="filename">krb5prop.sh</code> script:
+</p><pre class="screen">
+#!/bin/sh
+
+/usr/Kerberos/sbin/kdb5_util dump /var/Kerberos/krb5kdc/slave_datatrans
+
+/usr/Kerberos/sbin/kprop -f /var/Kerberos/krb5kdc/slave_datatrans kerberos2.gnud.ie &gt; /dev/null
+</pre><p>
+</p><p>
+Initially running this command by hand, you should see something similar to the following:
+</p><p>
+</p><pre class="screen">
+{Kerberos1}bash# /usr/Kerberos/sbin/kdb5_util dump /var/Kerberos/krb5kdc/slave_datatrans
+{Kerberos1}bash# /usr/Kerberos/sbin/kprop -d -f /var/Kerberos/krb5kdc/slave_datatrans kerberos2.gnud.ie
+3234 bytes sent.
+Database propagation to kerberos2.gnud.ie: SUCCEEDED
+{Kerberos1}bash#
+</pre><p>
+</p><p>
+The slave server will now synchronize its principal database with the master server.
+</p></div><div class="section"><div class="titlepage"><div><div><h3 class="title"><a name="maintain"></a>5.3. Maintenance</h3></div></div></div><p>
+With these cron jobs in place principal propagation should be sufficiently automated as to require no maintenance.  At the time of a primary KDC failure, there is no need for human intervention unless the failure will last for an extended period of time.
+</p></div></div><div class="navfooter"><hr><table width="100%" summary="Navigation footer"><tr><td width="40%" align="left"><a accesskey="p" href="ar01s04.html">Prev</a> </td><td width="20%" align="center"> </td><td width="40%" align="right"> <a accesskey="n" href="ar01s06.html">Next</a></td></tr><tr><td width="40%" align="left" valign="top">4. Time Synchronization </td><td width="20%" align="center"><a accesskey="h" href="index.html">Home</a></td><td width="40%" align="right" valign="top"> 6. Client Configuration</td></tr></table></div></body></html>

@@ -1,0 +1,82 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1"><title>12. Create a emergency Rescue and Boot floppy disk</title><link rel="stylesheet" type="text/css" href="style.css"><meta name="generator" content="DocBook XSL Stylesheets V1.79.1"><meta name="keywords" content="RedHat, redhat, maddy, linus, linux, Linux, Securing, Optimising, security, secure, openna, gerhard"><link rel="home" href="index.html" title="Securing and Optimizing Linux"><link rel="up" href="secopt-kernel.html" title="Chapter 7. Configuring and Building a Secure, Optimized Kernel"><link rel="prev" href="chap7sec86.html" title="11. Delete programs, Edit files pertaining to modules"><link rel="next" href="net-manage.html" title="Part 4. Networking -Management, Firewall, Masquerading and Forwarding"></head><body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF"><div class="navheader"><table width="100%" summary="Navigation header"><tr><th colspan="3" align="center">12. Create a emergency Rescue and Boot floppy disk</th></tr><tr><td width="20%" align="left"><a accesskey="p" href="chap7sec86.html">Prev</a> </td><th width="60%" align="center">Chapter 7. Configuring and Building a Secure, Optimized Kernel</th><td width="20%" align="right"> <a accesskey="n" href="net-manage.html">Next</a></td></tr></table><hr></div><div class="section"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="idm5828"></a>12. Create a emergency Rescue and Boot floppy disk</h2></div></div></div><p>
+            After the reboot of your Linux server, you should have now a system with an upgraded kernel. Therefore, it's time is to make a new rescue image with the new kernel in case of future emergencies. To do this, follow 
+            the simple step below;
+             Login as root, and insert a new floppy, then execute the following command:
+             </p><pre class="screen">
+             [root@deep] /#<span class="command"><strong>mkbootdisk</strong></span> --device /dev/fd0 2.2.14
+             </pre><p>
+             </p><div class="literallayout"><p><br>
+               <code class="computeroutput"><br>
+             Insert a disk in <code class="filename">/dev/fd0</code>. Any information on the disk will be lost.<br>
+             Press &lt;Enter&gt; --device <span class="keycap"><strong>^C</strong></span> to abort:<br>
+             </code><br>
+             </p></div><p>
+              </p><div class="important" style="margin-left: 0.5in; margin-right: 0.5in;"><h3 class="title">
+<span class="inlinemediaobject"><img src="./images/Important.gif" alt="Important"></span>
+</h3><p>
+              The mkbootdisk program runs only on modularized kernel. So you can't use it on a monolithic kernel; instead create an emergency boot floppy as shown below if you have a problem with your system in the future.
+              </p></div><p>
+             Because it is possible to create a rescue floppy only on modularized kernel, we must find another way to boot our Linux system if the Linux kernel on the hard disk is damaged. This is possible with a Linux emergency 
+             boot floppy disk. You should immediately create it after you successfully start your system and log in as root.
+             </p><div class="procedure"><ol class="procedure" type="1"><li class="step"><p>
+             To create the emergency boot floppy disk, follow these steps:
+             </p><ol type="a" class="substeps"><li class="step"><p>
+             Insert a floppy disk and format it with the following command:
+             </p><pre class="screen">
+             [root@deep] /#<span class="command"><strong>fdformat</strong></span> /dev/fd0H1440
+             </pre><p>
+             </p><div class="literallayout"><p><br>
+               <code class="computeroutput"><br>
+             Double-sided, 80 tracks, 18 sec/track. Total capacity 1440 kB.<br>
+             Formatting ... done<br>
+             Verifying ... done<br>
+             </code><br>
+             </p></div><p>
+             </p></li><li class="step"><p>
+             Copy the file vmlinuz from the <code class="filename">/boot</code> directory to the floppy disk:
+             </p><pre class="screen">
+             [root@deep] /#<span class="command"><strong>cp</strong></span> /boot/vmlinuz /dev/fd0
+             </pre><p>
+             </p><div class="literallayout"><p><br>
+               <code class="computeroutput"><br>
+             cp: overwrite '/dev/fd0'? y<br>
+             </code><br>
+             </p></div><p>
+             The <code class="filename">vmlinuz</code> file is a symbolic link that point to the real Linux kernel.
+             </p></li><li class="step"><p>
+             Determine the kernel's root device with the following command:
+             </p><pre class="screen">
+             [root@deep] /#<span class="command"><strong>rdev</strong></span>
+             /dev/sda12 /
+             </pre><p>
+             The kernel's root device is the disk partition where the root file system is located. In this example, the root device is <code class="filename">dev/sda12</code>; the device name may be different on your system.
+             </p></li><li class="step"><p>
+             Set the kernel's root device with the following command:
+             </p><pre class="screen">
+             [root@deep] /#<span class="command"><strong>rdev</strong></span> /dev/fd0 /dev/sda12
+             </pre><p>
+             To set the kernel's root device, use the device reported by the rdev command utility in the previous step.
+             </p></li><li class="step"><p>
+             5.Mark the root device as read-only with the following command:
+             </p><pre class="screen">
+             [root@deep] /#<span class="command"><strong>rdev</strong></span> -R /dev/fd0 1
+             </pre><p>
+             This causes Linux initially to mount the root file system as read-only. By setting the root device as read-only, you avoid several warning and error messages.
+             </p></li><li class="step"><p>
+             Now put the boot floppy in the drive A: and reboot your system with the following command:
+             </p><pre class="screen">
+             [root@deep] /#<span class="command"><strong>reboot</strong></span>
+             </pre><p>
+             </p></li></ol></li><li class="step"><p>
+             Update your /dev entries:If you have added new devices to your system or have done recently a major kernel upgrade (a major kernel upgrade is for example when you pass from kernel version 2.2.9 to 2.2.15 directly), it may be 
+             important to update your <code class="filename">/dev</code> entries to avoid problems related to missing devices. 
+            
+             We can accomplish this task with the <code class="filename">MAKEDEV</code> script utility that scan the <code class="filename">/dev</code> 
+             directory where all devices that interfaces with drivers in the kernel are kept. A special option named update allow the MAKEDEV utility to create new devices that you have configured in your kernel and delete those which 
+             are no longer configured.To update your <code class="filename">/dev</code> entries, execute the following commands:
+            
+             </p><pre class="screen">
+             [root@deep] /#<span class="command"><strong>cd</strong></span> /dev
+             [root@deep ] /dev#<span class="command"><strong>./MAKEDEV</strong></span> update
+             </pre><p>
+             </p></li></ol></div></div><div class="navfooter"><hr><table width="100%" summary="Navigation footer"><tr><td width="40%" align="left"><a accesskey="p" href="chap7sec86.html">Prev</a> </td><td width="20%" align="center"><a accesskey="u" href="secopt-kernel.html">Up</a></td><td width="40%" align="right"> <a accesskey="n" href="net-manage.html">Next</a></td></tr><tr><td width="40%" align="left" valign="top">11. Delete programs, Edit files pertaining to modules </td><td width="20%" align="center"><a accesskey="h" href="index.html">Home</a></td><td width="40%" align="right" valign="top"> Part 4. Networking -Management, Firewall, Masquerading and Forwarding</td></tr></table></div></body></html>

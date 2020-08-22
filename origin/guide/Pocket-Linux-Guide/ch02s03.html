@@ -1,0 +1,53 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1"><title>3. Construction</title><link rel="stylesheet" type="text/css" href="style.css"><meta name="generator" content="DocBook XSL Stylesheets V1.79.1"><link rel="home" href="index.html" title="Pocket Linux Guide"><link rel="up" href="ch02.html" title="Chapter 2. A Simple Prototype"><link rel="prev" href="ch02s02.html" title="2. Design"><link rel="next" href="ch02s04.html" title="4. Implementation"></head><body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF"><div class="navheader"><table width="100%" summary="Navigation header"><tr><th colspan="3" align="center">3. Construction</th></tr><tr><td width="20%" align="left"><a accesskey="p" href="ch02s02.html">Prev</a> </td><th width="60%" align="center">Chapter 2. A Simple Prototype</th><td width="20%" align="right"> <a accesskey="n" href="ch02s04.html">Next</a></td></tr></table><hr></div><div class="sect1"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="idm185"></a>3. Construction</h2></div></div></div><p>In this section, we will be building the actual boot disk and root
+    disk floppies. Lines preceded by <code class="prompt">bash#</code> indicate a shell
+    command and lines starting with <code class="prompt">grub&gt;</code> indicate a
+    command typed within the grub shell.</p><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="idm190"></a>3.1. Prepare the boot disk media</h3></div></div></div><p>Insert a blank diskette labeled "boot disk".</p><div class="note" style="margin-left: 0.5in; margin-right: 0.5in;"><h3 class="title">Note</h3><p>It may be necessary to erase the "blank" diskette if it comes
+        factory pre-formatted for another, non-Linux operating system. This
+        can be done using the command <span class="command"><strong>dd if=/dev/zero of=/dev/fd0
+        bs=1k count=1440</strong></span></p></div><pre class="programlisting"><code class="prompt">bash#</code> mke2fs -m0 /dev/fd0
+<code class="prompt">bash#</code> mount /dev/fd0 /mnt</pre></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="idm200"></a>3.2. Build the GRUB bootloader</h3></div></div></div><p>Get the GRUB source code from <a class="ulink" href="ftp://alpha.gnu.org/gnu/grub/" target="_top">ftp://alpha.gnu.org/gnu/grub/</a>
+      and unpack it into the <code class="filename">/usr/src</code> directory.</p><p>Configure and build the GRUB source code for an i386 processor by
+      using the following commands:</p><pre class="programlisting">bash# cd /usr/src/grub-0.95
+bash# export CC="gcc -mcpu=i386"
+bash# ./configure --host=i386-pc-linux-gnu --without-curses
+bash# make</pre></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="idm207"></a>3.3. Copy the bootloader files to diskette</h3></div></div></div><p>Normally, after compiling source code, one would use the command
+      <span class="command"><strong>make install</strong></span> to copy the finished files to their
+      proper destinations in the filesystem. However, using <span class="command"><strong>make
+      install</strong></span> does not work well with small media like the floppy
+      disks we are using. The problem is that there are many files in a
+      package besides the actual binaries that get the job done. For example,
+      there are often man or info pages that provide documentation. These
+      extra files can take up more space than we can spare on the diskette. We
+      can work around this limitation by copying essential files manually
+      rather than using <span class="command"><strong>make install</strong></span>.</p><p>For GRUB to boot we will need to copy the stage1 and stage2
+      bootloader files to the <code class="filename">/boot/grub</code> directory on the
+      boot floppy.</p><pre class="programlisting"><code class="prompt">bash#</code> mkdir -p /mnt/boot/grub
+<code class="prompt">bash#</code> cp /usr/src/grub-0.95/stage1/stage1 /mnt/boot/grub
+<code class="prompt">bash#</code> cp /usr/src/grub-0.95/stage2/stage2 /mnt/boot/grub</pre></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="idm219"></a>3.4. Finish bootloader installation</h3></div></div></div><p>Once the bootloader's files are copied to the boot disk we can
+      enter the grub shell to finish the installation.</p><pre class="programlisting"><code class="prompt">bash#</code> /usr/src/grub-0.95/grub/grub
+<code class="prompt">grub&gt;</code> root (fd0)
+<code class="prompt">grub&gt;</code> setup (fd0)
+<code class="prompt">grub&gt;</code> quit</pre></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="idm227"></a>3.5. Build the Linux kernel</h3></div></div></div><p>The steps for building the kernel were tested using Linux kernel
+      version 2.4.26 and should work any 2.4.x or 2.6.x kernel. The latest
+      version of the kernel source code may be downloaded from <a class="ulink" href="http://www.kernel.org/" target="_top">http://www.kernel.org/</a> or one of
+      its mirrors.</p><div class="note" style="margin-left: 0.5in; margin-right: 0.5in;"><h3 class="title">Note</h3><p>The instructions below are very brief and are intended for
+        someone who has previous experience building custom kernels. A more
+        detailed explanation of the kernel building process can be found in
+        the <a class="ulink" href="http://www.digitalhermit.com/linux/Kernel-Build-HOWTO.html" target="_top">Kernel
+        Rebuild Guide</a> by Kwan Lowe.</p></div><pre class="programlisting"><code class="prompt">bash#</code> cd /usr/src/linux
+<code class="prompt">bash#</code> make menuconfig</pre><p>Be sure to configure support for the following:</p><div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem"><p>386 processor</p></li><li class="listitem"><p>Console on virtual terminal (2.4.x kernels only)</p></li><li class="listitem"><p>ELF binaries</p></li><li class="listitem"><p>Floppy disk</p></li><li class="listitem"><p>proc filesystem</p></li><li class="listitem"><p>RAM disk with a default size of 4096K</p></li><li class="listitem"><p>Second extended (ext2) filesystem</p></li><li class="listitem"><p>VGA console</p></li></ul></div><pre class="programlisting"><code class="prompt">bash#</code> make dep
+<code class="prompt">bash#</code> make clean
+<code class="prompt">bash#</code> make bzImage</pre></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="idm261"></a>3.6. Copy the kernel to diskette</h3></div></div></div><pre class="programlisting"><code class="prompt">bash#</code> cp /usr/src/linux/arch/i386/boot/bzImage /mnt/boot/vmlinuz</pre></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="idm266"></a>3.7. Unmount the boot disk</h3></div></div></div><pre class="programlisting"><code class="prompt">bash#</code> cd /
+<code class="prompt">bash#</code> umount /mnt</pre></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="idm272"></a>3.8. Prepare the root disk media</h3></div></div></div><p>Insert a blank diskette labeled "root disk".</p><pre class="programlisting"><code class="prompt">bash#</code> mke2fs -m0 /dev/fd0
+<code class="prompt">bash#</code> mount /dev/fd0 /mnt</pre></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="idm279"></a>3.9. Build BASH</h3></div></div></div><p>Get the bash-3.0 source code package from <a class="ulink" href="ftp://ftp.gnu.org/gnu/bash/" target="_top">ftp://ftp.gnu.org/gnu/bash/</a>
+      and untar it into the <code class="filename">/usr/src</code> directory.</p><p>Build BASH for an i386 CPU with the following commands:</p><pre class="programlisting"><code class="prompt">bash#</code> cd /usr/src/bash-3.0
+<code class="prompt">bash#</code> export CC="gcc -mcpu=i386"
+<code class="prompt">bash#</code> ./configure --enable-static-link \
+  --enable-minimal-config --host=i386-pc-linux-gnu
+<code class="prompt">bash#</code> make
+<code class="prompt">bash#</code> strip bash</pre></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="idm292"></a>3.10. Copy BASH to the root disk</h3></div></div></div><pre class="programlisting"><code class="prompt">bash#</code> mkdir /mnt/bin
+<code class="prompt">bash#</code> cp bash /mnt/bin/bash
+<code class="prompt">bash#</code> ln -s bash /mnt/bin/sh</pre></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="idm299"></a>3.11. Create device files that BASH needs</h3></div></div></div><pre class="programlisting"><code class="prompt">bash#</code> mkdir /mnt/dev
+<code class="prompt">bash#</code> mknod /mnt/dev/console c 5 1</pre></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="idm305"></a>3.12. Unmount the root disk</h3></div></div></div><pre class="programlisting"><code class="prompt">bash#</code> cd /
+<code class="prompt">bash#</code> umount /mnt
+</pre></div></div><div class="navfooter"><hr><table width="100%" summary="Navigation footer"><tr><td width="40%" align="left"><a accesskey="p" href="ch02s02.html">Prev</a> </td><td width="20%" align="center"><a accesskey="u" href="ch02.html">Up</a></td><td width="40%" align="right"> <a accesskey="n" href="ch02s04.html">Next</a></td></tr><tr><td width="40%" align="left" valign="top">2. Design </td><td width="20%" align="center"><a accesskey="h" href="index.html">Home</a></td><td width="40%" align="right" valign="top"> 4. Implementation</td></tr></table></div></body></html>

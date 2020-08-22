@@ -1,0 +1,426 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1"><title>8. SMP Boot</title><link rel="stylesheet" type="text/css" href="style.css"><meta name="generator" content="DocBook XSL Stylesheets V1.79.1"><link rel="home" href="index.html" title="Linux i386 Boot Code HOWTO"><link rel="up" href="index.html" title="Linux i386 Boot Code HOWTO"><link rel="prev" href="ar01s07.html" title="7. linux/init/main.c"><link rel="next" href="ar01s09.html" title="A. Kernel Build Example"></head><body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF"><div class="navheader"><table width="100%" summary="Navigation header"><tr><th colspan="3" align="center">8. SMP Boot</th></tr><tr><td width="20%" align="left"><a accesskey="p" href="ar01s07.html">Prev</a> </td><th width="60%" align="center"> </th><td width="20%" align="right"> <a accesskey="n" href="ar01s09.html">Next</a></td></tr></table><hr></div><div class="sect1"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="smpboot"></a>8. SMP Boot</h2></div></div></div><p>
+   There are a few SMP related macros, like <span class="emphasis"><em>CONFIG_SMP,
+   CONFIG_X86_LOCAL_APIC, CONFIG_X86_IO_APIC, CONFIG_MULTIQUAD</em></span>
+   and <span class="emphasis"><em>CONFIG_VISWS</em></span>.
+   I will ignore code that requires <span class="emphasis"><em>CONFIG_MULTIQUAD</em></span>
+   or <span class="emphasis"><em>CONFIG_VISWS</em></span>,
+   which most people don't care (if not using IBM high-end multiprocessor
+   server or SGI Visual Workstation).
+  </p><p>
+   BSP executes <span class="emphasis"><em>start_kernel() -&gt; smp_init() -&gt; smp_boot_cpus()
+   -&gt; do_boot_cpu() -&gt; wakeup_secondary_via_INIT()</em></span> to trigger APs.
+   Check <a class="ulink" href="http://www.intel.com/design/pentium/datashts/242016.htm" target="_top">
+   MultiProcessor Specification</a> and IA-32 Manual Vol.3
+   (Ch.7. Multile-Processor Management, and
+   Ch.8. Advanced Programmable Interrupt Controller) for technical details.
+  </p><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="before_smpinit"></a>8.1. Before smp_init()</h3></div></div></div><p>
+     Before calling <span class="emphasis"><em>smp_init()</em></span>,
+     <span class="emphasis"><em>start_kernel()</em></span> did something to setup SMP environment:
+</p><pre class="screen">start_kernel()
+|-- setup_arch()
+|   |-- parse_cmdline_early();  // SMP looks for "noht" and "acpismp=force"
+|   |   `-- /* "noht" disables HyperThreading (2 logical cpus per Xeon) */
+|   |       if (!memcmp(from, "noht", 4)) {
+|   |           disable_x86_ht = 1;
+|   |           set_bit(X86_FEATURE_HT, disabled_x86_caps);
+|   |       }
+|   |       /* "acpismp=force" forces parsing and use of the ACPI SMP table */
+|   |       else if (!memcmp(from, "acpismp=force", 13))
+|   |           enable_acpi_smp_table = 1;
+|   |-- setup_memory();         // reserve memory for MP configuration table
+|   |   |-- reserve_bootmem(PAGE_SIZE, PAGE_SIZE);
+|   |   `-- find_smp_config();
+|   |       `-- find_intel_smp();
+|   |           `-- smp_scan_config();
+|   |               |-- set flag <span class="emphasis"><em>smp_found_config</em></span>
+|   |               |-- set MP floating pointer <span class="emphasis"><em>mpf_found</em></span>
+|   |               `-- reserve_bootmem(mpf_found, PAGE_SIZE);
+|   |-- if (disable_x86_ht) {   // if HyperThreading feature disabled
+|   |       clear_bit(X86_FEATURE_HT, &amp;boot_cpu_data.x86_capability[0]);
+|   |       set_bit(X86_FEATURE_HT, disabled_x86_caps);
+|   |       enable_acpi_smp_table = 0;
+|   |   }
+|   |-- if (test_bit(X86_FEATURE_HT, &amp;boot_cpu_data.x86_capability[0]))
+|   |       enable_acpi_smp_table = 1;
+|   |-- smp_alloc_memory();
+|   |   `-- /* reserve AP processor's real-mode code space in low memory */
+|   |       trampoline_base = (void *) alloc_bootmem_low_pages(PAGE_SIZE);
+|   `-- get_smp_config();     /* get boot-time MP configuration */
+|       |-- config_acpi_tables();
+|       |   |-- memset(&amp;acpi_boot_ops, 0, sizeof(acpi_boot_ops));
+|       |   |-- acpi_boot_ops[ACPI_APIC] = acpi_parse_madt;
+|       |   `-- /* Set <span class="emphasis"><em>have_acpi_tables</em></span> to indicate using
+|       |        * MADT in the ACPI tables; Use MPS tables if failed. */
+|       |       if (enable_acpi_smp_table &amp;&amp; !acpi_tables_init())
+|       |           have_acpi_tables = 1;
+|       |-- set <span class="emphasis"><em>pic_mode</em></span>
+|       |   /* =1, if the IMCR is present and PIC Mode is implemented;
+|       |    * =0, otherwise Virtual Wire Mode is implemented. */
+|       |-- save local APIC address in <span class="emphasis"><em>mp_lapic_addr</em></span>
+|       `-- scan for MP configuration table entries, like
+|             MP_PROCESSOR, MP_BUS, MP_IOAPIC, MP_INTSRC and MP_LINTSRC.
+|-- trap_init();
+|   `-- init_apic_mappings();   // setup PTE for APIC
+|       |-- /* If no local APIC can be found then set up a fake all
+|       |    * zeroes page to simulate the local APIC and another
+|       |    * one for the IO-APIC. */
+|       |   if (!smp_found_config &amp;&amp; detect_init_APIC()) {
+|       |       apic_phys = (unsigned long) alloc_bootmem_pages(PAGE_SIZE);
+|       |       apic_phys = __pa(apic_phys);
+|       |   } else
+|       |       apic_phys = mp_lapic_addr;
+|       |-- /* map local APIC address,
+|       |    *   <span class="emphasis"><em>mp_lapic_addr</em></span> (0xfee00000) in most case,
+|       |    *   to linear address FIXADDR_TOP (0xffffe000) */
+|       |   set_fixmap_nocache(FIX_APIC_BASE, apic_phys);
+|       |-- /* Fetch the APIC ID of the BSP in case we have a
+|       |    * default configuration (or the MP table is broken). */
+|       |   if (boot_cpu_physical_apicid == -1U)
+|       |       boot_cpu_physical_apicid = GET_APIC_ID(apic_read(APIC_ID));
+|       `-- // map IOAPIC address to uncacheable linear address
+|           set_fixmap_nocache(idx, ioapic_phys);
+|       // Now we can use linear address to access APIC space.
+|-- init_IRQ();
+|   |-- init_ISA_irqs();
+|   |   |-- /* An initial setup of the virtual wire mode. */
+|   |   |   init_bsp_APIC();
+|   |   `-- init_8259A(auto_eoi=0);
+|   `-- setup SMP/APIC interrupt handlers, esp. IPI.
+`-- mem_init();
+    `-- /* delay zapping low mapping entries for SMP: zap_low_mappings() */</pre><p>
+    </p><p>
+     IPI (InterProcessor Interrupt), CPU-to-CPU interrupt through local APIC,
+     is the mechanism used by BSP to trigger APs.
+    </p><p>
+     Be aware that "one local APIC per CPU is required" in an
+     MP-compliant system.
+     Processors do not share APIC local units address space (physical address
+     0xFEE00000 - 0xFEEFFFFF), but will share APIC I/O units
+     (0xFEC00000 - 0xFECFFFFF).
+     Both address spaces are uncacheable.
+    </p></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="smp_init"></a>8.2. smp_init()</h3></div></div></div><p>
+     BSP calls
+     <span class="emphasis"><em>start_kernel() -&gt; smp_init() -&gt; smp_boot_cpus()</em></span>
+     to setup data structures for each CPU and activate the rest APs.
+</p><pre class="programlisting">///////////////////////////////////////////////////////////////////////////////
+static void __init smp_init(void)
+{
+        /* Get other processors into their bootup holding patterns. */
+        smp_boot_cpus();
+        wait_init_idle = cpu_online_map;
+        clear_bit(current-&gt;processor, &amp;wait_init_idle); /* Don't wait on me! */
+
+        smp_threads_ready=1;
+        smp_commence() {
+                /* Lets the callins below out of their loop. */
+                Dprintk("Setting commenced=1, go go go\n");
+                wmb();
+                atomic_set(&amp;smp_commenced,1);
+        }
+
+        /* Wait for the other cpus to set up their idle processes */
+        printk("Waiting on wait_init_idle (map = 0x%lx)\n", wait_init_idle);
+        while (wait_init_idle) {
+                cpu_relax();    // i.e. "rep;nop"
+                barrier();
+        }
+        printk("All processors have done init_idle\n");
+}
+
+///////////////////////////////////////////////////////////////////////////////
+void __init smp_boot_cpus(void)
+{
+        // ... something not very interesting :-)
+
+        /* Initialize the logical to physical CPU number mapping
+         * and the per-CPU profiling router/multiplier */
+        prof_counter[0..NR_CPUS-1] = 0;
+        prof_old_multiplier[0..NR_CPUS-1] = 0;
+        prof_multiplier[0..NR_CPUS-1] = 0;
+
+        init_cpu_to_apicid() {
+                physical_apicid_2_cpu[0..MAX_APICID-1] = -1;
+                logical_apicid_2_cpu[0..MAX_APICID-1] = -1;
+                cpu_2_physical_apicid[0..NR_CPUS-1] = 0;
+                cpu_2_logical_apicid[0..NR_CPUS-1] = 0;
+        }
+
+        /* Setup boot CPU information */
+        smp_store_cpu_info(0); /* Final full version of the data */
+        printk("CPU%d: ", 0);
+        print_cpu_info(&amp;cpu_data[0]);
+
+        /* We have the boot CPU online for sure. */
+        set_bit(0, &amp;cpu_online_map);
+        boot_cpu_logical_apicid = logical_smp_processor_id() {
+                GET_APIC_LOGICAL_ID(*(unsigned long *)(APIC_BASE+APIC_LDR));
+        }
+        map_cpu_to_boot_apicid(0, boot_cpu_apicid) {
+               physical_apicid_2_cpu[boot_cpu_apicid] = 0;
+               cpu_2_physical_apicid[0] = boot_cpu_apicid;
+        }
+
+        global_irq_holder = 0;
+        current-&gt;processor = 0;
+        init_idle();    // will clear corresponding bit in <span class="emphasis"><em>wait_init_idle</em></span>
+        smp_tune_scheduling();
+
+        // ... some conditions checked
+
+        connect_bsp_APIC();     // enable APIC mode if used to be PIC mode
+        setup_local_APIC();
+
+        if (GET_APIC_ID(apic_read(APIC_ID)) != boot_cpu_physical_apicid)
+                BUG();
+
+        /* Scan the CPU present map and fire up the other CPUs
+         *   via do_boot_cpu() */
+        Dprintk("CPU present map: %lx\n", phys_cpu_present_map);
+        for (bit = 0; bit &lt; NR_CPUS; bit++) {
+                apicid = cpu_present_to_apicid(bit);
+                /* Don't even attempt to start the boot CPU! */
+                if (apicid == boot_cpu_apicid)
+                        continue;
+                if (!(phys_cpu_present_map &amp; (1 &lt;&lt; bit)))
+                        continue;
+                if ((max_cpus &gt;= 0) &amp;&amp; (max_cpus &lt;= cpucount+1))
+                        continue;
+                do_boot_cpu(apicid);
+                /* Make sure we unmap all failed CPUs */
+                if ((boot_apicid_to_cpu(apicid) == -1) &amp;&amp;
+                                (phys_cpu_present_map &amp; (1 &lt;&lt; bit)))
+                        printk("CPU #%d not responding - cannot use it.\n",
+                                                                apicid);
+        }
+
+        // ... SMP BogoMIPS
+        // ... B stepping processor warning
+        // ... HyperThreading handling
+
+        /* Set up all local APIC timers in the system */
+        setup_APIC_clocks();
+
+        /* Synchronize the TSC with the AP */
+        if (cpu_has_tsc &amp;&amp; cpucount)
+                synchronize_tsc_bp();
+
+smp_done:
+        zap_low_mappings();
+}
+
+///////////////////////////////////////////////////////////////////////////////
+static void __init do_boot_cpu (int apicid)
+{
+        cpu = ++cpucount;
+
+        // 1. prepare "idle process" task struct for next AP
+
+        /* We can't use kernel_thread since we must avoid to
+         * reschedule the child. */
+        if (fork_by_hand() &lt; 0)
+                panic("failed fork for CPU %d", cpu);
+        /* We remove it from the pidhash and the runqueue
+         * once we got the process: */
+        idle = init_task.prev_task;
+        if (!idle)
+                panic("No idle process for CPU %d", cpu);
+
+        /* we schedule the first task manually */
+        idle-&gt;processor = cpu;
+        idle-&gt;cpus_runnable = 1 &lt;&lt; cpu; // only on this AP!
+
+        map_cpu_to_boot_apicid(cpu, apicid) {
+                physical_apicid_2_cpu[apicid] = cpu;
+                cpu_2_physical_apicid[cpu] = apicid;
+        }
+
+        idle-&gt;thread.eip = (unsigned long) start_secondary;
+
+        del_from_runqueue(idle);
+        unhash_process(idle);
+        init_tasks[cpu] = idle;
+
+        // 2. prepare stack and code (CS:IP) for next AP
+
+        /* start_eip had better be page-aligned! */
+        start_eip = setup_trampoline() {
+                memcpy(trampoline_base, trampoline_data,
+                        trampoline_end - trampoline_data);
+                /* <span class="emphasis"><em>trampoline_base</em></span> was reserved in
+                 * <span class="emphasis"><em>start_kernel() -&gt; setup_arch() -&gt; smp_alloc_memory()</em></span>,
+                 * and will be shared by all APs (one by one) */
+                return virt_to_phys(trampoline_base);
+        }
+
+        /* So we see what's up */
+        printk("Booting processor %d/%d eip %lx\n", cpu, apicid, start_eip);
+        stack_start.esp = (void *) (1024 + PAGE_SIZE + (char *)idle);
+        /* this value is used by next AP when it executes
+         *   "lss stack_start,%esp" in
+         *   linux/arch/i386/kernel/head.S:startup_32(). */
+
+        /* This grunge runs the startup process for
+         * the targeted processor. */
+        atomic_set(&amp;init_deasserted, 0);
+        Dprintk("Setting warm reset code and vector.\n");
+
+        CMOS_WRITE(0xa, 0xf);
+        local_flush_tlb();
+        Dprintk("1.\n");
+        *((volatile unsigned short *) TRAMPOLINE_HIGH) = start_eip &gt;&gt; 4;
+        Dprintk("2.\n");
+        *((volatile unsigned short *) TRAMPOLINE_LOW) = start_eip &amp; 0xf;
+        Dprintk("3.\n");
+        // we have setup 0:467 to <span class="emphasis"><em>start_eip (trampoline_base)</em></span>
+
+        // 3. kick AP to run (AP gets CS:IP from 0:467)
+
+        // Starting actual IPI sequence...
+        boot_error = wakeup_secondary_via_INIT(apicid, start_eip);
+        if (!boot_error) {      // looks OK
+                /* allow APs to start initializing. */
+                set_bit(cpu, &amp;cpu_callout_map);
+
+                /* ... Wait 5s total for a response */
+
+                // bit cpu in cpu_callin_map is set by AP in smp_callin()
+                if (test_bit(cpu, &amp;cpu_callin_map)) {
+                        print_cpu_info(&amp;cpu_data[cpu]);
+                } else {
+                        boot_error= 1;
+                        // marker 0xA5 set by AP in trampoline_data()
+                        if (*((volatile unsigned char *)phys_to_virt(8192))
+                                        == 0xA5)
+                                /* trampoline started but... */
+                                printk("Stuck ??\n");
+                        else
+                                /* trampoline code not run */
+                                printk("Not responding.\n");
+                }
+        }
+        if (boot_error) {
+                /* Try to put things back the way they were before ... */
+                unmap_cpu_to_boot_apicid(cpu, apicid);
+                clear_bit(cpu, &amp;cpu_callout_map); /* set in do_boot_cpu() */
+                clear_bit(cpu, &amp;cpu_initialized); /* set in cpu_init() */
+                clear_bit(cpu, &amp;cpu_online_map);  /* set in smp_callin() */
+                cpucount--;
+        }
+
+        /* mark "stuck" area as not stuck */
+        *((volatile unsigned long *)phys_to_virt(8192)) = 0;
+}</pre><p>
+     Don't confuse <span class="emphasis"><em>start_secondary()</em></span> with
+     <span class="emphasis"><em>trampoline_data()</em></span>.
+    The former is AP "idle" process task struct EIP value, and the latter is
+    the real-mode code that AP runs after BSP kicks it
+    (using <span class="emphasis"><em>wakeup_secondary_via_INIT()</em></span>).
+    </p></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="trampoline"></a>8.3. linux/arch/i386/kernel/trampoline.S</h3></div></div></div><p>
+     This file contains the 16-bit real-mode AP startup code.
+     BSP reserved memory space <span class="emphasis"><em>trampoline_base</em></span> in
+     <span class="emphasis"><em>start_kernel() -&gt; setup_arch() -&gt; smp_alloc_memory()</em></span>.
+     Before BSP triggers AP, it copies the trampoline code, between
+     <span class="emphasis"><em>trampoline_data</em></span> and
+     <span class="emphasis"><em>trampoline_end</em></span>,
+     to <span class="emphasis"><em>trampoline_base</em></span>
+     (in <span class="emphasis"><em>do_boot_cpu() -&gt; setup_trampoline()</em></span>).
+     BSP sets up 0:467 to point to <span class="emphasis"><em>trampoline_base</em></span>,
+     so that AP will run from here.
+    </p><p>
+</p><pre class="programlisting">///////////////////////////////////////////////////////////////////////////////
+trampoline_data()
+{
+r_base:
+        wbinvd;         // Needed for NUMA-Q should be harmless for other
+        DS = CS;
+        BX = 1;         // Flag an SMP trampoline
+        cli;
+
+        // write marker for master knows we're running
+        trampoline_base = 0xA5A5A5A5;
+
+        lidt idt_48;
+        lgdt gdt_48;
+
+        AX = 1;
+        lmsw AX;        // protected mode!
+        goto flush_instr;
+flush_instr:
+        goto CS:100000; // see linux/arch/i386/kernel/head.S:startup_32()
+}
+
+idt_48:
+        .word   0                       # idt limit = 0
+        .word   0, 0                    # idt base = 0L
+
+gdt_48:
+        .word   0x0800                  # gdt limit = 2048, 256 GDT entries
+        .long   gdt_table-__PAGE_OFFSET # gdt base = gdt (first SMP CPU)
+
+.globl SYMBOL_NAME(trampoline_end)
+SYMBOL_NAME_LABEL(trampoline_end)</pre><p>
+     Note that BX=1 when AP jumps to
+     <code class="filename">linux/arch/i386/kernel/head.S:startup_32()</code>,
+     which is different from that of BSP (BX=0).
+     See <a class="xref" href="ar01s06.html" title="6. linux/arch/i386/kernel/head.S">Section 6, &#8220;linux/arch/i386/kernel/head.S&#8221;</a>.
+    </p></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="initialize_secondary"></a>8.4. initialize_secondary()</h3></div></div></div><p>
+     Unlike BSP, at the end of
+     <span class="emphasis"><em>linux/arch/i386/kernel/head.S:startup_32()</em></span>
+     in <a class="xref" href="ar01s06.html#go_start_kernel" title="6.4. Go Start Kernel">Section 6.4, &#8220;Go Start Kernel&#8221;</a>,
+     AP will call <span class="emphasis"><em>initialize_secondary()</em></span> instead of
+     <span class="emphasis"><em>start_kernel()</em></span>.
+    </p><p>
+</p><pre class="programlisting">/* Everything has been set up for the secondary
+ * CPUs - they just need to reload everything
+ * from the task structure
+ * This function must not return. */
+void __init initialize_secondary(void)
+{
+        /* We don't actually need to load the full TSS,
+         * basically just the stack pointer and the eip. */
+        asm volatile(
+                "movl %0,%%esp\n\t"
+                "jmp *%1"
+                :
+                :"r" (current-&gt;thread.esp),"r" (current-&gt;thread.eip));
+}</pre><p>
+     As BSP called <span class="emphasis"><em>do_boot_cpu()</em></span> to set
+     <span class="emphasis"><em>thread.eip</em></span> to <span class="emphasis"><em>start_secondary()</em></span>,
+     control of AP is passed to this function.
+     AP uses a new stack frame, which was set up by BSP in
+     <span class="emphasis"><em>do_boot_cpu() -&gt; fork_by_hand() -&gt; do_fork()</em></span>.
+    </p></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="start_secondary"></a>8.5. start_secondary()</h3></div></div></div><p>
+     All APs wait for signal <span class="emphasis"><em>smp_commenced</em></span> from BSP,
+     triggered in <a class="xref" href="ar01s08.html#smp_init" title="8.2. smp_init()">Section 8.2, &#8220;smp_init()&#8221;</a>
+     <span class="emphasis"><em>smp_init() -&gt; smp_commence()</em></span>.
+     After getting this signal, they will run "idle" processes.
+</p><pre class="programlisting">///////////////////////////////////////////////////////////////////////////////
+int __init start_secondary(void *unused)
+{
+        /* Dont put anything before smp_callin(), SMP
+         * booting is too fragile that we want to limit the
+         * things done here to the most necessary things. */
+        cpu_init();
+        smp_callin();
+        while (!atomic_read(&amp;smp_commenced))
+                rep_nop();
+        /* low-memory mappings have been cleared, flush them from
+         * the local TLBs too. */
+        local_flush_tlb();
+        return cpu_idle();      // never return, see <a class="xref" href="ar01s07.html#idle_proc" title="7.3. cpu_idle()">Section 7.3, &#8220;cpu_idle()&#8221;</a>
+}</pre><p>
+     <span class="emphasis"><em>cpu_idle() -&gt; init_idle()</em></span> will
+     clear corresponding bit in <span class="emphasis"><em>wait_init_idle</em></span>, and
+     finally make BSP finish <span class="emphasis"><em>smp_init()</em></span> and continue with
+     the following function in <span class="emphasis"><em>start_kernel()</em></span>
+     (i.e. <span class="emphasis"><em>rest_init()</em></span>).
+    </p></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="smpboot_ref"></a>8.6. Reference</h3></div></div></div><p>
+    </p><div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem"><p>
+         <a class="ulink" href="http://www.intel.com/design/pentium/datashts/242016.htm" target="_top">
+         MultiProcessor Specification</a>
+        </p></li><li class="listitem"><p><a class="ulink" href="http://developer.intel.com/design/pentium4/manuals/" target="_top">
+        IA-32 Intel Architecture Software Developer's Manual</a></p></li><li class="listitem"><p><a class="ulink" href="http://www.tldp.org/LDP/lki/lki-1.html#ss1.7" target="_top">
+        Linux Kernel 2.4 Internals: Ch.1.7. SMP Bootup on x86</a></p></li><li class="listitem"><p><a class="ulink" href="http://www.tldp.org/HOWTO/SMP-HOWTO.html" target="_top">
+        Linux SMP HOWTO</a></p></li><li class="listitem"><p><a class="ulink" href="http://www.acpi.info" target="_top">ACPI spec</a></p></li><li class="listitem"><p>An Implementation Of Multiprocessor Linux:
+        <code class="filename">linux/Documentation/smp.tex</code></p></li></ul></div><p>
+    </p></div></div><div class="navfooter"><hr><table width="100%" summary="Navigation footer"><tr><td width="40%" align="left"><a accesskey="p" href="ar01s07.html">Prev</a> </td><td width="20%" align="center"> </td><td width="40%" align="right"> <a accesskey="n" href="ar01s09.html">Next</a></td></tr><tr><td width="40%" align="left" valign="top">7. linux/init/main.c </td><td width="20%" align="center"><a accesskey="h" href="index.html">Home</a></td><td width="40%" align="right" valign="top"> A. Kernel Build Example</td></tr></table></div></body></html>

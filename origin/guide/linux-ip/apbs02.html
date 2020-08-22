@@ -1,0 +1,66 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1"><title>2. arping</title><link rel="stylesheet" type="text/css" href="style.css"><meta name="generator" content="DocBook XSL Stylesheets V1.79.1"><meta name="keywords" content="linux, ip, iproute2, ifconfig, firewall, ARP, NAT, route, routing, route selection, routing selection, network administration"><link rel="home" href="index.html" title="Guide to IP Layer Network Administration with Linux"><link rel="up" href="apb.html" title="Appendix B. Ethernet Layer Tools"><link rel="prev" href="apbs01.html" title="1. arp"><link rel="next" href="apbs03.html" title="3. ip link"></head><body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF"><div class="navheader"><table width="100%" summary="Navigation header"><tr><th colspan="3" align="center">2. <span class="command"><strong>arping</strong></span></th></tr><tr><td width="20%" align="left"><a accesskey="p" href="apbs01.html">Prev</a> </td><th width="60%" align="center">Appendix B. Ethernet Layer Tools</th><td width="20%" align="right"> <a accesskey="n" href="apbs03.html">Next</a></td></tr></table><hr></div><div class="section"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="tools-arping"></a>2. <span class="command"><strong>arping</strong></span></h2></div></div></div><p>
+        An almost unknown command (mostly because it is not frequently
+        necessary), the <span class="command"><strong>arping</strong></span> utility performs an action
+        similar to <a class="link" href="apgs01.html" title="1. ping"><span class="command"><strong>ping</strong></span></a>,
+        but at the Ethernet layer.   Where <span class="command"><strong>ping</strong></span> tests the
+        reachability of an IP address, <span class="command"><strong>arping</strong></span> reports the
+        reachability and round-trip time of an IP address hosted on the local
+        network.
+      </p><p>
+        There are several modes of operation for this utility.  Under normal
+        operation, <span class="command"><strong>arping</strong></span> displays the Ethernet and IP
+        address of the target as well as the time elapsed between the
+        arp request and the arp reply.
+      </p><div class="example"><a name="ex-tools-arping-listing"></a><p class="title"><b>Example B.4. Displaying reachability of an IP on the local Ethernet with <span class="command">arping</span></b></p><div class="example-contents"><pre class="programlisting">
+<code class="prompt">[root@masq-gw]# </code><strong class="userinput"><code>arping -I eth0 -c 2 192.168.100.17</code></strong>
+<code class="computeroutput">ARPING 192.168.100.17 from 192.168.100.254 eth0
+Unicast reply from 192.168.100.17 [00:80:C8:E8:4B:8E]  8.419ms
+Unicast reply from 192.168.100.17 [00:80:C8:E8:4B:8E]  2.095ms
+Sent 2 probes (1 broadcast(s))
+Received 2 response(s)</code>
+        </pre></div></div><br class="example-break"><p>
+        Other options to the arping utility include the ability to send a
+        broadcast arp using the <span class="command"><strong>-U</strong></span> option
+        and the ability to send a gratuitous reply using the
+        <span class="command"><strong>-A</strong></span> option.   A kernel with support for <a class="link" href="ch09s07.html" title="7. Binding to Non-local Addresses">non-local bind</a> can be used with
+        arping for the nefarious purpose of wreaking havoc on
+        an otherwise properly configured Ethernet.  By performing gratuitous arp
+        and broadcasting incorrect arp information, arp tables in poorly
+        designed IP stacks can become quite confused.
+      </p><p>
+        <span class="command"><strong>arping</strong></span> can detect if an IP address is
+        currently in use on an Ethernet.  Called duplicate address detection,
+        this use of <span class="command"><strong>arping</strong></span> is increasingly common in
+        networking scripts.
+      </p><p>
+        For a practical example, let's assume a laptop named
+        <code class="systemitem">dietrich</code> is normally
+        connected to a home network with the same IP address as
+        <code class="systemitem">tristan</code> of
+        our main office network.  In the boot scripts,
+        <code class="systemitem">dietrich</code>
+        might make good use of
+        <span class="command"><strong>arping</strong></span> by testing reachability of the IP it wants
+        to use before bringing up the IP layer.
+      </p><div class="example"><a name="ex-tools-arping-dad"></a><p class="title"><b>Example B.5. Duplicate Address Detection with <span class="command">arping</span></b></p><div class="example-contents"><pre class="programlisting">
+<code class="prompt">[root@dietrich]# </code><strong class="userinput"><code>arping -D -q -I eth0 -c 2 192.168.99.35</code></strong>
+<code class="prompt">[root@dietrich]# </code><strong class="userinput"><code>echo $?</code></strong>
+<code class="computeroutput">1</code>
+<code class="prompt">[root@dietrich]# </code><strong class="userinput"><code>arping -D -q -I eth0 -c 2 192.168.99.36</code></strong>
+<code class="prompt">[root@dietrich]# </code><strong class="userinput"><code>echo $?</code></strong>
+<code class="computeroutput">0</code>
+        </pre></div></div><br class="example-break"><p>
+        First, <code class="systemitem">dietrich</code> tests
+        reachability of its preferred IP (192.168.99.35).  Because the IP
+        address is in use by
+        <code class="systemitem">tristan</code>, 
+        <code class="systemitem">dietrich</code> receives a
+        response.  Any response by a device on the Ethernet indicating that an
+        IP address is in use will cause the <span class="command"><strong>arping</strong></span> command
+        to exit with a non-zero exit code (specifically, exit code 1).
+      </p><p>
+        Note, that the Ethernet device must already be in an UP state (see
+        <a class="xref" href="apbs03.html" title="3. ip link">Section 3, &#8220;<span class="command"><strong>ip link</strong></span>&#8221;</a>).  If the Ethernet device has not been
+        brought up, the <span class="command"><strong>arping</strong></span> utility will exit with a
+        non-zero exit code (specifically, exit code 2).
+      </p></div><div class="navfooter"><hr><table width="100%" summary="Navigation footer"><tr><td width="40%" align="left"><a accesskey="p" href="apbs01.html">Prev</a> </td><td width="20%" align="center"><a accesskey="u" href="apb.html">Up</a></td><td width="40%" align="right"> <a accesskey="n" href="apbs03.html">Next</a></td></tr><tr><td width="40%" align="left" valign="top">1. <span class="command"><strong>arp</strong></span> </td><td width="20%" align="center"><a accesskey="h" href="index.html">Home</a></td><td width="40%" align="right" valign="top"> 3. <span class="command"><strong>ip link</strong></span></td></tr></table></div></body></html>

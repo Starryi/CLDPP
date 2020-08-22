@@ -1,0 +1,1151 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN""http://www.w3.org/TR/html4/loose.dtd">
+<HTML
+><HEAD
+><TITLE
+>How to deal with date and time</TITLE
+><META
+NAME="GENERATOR"
+CONTENT="Modular DocBook HTML Stylesheet Version 1.79"><LINK
+REL="HOME"
+TITLE="PHP-Nuke: Management and Programming"
+HREF="index.html"><LINK
+REL="UP"
+TITLE="Miscellaneous"
+HREF="miscellaneous.html"><LINK
+REL="PREVIOUS"
+TITLE="How to size the select boxes in a module"
+HREF="size-select-boxes.html"><LINK
+REL="NEXT"
+TITLE="How to deal with quotes in the site's name"
+HREF="deal-with-quotes-in-sitename.html"></HEAD
+><BODY
+CLASS="SECT1"
+BGCOLOR="#FFFFFF"
+TEXT="#000000"
+LINK="#0000FF"
+VLINK="#840084"
+ALINK="#0000FF"
+><DIV
+CLASS="NAVHEADER"
+><TABLE
+SUMMARY="Header navigation table"
+WIDTH="100%"
+BORDER="0"
+CELLPADDING="0"
+CELLSPACING="0"
+><TR
+><TH
+COLSPAN="3"
+ALIGN="center"
+>PHP-Nuke: Management and Programming</TH
+></TR
+><TR
+><TD
+WIDTH="10%"
+ALIGN="left"
+VALIGN="bottom"
+><A
+HREF="size-select-boxes.html"
+ACCESSKEY="P"
+>Prev</A
+></TD
+><TD
+WIDTH="80%"
+ALIGN="center"
+VALIGN="bottom"
+>Chapter 27. Miscellaneous</TD
+><TD
+WIDTH="10%"
+ALIGN="right"
+VALIGN="bottom"
+><A
+HREF="deal-with-quotes-in-sitename.html"
+ACCESSKEY="N"
+>Next</A
+></TD
+></TR
+></TABLE
+><HR
+ALIGN="LEFT"
+WIDTH="100%"></DIV
+><DIV
+CLASS="SECT1"
+><H1
+CLASS="SECT1"
+><A
+NAME="DATE-TIME"
+>27.13. How to deal with date and time</A
+></H1
+><P
+>You will encounter date/time functions all over PHP-Nuke: cookie expiration time, broadcast message duration time, article time, server time. <ACRONYM
+CLASS="ACRONYM"
+>PHP</ACRONYM
+> offers many functions that help us with date/time tasks. Here we will cover:</P
+><P
+></P
+><UL
+><LI
+><P
+>How to find the last date of some article, download etc. (<A
+HREF="date-time.html#FIND-LAST-DATE"
+>Section 27.13.1</A
+>),</P
+></LI
+><LI
+><P
+>How to adjust server time (<A
+HREF="date-time.html#ADJUST-SERVER-TIME"
+>Section 27.13.2</A
+>),</P
+></LI
+><LI
+><P
+>How to use the Discordian Calendar (<A
+HREF="date-time.html#DISCORDIAN-CALENDAR"
+>Section 27.13.3</A
+>). </P
+></LI
+></UL
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="FIND-LAST-DATE"
+>27.13.1. How to find the last date of...</A
+></H2
+><P
+>Dates are stored in many tables of <SPAN
+CLASS="APPLICATION"
+>PHP-Nuke</SPAN
+>. The date fields are used to hold the date we</P
+><P
+></P
+><UL
+><LI
+><P
+>entered a banner and whhen that banner expires,</P
+></LI
+><LI
+><P
+>wrote a private message,</P
+></LI
+><LI
+><P
+>wrote a comment,</P
+></LI
+><LI
+><P
+>entered a download link,</P
+></LI
+><LI
+><P
+>voted for something (article, download, link etc.),</P
+></LI
+><LI
+><P
+>wrote in our journal,</P
+></LI
+><LI
+><P
+>inserted a web link,</P
+></LI
+><LI
+><P
+>wrote a review, </P
+></LI
+><LI
+><P
+>wrote an article</P
+></LI
+></UL
+><P
+>and so on. Sometimes, while writing a modification (<A
+HREF="modifying-php-nuke-blocks.html"
+>Chapter 17</A
+>, <A
+HREF="modifying-php-nuke-modules.html"
+>Chapter 18</A
+>), or even a new block (<A
+HREF="blocks.html"
+>Chapter 20</A
+>) or module (<A
+HREF="creating-modules.html"
+>Chapter 21</A
+>), you may want to compute the last date that an event like the above has happened.</P
+><P
+>Whenever you encounter a problem of this type - find the first, the last, the minimum, the maximum, the average...of some attribute that is stored in a table field of <SPAN
+CLASS="APPLICATION"
+>PHP-Nuke</SPAN
+> - think <A
+HREF="http://www.mysql.com/doc/en/GROUP-BY-Functions.html"
+TARGET="_top"
+>aggregate functions</A
+>. There is no need to go through a loop of all records in our table, just to find an aggregate function of its fields - the database does it for us: <SPAN
+CLASS="INLINEMEDIAOBJECT"
+><IMG
+SRC="./images/icon_cool.png"></SPAN
+></P
+><TABLE
+BORDER="1"
+BGCOLOR="#E0E0E0"
+WIDTH="100%"
+><TR
+><TD
+><FONT
+COLOR="#000000"
+><PRE
+CLASS="SCREEN"
+>SELECT max( date ) FROM nuke_downloads_downloads;</PRE
+></FONT
+></TD
+></TR
+></TABLE
+><P
+>The above SQL query will compute the maximum date (i.e. the <EM
+>last</EM
+> date) of all links n the Downloads section. You can use SQL queries like the above in your blocks and modules. To start with, create (with a <A
+HREF="http://www.karakas-online.de/forum/viewtopic.php?t=122"
+TARGET="_top"
+>decent text editor</A
+>, see <A
+HREF="editing-php-nuke-files.html"
+>Chapter 11</A
+>) a file that contains (see <A
+HREF="http://www.karakas-online.de/forum/viewtopic.php?t=344"
+TARGET="_top"
+>How to compute the date of the last file added in Downloads</A
+>):</P
+><TABLE
+BORDER="1"
+BGCOLOR="#E0E0E0"
+WIDTH="100%"
+><TR
+><TD
+><FONT
+COLOR="#000000"
+><PRE
+CLASS="SCREEN"
+>&#60;?php
+require_once("mainfile.php");
+global $db;
+include("header.php");
+$sql = "SELECT max(date) FROM nuke_downloads_downloads";
+$result = $db-&#62;sql_query($sql);
+$row = $db-&#62;sql_fetchrow($result);
+$maxdate = $row["max(date)"];
+echo "maxdate = $maxdate";
+echo "&#60;br&#62;&#60;br&#62;";
+?&#62;</PRE
+></FONT
+></TD
+></TR
+></TABLE
+><P
+>name it query.php, upload it in the same dir on your server where also mainfile.php is located, then point your browser to query.php. You should see a line like</P
+><TABLE
+BORDER="1"
+BGCOLOR="#E0E0E0"
+WIDTH="100%"
+><TR
+><TD
+><FONT
+COLOR="#000000"
+><PRE
+CLASS="SCREEN"
+>maxdate = 2003-11-17 15:33:03</PRE
+></FONT
+></TD
+></TR
+></TABLE
+><P
+>This example illustrates the use of the new SQL layer (see <A
+HREF="sql-syntax.html"
+>Section 28.5</A
+>) for the computation of aggregates. Note that the argument of the $row array is a string that mimics exactly the aggregate function in the SELECT statement:</P
+><TABLE
+BORDER="1"
+BGCOLOR="#E0E0E0"
+WIDTH="100%"
+><TR
+><TD
+><FONT
+COLOR="#000000"
+><PRE
+CLASS="SCREEN"
+>$maxdate = $row["max(date)"];</PRE
+></FONT
+></TD
+></TR
+></TABLE
+><P
+>Here, &#8220;max(date)&#8221; is just a string and has nothing to do with the max() function.</P
+><P
+>Of course, this example is more a &#8220;proof of concept&#8221;, rather than something you should use in production - on the contrary, you should delete it from server as soon as you don't need it, for security reasons. But it serves as a starting point for more ambitious projects. like the following modification to the Downloads module:</P
+><P
+>Problem: You have various categories and subcategories defined in the Downloads section. For each category, you want to compute the last date that you entered some download link, either in this category, <EM
+>or in any of its subcategories</EM
+>.</P
+><P
+>We have already seen how to find the lst date of the downloads in <EM
+>one</EM
+> category above. What makes the situation here somewhat more complicated is the fact that we have to do the same computation for every subcategory of a category - however we don't know all those subcategory IDs a priori, we have to search for them.</P
+><P
+>More specifically, the steps to be taken for every category <ACRONYM
+CLASS="ACRONYM"
+>ID</ACRONYM
+> $cid are:</P
+><P
+></P
+><UL
+><LI
+><P
+>Compute the maximum date for that $cid.</P
+></LI
+><LI
+><P
+>Search the nuke_downloads_categories for all category IDs, whose parent <ACRONYM
+CLASS="ACRONYM"
+>ID</ACRONYM
+> is $cid. Let's call such a category <ACRONYM
+CLASS="ACRONYM"
+>ID</ACRONYM
+> $subcid (meaning that it is a subcategory, since it has a parent, $cid).</P
+></LI
+><LI
+><P
+>Compute the latest date a download was inserted in that $subcid. Do this for all $subcid's you can find for that $cid.</P
+></LI
+><LI
+><P
+>Compute the maximum of all those maximum dates (including the maximum date for $cid). This will be the latest date a download link was inserted in either the category $cid, or any of its subcategories $subcid.</P
+></LI
+></UL
+><P
+>The code that implements the above algorithm is (see <A
+HREF="http://www.karakas-online.de/forum/viewtopic.php?t=344"
+TARGET="_top"
+>How to compute the date of the last file added in Downloads</A
+>):</P
+><TABLE
+BORDER="1"
+BGCOLOR="#E0E0E0"
+WIDTH="100%"
+><TR
+><TD
+><FONT
+COLOR="#000000"
+><PRE
+CLASS="SCREEN"
+>$sql3 = "SELECT max(date) FROM ".$prefix."_downloads_downloads WHERE cid='$cid'"; <A
+NAME="MAXDATE1"
+><IMG
+SRC="images/callouts/1.png"
+HSPACE="0"
+VSPACE="0"
+BORDER="0"
+ALT="(1)"></A
+>
+$result3 = $db-&#62;sql_query($sql3);
+$row3 = $db-&#62;sql_fetchrow($result3);
+$maxdate3 = $row3["max(date)"]; <A
+NAME="MAXDATE2"
+><IMG
+SRC="images/callouts/2.png"
+HSPACE="0"
+VSPACE="0"
+BORDER="0"
+ALT="(2)"></A
+>
+$sql4 = "SELECT cid FROM ".$prefix."_downloads_categories WHERE parentid='$cid'"; <A
+NAME="MAXDATE3"
+><IMG
+SRC="images/callouts/3.png"
+HSPACE="0"
+VSPACE="0"
+BORDER="0"
+ALT="(3)"></A
+>
+$result4 = $db-&#62;sql_query($sql4);
+$maxdate4 = 0;
+while ($row4 = $db-&#62;sql_fetchrow($result4)) { <A
+NAME="MAXDATE4"
+><IMG
+SRC="images/callouts/4.png"
+HSPACE="0"
+VSPACE="0"
+BORDER="0"
+ALT="(4)"></A
+>
+   $subcid = $row4["cid"];
+   $sql5 = "SELECT max(date) FROM ".$prefix."_downloads_downloads WHERE cid='$subcid'"; <A
+NAME="MAXDATE5"
+><IMG
+SRC="images/callouts/5.png"
+HSPACE="0"
+VSPACE="0"
+BORDER="0"
+ALT="(5)"></A
+>
+   $result5 = $db-&#62;sql_query($sql5);
+   $row5 = $db-&#62;sql_fetchrow($result5);
+   $maxdate5 = $row5["max(date)"]; <A
+NAME="MAXDATE6"
+><IMG
+SRC="images/callouts/6.png"
+HSPACE="0"
+VSPACE="0"
+BORDER="0"
+ALT="(6)"></A
+>
+   if ($maxdate5 &#62; $maxdate4){
+      $maxdate4 = $maxdate5; <A
+NAME="MAXDATE7"
+><IMG
+SRC="images/callouts/7.png"
+HSPACE="0"
+VSPACE="0"
+BORDER="0"
+ALT="(7)"></A
+>
+   }
+}
+$maxdate = max($maxdate3, $maxdate4); <A
+NAME="MAXDATE8"
+><IMG
+SRC="images/callouts/8.png"
+HSPACE="0"
+VSPACE="0"
+BORDER="0"
+ALT="(8)"></A
+>
+if ($maxdate) {
+   echo "&#60;font class=\"content\"&#62;Latest Download on $maxdate&#60;/font&#62;&#60;br&#62;"; <A
+NAME="MAXDATE9"
+><IMG
+SRC="images/callouts/9.png"
+HSPACE="0"
+VSPACE="0"
+BORDER="0"
+ALT="(9)"></A
+>
+}</PRE
+></FONT
+></TD
+></TR
+></TABLE
+><DIV
+CLASS="CALLOUTLIST"
+><DL
+COMPACT="COMPACT"
+><DT
+><A
+HREF="date-time.html#MAXDATE1"
+><IMG
+SRC="images/callouts/1.png"
+HSPACE="0"
+VSPACE="0"
+BORDER="0"
+ALT="(1)"></A
+></DT
+><DD
+>Compute the maximum date for that $cid. The SQL query is the same as the one we used in the simplified example above.
+       </DD
+><DT
+><A
+HREF="date-time.html#MAXDATE2"
+><IMG
+SRC="images/callouts/2.png"
+HSPACE="0"
+VSPACE="0"
+BORDER="0"
+ALT="(2)"></A
+></DT
+><DD
+>This is the maximum date for the category <ACRONYM
+CLASS="ACRONYM"
+>ID</ACRONYM
+> $cid. It may or may not be set, depending on whether we entered a download directly under that category at all, i.e. without making use of any of its subcategories. If we did, this is the last date (and time) we did it, otherwise it is 0.
+       </DD
+><DT
+><A
+HREF="date-time.html#MAXDATE3"
+><IMG
+SRC="images/callouts/3.png"
+HSPACE="0"
+VSPACE="0"
+BORDER="0"
+ALT="(3)"></A
+></DT
+><DD
+>With this SQL query, we select all  subcategories of that category. The subcategories' parentid field will contain the parent category ID, therefore this field must be equal to our $cid.
+       </DD
+><DT
+><A
+HREF="date-time.html#MAXDATE4"
+><IMG
+SRC="images/callouts/4.png"
+HSPACE="0"
+VSPACE="0"
+BORDER="0"
+ALT="(4)"></A
+></DT
+><DD
+>We enter a loop for every subcategory. Inside the loop, the subcategory will be stored in $subcid and we will compute the maximum date for each subcategory <ACRONYM
+CLASS="ACRONYM"
+>ID</ACRONYM
+>.
+       </DD
+><DT
+><A
+HREF="date-time.html#MAXDATE5"
+><IMG
+SRC="images/callouts/5.png"
+HSPACE="0"
+VSPACE="0"
+BORDER="0"
+ALT="(5)"></A
+></DT
+><DD
+>This is the same SQL query we used previously to compute the maximum date for a given <ACRONYM
+CLASS="ACRONYM"
+>ID</ACRONYM
+>. In this case, the <ACRONYM
+CLASS="ACRONYM"
+>ID</ACRONYM
+> is that one of the subcategory, i.e. $subcid.  Depending on whether we entered a download under that subcategory  this will either be  the last date (and time) we did so, or just 0.
+       </DD
+><DT
+><A
+HREF="date-time.html#MAXDATE6"
+><IMG
+SRC="images/callouts/6.png"
+HSPACE="0"
+VSPACE="0"
+BORDER="0"
+ALT="(6)"></A
+></DT
+><DD
+>The maximum date of downloads under the $subcid is stored in $maxdate5.
+       </DD
+><DT
+><A
+HREF="date-time.html#MAXDATE7"
+><IMG
+SRC="images/callouts/7.png"
+HSPACE="0"
+VSPACE="0"
+BORDER="0"
+ALT="(7)"></A
+></DT
+><DD
+>Since for every subcategory $subcid,  a different maximum date is going to be stored in $maxdate5, we have to compute the maximum of all those maximums. This is stored in $maxdate4. At the end of the loop, $maxdate4 will be the maximum of all dates of all subcategories. Again, this will be some date, or zero.
+       </DD
+><DT
+><A
+HREF="date-time.html#MAXDATE8"
+><IMG
+SRC="images/callouts/8.png"
+HSPACE="0"
+VSPACE="0"
+BORDER="0"
+ALT="(8)"></A
+></DT
+><DD
+>Finally,  we take the maximum of the maximum date of all subcategories and the maximum date of the category itself. This is the last date we inserted a link, either in the category itself, or in any of its subcategories.
+       </DD
+><DT
+><A
+HREF="date-time.html#MAXDATE9"
+><IMG
+SRC="images/callouts/9.png"
+HSPACE="0"
+VSPACE="0"
+BORDER="0"
+ALT="(9)"></A
+></DT
+><DD
+>Print some result, if the last date we computed is not 0. It looks as in <A
+HREF="date-time.html#FIG-DOWNLOADS-MAIN-CATEGORIES-MAXDATE"
+>Figure 27-12</A
+>.
+       </DD
+></DL
+></DIV
+><P
+><DIV
+CLASS="FIGURE"
+><A
+NAME="FIG-DOWNLOADS-MAIN-CATEGORIES-MAXDATE"
+></A
+><P
+><B
+>Figure 27-12.    Downloads: Main categories with last download date.
+   </B
+></P
+><DIV
+CLASS="MEDIAOBJECT"
+><P
+><IMG
+SRC="./images/downloads-main-categories-maxdate.png"><DIV
+CLASS="CAPTION"
+><P
+>Downloads: Main categories with last download date.</P
+></DIV
+></P
+></DIV
+></DIV
+></P
+><DIV
+CLASS="TIP"
+><P
+></P
+><TABLE
+CLASS="TIP"
+WIDTH="100%"
+BORDER="0"
+><TR
+><TD
+WIDTH="25"
+ALIGN="CENTER"
+VALIGN="TOP"
+><IMG
+SRC="../images/tip.png"
+HSPACE="5"
+ALT="Tip"></TD
+><TH
+ALIGN="LEFT"
+VALIGN="MIDDLE"
+><B
+>Use JOIN</B
+></TH
+></TR
+><TR
+><TD
+>&nbsp;</TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+>This algorithm would be a perfect example of an application of the SQL JOIN query, since the &#8220;parent-child&#8221; information is kept in a different table, nuke_downloads_categories, while the dates themselves are kept in nuke_downloads_downloads. However, JOINs may not be supported by your version of MySQL, so we took the rather primitive (and usually slower) approach of nested SELECT statements in the code above. If you only have a few categories, subcategories and downloads, JOINs may not be a big deal for you, but the situation changes if you have thousands of them (see <A
+HREF="enter-thousands-of-download-links.html"
+>Section 27.6</A
+> on how you can enter that many, without subjecting yourself to <A
+HREF="http://freshmeat.net/articles/view/407/"
+TARGET="_top"
+>Repetitive Stress Injury</A
+> <SPAN
+CLASS="INLINEMEDIAOBJECT"
+><IMG
+SRC="./images/icon_wink.png"></SPAN
+>). You are encouraged to experiment with JOINs and test if they improve the algorithm's performance!</P
+></TD
+></TR
+></TABLE
+></DIV
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="ADJUST-SERVER-TIME"
+>27.13.2. How to adjust server time</A
+></H2
+><P
+><DIV
+CLASS="FIGURE"
+><A
+NAME="FIG-YOUR-INFO-PROFILE-TIMEZONE"
+></A
+><P
+><B
+>Figure 27-13.    Your Info profile: Timezone and Date settings.
+   </B
+></P
+><DIV
+CLASS="MEDIAOBJECT"
+><P
+><IMG
+SRC="./images/your-info-profile-timezone.png"><DIV
+CLASS="CAPTION"
+><P
+>Your Info profile: Timezone and Date settings.</P
+></DIV
+></P
+></DIV
+></DIV
+></P
+><P
+>In some cases, perhaps due a misconfiguration of your server, the time shown up in the News stories is wrong. Normally, it should be possible to control it by changing the time settings in either the Preferences of the administration panel, or the user preferences (<A
+HREF="date-time.html#FIG-YOUR-INFO-PROFILE-TIMEZONE"
+>Figure 27-13</A
+>). However, there will be situations where a quick fix is desirable. </P
+><P
+>You can offset the time by tweaking the following line in the mainfile.php in the function formatTimeStamp (see <A
+HREF="http://www.karakas-online.de/forum/viewtopic.php?t=410"
+TARGET="_top"
+>How to adjust server time in PHP-Nuke</A
+>):</P
+><TABLE
+BORDER="1"
+BGCOLOR="#E0E0E0"
+WIDTH="100%"
+><TR
+><TD
+><FONT
+COLOR="#000000"
+><PRE
+CLASS="SCREEN"
+>$datetime = strftime(""._DATESTRING."", mktime($datetime[4],$datetime[5],$datetime[6],
+$datetime[2],$datetime[3],$datetime[1]));</PRE
+></FONT
+></TD
+></TR
+></TABLE
+><P
+>For example to add one hour (3600 seconds), you would simply add 3600:</P
+><TABLE
+BORDER="1"
+BGCOLOR="#E0E0E0"
+WIDTH="100%"
+><TR
+><TD
+><FONT
+COLOR="#000000"
+><PRE
+CLASS="SCREEN"
+>$datetime = strftime(""._DATESTRING."", mktime($datetime[4],$datetime[5],$datetime[6],
+$datetime[2],$datetime[3],$datetime[1]) + 3600);</PRE
+></FONT
+></TD
+></TR
+></TABLE
+><P
+>or, to subtract two hours:</P
+><TABLE
+BORDER="1"
+BGCOLOR="#E0E0E0"
+WIDTH="100%"
+><TR
+><TD
+><FONT
+COLOR="#000000"
+><PRE
+CLASS="SCREEN"
+>$datetime = strftime(""._DATESTRING."", mktime($datetime[4],$datetime[5],$datetime[6],
+$datetime[2],$datetime[3],$datetime[1]) - 7200);</PRE
+></FONT
+></TD
+></TR
+></TABLE
+><P
+>A situation that calls for server time modification arises when your server is located in a different timezone than your geographic location - say you are located in Japan, but your hosting company is in Canada (see <A
+HREF="http://www.karakas-online.de/forum/viewtopic.php?t=410"
+TARGET="_top"
+>How to adjust server time in PHP-Nuke</A
+>). The article on phpbuilder.com <A
+HREF="http://phpbuilder.com/columns/ehresman20030911.php3"
+TARGET="_top"
+>On User-Defined Timezones in PHP</A
+> explains the problem in detail. Quoting:</P
+><A
+NAME="AEN20434"
+></A
+><BLOCKQUOTE
+CLASS="BLOCKQUOTE"
+><P
+>PHP's 'mktime' and 'date' functions work well as a pair without the help of any other timestamp manipulation routines, but only if the application in which they are used is concerned solely with display and entry of time in the servers timezone. If an application needs to handle entry from a timezone other than that in which the server is located something more than 'mktime' and 'date' is required.</P
+><P
+>Two things are required to accomplish this: a location independent format for storing time in the database, and methods to translate to and from that format into the user's local time.</P
+></BLOCKQUOTE
+><P
+>Read the original article for a solution. To apply it to PHP-Nuke, you would need to replace the time functions with the new ones, read the time offset from the user's profile and display the result.</P
+><P
+>To reflect the new time zone that may be implied by the hardcoded time offset, you would also want to change the _DATESTRING definition in your language file, e.g. language/lang-english.php:</P
+><TABLE
+BORDER="1"
+BGCOLOR="#E0E0E0"
+WIDTH="100%"
+><TR
+><TD
+><FONT
+COLOR="#000000"
+><PRE
+CLASS="SCREEN"
+>define("_DATESTRING","%A, %B %d @ %T %Z");</PRE
+></FONT
+></TD
+></TR
+></TABLE
+><P
+>You can change the "%A, %B %d @ %T %Z" string to whatever you deem appropriate. <ACRONYM
+CLASS="ACRONYM"
+>PHP</ACRONYM
+> gives to some placeholders a special meaning:</P
+><P
+></P
+><UL
+><LI
+><P
+>%a - abbreviated weekday name according to the current locale</P
+></LI
+><LI
+><P
+>%A - full weekday name according to the current locale</P
+></LI
+><LI
+><P
+>%b - abbreviated month name according to the current locale</P
+></LI
+><LI
+><P
+>%B - full month name according to the current locale</P
+></LI
+><LI
+><P
+>%c - preferred date and time representation for the current locale</P
+></LI
+><LI
+><P
+>%C - century number (the year divided by 100 and truncated to an integer, range 00 to 99)</P
+></LI
+><LI
+><P
+>%d - day of the month as a decimal number (range 01 to 31)</P
+></LI
+><LI
+><P
+>%D - same as %m/%d/%y</P
+></LI
+><LI
+><P
+>%e - day of the month as a decimal number, a single digit is preceded by a space (range ' 1' to '31')</P
+></LI
+><LI
+><P
+>%g - like %G, but without the century.</P
+></LI
+><LI
+><P
+>%G - The 4-digit year corresponding to the ISO week number (see %V). This has the same format and value as %Y, except that if the ISO week number belongs to the previous or next year, that year is used instead.</P
+></LI
+><LI
+><P
+>%h - same as %b</P
+></LI
+><LI
+><P
+>%H - hour as a decimal number using a 24-hour clock (range 00 to 23)</P
+></LI
+><LI
+><P
+>%I - hour as a decimal number using a 12-hour clock (range 01 to 12)</P
+></LI
+><LI
+><P
+>%j - day of the year as a decimal number (range 001 to 366)</P
+></LI
+><LI
+><P
+>%m - month as a decimal number (range 01 to 12)</P
+></LI
+><LI
+><P
+>%M - minute as a decimal number</P
+></LI
+><LI
+><P
+>%n - newline character</P
+></LI
+><LI
+><P
+>%p - either `am' or `pm' according to the given time value, or the corresponding strings for the current locale</P
+></LI
+><LI
+><P
+>%r - time in a.m. and p.m. notation</P
+></LI
+><LI
+><P
+>%R - time in 24 hour notation</P
+></LI
+><LI
+><P
+>%S - second as a decimal number</P
+></LI
+><LI
+><P
+>%t - tab character</P
+></LI
+><LI
+><P
+>%T - current time, equal to %H:%M:%S</P
+></LI
+><LI
+><P
+>%u - weekday as a decimal number [1,7], with 1 representing Monday</P
+></LI
+><LI
+><P
+>%U - week number of the current year as a decimal number, starting with the first Sunday as the first day of the first week</P
+></LI
+><LI
+><P
+>%V - The ISO 8601:1988 week number of the current year as a decimal number, range 01 to 53, where week 1 is the first week that has at least 4 days in the current year, and with Monday as the first day of the week. (Use %G or %g for the year component that corresponds to the week number for the specified timestamp.)</P
+></LI
+><LI
+><P
+>%W - week number of the current year as a decimal number, starting with the first Monday as the first day of the first week</P
+></LI
+><LI
+><P
+>%w - day of the week as a decimal, Sunday being 0</P
+></LI
+><LI
+><P
+>%x - preferred date representation for the current locale without the time</P
+></LI
+><LI
+><P
+>%X - preferred time representation for the current locale without the date</P
+></LI
+><LI
+><P
+>%y - year as a decimal number without a century (range 00 to 99)</P
+></LI
+><LI
+><P
+>%Y - year as a decimal number including the century</P
+></LI
+><LI
+><P
+>%Z - time zone or name or abbreviation</P
+></LI
+><LI
+><P
+>%% - a literal `%' character</P
+></LI
+></UL
+><P
+>You can combine them with punctuation or extra words to construct the datetime string of your liking. You are not limited to the above interpretation. For example, you can just delete the %Z, and replace it with EST or whatever you time zone is (if you cannot set it from the preferences, that is). There are some points to bear in mind while experimenting:</P
+><P
+></P
+><UL
+><LI
+><P
+>Given a 'bare number' in seconds, e.g. 143567, strftime() will format this number according to your local timezone. Thus, for Germany, you will get an extra hour, since CET is GMT +1. If you are interested in simply formatting a number to give you hours, minutes and seconds (very quick for showing time values), then you should always use 'gmstrftime' instead, which will not adjust the time for your local timezone. You set the local timezone in the preferences section of the administration panel, or the preferences in the user info panel. Valid timezone codes can (usually) be seen (on Linux, at least) in /usr/share/zoneinfo or /usr/lib/zoneinfo (according to the tzset manpage).</P
+></LI
+><LI
+><P
+>The call to mktime</P
+><TABLE
+BORDER="1"
+BGCOLOR="#E0E0E0"
+WIDTH="90%"
+><TR
+><TD
+><FONT
+COLOR="#000000"
+><PRE
+CLASS="SCREEN"
+>mktime($datetime[4],$datetime[5],$datetime[6],$datetime[2],$datetime[3],$datetime[1])</PRE
+></FONT
+></TD
+></TR
+></TABLE
+><P
+>means something equivalent to </P
+><TABLE
+BORDER="1"
+BGCOLOR="#E0E0E0"
+WIDTH="90%"
+><TR
+><TD
+><FONT
+COLOR="#000000"
+><PRE
+CLASS="SCREEN"
+>mktime($hour,$minute,$second,$month,$day,$year)</PRE
+></FONT
+></TD
+></TR
+></TABLE
+><P
+>assuming that $hour, $minute etc. are filled with the right values (this is exactly what the datetime array does for us).</P
+></LI
+></UL
+><P
+>See the <A
+HREF="http://www.php.net/manual/en/function.strftime.php"
+TARGET="_top"
+>PHP manual page for strftime</A
+> for more information and examples about date string formatting.</P
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="DISCORDIAN-CALENDAR"
+>27.13.3. The Discordian Calendar</A
+></H2
+><P
+>Date and time functions in <ACRONYM
+CLASS="ACRONYM"
+>PHP</ACRONYM
+> are very flexible, but I still have to find a <ACRONYM
+CLASS="ACRONYM"
+>PHP</ACRONYM
+> function that converts my date strings to the <A
+HREF="http://www.lojban.org/wiki/index.php/Discordian%20Calendar"
+TARGET="_top"
+>Discordian Calendar</A
+>:</P
+><A
+NAME="AEN20593"
+></A
+><BLOCKQUOTE
+CLASS="BLOCKQUOTE"
+><P
+>The Discordian calendar divides the year into five seasons (commonly known as Chaos (la kalsa), Discord (la tolsarxe), Confusion (la cfipu), Bureaucracy (la lujycatni) and the Aftermath (la jalge) ) of 73 days each. Every four years, an extra day (St. Tib's Day / la tib noi vrude) is inserted between Chaos 59 and Chaos 60.</P
+><P
+>The Discordian calendar defines a week as having five days, named Sweetmorn(la titcer), Boomtime (la bumtem), Pungenday (la pynjdei/cpinydei), Prickle-Prickle (la kilkil) and Setting Orange (after the Five Elements). Chaos 1 is always Sweetmorn, Chaos 2 Boomtime, The Aftermath 73 Setting Orange(la canci narju), etc. St. Tib's Day is none of the five days of the week. </P
+><P
+>The Discordian calendar's year 0 (notionally the time of the Original Snub) is known in the Gregorian calendar as 1166 BC; alternatively, the Gregorian year 0 (notionally the birth of the Jewish mystic Yeshua ben Yosef) is known as 1166 YOLD in the Discordian calendar. The year known in the Gregorian calendar as 2001 is known as 3167 in the Discordian calendar.</P
+></BLOCKQUOTE
+><P
+>Just in case you wanted to know. <SPAN
+CLASS="INLINEMEDIAOBJECT"
+><IMG
+SRC="./images/icon_wink.png"></SPAN
+> </P
+><P
+>How do we output a date string in the Discordian Calendar? If you want to write your own <ACRONYM
+CLASS="ACRONYM"
+>PHP</ACRONYM
+> ddate function, you might find the code of the <A
+HREF="http://search.cpan.org/author/RBOW/Date-Discordian-1.36/lib/Date/Discordian.pm"
+TARGET="_top"
+>Perl Date::Discordian module</A
+> useful. If the settings in your php.ini allow the execution of system commands (either safe_mode is off, or safe_mode is on and safe_mode_exec_dir contains the directory that holds the ddate executable, see <A
+HREF="http://www.php.net/manual/en/features.safe-mode.php#ini.safe-mode"
+TARGET="_top"
+>safe mode settings</A
+>) and you are running off a <SPAN
+CLASS="PRODUCTNAME"
+>Linux</SPAN
+> box, then you can use the output of <A
+HREF="http://linuxcommand.sourceforge.net/man_pages/ddate1.html"
+TARGET="_top"
+>ddate</A
+> to construct a discordian date in mainfile.php:</P
+><TABLE
+BORDER="1"
+BGCOLOR="#E0E0E0"
+WIDTH="100%"
+><TR
+><TD
+><FONT
+COLOR="#000000"
+><PRE
+CLASS="SCREEN"
+>$datetime = explode("Today is", exec('ddate'));</PRE
+></FONT
+></TD
+></TR
+></TABLE
+><P
+>This will result in something like</P
+><TABLE
+BORDER="1"
+BGCOLOR="#E0E0E0"
+WIDTH="100%"
+><TR
+><TD
+><FONT
+COLOR="#000000"
+><PRE
+CLASS="SCREEN"
+>Setting Orange, the 41st day of Bureaucracy in the YOLD 3169</PRE
+></FONT
+></TD
+></TR
+></TABLE
+><P
+>as the value of $datetime displayed in the News posts. More on this confusing topic in <A
+HREF="http://www.principiadiscordia.com/"
+TARGET="_top"
+>Principia Discordia</A
+>, the Opiatum Magnum of the Discordian Philosophy, as well as in the <A
+HREF="http://www.principiadiscordia.com/phpBB/index.php"
+TARGET="_top"
+>Discordian Forum</A
+> - where Enlightenment meets Confusion (TM)...</P
+></DIV
+></DIV
+><DIV
+CLASS="NAVFOOTER"
+><HR
+ALIGN="LEFT"
+WIDTH="100%"><TABLE
+SUMMARY="Footer navigation table"
+WIDTH="100%"
+BORDER="0"
+CELLPADDING="0"
+CELLSPACING="0"
+><TR
+><TD
+WIDTH="33%"
+ALIGN="left"
+VALIGN="top"
+><A
+HREF="size-select-boxes.html"
+ACCESSKEY="P"
+>Prev</A
+></TD
+><TD
+WIDTH="34%"
+ALIGN="center"
+VALIGN="top"
+><A
+HREF="index.html"
+ACCESSKEY="H"
+>Home</A
+></TD
+><TD
+WIDTH="33%"
+ALIGN="right"
+VALIGN="top"
+><A
+HREF="deal-with-quotes-in-sitename.html"
+ACCESSKEY="N"
+>Next</A
+></TD
+></TR
+><TR
+><TD
+WIDTH="33%"
+ALIGN="left"
+VALIGN="top"
+>How to size the select boxes in a module</TD
+><TD
+WIDTH="34%"
+ALIGN="center"
+VALIGN="top"
+><A
+HREF="miscellaneous.html"
+ACCESSKEY="U"
+>Up</A
+></TD
+><TD
+WIDTH="33%"
+ALIGN="right"
+VALIGN="top"
+>How to deal with quotes in the site's name</TD
+></TR
+></TABLE
+></DIV
+></BODY
+></HTML
+>

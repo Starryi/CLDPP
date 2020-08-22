@@ -1,0 +1,169 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1"><title>1. Quoting Variables</title><link rel="stylesheet" type="text/css" href="style.css"><meta name="generator" content="DocBook XSL Stylesheets V1.79.1"><link rel="home" href="index.html" title="Advanced Bash-Scripting Guide"><link rel="up" href="ch05.html" title="Chapter 5. Quoting"><link rel="prev" href="ch05.html" title="Chapter 5. Quoting"><link rel="next" href="ch05s02.html" title="2. Escaping"></head><body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF"><div class="navheader"><table width="100%" summary="Navigation header"><tr><th colspan="3" align="center">1. Quoting Variables</th></tr><tr><td width="20%" align="left"><a accesskey="p" href="ch05.html">Prev</a> </td><th width="60%" align="center">Chapter 5. Quoting</th><td width="20%" align="right"> <a accesskey="n" href="ch05s02.html">Next</a></td></tr></table><hr></div><div class="sect1"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="quotingvar"></a>1. Quoting Variables</h2></div></div></div><p>When referencing a variable, it is generally advisable to
+	enclose its name in double quotes.
+	This prevents reinterpretation of all special characters within
+	the quoted string -- except <span class="token">$</span>, <span class="token">`</span>
+	(backquote), and <span class="token">\</span> (escape).
+
+	    <a href="#ftn.idm2630" class="footnote" name="idm2630"><sup class="footnote">[30]</sup></a>
+	
+	Keeping <span class="token">$</span> as a special character within
+	double quotes permits referencing a quoted variable
+	(<em class="replaceable"><code>"$variable"</code></em>), that is, replacing the
+	variable with its value (see <a class="xref" href="ch04s01.html#ex9" title="Example 4.1. Variable assignment and substitution">Example 4.1, &#8220;Variable assignment and substitution&#8221;</a>, above).</p><p><a name="wsquo"></a></p><p>Use double quotes to prevent word splitting.
+
+	      <a href="#ftn.idm2688" class="footnote" name="idm2688"><sup class="footnote">[31]</sup></a>
+
+	An argument enclosed in double quotes presents
+	itself as a single word, even if it contains <a class="link" href="ch03.html#whitespaceref">whitespace</a> separators.</p><p><a name="varsplitting"></a></p><pre class="programlisting">List="one two three"
+
+for a in $List     # Splits the variable in parts at whitespace.
+do
+  echo "$a"
+done
+# one
+# two
+# three
+
+echo "---"
+
+for a in "$List"   # Preserves whitespace in a single variable.
+do #     ^     ^
+  echo "$a"
+done
+# one two three</pre><p>A more elaborate example:</p><pre class="programlisting">variable1="a variable containing five words"
+COMMAND This is $variable1    # Executes COMMAND with 7 arguments:
+# "This" "is" "a" "variable" "containing" "five" "words"
+
+COMMAND "This is $variable1"  # Executes COMMAND with 1 argument:
+# "This is a variable containing five words"
+
+
+variable2=""    # Empty.
+
+COMMAND $variable2 $variable2 $variable2
+                # Executes COMMAND with no arguments. 
+COMMAND "$variable2" "$variable2" "$variable2"
+                # Executes COMMAND with 3 empty arguments. 
+COMMAND "$variable2 $variable2 $variable2"
+                # Executes COMMAND with 1 argument (2 spaces). 
+
+# Thanks, Stéphane Chazelas.
+</pre><div class="tip" style="margin-left: 0.5in; margin-right: 0.5in;"><h3 class="title">Tip</h3><p>Enclosing the arguments to an <span class="command"><strong>echo</strong></span>
+	statement in double quotes is necessary only when word splitting
+	or preservation of <a class="link" href="ch03.html#whitespaceref">whitespace</a>
+	is an issue.</p></div><div class="example"><a name="weirdvars"></a><p class="title"><b>Example 5.1. Echoing Weird Variables</b></p><div class="example-contents"><pre class="programlisting">#!/bin/bash
+# weirdvars.sh: Echoing weird variables.
+
+echo
+
+var="'(]\\{}\$\""
+echo $var        # '(]\{}$"
+echo "$var"      # '(]\{}$"     Doesn't make a difference.
+
+echo
+
+IFS='\'
+echo $var        # '(] {}$"     \ converted to space. Why?
+echo "$var"      # '(]\{}$"
+
+# Examples above supplied by Stephane Chazelas.
+
+echo
+
+var2="\\\\\""
+echo $var2       #   "
+echo "$var2"     # \\"
+echo
+# But ... var2="\\\\"" is illegal. Why?
+var3='\\\\'
+echo "$var3"     # \\\\
+# Strong quoting works, though.
+
+
+# ************************************************************ #
+# As the first example above shows, nesting quotes is permitted.
+
+echo "$(echo '"')"           # "
+#    ^           ^
+
+
+# At times this comes in useful.
+
+var1="Two bits"
+echo "\$var1 = "$var1""      # $var1 = Two bits
+#    ^                ^
+
+# Or, as Chris Hiestand points out ...
+
+if [[ "$(du "$My_File1")" -gt "$(du "$My_File2")" ]]
+#     ^     ^         ^ ^     ^     ^         ^ ^
+then
+  ...
+fi
+# ************************************************************ #
+</pre></div></div><br class="example-break"><p>Single quotes (<span class="token">' '</span>) operate similarly to double
+	quotes, but do not permit referencing variables, since
+	the special meaning of <span class="token">$</span> is turned off.
+	Within single quotes, <span class="emphasis"><em>every</em></span> special
+	character except <span class="token">'</span> gets interpreted literally.
+	Consider single quotes (<span class="quote">&#8220;<span class="quote">full quoting</span>&#8221;</span>) to be a
+	stricter method of quoting than double quotes (<span class="quote">&#8220;<span class="quote">partial
+	quoting</span>&#8221;</span>).</p><div class="note" style="margin-left: 0.5in; margin-right: 0.5in;"><h3 class="title">Note</h3><p>Since even the escape character (<span class="token">\</span>)
+	gets a literal interpretation within single quotes, trying to
+	enclose a single quote within single quotes will not yield the
+	expected result.
+	</p><pre class="programlisting">echo "Why can't I write 's between single quotes"
+
+echo
+
+# The roundabout method.
+echo 'Why can'\''t I write '"'"'s between single quotes'
+#    |-------|  |----------|   |-----------------------|
+# Three single-quoted strings, with escaped and quoted single quotes between.
+
+# This example courtesy of Stéphane Chazelas.</pre><p>
+      </p></div><div class="footnotes"><br><hr style="width:100; text-align:left;margin-left: 0"><div id="ftn.idm2630" class="footnote"><p><a href="#idm2630" class="para"><sup class="para">[30] </sup></a><a name="quotingbsl"></a></p><p>Encapsulating <span class="quote">&#8220;<span class="quote">!</span>&#8221;</span> within double
+	      quotes gives an error when used <span class="emphasis"><em>from the command
+	      line</em></span>. This is interpreted as a <a class="link" href="apl.html" title="Appendix L. History Commands">history command</a>. Within a script,
+	      though, this problem does not occur, since the Bash history
+	      mechanism is disabled then.</p><p>Of more concern is the <span class="emphasis"><em>apparently</em></span>
+		    inconsistent behavior of <em class="replaceable"><code>\</code></em>
+		    within double quotes, and especially following an
+	      <span class="command"><strong>echo -e</strong></span> command.</p><p>
+	      </p><pre class="screen">
+<code class="prompt">bash$ </code><strong class="userinput"><code>echo hello\!</code></strong>
+<code class="computeroutput">hello!</code>
+<code class="prompt">bash$ </code><strong class="userinput"><code>echo "hello\!"</code></strong>
+<code class="computeroutput">hello\!</code>
+
+
+<code class="prompt">bash$ </code><strong class="userinput"><code>echo \</code></strong>
+<code class="computeroutput">&gt;</code>
+<code class="prompt">bash$ </code><strong class="userinput"><code>echo "\"</code></strong>
+<code class="computeroutput">&gt;</code>
+<code class="prompt">bash$ </code><strong class="userinput"><code>echo \a</code></strong>
+<code class="computeroutput">a</code>
+<code class="prompt">bash$ </code><strong class="userinput"><code>echo "\a"</code></strong>
+<code class="computeroutput">\a</code>
+
+
+<code class="prompt">bash$ </code><strong class="userinput"><code>echo x\ty</code></strong>
+<code class="computeroutput">xty</code>
+<code class="prompt">bash$ </code><strong class="userinput"><code>echo "x\ty"</code></strong>
+<code class="computeroutput">x\ty</code>
+
+<code class="prompt">bash$ </code><strong class="userinput"><code>echo -e x\ty</code></strong>
+<code class="computeroutput">xty</code>
+<code class="prompt">bash$ </code><strong class="userinput"><code>echo -e "x\ty"</code></strong>
+<code class="computeroutput">x       y</code>
+	      </pre><p>
+	      </p><p>Double quotes following an <em class="firstterm">echo</em>
+                <span class="emphasis"><em>sometimes</em></span> escape
+                <em class="replaceable"><code>\</code></em>. Moreover, the
+                <code class="option">-e</code> option to <em class="firstterm">echo</em>
+                causes the <span class="quote">&#8220;<span class="quote">\t</span>&#8221;</span> to be interpreted as a
+                <em class="firstterm">tab</em>.</p><p>(Thank you, Wayne Pollock, for pointing this out, and Geoff
+	      Lee and Daniel Barclay for explaining it.) </p></div><div id="ftn.idm2688" class="footnote"><p><a href="#idm2688" class="para"><sup class="para">[31] </sup></a><a name="wsplitref"></a><span class="quote">&#8220;<span class="quote">Word
+	      splitting,</span>&#8221;</span> in this context, means dividing
+	      a character string into separate and discrete
+	      arguments.</p></div></div></div><div class="navfooter"><hr><table width="100%" summary="Navigation footer"><tr><td width="40%" align="left"><a accesskey="p" href="ch05.html">Prev</a> </td><td width="20%" align="center"><a accesskey="u" href="ch05.html">Up</a></td><td width="40%" align="right"> <a accesskey="n" href="ch05s02.html">Next</a></td></tr><tr><td width="40%" align="left" valign="top">Chapter 5. Quoting </td><td width="20%" align="center"><a accesskey="h" href="index.html">Home</a></td><td width="40%" align="right" valign="top"> 2. Escaping</td></tr></table></div></body></html>

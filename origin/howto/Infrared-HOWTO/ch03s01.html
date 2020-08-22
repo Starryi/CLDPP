@@ -1,0 +1,207 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1"><title>1. Starting the IrDA Stack</title><link rel="stylesheet" type="text/css" href="style.css"><meta name="generator" content="DocBook XSL Stylesheets V1.79.1"><meta name="keywords" content="laptop, notebook, pda, handheld, computer, mobile, linux, irda, remote"><link rel="home" href="index.html" title="Linux Infrared HOWTO"><link rel="up" href="ch03.html" title="Chapter 3. Specific Connections and IrDA - Protocols"><link rel="prev" href="ch03.html" title="Chapter 3. Specific Connections and IrDA - Protocols"><link rel="next" href="ch03s02.html" title="2. Printer Connection"></head><body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF"><div class="navheader"><table width="100%" summary="Navigation header"><tr><th colspan="3" align="center">1. Starting the IrDA Stack</th></tr><tr><td width="20%" align="left"><a accesskey="p" href="ch03.html">Prev</a> </td><th width="60%" align="center">Chapter 3. Specific Connections and IrDA - Protocols</th><td width="20%" align="right"> <a accesskey="n" href="ch03s02.html">Next</a></td></tr></table><hr></div><div class="sect1"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="infrared-howto-s-low-level-drivers"></a>1. Starting the IrDA Stack</h2></div></div></div><p>
+   There are three sorts of low level drivers: SIR, FIR and dongle. 
+
+</p><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="idm437"></a>1.1. Standard InfraRed - SIR</h3></div></div></div><p>
+
+</p><div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem"><p>
+   Try to find out which serial port is used by the IR device. You
+   may do so by watching the output of 
+   <span class="command"><strong>dmesg</strong></span>. If serial support is
+   modularized do an <span class="command"><strong>modprobe serial</strong></span>
+   first. Look for an entry like:
+
+</p><pre class="programlisting">
+Serial driver version 4.25 with no serial options enabled
+ttyS00 at 0x03f8 (irq = 4) is a 16550A     #first serial port /dev/ttyS0
+ttyS01 at 0x3000 (irq = 10) is a 16550A    #e.g. infrared port
+ttyS02 at 0x0300 (irq = 3) is a 16550A     #e.g. PCMCIA modem port
+</pre><p>
+
+   If this is not the case, you either don't have infrared support
+   enabled in the BIOS or the SIR mode of your infrared device is not
+   detected by the kernel. Currently I know only two laptop models
+   with this effect, the HP OmniBook 800 and the Toshiba Libretto
+   models. I am not sure whether PnP support effects the detection of
+   the IR port. If you are unsure try it out and let me know the
+   results. Maybe you can use FIR mode if SIR doesn't work.
+</p></li><li class="listitem"><p>
+   In some situations you may have to use 
+   <span class="command"><strong>setserial /dev/ttyS&lt;0-2&gt; port 0xNNNN irq M</strong></span>
+   to set the values for your infrared serial port,
+   especially if the infrared port is a separate serial line. You
+   usually don't need to change the values! For further information
+   look into the FAQ section below.
+</p></li><li class="listitem"><p>
+   If you don't use <span class="command"><strong>kerneld</strong></span> or 
+   <span class="command"><strong>kmod</strong></span> insert the irda module with
+   <span class="command"><strong>modprobe irda</strong></span>.
+</p></li><li class="listitem"><p>
+   Do <span class="command"><strong>lsmod</strong></span>. It should show the modules irda and irtty now.
+</p></li><li class="listitem"><p>
+   A look into /var/log/messages should show the entry "Serial
+   connection established" now.
+</p></li><li class="listitem"><p>
+   Give <span class="command"><strong>irattach</strong></span> some time, e.g. 
+   seven seconds, to detect other IR
+   devices. Then watch the output from the kernel that you will
+   hopefully get in /var/log/messages. It should look like the
+   following (I removed some lines, which were not related to
+   Linux/IrDA):
+
+</p><pre class="programlisting">
+Jan  2 12:57:26 japh kernel: ttyS00 at 0x03f8 (irq = 4) is a 16550A
+Jan  2 12:57:26 japh kernel: ttyS02 at 0x03e8 (irq = 4) is a 16550A
+Jan  2 12:57:26 japh kernel: Linux Support for the IrDA (tm) protocols (Dag Bra
+ttli)
+Jan  2 12:59:09 japh syslog: executing: 'echo 1 &gt; /proc/sys/net/irda/discovery'
+Jan  2 12:59:09 japh syslog: Setting discovery to 1 exited with status 1
+Jan  2 12:59:09 japh syslog: + 0.1 Fri Jul 25 11:45:26 1997 Dag Brattli
+Jan  2 12:59:09 japh syslog: + 0.1 Fri Jul 25 11:45:26 1997 Dag Brattli
+Jan  2 12:59:09 japh syslog: Serial connection established.
+Jan  2 12:59:09 japh kernel: IrDA irda_device irda0 registered.
+Jan  2 13:01:22 japh syslog: executing: './drivers start '
+Jan  2 13:01:22 japh syslog: Serial connection established.
+Jan  2 13:01:42 japh syslogd: Printing partial message
+Jan  2 13:01:42 japh 0.1 Fri Jul 25 11:45:26 1997 Dag Brattli
+Jan  2 13:02:49 japh kernel: IrDA Discovered: japh
+Jan  2 13:02:49 japh kernel:     Services: Computer
+</pre><p>
+
+</p></li><li class="listitem"><p>
+   Even more information you can get with 
+   <span class="command"><strong>cat /proc/net/irda/discovery</strong></span> .
+</p></li></ul></div><p>
+
+</p></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="idm466"></a>1.2. Fast InfraRed - FIR</h3></div></div></div><p>
+   The IrDA(TM) standard knows three kinds of speeds:
+</p><p>
+</p><div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem"><p>
+SIR = Standard IrDA, up to 115kbps IrDA,
+</p></li><li class="listitem"><p>
+MIR = Medium Speed IrDA,
+</p></li><li class="listitem"><p>
+FIR = Fast IrDA (4Mbps),
+</p></li><li class="listitem"><p>
+VFIR = Very Fast IrDA(16Mbps), seems to become a future standard
+</p></li></ul></div><p>
+
+</p><p>
+   Up to 115.200bps (SIR) many (probably all) infrared controllers work
+   like a serial port and use a RZI (return to zero, inverted)
+   modulation. Not every infrared controller supports 4Mps (FIR), up to
+   4Mbps they have to use 4PPM (4 pulse position) modulation technique.
+   A list of supported FIR chips is included in
+   <code class="filename">/usr/src/linux/drivers/net/irda/Kconfig</code>. 
+   
+   You may start the FIR
+   service by loading the according module. Linux/IrDA will probe your
+   hardware then. More drivers are under development.
+</p><p>
+   So what speeds can you expect? Using SIR, you should be able to get
+   about 10 Kbytes/s. Using FIR (4Mbps) you can get over 300 Kbytes/s (if
+   you are lucky).
+</p></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="idm482"></a>1.3. Dongle Connection - Infrared Adapters for the Serial Port</h3></div></div></div><p>
+   A survey of supported dongles is included in
+   <code class="filename">/usr/src/linux/drivers/net/irda/Kconfig</code>. 
+   
+</p><p>
+   Dag Brattli wrote (modified by wh): "To use dongles you have to do
+   something like this:
+
+</p><pre class="programlisting">
+modprobe tekram         # or esi or actisys
+irattach -d tekram      # or -d esi or -d actisys
+</pre><p>
+
+   <span class="command"><strong>modprobe</strong></span> is not necessary, if 
+   <code class="filename">/etc/modules.conf</code> is correct.
+   As you can see, you must still use the <span class="command"><strong>-d</strong></span>
+   option with <span class="command"><strong>irattach</strong></span> since
+   it is possible to have two serial ports using different dongles at the
+   same time (so the tty you are binding must know which dongle it is
+   supposed to use). So if you have two dongles and two serial ports, you
+   could do something like this:
+
+</p><pre class="programlisting">
+modprobe tekram
+modprobe esi
+irattach /dev/ttyS0 -d esi &amp;
+irattach /dev/ttyS1 -d tekram &amp;
+</pre><p>
+
+   PS: I would not try to turn the two dongles against each other, since
+   I really don't know how the stack would react :-) ... Since I don't
+   have any of these new ACTiSYS 220L+ dongles, I'm not able to test it.
+   Since the new dongle has support for one extra speed (38400bps), you
+   must specify the dongles differently with 
+   <span class="command"><strong>irattach</strong></span> so that the kernel
+   knows which dongle you are using (and what QoS can be used):
+
+</p><pre class="programlisting">
+irattach /dev/ttyS0 -d actisys     # for the 220L dongle
+irattach /dev/ttyS0 -d actisys+    # for the 220L+ dongle
+</pre><p>
+
+   The current implementation of dongle support does not have any state
+   associated with it, so its not possible to use both ACTiSYS dongles
+   (220L and 220L+) at the same time (connected to two serial ports) for
+   now. If someone needs to be able to do so, please mail me (Dag
+   Brattli) and I will think about it!"
+</p><p>
+   Note: When I tried to use an infrared modem (Swissmod 56Ki,
+   manufactured by Telelink AG) connected to my laptop (IrDA works with
+   Microsoft-Window$95 only, due to non-standard hardware) I had to remove the
+   infrared support in the BIOS to get it working!
+</p><p>
+   Dag Brattli: "It is now possible to use 
+   <span class="command"><strong>irport</strong></span> instead of <span class="command"><strong>irtty</strong></span>! I
+   have moved all the dongle stuff out of <span class="command"><strong>irtty</strong></span> 
+   and into <span class="command"><strong>irda_device</strong></span>, so
+   it will also be possible to attach dongles to irport. Need however to
+   make a small user-space utility <span class="command"><strong>dongle_attach</strong></span> 
+   that can be used to
+   attach dongles to a specific driver instance. 
+   BTW: <span class="command"><strong>irattach</strong></span> is still
+   working as before, and you will not notice the difference even when
+   attaching dongles to <span class="command"><strong>irtty</strong></span> 
+   (I've just redirected the dongle ioctl to
+   <span class="command"><strong>irda_device</strong></span>). Irport may be 
+   interesting since you avoid one software
+   interrupt (bh) level, and it's also forced to work in half duplex mode
+   so you don't get any echo if the irda port itself don't have
+   echo-cancellation (Girbil dongle and HP-4000 etc) ... To use it, you
+   must supply the parameters to <span class="command"><strong>modprobe</strong></span> 
+   like this: <span class="command"><strong>modprobe irport io=0x3f8
+   irq=4</strong></span>, or whichever 
+   values you use. You can also add these parameters
+   to 
+   <code class="filename">/etc/modprobe.conf</code> (kernel 2.6)
+   or
+   <code class="filename">/etc/modules.conf</code> (kernel 2.4)
+   like this: 
+   <span class="command"><strong>options irport io=0x3f8 irq=4</strong></span>, but
+   then you must remember to do a <span class="command"><strong>depmod -a</strong></span>
+   and use <span class="command"><strong>modprobe irport</strong></span>
+   instead of <span class="command"><strong>modprobe</strong></span>."
+</p><p>
+   Alvin Loh: "Anyone with a ESI 9680C can use both parallax's and ESI's
+   signalling scheme, meaning they can use Parallax's driver with
+   ESI9680C to work. "
+</p></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="idm514"></a>1.4. Dongle Connection - Infrared Adapters for the USB Port</h3></div></div></div><p>
+   Not every USB dongle does work. For details see the dedicated
+   chapter below IrDA and USB.
+</p></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="idm517"></a>1.5. Dongle Connection - Infrared Motherboard Adapter</h3></div></div></div><p>
+   Support for e.g. the ACTiSYS IR2000 dongle has been implemented.
+   
+</p><p>
+   From James I have this description about setting
+   up the hardware: There are two configurations, a five pin in line
+   connector and a 6 pin DIL (at the end of a 18 pin DIL header).
+   Basically any IrDA compatible transceiver will work (I have a stack of
+   old IRM3001 these are now obselete) you need to hook a capacitor (use
+   a tantalum about ~1uF) between 5V and 0V near the transceiver and then
+   connect everthing else up 
+   (RX-&gt;RX, TX-&gt;TX, 5V-&gt;5V, and 0V-0V). If you
+   don't like soldering irons, lots of companies do sell IR modules for
+   the 5 pin connectors that fit into a hole in your case.
+</p></div></div><div class="navfooter"><hr><table width="100%" summary="Navigation footer"><tr><td width="40%" align="left"><a accesskey="p" href="ch03.html">Prev</a> </td><td width="20%" align="center"><a accesskey="u" href="ch03.html">Up</a></td><td width="40%" align="right"> <a accesskey="n" href="ch03s02.html">Next</a></td></tr><tr><td width="40%" align="left" valign="top">Chapter 3. Specific Connections and IrDA - Protocols </td><td width="20%" align="center"><a accesskey="h" href="index.html">Home</a></td><td width="40%" align="right" valign="top"> 2. Printer Connection</td></tr></table></div></body></html>

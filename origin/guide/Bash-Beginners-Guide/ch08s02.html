@@ -1,0 +1,310 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1"><title>2. Catching user input</title><link rel="stylesheet" type="text/css" href="style.css"><meta name="generator" content="DocBook XSL Stylesheets V1.79.1"><meta name="keywords" content="Linux, Scripts, linux, Bash, guide, Guide, Exercises, exercises, bash, scripting, Scripting, awk, sed, variables, functions, loops, conditionals"><link rel="home" href="index.html" title="Bash Guide for Beginners"><link rel="up" href="ch08.html" title="Chapter 8. Writing interactive scripts"><link rel="prev" href="ch08s01.html" title="1. Displaying user messages"><link rel="next" href="ch08s03.html" title="3. Summary"></head><body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF"><div class="navheader"><table width="100%" summary="Navigation header"><tr><th colspan="3" align="center">2. Catching user input</th></tr><tr><td width="20%" align="left"><a accesskey="p" href="ch08s01.html">Prev</a> </td><th width="60%" align="center">Chapter 8. Writing interactive scripts</th><td width="20%" align="right"> <a accesskey="n" href="ch08s03.html">Next</a></td></tr></table><hr></div><div class="sect1"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="sect_08_02"></a>2. Catching user input</h2></div></div></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="sect_08_02_01"></a>2.1. Using the read built-in command</h3></div></div></div><p>The <span class="command"><strong>read</strong></span> built-in command is the counterpart of the <span class="command"><strong>echo</strong></span> and <span class="command"><strong>printf</strong></span> commands.  The syntax of the <span class="command"><strong>read</strong></span> command is as follows:</p><div class="cmdsynopsis"><p><code class="command">read <code class="option">[options]</code> <code class="varname">NAME1 NAME2 ... NAMEN</code></code> </p></div><p>One line is read from the standard input, or from the file descriptor supplied as an argument to the <code class="option">-u</code> option.  The first word of the line is assigned to the first name, <code class="varname">NAME1</code>, the second word to the second name, and so on, with leftover words and their intervening separators assigned to the last name, <code class="varname">NAMEN</code>.  If there are fewer words read from the input stream than there are names, the remaining names are assigned empty values.</p><p>The characters in the value of the <code class="varname">IFS</code> variable are used to split the input line into words or tokens; see <a class="xref" href="ch03s04.html#sect_03_04_07" title="4.8. Word splitting">Section 4.8, &#8220;Word splitting&#8221;</a>.  The backslash character may be used to remove any special meaning for the next character read and for line continuation.</p><p>If no names are supplied, the line read is assigned to the variable <code class="varname">REPLY</code>.</p><p>The return code of the <span class="command"><strong>read</strong></span> command is zero, unless an end-of-file character is encountered, if <span class="command"><strong>read</strong></span> times out or if an invalid file descriptor is supplied as the argument to the <code class="option">-u</code> option.</p><p>The following options are supported by the Bash <span class="command"><strong>read</strong></span> built-in:</p><div class="table"><a name="tab_08_02"></a><p class="title"><b>Table 8.2. Options to the read built-in</b></p><div class="table-contents"><table class="table" summary="Options to the read built-in" border="1"><colgroup><col><col></colgroup><thead><tr><th align="left">Option</th><th align="left">Meaning</th></tr></thead><tbody><tr><td align="left">-a <code class="varname">ANAME</code></td><td align="left">The words are assigned to sequential indexes of the array variable <code class="varname">ANAME</code>, starting at 0.  All elements are removed from <code class="varname">ANAME</code> before the assignment.  Other <code class="varname">NAME</code> arguments are ignored.</td></tr><tr><td align="left">-d <code class="varname">DELIM</code></td><td align="left">The first character of <code class="varname">DELIM</code> is used to terminate the input line, rather than newline.</td></tr><tr><td align="left">-e</td><td align="left"><span class="command"><strong>readline</strong></span> is used to obtain the line.</td></tr><tr><td align="left">-n <code class="varname">NCHARS</code></td><td align="left"><span class="command"><strong>read</strong></span> returns after reading <code class="varname">NCHARS</code> characters rather than waiting for a complete line of input.</td></tr><tr><td align="left">-p <code class="varname">PROMPT</code></td><td align="left">Display <code class="varname">PROMPT</code>, without a trailing newline, before attempting to read any input.  The prompt is displayed only if input is coming from a terminal.</td></tr><tr><td align="left">-r</td><td align="left">If this option is given, backslash does not act as an escape character.  The backslash is considered to be part of the line.  In particular, a backslash-newline pair may not be used as a line continuation.</td></tr><tr><td align="left">-s</td><td align="left">Silent mode.  If input is coming from a terminal, characters are not echoed.</td></tr><tr><td align="left">-t <code class="varname">TIMEOUT</code></td><td align="left">Cause <span class="command"><strong>read</strong></span> to time out and return failure if a complete line of input is not read within <code class="varname">TIMEOUT</code> seconds.  This option has no effect if <span class="command"><strong>read</strong></span> is not reading input from the terminal or from a pipe.</td></tr><tr><td align="left">-u <code class="varname">FD</code></td><td align="left">Read input from file descriptor <code class="varname">FD</code>.</td></tr></tbody></table></div></div><br class="table-break"><p>This is a straightforward example, improving on the <code class="filename">leaptest.sh</code> script from the previous chapter:</p><pre class="screen">
+<code class="prompt">michel ~/test&gt;</code> <span class="command"><strong>cat <code class="filename">leaptest.sh</code></strong></span>
+#!/bin/bash
+# This script will test if you have given a leap year or not.
+
+echo "Type the year that you want to check (4 digits), followed by [ENTER]:"
+
+read year
+
+if (( ("$year" % 400) == "0" )) || (( ("$year" % 4 == "0") &amp;&amp; ("$year" % 100 !=
+"0") )); then
+  echo "$year is a leap year."
+else
+  echo "This is not a leap year."
+fi
+
+<code class="prompt">michel ~/test&gt;</code> <span class="command"><strong>leaptest.sh</strong></span>
+Type the year that you want to check (4 digits), followed by [ENTER]:
+2000
+2000 is a leap year.
+</pre></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="sect_08_02_02"></a>2.2. Prompting for user input</h3></div></div></div><p>The following example shows how you can use prompts to explain what the user should enter.</p><pre class="screen">
+<code class="prompt">michel ~/test&gt;</code> <span class="command"><strong>cat <code class="filename">books.sh</code></strong></span>
+#!/bin/bash
+
+# This is a program that creates a favorite book library.
+
+books="books.txt"
+
+echo "Hello, "$USER". This script will add your favorite book to the database."
+
+echo -n "Enter the title and press [ENTER]: "
+read title
+echo -n "Enter the name of the author and press [ENTER]: "
+read author
+echo
+
+grep -i "$title" "$books"
+
+if [ $? == 0 ]; then
+  echo "You have already suggested a book, quitting."
+  exit 1
+elif [ "$author" == "shakespeare" ]; then
+  echo "What's in a name? That which we call a rose by any other name would smell as sweet."
+  exit 1
+else
+  echo -n "Enter the cost and press [ENTER]: "
+  read cost
+  if [ $cost -lt 25 ]; then
+    echo "$title | $author | $cost" &gt;&gt; "$books"
+    echo "Your book is added to the database. Thank you so much!"
+  else
+    echo "Let me look for $title by $author at the library."
+    exit 1
+  fi
+fi
+
+<code class="prompt">michel ~/test&gt;</code> <span class="command"><strong>cp <code class="filename">books.sh /var/tmp</code>; cd <code class="filename">/var/tmp</code></strong></span>
+
+<code class="prompt">michel ~/test&gt;</code> <span class="command"><strong>touch <code class="filename">books</code>; chmod <code class="option">a+w</code> <code class="filename">books</code></strong></span>
+
+<code class="prompt">michel ~/test&gt;</code> <span class="command"><strong>books.sh</strong></span>
+Hello, michel. This script will add your favorite book to the database.
+Enter the title and press [ENTER]: 1984
+Enter the name of the author and press [ENTER]: Orwell
+Enter the cost and press [ENTER]: 30
+Let me look for 1984 by Orwell at the library.
+
+<code class="prompt">michel ~/test&gt;</code> <span class="command"><strong>cat <code class="filename">books</code></strong></span>
+
+</pre><p>Note that no output is omitted here.  The script only stores information about the books that Michel is interested in. It will always thank you for your suggestion, unless you already provided it.</p><p>Other people can now start executing the script:</p><pre class="screen">
+<code class="prompt">[anny@octarine tmp]$</code> <span class="command"><strong>books.sh</strong></span>
+Hello, anny. This script will add your favorite book to the database.
+Enter the title and press [ENTER]: Sense and Sensibility
+Enter the name of the author and press [ENTER]: Austen
+Enter the cost and press [ENTER]: 10
+Your book is added to the database. Thank you so much!
+</pre><p>After a while, the <code class="filename">books</code> list begins to look like this:</p><pre class="screen">
+Sense and Sensibility | Austen | 10
+Harry Potter and the Sorcerer's Stone | Rowling | 20
+The Lord of the Rings | Tolkien | 22
+To Kill a Mockingbird | Lee | 12
+
+--output omitted--
+</pre><p>Of course, this situation is not ideal, since everybody can edit (but not delete) Michel's files.  You can solve this problem using special access modes on the script file, see <a class="ulink" href="http://www.tldp.org/LDP/intro-linux/html/sect_04_01.html#sect_04_01_06" target="_top">SUID and SGID</a> in the Introduction to Linux guide.</p></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="sect_08_02_03"></a>2.3. Redirection and file descriptors</h3></div></div></div><div class="sect3"><div class="titlepage"><div><div><h4 class="title"><a name="sect_08_02_03_01"></a>2.3.1. General</h4></div></div></div><p>As you know from basic shell usage, input and output of a command may be redirected before it is executed, using a special notation - the redirection operators - interpreted by the shell.  Redirection may also be used to open and close files for the current shell execution environment.</p><p>Redirection can also occur in a script, so that it can receive input from a file, for instance, or send output to a file.  Later, the user can review the output file, or it may be used by another script as input.</p><p>File input and output are accomplished by integer handles that track all open files for a given process.  These numeric values are known as file descriptors.  The best known file descriptors are <span class="emphasis"><em>stdin</em></span>, <span class="emphasis"><em>stdout</em></span> and <span class="emphasis"><em>stderr</em></span>, with file descriptor numbers 0, 1 and 2, respectively.  These numbers and respective devices are reserved.  Bash can take TCP or UDP ports on networked hosts as file descriptors as well.</p><p>The output below shows how the reserved file descriptors point to actual devices:</p><pre class="screen">
+<code class="prompt">michel ~&gt;</code> <span class="command"><strong>ls <code class="option">-l</code> <code class="filename">/dev/std*</code></strong></span>
+lrwxrwxrwx  1 root    root     17 Oct  2 07:46 /dev/stderr -&gt; ../proc/self/fd/2
+lrwxrwxrwx  1 root    root     17 Oct  2 07:46 /dev/stdin -&gt; ../proc/self/fd/0
+lrwxrwxrwx  1 root    root     17 Oct  2 07:46 /dev/stdout -&gt; ../proc/self/fd/1
+
+<code class="prompt">michel ~&gt;</code> <span class="command"><strong>ls <code class="option">-l</code> <code class="filename">/proc/self/fd/[0-2]</code></strong></span>
+lrwx------  1 michel  michel   64 Jan 23 12:11 /proc/self/fd/0 -&gt; /dev/pts/6
+lrwx------  1 michel  michel   64 Jan 23 12:11 /proc/self/fd/1 -&gt; /dev/pts/6
+lrwx------  1 michel  michel   64 Jan 23 12:11 /proc/self/fd/2 -&gt; /dev/pts/6
+</pre><p>Note that each process has its own view of the files under <code class="filename">/proc/self</code>, as it is actually a symbolic link to <code class="filename">/proc/&lt;process_ID&gt;</code>.</p><p>You might want to check <span class="command"><strong>info MAKEDEV</strong></span> and <span class="command"><strong>info proc</strong></span> for more information about <code class="filename">/proc</code> subdirectories and the way your system handles standard file descriptors for each running process.</p><p>When excuting a given command, the following steps are excuted, in order:</p><div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem"><p>If the standard output of a previous command is being piped to the standard input of the current command, then <code class="filename">/proc/&lt;current_process_ID&gt;/fd/0</code> is updated to target the same anonymous pipe as <code class="filename">/proc/&lt;previous_process_ID/fd/1</code>.</p></li><li class="listitem"><p>If the standard output of the current command is being piped to the standard input of the next command, then <code class="filename">/proc/&lt;current_process_ID&gt;/fd/1</code> is updated to target another anonymous pipe.</p></li><li class="listitem"><p>Redirection for the current command is processed from left to right.</p></li><li class="listitem"><p>Redirection <span class="quote">&#8220;<span class="quote">N&gt;&amp;M</span>&#8221;</span> or <span class="quote">&#8220;<span class="quote">N&lt;&amp;M</span>&#8221;</span> after a command has the effect of creating or updating the symbolic link <code class="filename">/proc/self/fd/N</code> with the same target as the symbolic link <code class="filename">/proc/self/fd/M</code>.</p></li><li class="listitem"><p>The redirections <span class="quote">&#8220;<span class="quote">N&gt; file</span>&#8221;</span> and <span class="quote">&#8220;<span class="quote">N&lt; file</span>&#8221;</span> have the effect of creating or updating the symbolic link <code class="filename">/proc/self/fd/N</code> with the target file.</p></li><li class="listitem"><p>File descriptor closure <span class="quote">&#8220;<span class="quote">N&gt;&amp;-</span>&#8221;</span> has the effect of deleting the symbolic link <code class="filename">/proc/self/fd/N</code>.</p></li><li class="listitem"><p>Only now is the current command executed.</p></li></ul></div><p>When you run a script from the command line, nothing much changes because the child shell process will use the same file descriptors as the parent.  When no such parent is available, for instance when you run a script using the <span class="emphasis"><em>cron</em></span> facility, the standard file descriptors are pipes or other (temporary) files, unless some form of redirection is used.  This is demonstrated in the example below, which shows output from a simple <span class="command"><strong>at</strong></span> script:</p><pre class="screen">
+<code class="prompt">michel ~&gt;</code> <span class="command"><strong>date</strong></span>
+Fri Jan 24 11:05:50 CET 2003
+
+<code class="prompt">michel ~&gt;</code> <span class="command"><strong>at <em class="parameter"><code>1107</code></em></strong></span>
+warning: commands will be executed using (in order) 
+a) $SHELL b) login shell c)/bin/sh
+<code class="prompt">at&gt;</code> <span class="command"><strong>ls <code class="option">-l</code> <code class="filename">/proc/self/fd/</code> &gt; <code class="filename">/var/tmp/fdtest.at</code></strong></span>
+<code class="prompt">at&gt;</code> <span class="command"><strong>&lt;EOT&gt;</strong></span>
+job 10 at 2003-01-24 11:07
+
+<code class="prompt">michel ~&gt;</code> <span class="command"><strong>cat <code class="filename">/var/tmp/fdtest.at</code></strong></span>
+total 0
+lr-x------    1 michel michel  64 Jan 24 11:07 0 -&gt; /var/spool/at/!0000c010959eb (deleted)
+l-wx------    1 michel michel  64 Jan 24 11:07 1 -&gt; /var/tmp/fdtest.at
+l-wx------    1 michel michel  64 Jan 24 11:07 2 -&gt; /var/spool/at/spool/a0000c010959eb
+lr-x------    1 michel michel  64 Jan 24 11:07 3 -&gt; /proc/21949/fd
+</pre><p>And one with <span class="command"><strong>cron</strong></span>:</p><pre class="screen">
+<code class="prompt">michel ~&gt;</code> <span class="command"><strong>crontab <code class="option">-l</code></strong></span>
+# DO NOT EDIT THIS FILE - edit the master and reinstall.
+# (/tmp/crontab.21968 installed on Fri Jan 24 11:30:41 2003)
+# (Cron version -- $Id$)
+32 11 * * * ls -l /proc/self/fd/ &gt; /var/tmp/fdtest.cron
+
+<code class="prompt">michel ~&gt;</code> <span class="command"><strong>cat <code class="filename">/var/tmp/fdtest.cron</code></strong></span>
+total 0
+lr-x------    1 michel michel  64 Jan 24 11:32 0 -&gt; pipe:[124440]
+l-wx------    1 michel michel  64 Jan 24 11:32 1 -&gt; /var/tmp/fdtest.cron
+l-wx------    1 michel michel  64 Jan 24 11:32 2 -&gt; pipe:[124441]
+lr-x------    1 michel michel  64 Jan 24 11:32 3 -&gt; /proc/21974/fd
+</pre></div><div class="sect3"><div class="titlepage"><div><div><h4 class="title"><a name="sect_08_02_03_02"></a>2.3.2. Redirection of errors</h4></div></div></div><p>From the previous examples, it is clear that you can provide input and output files for a script (see <a class="xref" href="ch08s02.html#sect_08_02_04" title="2.4. File input and output">Section 2.4, &#8220;File input and output&#8221;</a> for more), but some tend to forget about redirecting errors - output which might be depended upon later on.  Also, if you are lucky, errors will be mailed to you and eventual causes of failure might get revealed.  If you are not as lucky, errors will cause your script to fail and won't be caught or sent anywhere, so that you can't start to do any worthwhile debugging.</p><p>When redirecting errors, note that the order of precedence is significant.  For example, this command, issued in <code class="filename">/var/spool</code></p><pre class="screen">
+<span class="command"><strong>ls <code class="option">-l</code> <code class="filename">*</code> <em class="parameter"><code>2</code></em>&gt; <code class="filename">/var/tmp/unaccessible-in-spool</code></strong></span>
+</pre><p>will redirect standard output of the <span class="command"><strong>ls</strong></span> command to the file <code class="filename">unaccessible-in-spool</code> in <code class="filename">/var/tmp</code>.  The command</p><pre class="screen">
+<span class="command"><strong>ls <code class="option">-l</code> <code class="filename">*</code> &gt; <code class="filename">/var/tmp/spoollist</code> <em class="parameter"><code>2</code></em>&gt;&amp;<em class="parameter"><code>1</code></em></strong></span>
+</pre><p>will direct both standard input and standard error to the file <code class="filename">spoollist</code>.  The command</p><pre class="screen">
+<span class="command"><strong>ls <code class="option">-l</code> <code class="filename">*</code> <em class="parameter"><code>2</code></em> &gt;&amp; <em class="parameter"><code>1</code></em> &gt; <code class="filename">/var/tmp/spoollist</code></strong></span>
+</pre><p>directs only the standard output to the destination file, because the standard error is copied to standard output before the standard output is redirected.</p><p>For convenience, errors are often redirected to <code class="filename">/dev/null</code>, if it is sure they will not be needed.  Hundreds of examples can be found in the startup scripts for your system.</p><p>Bash allows for both standard output and standard error to be redirected to the file whose name is the result of the expansion of <code class="filename">FILE</code> with this construct:</p><div class="cmdsynopsis"><p><code class="command">&amp;&gt; <code class="filename">FILE</code></code> </p></div><p>This is the equivalent of <span class="command"><strong>&gt; <code class="filename">FILE</code> 2&gt;&amp;1</strong></span>, the construct used in the previous set of examples.  It is also often combined with redirection to <code class="filename">/dev/null</code>, for instance when you just want a command to execute, no matter what output or errors it gives.</p></div></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="sect_08_02_04"></a>2.4. File input and output</h3></div></div></div><div class="sect3"><div class="titlepage"><div><div><h4 class="title"><a name="sect_08_02_04_01"></a>2.4.1. Using /dev/fd</h4></div></div></div><p>The <code class="filename">/dev/fd</code> directory contains entries named <code class="filename">0</code>, <code class="filename">1</code>, <code class="filename">2</code>, and so on.  Opening the file <code class="filename">/dev/fd/N</code> is equivalent to duplicating file descriptor <span class="emphasis"><em>N</em></span>.  If your system provides <code class="filename">/dev/stdin</code>, <code class="filename">/dev/stdout</code> and <code class="filename">/dev/stderr</code>, you will see that these are equivalent to <code class="filename">/dev/fd/0</code>, <code class="filename">/dev/fd/1</code> and <code class="filename">/dev/fd/2</code>, respectively.</p><p>The main use of the <code class="filename">/dev/fd</code> files is from the shell.  This mechanism allows for programs that use pathname arguments to handle standard input and standard output in the same way as other pathnames.  If <code class="filename">/dev/fd</code> is not available on a system, you'll have to find a way to bypass the problem.  This can be done for instance using a hyphen (<span class="emphasis"><em>-</em></span>) to indicate that a program should read from a pipe.  An example:</p><pre class="screen">
+<code class="prompt">michel ~&gt;</code> <span class="command"><strong>filter <code class="filename">body.txt.gz</code> | cat <code class="filename">header.txt</code> - <code class="filename">footer.txt</code></strong></span>
+This text is printed at the beginning of each print job and thanks the sysadmin
+for setting us up such a great printing infrastructure.
+
+Text to be filtered.
+
+This text is printed at the end of each print job.
+</pre><p>The <span class="command"><strong>cat</strong></span> command first reads the file <code class="filename">header.txt</code>, next its standard input which is the output of the <span class="command"><strong>filter</strong></span> command, and last the <code class="filename">footer.txt</code> file.  The special meaning of the hyphen as a command-line argument to refer to the standard input or standard output is a misconception that has crept into many programs.  There might also be problems when specifying hyphen as the first argument, since it might be interpreted as an option to the preceding command.  Using <code class="filename">/dev/fd</code> allows for uniformity and prevents confusion:</p><pre class="screen">
+<code class="prompt">michel ~&gt;</code> <span class="command"><strong>filter <code class="filename">body.txt</code> | cat <code class="filename">header.txt /dev/fd/0 footer.txt</code> | lp</strong></span>
+</pre><p>In this clean example, all output is additionally piped through <span class="command"><strong>lp</strong></span> to send it to the default printer.</p></div><div class="sect3"><div class="titlepage"><div><div><h4 class="title"><a name="sect_08_02_04_02"></a>2.4.2. Read and exec</h4></div></div></div><div class="sect4"><div class="titlepage"><div><div><h5 class="title"><a name="sect_08_02_04_02_01"></a>2.4.2.1. Assigning file descriptors to files</h5></div></div></div><p>Another way of looking at file descriptors is thinking of them as a way to assign a numeric value to a file.  Instead of using the file name, you can use the file descriptor number.  The <span class="command"><strong>exec</strong></span> built-in command can be used to replace the shell of the current process or to alter the file descriptors of the current shell.  For example, it can be used to assign a file descriptor to a file.  Use</p><div class="cmdsynopsis"><p><code class="command">exec fdN&gt; <code class="filename">file</code></code> </p></div><p>for assigning file descriptor N to <code class="filename">file</code> for output, and</p><div class="cmdsynopsis"><p><code class="command">exec fdN&lt; <code class="filename">file</code></code> </p></div><p>for assigning file descriptor N to <code class="filename">file</code> for input.  After a file descriptor has been assigned to a file, it can be used with the shell redirection operators, as is demonstrated in the following example:</p><pre class="screen">
+<code class="prompt">michel ~&gt;</code> <span class="command"><strong>exec <code class="filename">4</code>&gt; <code class="filename">result.txt</code></strong></span>
+
+<code class="prompt">michel ~&gt;</code> <span class="command"><strong>filter <code class="filename">body.txt</code> | cat <code class="filename">header.txt /dev/fd/0 footer.txt</code> &gt;&amp; <code class="filename">4</code></strong></span>
+
+<code class="prompt">michel ~&gt;</code> <span class="command"><strong>cat <code class="filename">result.txt</code></strong></span>
+This text is printed at the beginning of each print job and thanks the sysadmin
+for setting us up such a great printing infrastructure.
+
+Text to be filtered.
+
+This text is printed at the end of each print job.
+</pre><div class="note" style="margin-left: 0.5in; margin-right: 0.5in;"><h3 class="title">File descriptor 5</h3><p>Using this file descriptor might cause problems, see <a class="ulink" href="http://www.tldp.org/LDP/abs/html/io-redirection.html" target="_top">the Advanced Bash-Scripting Guide</a>, chapter 16.  You are strongly advised not to use it.</p></div></div><div class="sect4"><div class="titlepage"><div><div><h5 class="title"><a name="sect_08_02_04_02_02"></a>2.4.2.2. Read in scripts</h5></div></div></div><p>The following is an example that shows how you can alternate between file input and command line input:</p><pre class="screen">
+<code class="prompt">michel ~/testdir&gt;</code> <span class="command"><strong>cat <code class="filename">sysnotes.sh</code></strong></span>
+#!/bin/bash
+
+# This script makes an index of important config files, puts them together in
+# a backup file and allows for adding comment for each file.
+
+CONFIG=/var/tmp/sysconfig.out
+rm "$CONFIG" 2&gt;/dev/null
+
+echo "Output will be saved in $CONFIG."
+
+# create fd 7 with same target as fd 0 (save stdin "value")
+exec 7&lt;&amp;0
+
+# update fd 0 to target file /etc/passwd
+exec &lt; /etc/passwd
+
+# Read the first line of /etc/passwd
+read rootpasswd
+
+echo "Saving root account info..."
+echo "Your root account info:" &gt;&gt; "$CONFIG"
+echo $rootpasswd &gt;&gt; "$CONFIG"
+
+# update fd 0 to target fd 7 target (old fd 0 target); delete fd 7
+exec 0&lt;&amp;7 7&lt;&amp;-
+
+echo -n "Enter comment or [ENTER] for no comment: "
+read comment; echo $comment &gt;&gt; "$CONFIG"
+
+echo "Saving hosts information..."
+
+# first prepare a hosts file not containing any comments
+TEMP="/var/tmp/hosts.tmp"
+cat /etc/hosts | grep -v "^#" &gt; "$TEMP"
+
+exec 7&lt;&amp;0
+exec &lt; "$TEMP"
+
+read ip1 name1 alias1
+read ip2 name2 alias2
+
+echo "Your local host configuration:" &gt;&gt; "$CONFIG"
+
+echo "$ip1 $name1 $alias1" &gt;&gt; "$CONFIG"
+echo "$ip2 $name2 $alias2" &gt;&gt; "$CONFIG"
+
+exec 0&lt;&amp;7 7&lt;&amp;-
+
+echo -n "Enter comment or [ENTER] for no comment: "
+read comment; echo $comment &gt;&gt; "$CONFIG"
+rm "$TEMP"
+
+<code class="prompt">michel ~/testdir&gt;</code> <span class="command"><strong>sysnotes.sh</strong></span>
+Output will be saved in /var/tmp/sysconfig.out.
+Saving root account info...
+Enter comment or [ENTER] for no comment: hint for password: blue lagoon
+Saving hosts information...
+Enter comment or [ENTER] for no comment: in central DNS
+
+<code class="prompt">michel ~/testdir&gt;</code> <span class="command"><strong>cat <code class="filename">/var/tmp/sysconfig.out</code></strong></span>
+Your root account info:
+root:x:0:0:root:/root:/bin/bash
+hint for password: blue lagoon
+Your local host configuration:
+127.0.0.1 localhost.localdomain localhost
+192.168.42.1 tintagel.kingarthur.com tintagel
+in central DNS
+</pre></div></div><div class="sect3"><div class="titlepage"><div><div><h4 class="title"><a name="sect_08_02_04_03"></a>2.4.3. Closing file descriptors</h4></div></div></div><p>Since child processes inherit open file descriptors, it is good practice to close a file descriptor when it is no longer needed.  This is done using the</p><div class="cmdsynopsis"><p><code class="command">exec fd&lt;&amp;-</code> </p></div><p>syntax.  In the above example, file descriptor 7, which has been assigned to standard input, is closed each time the user needs to have access to the actual standard input device, usually the keyboard.</p><p>The following is a simple example redirecting only standard error to a pipe:</p><pre class="screen">
+<code class="prompt">michel ~&gt;</code> <span class="command"><strong>cat <code class="filename">listdirs.sh</code></strong></span>
+#!/bin/bash
+
+# This script prints standard output unchanged, while standard error is 
+# redirected for processing by awk.
+
+INPUTDIR="$1"
+
+# fd 6 targets fd 1 target (console out) in current shell
+exec 6&gt;&amp;1
+
+# fd 1 targets pipe, fd 2 targets fd 1 target (pipe),
+# fd 1 targets fd 6 target (console out), fd 6 closed, execute ls
+ls "$INPUTDIR"/* 2&gt;&amp;1 &gt;&amp;6 6&gt;&amp;- \
+				# Closes fd 6 for awk, but not for ls.
+
+| awk 'BEGIN { FS=":" } { print "YOU HAVE NO ACCESS TO" $2 }' 6&gt;&amp;-
+
+# fd 6 closed for current shell
+exec 6&gt;&amp;-
+</pre></div><div class="sect3"><div class="titlepage"><div><div><h4 class="title"><a name="sect_08_02_04_04"></a>2.4.4. <span class="emphasis"><em>Here</em></span> documents</h4></div></div></div><p>Frequently, your script might call on another program or script that requires input.  The <span class="emphasis"><em>here</em></span> document provides a way of instructing the shell to read input from the current source until a line containing only the search string is found (no trailing blanks).  All of the lines read up to that point are then used as the standard input for a command.</p><p>The result is that you don't need to call on separate files; you can use shell-special characters, and it looks nicer than a bunch of <span class="command"><strong>echo</strong></span>'s:</p><pre class="screen">
+<code class="prompt">michel ~&gt;</code> <span class="command"><strong>cat <code class="filename">startsurf.sh</code></strong></span>
+#!/bin/bash
+
+# This script provides an easy way for users to choose between browsers.
+
+echo "These are the web browsers on this system:"
+ 
+# Start here document
+cat &lt;&lt; BROWSERS
+mozilla
+links
+lynx
+konqueror
+opera
+netscape
+BROWSERS
+# End here document
+
+echo -n "Which is your favorite? "
+read browser
+
+echo "Starting $browser, please wait..."
+$browser &amp;
+
+<code class="prompt">michel ~&gt;</code> <span class="command"><strong>startsurf.sh</strong></span>
+These are the web browsers on this system:
+mozilla
+links
+lynx
+konqueror
+opera
+netscape
+<code class="prompt">Which is your favorite?</code> <span class="command"><strong>opera</strong></span>
+Starting opera, please wait...
+</pre><p>Although we talk about a <span class="emphasis"><em>here document</em></span>, it is supposed to be a construct within the same script.  This is an example that installs a package automatically, eventhough you should normally confirm:</p><pre class="screen">
+#!/bin/bash
+ 
+# This script installs packages automatically, using yum.
+ 
+if [ $# -lt 1 ]; then
+        echo "Usage: $0 package."
+        exit 1
+fi
+ 
+yum install $1 &lt;&lt; CONFIRM
+y
+CONFIRM
+</pre><p>And this is how the script runs.  When prompted with the <span class="quote">&#8220;<span class="quote">Is this ok [y/N]</span>&#8221;</span> string, the script answers <span class="quote">&#8220;<span class="quote">y</span>&#8221;</span> automatically:</p><pre class="screen">
+<code class="prompt">[root@picon bin]#</code> <span class="command"><strong>./install.sh <em class="parameter"><code>tuxracer</code></em></strong></span>
+Gathering header information file(s) from server(s)
+Server: Fedora Linux 2 - i386 - core
+Server: Fedora Linux 2 - i386 - freshrpms
+Server: JPackage 1.5 for Fedora Core 2
+Server: JPackage 1.5, generic
+Server: Fedora Linux 2 - i386 - updates
+Finding updated packages
+Downloading needed headers
+Resolving dependencies
+Dependencies resolved
+I will do the following:
+[install: tuxracer 0.61-26.i386]
+<code class="prompt">Is this ok [y/N]:</code> <span class="command"><strong><span class="keycap"><strong>Enter</strong></span></strong></span>Downloading Packages
+Running test transaction:
+Test transaction complete, Success!
+tuxracer 100 % done 1/1
+Installed:  tuxracer 0.61-26.i386
+Transaction(s) Complete
+</pre></div></div></div><div class="navfooter"><hr><table width="100%" summary="Navigation footer"><tr><td width="40%" align="left"><a accesskey="p" href="ch08s01.html">Prev</a> </td><td width="20%" align="center"><a accesskey="u" href="ch08.html">Up</a></td><td width="40%" align="right"> <a accesskey="n" href="ch08s03.html">Next</a></td></tr><tr><td width="40%" align="left" valign="top">1. Displaying user messages </td><td width="20%" align="center"><a accesskey="h" href="index.html">Home</a></td><td width="40%" align="right" valign="top"> 3. Summary</td></tr></table></div></body></html>

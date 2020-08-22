@@ -1,0 +1,214 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1"><title>1. Job Control Commands</title><link rel="stylesheet" type="text/css" href="style.css"><meta name="generator" content="DocBook XSL Stylesheets V1.79.1"><link rel="home" href="index.html" title="Advanced Bash-Scripting Guide"><link rel="up" href="ch15.html" title="Chapter 15. Internal Commands and Builtins"><link rel="prev" href="ch15.html" title="Chapter 15. Internal Commands and Builtins"><link rel="next" href="ch16.html" title="Chapter 16. External Filters, Programs and Commands"></head><body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF"><div class="navheader"><table width="100%" summary="Navigation header"><tr><th colspan="3" align="center">1. Job Control Commands</th></tr><tr><td width="20%" align="left"><a accesskey="p" href="ch15.html">Prev</a> </td><th width="60%" align="center">Chapter 15. Internal Commands and Builtins</th><td width="20%" align="right"> <a accesskey="n" href="ch16.html">Next</a></td></tr></table><hr></div><div class="sect1"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="idm9648"></a>1. Job Control Commands</h2></div></div></div><p>Certain of the following job control commands take a
+	  <em class="firstterm">job identifier</em> as an argument. See
+	  the <a class="link" href="ch15s01.html#jobidtable" title="Table 15.1. Job identifiers">table</a> at end of the
+	  chapter.</p><div class="variablelist"><a name="jccommandlist"></a><dl class="variablelist"><dt><span class="term"><a name="jobsref"></a><span class="command"><strong>jobs</strong></span></span></dt><dd><a class="indexterm" name="idm9659"></a><a class="indexterm" name="idm9661"></a><a class="indexterm" name="idm9664"></a><a class="indexterm" name="idm9666"></a><p>Lists the jobs running in the background, giving
+	        the <em class="firstterm">job number</em>.
+		Not as useful as <a class="link" href="ch17.html#ppssref">ps</a>.</p><div class="note" style="margin-left: 0.5in; margin-right: 0.5in;"><h3 class="title">Note</h3><p>It is all too easy to confuse
+		<em class="firstterm">jobs</em> and
+		<em class="firstterm">processes</em>.  Certain <a class="link" href="ch15.html#builtinref">builtins</a>, such as
+		<span class="command"><strong>kill</strong></span>, <span class="command"><strong>disown</strong></span>, and
+		<span class="command"><strong>wait</strong></span> accept either a job number or a
+		process number as an argument. The <a class="link" href="ch15s01.html#fgref">fg</a>,
+		<a class="link" href="ch15s01.html#bgref">bg</a> and <span class="command"><strong>jobs</strong></span>
+		commands accept only a job number.</p><p>
+	      </p><pre class="screen"><code class="prompt">bash$ </code><strong class="userinput"><code>sleep 100 &amp;</code></strong>
+<code class="computeroutput">[1] 1384</code>
+
+<code class="prompt">bash $ </code><strong class="userinput"><code>jobs</code></strong>
+<code class="computeroutput">[1]+  Running                 sleep 100 &amp;</code></pre><p>
+	      </p><p><span class="quote">&#8220;<span class="quote">1</span>&#8221;</span> is the job number (jobs are
+		maintained by the current shell). <span class="quote">&#8220;<span class="quote">1384</span>&#8221;</span>
+		is the <a class="link" href="ch09s01.html#ppidref">PID</a> or <em class="firstterm">process ID
+		number</em> (processes are maintained by the system). To kill
+		this job/process, either a <span class="command"><strong>kill %1</strong></span>
+		or a <span class="command"><strong>kill 1384</strong></span> works.</p><p><span class="emphasis"><em>Thanks, S.C.</em></span></p></div></dd><dt><span class="term"><a name="disownref"></a><span class="command"><strong>disown</strong></span></span></dt><dd><a class="indexterm" name="idm9705"></a><a class="indexterm" name="idm9707"></a><p>Remove job(s) from the shell's table of active jobs.</p></dd><dt><span class="term"><a name="fgref"></a><span class="command"><strong>fg</strong></span>, </span><span class="term"><a name="bgref"></a><span class="command"><strong>bg</strong></span></span></dt><dd><a class="indexterm" name="idm9719"></a><a class="indexterm" name="idm9721"></a><a class="indexterm" name="idm9724"></a><a class="indexterm" name="idm9726"></a><p>The <span class="command"><strong>fg</strong></span> command switches a job
+	      running in the background into the foreground.  The
+	      <span class="command"><strong>bg</strong></span> command restarts a suspended job, and
+	      runs it in the background. If no job number is specified,
+	      then the <span class="command"><strong>fg</strong></span> or <span class="command"><strong>bg</strong></span>
+	      command acts upon the currently running job.</p></dd><dt><span class="term"><a name="waitref"></a><span class="command"><strong>wait</strong></span></span></dt><dd><a class="indexterm" name="idm9739"></a><a class="indexterm" name="idm9741"></a><p>Suspend script execution until all jobs running in
+	        background have terminated, or until the job number or
+	        process ID specified as an option terminates. Returns the <a class="link" href="ch06.html#exitstatusref">exit status</a> of waited-for
+	        command.</p><p>You may use the <span class="command"><strong>wait</strong></span> command
+		to prevent a script from exiting before a background
+		job finishes executing (this would create a dreaded
+		<a class="link" href="ch15s01.html#zombieref">orphan process</a>).</p><div class="example"><a name="ex39"></a><p class="title"><b>Example 15.26. Waiting for a process to finish before proceeding</b></p><div class="example-contents"><pre class="programlisting">#!/bin/bash
+
+ROOT_UID=0   # Only users with $UID 0 have root privileges.
+E_NOTROOT=65
+E_NOPARAMS=66
+
+if [ "$UID" -ne "$ROOT_UID" ]
+then
+  echo "Must be root to run this script."
+  # "Run along kid, it's past your bedtime."
+  exit $E_NOTROOT
+fi  
+
+if [ -z "$1" ]
+then
+  echo "Usage: `basename $0` find-string"
+  exit $E_NOPARAMS
+fi
+
+
+echo "Updating 'locate' database..."
+echo "This may take a while."
+updatedb /usr &amp;     # Must be run as root.
+
+wait
+# Don't run the rest of the script until 'updatedb' finished.
+# You want the database updated before looking up the file name.
+
+locate $1
+
+#  Without the 'wait' command, in the worse case scenario,
+#+ the script would exit while 'updatedb' was still running,
+#+ leaving it as an orphan process.
+
+exit 0
+</pre></div></div><br class="example-break"><p>Optionally, <span class="command"><strong>wait</strong></span> can take a <em class="firstterm">job
+		identifier</em> as an argument, for example,
+		<em class="replaceable"><code>wait%1</code></em> or <em class="replaceable"><code>wait
+                $PPID</code></em>.
+
+	<a href="#ftn.idm9757" class="footnote" name="idm9757"><sup class="footnote">[67]</sup></a>
+		
+		See the <a class="link" href="ch15s01.html#jobidtable" title="Table 15.1. Job identifiers">job id table</a>.</p><p><a name="waithang"></a></p><div class="tip" style="margin-left: 0.5in; margin-right: 0.5in;"><h3 class="title">Tip</h3><p>Within a script, running a command in the background
+		with an ampersand (&amp;) may cause the script
+		to hang until <span class="keycap"><strong>ENTER</strong></span> is hit. This
+		seems to occur with commands that write to
+		<code class="filename">stdout</code>. It can be a major annoyance.
+		  </p><pre class="programlisting">#!/bin/bash
+# test.sh		  
+
+ls -l &amp;
+echo "Done."</pre><p>
+	      </p><pre class="screen"><code class="prompt">bash$ </code><strong class="userinput"><code>./test.sh</code></strong>
+<code class="computeroutput">Done.
+ [bozo@localhost test-scripts]$ total 1
+ -rwxr-xr-x    1 bozo     bozo           34 Oct 11 15:09 test.sh
+ _
+</code>
+               </pre><p>
+	       </p><div class="blockquote"><blockquote class="blockquote"><div class="literallayout"><p><br>
+    As Walter Brameld IV explains it:<br>
+<br>
+    As far as I can tell, such scripts don't actually hang. It just<br>
+    seems that they do because the background command writes text to<br>
+    the console after the prompt. The user gets the impression that<br>
+    the prompt was never displayed. Here's the sequence of events:<br>
+<br>
+    1. Script launches background command.<br>
+    2. Script exits.<br>
+    3. Shell displays the prompt.<br>
+    4. Background command continues running and writing text to the<br>
+       console.<br>
+    5. Background command finishes.<br>
+    6. User doesn't see a prompt at the bottom of the output, thinks script<br>
+       is hanging.<br>
+	</p></div></blockquote></div><p>Placing a <span class="command"><strong>wait</strong></span> after the background
+                command seems to remedy this.
+		  </p><pre class="programlisting">#!/bin/bash
+# test.sh		  
+
+ls -l &amp;
+echo "Done."
+wait</pre><p>
+	      </p><pre class="screen"><code class="prompt">bash$ </code><strong class="userinput"><code>./test.sh</code></strong>
+<code class="computeroutput">Done.
+ [bozo@localhost test-scripts]$ total 1
+ -rwxr-xr-x    1 bozo     bozo           34 Oct 11 15:09 test.sh</code>
+               </pre><p>
+	        <a class="link" href="ch20.html#ioredirref">Redirecting</a> the
+                output of the command to a file or even to
+		<code class="filename">/dev/null</code> also takes care of this
+		problem.
+              </p></div></dd><dt><span class="term"><a name="suspendref"></a><span class="command"><strong>suspend</strong></span></span></dt><dd><a class="indexterm" name="idm9788"></a><a class="indexterm" name="idm9790"></a><p>This has a similar effect to
+		<span class="keycap"><strong>Control</strong></span>+<span class="keycap"><strong>Z</strong></span>, 
+		but it suspends the shell (the shell's parent process should
+		resume it at an appropriate time).</p></dd><dt><span class="term"><a name="logoutref"></a><span class="command"><strong>logout</strong></span></span></dt><dd><a class="indexterm" name="idm9802"></a><a class="indexterm" name="idm9804"></a><p>Exit a login shell, optionally specifying an <a class="link" href="ch06.html#exitstatusref">exit status</a>.</p></dd><dt><span class="term"><a name="timesref"></a><span class="command"><strong>times</strong></span></span></dt><dd><a class="indexterm" name="idm9814"></a><a class="indexterm" name="idm9816"></a><p>Gives statistics on the system time elapsed when
+	        executing commands, in the following form:
+		</p><pre class="screen"><code class="computeroutput">0m0.020s 0m0.020s</code></pre><p>This capability is of relatively limited value, since it is not common to
+		profile and benchmark shell scripts.</p></dd><dt><span class="term"><a name="killref"></a><span class="command"><strong>kill</strong></span></span></dt><dd><a class="indexterm" name="idm9828"></a><a class="indexterm" name="idm9830"></a><p>Forcibly terminate a process by sending it an
+		appropriate <em class="firstterm">terminate</em> signal
+		(see <a class="xref" href="ch17.html#killprocess" title="Example 17.6. pidof helps kill a process">Example 17.6, &#8220;<em class="firstterm">pidof</em> helps kill a process&#8221;</a>).</p><div class="example"><a name="selfdestruct"></a><p class="title"><b>Example 15.27. A script that kills itself</b></p><div class="example-contents"><pre class="programlisting">#!/bin/bash
+# self-destruct.sh
+
+kill $$  # Script kills its own process here.
+         # Recall that "$$" is the script's PID.
+
+echo "This line will not echo."
+# Instead, the shell sends a "Terminated" message to stdout.
+
+exit 0   # Normal exit? No!
+
+#  After this script terminates prematurely,
+#+ what exit status does it return?
+#
+# sh self-destruct.sh
+# echo $?
+# 143
+#
+# 143 = 128 + 15
+#             TERM signal
+</pre></div></div><br class="example-break"><p><a name="zombieref"></a></p><div class="note" style="margin-left: 0.5in; margin-right: 0.5in;"><h3 class="title">Note</h3><p><strong class="userinput"><code>kill -l</code></strong> lists all the
+		<a class="link" href="ch32.html#signald">signals</a> (as does the
+		file <code class="filename">/usr/include/asm/signal.h</code>).
+		A <strong class="userinput"><code>kill -9</code></strong> is a <em class="firstterm">sure
+		kill</em>, which will usually terminate a
+		process that stubbornly refuses to die with a plain
+		<span class="command"><strong>kill</strong></span>. Sometimes, a <strong class="userinput"><code>kill
+		-15</code></strong> works. A <em class="firstterm">zombie</em> process,
+		that is, a child process that has terminated, but that
+		the <a class="link" href="ch15.html#forkref">parent process</a>
+		has not (yet) killed, cannot be killed by a logged-on
+		user -- you can't kill something that is already dead --
+		but <span class="command"><strong>init</strong></span> will generally clean it up
+		sooner or later.</p></div></dd><dt><span class="term"><a name="killallref"></a><span class="command"><strong>killall</strong></span></span></dt><dd><a class="indexterm" name="idm9858"></a><a class="indexterm" name="idm9860"></a><p>The <span class="command"><strong>killall</strong></span> command
+	    kills a running process by <em class="firstterm">name</em>,
+            rather than by <a class="link" href="ch03.html#processidref">process ID</a>.
+	    If there are multiple instances of a particular command running,
+	    then doing a <em class="firstterm">killall</em> on that command will
+	    terminate them <span class="emphasis"><em>all</em></span>.</p><div class="note" style="margin-left: 0.5in; margin-right: 0.5in;"><h3 class="title">Note</h3><p>This refers to the <span class="command"><strong>killall</strong></span>
+	      command in <code class="filename">/usr/bin</code>,
+	      <span class="emphasis"><em>not</em></span> the <a class="link" href="ch17s01.html#killall2ref">killall script</a> in <code class="filename">/etc/rc.d/init.d</code>.</p></div></dd><dt><span class="term"><a name="commandref"></a><span class="command"><strong>command</strong></span></span></dt><dd><a class="indexterm" name="idm9881"></a><a class="indexterm" name="idm9883"></a><p>The <span class="command"><strong>command</strong></span> directive
+	    disables aliases and functions for the command immediately
+	    following it.</p><p>
+	      </p><pre class="screen">
+<code class="prompt">bash$ </code><strong class="userinput"><code>command ls</code></strong>
+              </pre><p>
+	    </p><div class="note" style="margin-left: 0.5in; margin-right: 0.5in;"><h3 class="title">Note</h3><p>This is one of three shell directives that
+	      effect script command processing. The others are
+	      <a class="link" href="ch15s01.html#bltref">builtin</a> and <a class="link" href="ch15s01.html#enableref">enable</a>.</p></div></dd><dt><span class="term"><a name="bltref"></a><span class="command"><strong>builtin</strong></span></span></dt><dd><a class="indexterm" name="idm9901"></a><a class="indexterm" name="idm9903"></a><p>Invoking <span class="command"><strong>builtin
+	      BUILTIN_COMMAND</strong></span> runs the command
+	      <em class="replaceable"><code>BUILTIN_COMMAND</code></em> as a shell <a class="link" href="ch15.html#builtinref">builtin</a>, temporarily disabling
+	      both functions and external system commands with the
+	      same name.</p></dd><dt><span class="term"><a name="enableref"></a><span class="command"><strong>enable</strong></span></span></dt><dd><a class="indexterm" name="idm9915"></a><a class="indexterm" name="idm9917"></a><p>This either enables or disables a shell
+	      builtin command. As an example, <em class="replaceable"><code>enable -n
+	      kill</code></em> disables the shell builtin <a class="link" href="ch15s01.html#killref">kill</a>, so that when Bash
+	      subsequently encounters <em class="firstterm">kill</em>, it invokes
+	      the external command <code class="filename">/bin/kill</code>.</p><p><a name="enableref1"></a>The <code class="option">-a</code>
+	      option to <em class="firstterm">enable</em> lists all the
+	      shell builtins, indicating whether or not they
+	      are enabled. The <code class="option">-f filename</code>
+	      option lets <em class="firstterm">enable</em> load a <a class="link" href="ch15.html#builtinref">builtin</a> as a shared library
+	      (DLL) module from a properly compiled object file.
+	        <a href="#ftn.idm9932" class="footnote" name="idm9932"><sup class="footnote">[68]</sup></a>.
+	     </p></dd><dt><span class="term"><a name="autoloadref"></a><span class="command"><strong>autoload</strong></span></span></dt><dd><a class="indexterm" name="idm9944"></a><a class="indexterm" name="idm9946"></a><p>This is a port to Bash of the
+	    <em class="firstterm">ksh</em> autoloader. With
+	    <span class="command"><strong>autoload</strong></span> in place, a function with
+	    an <em class="firstterm">autoload</em> declaration will load from an
+	    external file at its first invocation.
+	      <a href="#ftn.idm9953" class="footnote" name="idm9953"><sup class="footnote">[69]</sup></a>
+	    This saves system resources.</p><p>Note that <em class="firstterm">autoload</em> is not a part of the
+	    core Bash installation. It needs to be loaded in with
+	    <em class="replaceable"><code>enable -f</code></em> (see above).</p></dd></dl></div><p><a name="jobidtable0"></a></p><div class="table"><a name="jobidtable"></a><p class="title"><b>Table 15.1. Job identifiers</b></p><div class="table-contents"><table class="table" summary="Job identifiers" border="1"><colgroup><col><col></colgroup><thead><tr><th>Notation</th><th>Meaning</th></tr></thead><tbody><tr><td><code class="option">%N</code></td><td>Job number [N]</td></tr><tr><td><code class="option">%S</code></td><td>Invocation (command-line) of job begins with string <span class="emphasis"><em>S</em></span></td></tr><tr><td><code class="option">%?S</code></td><td>Invocation (command-line) of job contains within it string <span class="emphasis"><em>S</em></span></td></tr><tr><td><code class="option">%%</code></td><td><span class="quote">&#8220;<span class="quote">current</span>&#8221;</span> job (last job stopped in
+	      foreground or started in background)</td></tr><tr><td><code class="option">%+</code></td><td><span class="quote">&#8220;<span class="quote">current</span>&#8221;</span> job (last job stopped in
+	      foreground or started in background)</td></tr><tr><td><code class="option">%-</code></td><td>Last job</td></tr><tr><td><code class="option">$!</code></td><td>Last background process</td></tr></tbody></table></div></div><br class="table-break"><div class="footnotes"><br><hr style="width:100; text-align:left;margin-left: 0"><div id="ftn.idm9757" class="footnote"><p><a href="#idm9757" class="para"><sup class="para">[67] </sup></a>This only applies to <em class="firstterm">child
+         processes</em>, of course.</p></div><div id="ftn.idm9932" class="footnote"><p><a href="#idm9932" class="para"><sup class="para">[68] </sup></a>The C source for a number of loadable builtins is
+		    typically found in the <code class="filename">/usr/share/doc/bash-?.??/functions</code>
+		    directory.</p><p>Note that the <code class="option">-f</code> option to
+                    <span class="command"><strong>enable</strong></span> is not <a class="link" href="ch36s09.html" title="9. Portability Issues">portable</a> to all
+                    systems.</p></div><div id="ftn.idm9953" class="footnote"><p><a href="#idm9953" class="para"><sup class="para">[69] </sup></a>The same effect as
+	      <span class="command"><strong>autoload</strong></span> can be achieved with <a class="link" href="ch09s02.html" title="2. Typing variables: declare or typeset">typeset -fu</a>.</p></div></div></div><div class="navfooter"><hr><table width="100%" summary="Navigation footer"><tr><td width="40%" align="left"><a accesskey="p" href="ch15.html">Prev</a> </td><td width="20%" align="center"><a accesskey="u" href="ch15.html">Up</a></td><td width="40%" align="right"> <a accesskey="n" href="ch16.html">Next</a></td></tr><tr><td width="40%" align="left" valign="top">Chapter 15. Internal Commands and Builtins </td><td width="20%" align="center"><a accesskey="h" href="index.html">Home</a></td><td width="40%" align="right" valign="top"> Chapter 16. External Filters, Programs and Commands</td></tr></table></div></body></html>

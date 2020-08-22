@@ -1,0 +1,277 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN""http://www.w3.org/TR/html4/loose.dtd">
+<HTML
+><HEAD
+><TITLE
+>How to allow HTML in the Newsletter</TITLE
+><META
+NAME="GENERATOR"
+CONTENT="Modular DocBook HTML Stylesheet Version 1.79"><LINK
+REL="HOME"
+TITLE="PHP-Nuke: Management and Programming"
+HREF="index.html"><LINK
+REL="UP"
+TITLE="Modifying the PHP-Nuke administration panel"
+HREF="modifying-php-nuke-admin-panel.html"><LINK
+REL="PREVIOUS"
+TITLE='How to set an arbitrary "Stories Number in Home"'
+HREF="set-arbitrary-stories-number-in-home.html"><LINK
+REL="NEXT"
+TITLE="Creating PHP-Nuke blocks"
+HREF="blocks.html"></HEAD
+><BODY
+CLASS="SECT1"
+BGCOLOR="#FFFFFF"
+TEXT="#000000"
+LINK="#0000FF"
+VLINK="#840084"
+ALINK="#0000FF"
+><DIV
+CLASS="NAVHEADER"
+><TABLE
+SUMMARY="Header navigation table"
+WIDTH="100%"
+BORDER="0"
+CELLPADDING="0"
+CELLSPACING="0"
+><TR
+><TH
+COLSPAN="3"
+ALIGN="center"
+>PHP-Nuke: Management and Programming</TH
+></TR
+><TR
+><TD
+WIDTH="10%"
+ALIGN="left"
+VALIGN="bottom"
+><A
+HREF="set-arbitrary-stories-number-in-home.html"
+ACCESSKEY="P"
+>Prev</A
+></TD
+><TD
+WIDTH="80%"
+ALIGN="center"
+VALIGN="bottom"
+>Chapter 19. Modifying the <SPAN
+CLASS="APPLICATION"
+>PHP-Nuke</SPAN
+> administration panel</TD
+><TD
+WIDTH="10%"
+ALIGN="right"
+VALIGN="bottom"
+><A
+HREF="blocks.html"
+ACCESSKEY="N"
+>Next</A
+></TD
+></TR
+></TABLE
+><HR
+ALIGN="LEFT"
+WIDTH="100%"></DIV
+><DIV
+CLASS="SECT1"
+><H1
+CLASS="SECT1"
+><A
+NAME="ALLOW-HTML-NEWSLETTER"
+>19.2. How to allow HTML in the Newsletter</A
+></H1
+><P
+><DIV
+CLASS="FIGURE"
+><A
+NAME="FIG-NEWSLETTER-2"
+></A
+><P
+><B
+>Figure 19-3.    Administration panel: Newsletter.
+   </B
+></P
+><DIV
+CLASS="MEDIAOBJECT"
+><P
+><IMG
+SRC="./images/newsletter.png"><DIV
+CLASS="CAPTION"
+><P
+>Administration panel: Newsletter.</P
+></DIV
+></P
+></DIV
+></DIV
+></P
+><P
+>If you want to use HTML, instead of only plain text in the Newsletter from the administration panel, you have to do the following:</P
+><P
+>Replace the function newsletter_send() in admin/modules/newsletter.php with:</P
+><TABLE
+BORDER="1"
+BGCOLOR="#E0E0E0"
+WIDTH="100%"
+><TR
+><TD
+><FONT
+COLOR="#000000"
+><PRE
+CLASS="SCREEN"
+>function newsletter_send($title, $content) {
+    global $user_prefix, $sitename, $dbi, $nukeurl, $adminmail;
+    $send_html_messages = "yes";
+    $from = $adminmail;
+    $subject = "[$sitename Newsletter]: ".stripslashes($title)."";
+    $content = stripslashes($content);
+    $content = "$sitename "._NEWSLETTER."\n\n\n$content\n\n- 
+$sitename "._STAFF."\n\n\n\n\n\n"._NLUNSUBSCRIBE."";
+    $result = sql_query("select email from ".$user_prefix.
+"_users where newsletter='1'", $dbi);
+    while(list($email) = sql_fetch_row($result, $dbi)) {
+        $xheaders = "From: " . $sitename . " &#60;" . $adminmail . "&#62;\n";
+        $xheaders .= "X-Sender: &#60;" . $adminmail . "&#62;\n";
+        $xheaders .= "X-Mailer: PHP\n"; // mailer
+        $xheaders .= "X-Priority: 6\n"; // Urgent message!
+        if ($send_html_messages == "yes") {
+            $xheaders .= "Content-Type: text/html; 
+charset=iso-8859-1\n"; // Mime type
+        }
+        mail("$email","$subject","$content",$xheaders);
+    }
+    Header("Location: admin.php?op=newsletter_sent");
+} </PRE
+></FONT
+></TD
+></TR
+></TABLE
+><P
+>and the function massmail_send() with </P
+><TABLE
+BORDER="1"
+BGCOLOR="#E0E0E0"
+WIDTH="100%"
+><TR
+><TD
+><FONT
+COLOR="#000000"
+><PRE
+CLASS="SCREEN"
+>function massmail_send($title, $content) {    
+    global $user_prefix, $sitename, $dbi, $nukeurl, $adminmail;
+    $send_html_messages = "yes";
+    $from = $adminmail;
+    $subject = "[$sitename]: $title";
+    $content = stripslashes($content);
+    $content = ""._FROM.": $sitename\n\n\n\n$content\n\n\n\n- 
+    $sitename "._STAFF."\n\n\n\n"._MASSEMAILMSG."";
+    $result = sql_query("select email from ".$user_prefix
+    ."_users where uid != '1'", $dbi);
+    while(list($email) = sql_fetch_row($result, $dbi)) {
+        $xheaders = "From: " . $sitename . " &#60;" . $adminmail . "&#62;\n";
+        $xheaders .= "X-Sender: &#60;" . $adminmail . "&#62;\n";
+        $xheaders .= "X-Mailer: PHP\n"; // mailer
+        $xheaders .= "X-Priority: 6\n"; // Urgent message!
+        if ($send_html_messages == "yes") {
+            $xheaders .= "Content-Type: text/html;
+            charset=iso-8859-1\n"; // Mime type
+        }
+        mail("$email","$subject","$content",$xheaders);
+    }
+    Header("Location: admin.php?op=massmail_sent");
+}    </PRE
+></FONT
+></TD
+></TR
+></TABLE
+><P
+>The changes are in both functions the same: a flag, $send_html_messages, is checked and if set to "yes", the headers of the Newsletter mails (stored in the $xheaders variable) get an extra line for the MIME type:</P
+><TABLE
+BORDER="1"
+BGCOLOR="#E0E0E0"
+WIDTH="100%"
+><TR
+><TD
+><FONT
+COLOR="#000000"
+><PRE
+CLASS="SCREEN"
+>Content-Type: text/html; charset=iso-8859-1</PRE
+></FONT
+></TD
+></TR
+></TABLE
+><P
+>See also <A
+HREF="http://www.nukeforums.com/forums/viewtopic.php?t=13945"
+TARGET="_top"
+>HTML Newsletter</A
+>, but be warned that the code presented in that link, may not escape double quotes, probabbly due to an upgrade bug in the forums.</P
+></DIV
+><DIV
+CLASS="NAVFOOTER"
+><HR
+ALIGN="LEFT"
+WIDTH="100%"><TABLE
+SUMMARY="Footer navigation table"
+WIDTH="100%"
+BORDER="0"
+CELLPADDING="0"
+CELLSPACING="0"
+><TR
+><TD
+WIDTH="33%"
+ALIGN="left"
+VALIGN="top"
+><A
+HREF="set-arbitrary-stories-number-in-home.html"
+ACCESSKEY="P"
+>Prev</A
+></TD
+><TD
+WIDTH="34%"
+ALIGN="center"
+VALIGN="top"
+><A
+HREF="index.html"
+ACCESSKEY="H"
+>Home</A
+></TD
+><TD
+WIDTH="33%"
+ALIGN="right"
+VALIGN="top"
+><A
+HREF="blocks.html"
+ACCESSKEY="N"
+>Next</A
+></TD
+></TR
+><TR
+><TD
+WIDTH="33%"
+ALIGN="left"
+VALIGN="top"
+>How to set an arbitrary "Stories Number in Home"</TD
+><TD
+WIDTH="34%"
+ALIGN="center"
+VALIGN="top"
+><A
+HREF="modifying-php-nuke-admin-panel.html"
+ACCESSKEY="U"
+>Up</A
+></TD
+><TD
+WIDTH="33%"
+ALIGN="right"
+VALIGN="top"
+>Creating <SPAN
+CLASS="APPLICATION"
+>PHP-Nuke</SPAN
+> blocks</TD
+></TR
+></TABLE
+></DIV
+></BODY
+></HTML
+>

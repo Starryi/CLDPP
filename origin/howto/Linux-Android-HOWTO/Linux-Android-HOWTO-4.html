@@ -1,0 +1,318 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 3.2 Final//EN">
+<HTML>
+<HEAD>
+ <META NAME="GENERATOR" CONTENT="LinuxDoc-Tools 0.9.72">
+ <TITLE>Linux and Android HOWTO: Copying files </TITLE>
+ <LINK HREF="Linux-Android-HOWTO-5.html" REL=next>
+ <LINK HREF="Linux-Android-HOWTO-3.html" REL=previous>
+ <LINK HREF="Linux-Android-HOWTO.html#toc4" REL=contents>
+</HEAD>
+<BODY>
+<A HREF="Linux-Android-HOWTO-5.html">Next</A>
+<A HREF="Linux-Android-HOWTO-3.html">Previous</A>
+<A HREF="Linux-Android-HOWTO.html#toc4">Contents</A>
+<HR>
+<H2><A NAME="copying"></A> <A NAME="s4">4.</A> <A HREF="Linux-Android-HOWTO.html#toc4">Copying files </A></H2>
+
+<P>Exchanging files between Linux and Android should be trivial, right?
+Well, it's not. There are several ways to copy files from/to your
+Andbox, using a cable or Wi-Fi.</P>
+
+
+
+<H2><A NAME="ss4.1">4.1</A> <A HREF="Linux-Android-HOWTO.html#toc4.1">Copying via USB cable (from Linux box)</A>
+</H2>
+
+<P>When you connect your device via USB cable, Linux may see it either as
+an external USB drive or as an <EM>MTP device</EM>, i.e. a multimedia
+player. In the first case, <CODE>udev</CODE> mounts the device somewhere,
+like <CODE>/media/guido/DEVICE</CODE>. Exchanging files is now trivial:</P>
+<P>
+<BLOCKQUOTE><CODE>
+<PRE>
+Linux~$ rsync -av --delete -i ~/Documents/MyStuff/ /media/guido/DEVICE/MyStuff/
+</PRE>
+</CODE></BLOCKQUOTE>
+</P>
+
+<P>If the Andbox is connected via MTP, more trickery might be required.
+Some Linux versions will mount the device using <CODE>gfsd-fuse</CODE>;
+for instance, my phone's internal storage is accessible at this
+directory:</P>
+
+<P><CODE>/run/user/1000/gvfs/mtp:host=%5Busb%3A001%2C111%5D/Internal Storage</CODE></P>
+
+<P>You may want to make a directory like the above more accessible
+creating a symbolic link, but unfortunately this directory is only
+temporary. In fact, the next time you plug your Andbox, the string
+<CODE>mtp:host</CODE> is bound to change.</P>
+<P>
+<BLOCKQUOTE><CODE>
+<PRE>
+Linux:~$ ln -s /run/user/1000/gvfs/mtp\:host\=%5Busb%3A001%2C111%5D/Internal\ Storage/ Phone
+Linux:~$ cd Phone
+Linux:~/Phone$ ls -l
+totale 481K
+32K drwx------ 1 guido guido 32K lug 29 13:09 Alarms/
+32K drwx------ 1 guido guido 32K mar  2  2012 Android/
+  0 drwx------ 1 guido guido   0 ago 26 11:59 Backups/
+32K drwx------ 1 guido guido 32K mag 20  2014 baidu/
+  0 drwx------ 1 guido guido   0 ott  6 19:57 bluetooth/
+32K drwx------ 1 guido guido 32K mar 23  2015 CallRecordings/
+512 -rw------- 1 guido guido 145 lug 29 12:46 customized-capability.xml
+32K drwx------ 1 guido guido 32K lug 29 13:10 DCIM/
+  0 drwx------ 1 guido guido   0 ott  9 12:40 Download/
+  0 drwx------ 1 guido guido   0 dic 31  1999 LOST.DIR/
+32K drwx------ 1 guido guido 32K lug 29 14:33 MIUI/
+  0 drwx------ 1 guido guido   0 lug 31 10:00 Music/
+  0 drwx------ 1 guido guido   0 ago  3 11:03 Notifications/
+  0 drwx------ 1 guido guido   0 set 22 14:54 Pictures/
+32K drwx------ 1 guido guido 32K mar 12  2014 Ringtones/
+32K drwx------ 1 guido guido 32K gen  7  2013 svox/
+32K drwx------ 1 guido guido 32K gen  9  2013 System/
+  0 drwx------ 1 guido guido   0 ott 15 14:40 tmp/
+Linux:~/Phone$ _
+</PRE>
+</CODE></BLOCKQUOTE>
+</P>
+
+<P>You will immediately notice that accessing the Andbox file system is
+quite slow.</P>
+
+<P>In other cases, nothing happens. To access files on the device, you'll
+have to use programs that deal with MTP:</P>
+<P>
+<UL>
+<LI> Libmtp, 
+<A HREF="http://libmtp.sourceforge.net/">http://libmtp.sourceforge.net/</A>
+  
+<P>Provides MTP Tools, i.e. command line utilities to manage files,
+albums, playlists etc. on the device.</P>
+
+</LI>
+<LI> Gmtp, 
+<A HREF="http://gmtp.sourceforge.net/">http://gmtp.sourceforge.net/</A>
+  
+<P>A graphical program to perform the same actions as MTP Tools.</P>
+
+</LI>
+</UL>
+</P>
+
+<P>In my personal experience, copying files with MTP has proven to be
+unreliable and error-prone. Copying files is also possible via ADB
+commands, which appear to be quite reliable. The following two
+commands copy (push) a file from Linux to the Andbox, and the other
+way around (pull):</P>
+<P>
+<BLOCKQUOTE><CODE>
+<PRE>
+Linux:~$ adb push file.txt /mnt/sdcard/directory/
+Linux:~$ adb pull /mnt/sdcard/directory/file.txt
+</PRE>
+</CODE></BLOCKQUOTE>
+</P>
+
+<P>In the latter example, please note you must not add a dot at the end
+of the command: it's not the same as the Linux command <CODE>cp
+/mnt/sdcard/file.txt .</CODE></P>
+
+
+<H2><A NAME="ss4.2">4.2</A> <A HREF="Linux-Android-HOWTO.html#toc4.2">Syncing directories (from Linux box)</A>
+</H2>
+
+<P>If you want to keep a directory synchronised between the Linux box and
+the Andbox, in theory the command <CODE>adb sync</CODE> should suffice. In
+practice, I never managed to make it work.</P>
+
+<P>Fortunately, there's a nice tool called <CODE>adb-sync</CODE>. It's
+written in Python and it's released under the Apache License at this
+address:</P>
+
+<P>
+<A HREF="https://github.com/google/adb-sync">https://github.com/google/adb-sync</A></P>
+
+<P>get it by cloning the GIT repository, then copy the command to a
+directory included in your <CODE>$PATH</CODE>:</P>
+<P>
+<BLOCKQUOTE><CODE>
+<PRE>
+Linux:~$ git clone https://github.com/google/adb-sync
+Linux:~$ mv adb-sync/adb-sync ~/bin/
+Linux:~$ _
+</PRE>
+</CODE></BLOCKQUOTE>
+</P>
+
+<P><CODE>adb-sync</CODE> works in a similar manner as standard <CODE>rsync</CODE>:</P>
+<P>
+<BLOCKQUOTE><CODE>
+<PRE>
+Linux:~$ adb-sync --delete SYNC-ME/ /mnt/sdcard/SYNC-ME/
+Sync: local SYNC-ME, remote /mnt/sdcard/SYNC-ME/
+Scanning and diffing...
+Warning: could not parse 'd---rwxr-x    2 system   sdcard_r \
+32768 Oct 19 10:54 /mnt/sdcard/SYNC-ME/'.
+Push: /mnt/sdcard/SYNC-ME/
+Push: /mnt/sdcard/SYNC-ME//file1.txt
+Push: /mnt/sdcard/SYNC-ME//file2.txt
+Push: /mnt/sdcard/SYNC-ME//file3.txt
+Total: 0 KB/s (0 bytes in 0.640s)
+Linux:~$ _
+</PRE>
+</CODE></BLOCKQUOTE>
+</P>
+
+
+<H2><A NAME="ss4.3">4.3</A> <A HREF="Linux-Android-HOWTO.html#toc4.3">Sorting files: <CODE>fatsort</CODE> (from Linux box)</A>
+</H2>
+
+<P>Let's suppose you copied a bunch of music files to your device. You
+run your music player and open the directory containing the files.
+Surprise: they're not sorted, and are displayed in (apparently) random
+order!</P>
+
+<P>It's the way the VFAT filesystem works, on Andboxes and MP3 players
+too. Enter <CODE>fatsort</CODE>, a great tool available here:</P>
+
+<P>
+<A HREF="http://fatsort.sourceforge.net/">http://fatsort.sourceforge.net/</A></P>
+
+<P>It's a command line program for Linux that sorts VFAT file systems on
+connected devices.</P>
+
+<P>Plug the USB cable and mount the device. As root, run the
+<CODE>fdisk</CODE> tool:</P>
+<P>
+<BLOCKQUOTE><CODE>
+<PRE>
+Linux:~# fdisk -l
+...
+Disk /dev/sdd: 15.9 GB, 15925772288 bytes
+1 heads, 32 sectors/track, 972032 cylinders, total 31105024 sectors
+Units = sectors of 1 * 512 = 512 bytes
+Sector size (logical/physical): 512 bytes / 512 bytes
+I/O size (minimum/optimal): 512 bytes / 512 bytes
+Disk identifier: 0x00000000
+
+   Device Boot      Start         End      Blocks   Id  System
+/dev/sdd1              32    30777343    15388656    c  W95 FAT32 (LBA)
+</PRE>
+</CODE></BLOCKQUOTE>
+</P>
+
+<P>In the above example, <CODE>/dev/sdd1</CODE> is the Android VFAT file
+system. To sort the files therein, check the consistency of the file
+system and run <CODE>fatsort</CODE>:</P>
+<P>
+<BLOCKQUOTE><CODE>
+<PRE>
+Linux:~# fsck.vfat -a /dev/sdb1
+dosfsck 3.0.16, 01 Mar 2013, FAT32, LFN
+0x41: Dirty bit is set. Fs was not properly unmounted and some data may be corrupt.
+ Automaticaly removing dirty bit.
+Performing changes.
+/dev/sdb1: 8060 files, 856099/1921702 clusters
+Linux:~# fatsort -f /dev/sdb1
+FATSort Utility 0.9.15 by Boris Leidner &lt;fatsort(at)formenos.de>
+
+File system: FAT32.
+
+Sorting directory /
+Sorting directory /CTR/
+Sorting directory /Foto/
+Sorting directory /Guido/
+...
+Linux:~# _
+</PRE>
+</CODE></BLOCKQUOTE>
+</P>
+
+<P>In theory, <CODE>fatsort</CODE> should be run on unmounted file systems,
+but the above works and is reasonably safe.</P>
+
+
+<H2><A NAME="ss4.4">4.4</A> <A HREF="Linux-Android-HOWTO.html#toc4.4">Copying files from an Andbox FTP server</A>
+</H2>
+
+<P>This is the most traditional way to upload and download files to/from
+a server. Among the several available, I picked up Swiftp FTP Server:</P>
+
+<P>
+<A HREF="http://ppareit.github.io/swiftp/">http://ppareit.github.io/swiftp/</A></P>
+
+<P>also available on F-Droid.</P>
+
+<P>This application is released under the GPL and runs on the
+non-standard port 2121, so it can run on unrooted Andboxes. (21 is a
+privileged port.) In the Login settings, set user and password for
+uploads and downloads, or anonymous login for download only. In the
+latter case, username and password are ``ftp'', ``guest''. Take note
+of your Andbox's IP adress and, from the Linux box, start an ftp
+session. The default remote directory is <CODE>/mnt/sdcard</CODE>:</P>
+<P>
+<BLOCKQUOTE><CODE>
+<PRE>
+Linux:~$ ftp 157.27.180.18 2121
+Connected to 157.27.180.18.
+220 SwiFTP 2.10.2 ready
+Name (157.27.180.18:guido): ftp
+331 Send password
+Password:
+230 Access granted
+Remote system type is UNIX.
+Using binary mode to transfer files.
+ftp> ls
+200 PORT OK
+150 Opening ASCII mode data connection for file list
+drwxr-xr-x 1 owner group           40 Oct 23 08:23 .android_secure
+drwxr-xr-x 1 owner group        32768 Sep 16 16:09 .MySecurityData
+drwxr-xr-x 1 owner group        32768 Jul 29 13:09 Alarms
+drwxr-xr-x 1 owner group        32768 Mar 02  2012 Android
+...
+drwxr-xr-x 1 owner group        32768 Oct 19 10:55 tmp
+-rw-r--r-- 1 owner group          145 Jul 29 12:46 customized-capability.xml
+226 Data transmission OK
+ftp> put foo.dat
+local: foo.dat remote: foo.dat
+200 PORT OK
+150 Data socket ready
+226 Transmission complete
+ftp> bye
+ftp> 221 Goodbye
+Linux:~$ _
+</PRE>
+</CODE></BLOCKQUOTE>
+</P>
+
+
+<H2><A NAME="ss4.5">4.5</A> <A HREF="Linux-Android-HOWTO.html#toc4.5">Copying files from an Andbox web server</A>
+</H2>
+
+<P>Another way of getting files from your Andbox is making it a Web
+server. Among the several free http servers available, I suggest that
+you install ServDroid that is quite straightforward to use:</P>
+
+<P>
+<A HREF="https://github.com/joanpuigsanz/servdroid/wiki">https://github.com/joanpuigsanz/servdroid/wiki</A>.</P>
+
+<P>Configuring ServDroid is very simple. Copy the files you want to make
+available to </P>
+<P>
+<BLOCKQUOTE><CODE>
+<PRE>
+/mnt/sdcard/servdroid/var/www/
+</PRE>
+</CODE></BLOCKQUOTE>
+</P>
+
+<P>then start ServDroid and point a browser to port 8080 of your Andbox's
+IP.</P>
+
+
+<HR>
+<A HREF="Linux-Android-HOWTO-5.html">Next</A>
+<A HREF="Linux-Android-HOWTO-3.html">Previous</A>
+<A HREF="Linux-Android-HOWTO.html#toc4">Contents</A>
+</BODY>
+</HTML>

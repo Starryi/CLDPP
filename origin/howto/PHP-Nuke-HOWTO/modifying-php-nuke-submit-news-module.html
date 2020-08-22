@@ -1,0 +1,503 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN""http://www.w3.org/TR/html4/loose.dtd">
+<HTML
+><HEAD
+><TITLE
+>Modifying the PHP-Nuke Submit News module</TITLE
+><META
+NAME="GENERATOR"
+CONTENT="Modular DocBook HTML Stylesheet Version 1.79"><LINK
+REL="HOME"
+TITLE="PHP-Nuke: Management and Programming"
+HREF="index.html"><LINK
+REL="UP"
+TITLE="Modifying PHP-Nuke modules"
+HREF="modifying-php-nuke-modules.html"><LINK
+REL="PREVIOUS"
+TITLE="Modifying the PHP-Nuke News module"
+HREF="modifying-php-nuke-news-module.html"><LINK
+REL="NEXT"
+TITLE="Modifying the PHP-Nuke Sections module"
+HREF="modifying-php-nuke-sections-module.html"></HEAD
+><BODY
+CLASS="SECT1"
+BGCOLOR="#FFFFFF"
+TEXT="#000000"
+LINK="#0000FF"
+VLINK="#840084"
+ALINK="#0000FF"
+><DIV
+CLASS="NAVHEADER"
+><TABLE
+SUMMARY="Header navigation table"
+WIDTH="100%"
+BORDER="0"
+CELLPADDING="0"
+CELLSPACING="0"
+><TR
+><TH
+COLSPAN="3"
+ALIGN="center"
+>PHP-Nuke: Management and Programming</TH
+></TR
+><TR
+><TD
+WIDTH="10%"
+ALIGN="left"
+VALIGN="bottom"
+><A
+HREF="modifying-php-nuke-news-module.html"
+ACCESSKEY="P"
+>Prev</A
+></TD
+><TD
+WIDTH="80%"
+ALIGN="center"
+VALIGN="bottom"
+>Chapter 18. Modifying <SPAN
+CLASS="APPLICATION"
+>PHP-Nuke</SPAN
+> modules</TD
+><TD
+WIDTH="10%"
+ALIGN="right"
+VALIGN="bottom"
+><A
+HREF="modifying-php-nuke-sections-module.html"
+ACCESSKEY="N"
+>Next</A
+></TD
+></TR
+></TABLE
+><HR
+ALIGN="LEFT"
+WIDTH="100%"></DIV
+><DIV
+CLASS="SECT1"
+><H1
+CLASS="SECT1"
+><A
+NAME="MODIFYING-PHP-NUKE-SUBMIT-NEWS-MODULE"
+>18.8. Modifying the <SPAN
+CLASS="APPLICATION"
+>PHP-Nuke</SPAN
+> Submit News module</A
+></H1
+><P
+><DIV
+CLASS="FIGURE"
+><A
+NAME="FIG-SUBMISSIONS-2"
+></A
+><P
+><B
+>Figure 18-10.    Administration panel: Submissions.
+   </B
+></P
+><DIV
+CLASS="MEDIAOBJECT"
+><P
+><IMG
+SRC="./images/submissions.png"><DIV
+CLASS="CAPTION"
+><P
+>Administration panel: Submissions.</P
+></DIV
+></P
+></DIV
+></DIV
+></P
+><P
+>In this section we modify the <SPAN
+CLASS="APPLICATION"
+>PHP-Nuke</SPAN
+> Submit News module:</P
+><P
+></P
+><UL
+><LI
+><P
+>How to bypass article approval (<A
+HREF="modifying-php-nuke-submit-news-module.html#BYPASS-ARTICLE-APPROVAL"
+>Section 18.8.1</A
+>).</P
+></LI
+></UL
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="BYPASS-ARTICLE-APPROVAL"
+>18.8.1. How to bypass article approval</A
+></H2
+><P
+>The standard workflow for a news article is that the user writes it, submits it for approval by the administrator, the administrator reads it, approves and publishes it on the site. This has some advantages:</P
+><P
+></P
+><UL
+><LI
+><P
+>Everybody can post, even anonymous users. </P
+></LI
+><LI
+><P
+>Since the posts are checked, there is no risk of getting flooded with garbage posts.</P
+></LI
+></UL
+><P
+>But it also has some disadvantages too:</P
+><P
+></P
+><UL
+><LI
+><P
+>Users have to wait to see their post published. This may not be what they expect, if actuality of content is highly important for the topics of your site.</P
+></LI
+><LI
+><P
+>The administrators have to spend time on approving news articles. Waiting content (<A
+HREF="modifying-php-nuke-submit-news-module.html#FIG-WAITING-CONTENT-BLOCK"
+>Figure 18-11</A
+>) can be quite an administrative headache, if the site receives many user submissions a day (see, for example phpnuke.org, where there are dozens of submissions awaiting approval at any given time).</P
+></LI
+></UL
+><P
+><DIV
+CLASS="FIGURE"
+><A
+NAME="FIG-WAITING-CONTENT-BLOCK"
+></A
+><P
+><B
+>Figure 18-11.    Waiting Content block.
+   </B
+></P
+><DIV
+CLASS="MEDIAOBJECT"
+><P
+><IMG
+SRC="./images/waiting-content-block.png"><DIV
+CLASS="CAPTION"
+><P
+>Waiting Content block.</P
+></DIV
+></P
+></DIV
+></DIV
+></P
+><P
+>Fortunately, to bypass article approval, the solution is relatively simple (see <A
+HREF="http://www.karakas-online.de/forum/viewtopic.php?t=270"
+TARGET="_top"
+>Automatic Article Posting</A
+>):</P
+><P
+></P
+><UL
+><LI
+><P
+>For versions before <SPAN
+CLASS="APPLICATION"
+>PHP-Nuke</SPAN
+> 6.5:</P
+><P
+>In the modules/Submit_News, in the function submitStory(), find this </P
+><TABLE
+BORDER="1"
+BGCOLOR="#E0E0E0"
+WIDTH="90%"
+><TR
+><TD
+><FONT
+COLOR="#000000"
+><PRE
+CLASS="SCREEN"
+>$result = sql_query("insert into ".$prefix."_queue 
+values (NULL, '$uid', '$name', '$subject', '$story', 
+'$storyext', now(), '$topic', '$catid', '$alanguage')", $dbi);</PRE
+></FONT
+></TD
+></TR
+></TABLE
+><P
+>Change it to this:</P
+><TABLE
+BORDER="1"
+BGCOLOR="#E0E0E0"
+WIDTH="90%"
+><TR
+><TD
+><FONT
+COLOR="#000000"
+><PRE
+CLASS="SCREEN"
+>$result = sql_query("insert into ".$prefix."_stories 
+values (NULL, '$catid', '$name', '$subject', now(), '$story', 
+'$storyext', '0', '0', '$topic', '$name', ", '0', '$alanguage', 
+'0','0', '0', '0', '0')", $dbi); </PRE
+></FONT
+></TD
+></TR
+></TABLE
+><P
+>The story will get posted immediately, so you will want to make the Submit_News module only available to Users. Also, you will notice that it will now say &#8220;Posted By Some_user&#8221;, and it will no longer show in italics. </P
+></LI
+><LI
+><P
+>For <SPAN
+CLASS="APPLICATION"
+>PHP-Nuke</SPAN
+> 6.5 and later, the solution is slightly different. Replace this:</P
+><TABLE
+BORDER="1"
+BGCOLOR="#E0E0E0"
+WIDTH="90%"
+><TR
+><TD
+><FONT
+COLOR="#000000"
+><PRE
+CLASS="SCREEN"
+>$sql = "INSERT INTO ".$prefix."_queue VALUES (NULL, '$uid', '$name', '$subject',
+'$story', '$storyext', now(), '$topic', '$alanguage')";</PRE
+></FONT
+></TD
+></TR
+></TABLE
+><P
+>with this:</P
+><TABLE
+BORDER="1"
+BGCOLOR="#E0E0E0"
+WIDTH="90%"
+><TR
+><TD
+><FONT
+COLOR="#000000"
+><PRE
+CLASS="SCREEN"
+>$sql = "insert into ".$prefix."_stories values (NULL, '$catid', '$name', '$subject',
+now(), '$story', '$storyext', '0', '0', '$topic', '$name', ", '0', '$alanguage', '0', '0', '0', '0','0', ")";</PRE
+></FONT
+></TD
+></TR
+></TABLE
+></LI
+></UL
+><P
+>You will also want to change the language file "defines", or edit these lines in the function submitStory (this is what is displayed when the submission is sent.</P
+><TABLE
+BORDER="1"
+BGCOLOR="#E0E0E0"
+WIDTH="100%"
+><TR
+><TD
+><FONT
+COLOR="#000000"
+><PRE
+CLASS="SCREEN"
+>echo "&#60;center&#62;&#60;font class=\"title\"&#62;"._SUBSENT."&#60;/font&#62;&#60;br&#62;&#60;br&#62;"
+."&#60;font class=\"content\"&#62;&#60;b&#62;"._THANKSSUB."&#60;/b&#62;&#60;br&#62;&#60;br&#62;"
+.""._SUBTEXT.""
+."&#60;br&#62;"._WEHAVESUB." $waiting "._WAITING."";</PRE
+></FONT
+></TD
+></TR
+></TABLE
+><DIV
+CLASS="SECT3"
+><H3
+CLASS="SECT3"
+><A
+NAME="FORMATAIDHEADER-FUNCTION"
+>18.8.1.1. The formatAidHeader() function</A
+></H3
+><P
+>If you want to make the &#8220;Posted By Some_user&#8221; also be a link to the User's profile, then you can edit the function formatAidHeader in your mainfile.php. The following refers to <SPAN
+CLASS="APPLICATION"
+>PHP-Nuke</SPAN
+> 6.5 and above.</P
+><P
+>The function is simple: it takes an argument, the author id $aid, searches the nuke_authors table for that author id and, if found, it prints a link to the web page of the author. Only if the web page link fiels of nuke_authors is empty for that author, it prints a link to the author's e-mail (which is always there):</P
+><TABLE
+BORDER="1"
+BGCOLOR="#E0E0E0"
+WIDTH="100%"
+><TR
+><TD
+><FONT
+COLOR="#000000"
+><PRE
+CLASS="SCREEN"
+>function formatAidHeader($aid) {
+    global $prefix, $db;
+    $sql = "SELECT url, email FROM ".$prefix."_authors WHERE aid='$aid'";
+    $result = $db-&#62;sql_query($sql);
+    $row = $db-&#62;sql_fetchrow($result);
+    $url = $row[url];
+    $email = $row[email];
+    if (isset($url)) {
+        $aid = "&#60;a href=\"$url\"&#62;$aid&#60;/a&#62;";
+    } elseif (isset($email)) {
+        $aid = "&#60;a href=\"mailto:$email\"&#62;$aid&#60;/a&#62;";
+    } else {
+        $aid = $aid;
+    }
+    echo "$aid";
+}</PRE
+></FONT
+></TD
+></TR
+></TABLE
+><P
+>You could easily change this behaviour. For example, you could take out the check against the $url and leave only the e-mail part, if you wanted the &#8220;Posted By Some_user&#8221; to be an e-mail link, rather than a link to a web page (see <A
+HREF="http://www.karakas-online.de/forum/viewtopic.php?t=351"
+TARGET="_top"
+>Change Posted by... Name (Website) to Name (Email)</A
+>):</P
+><TABLE
+BORDER="1"
+BGCOLOR="#E0E0E0"
+WIDTH="100%"
+><TR
+><TD
+><FONT
+COLOR="#000000"
+><PRE
+CLASS="SCREEN"
+>function formatAidHeader($aid) {
+    global $prefix, $db;
+    $sql = "SELECT url, email FROM ".$prefix."_authors WHERE aid='$aid'";
+    $result = $db-&#62;sql_query($sql);
+    $row = $db-&#62;sql_fetchrow($result);
+    $url = $row[url];
+    $email = $row[email];
+     if (isset($email)) {
+        $aid = "&#60;a href=\"mailto:$email\"&#62;$aid&#60;/a&#62;";
+    } else {
+        $aid = $aid;
+    }
+    echo "$aid";
+}</PRE
+></FONT
+></TD
+></TR
+></TABLE
+><P
+>You could make it even more sophisticated, by making &#8220;Posted By Some_user&#8221; a link to the user's profile (see <A
+HREF="modifying-php-nuke-moduke-your-account.html#REDIRECT-YOUR-INFO-TO-FORUMS-USER-PROFILE"
+>Section 18.6.2</A
+> for the related subject of user profile redirection). The formatAidHeader function should then be:</P
+><TABLE
+BORDER="1"
+BGCOLOR="#E0E0E0"
+WIDTH="100%"
+><TR
+><TD
+><FONT
+COLOR="#000000"
+><PRE
+CLASS="SCREEN"
+>function formatAidHeader($aid) { 
+    global $prefix, $db;
+    $sql = "SELECT url, email FROM ".$prefix."_authors WHERE aid='$aid'";
+    $result = $db-&#62;sql_query($sql);
+    if($row = $db-&#62;sql_fetchrow($result)) {
+        $url = $row[url]; 
+        $email = $row[email]; 
+        if (isset($url)) { 
+            $aid = "&#60;a href=\"$url\"&#62;$aid&#60;/a&#62;";
+        } elseif (isset($email)) {  
+            $aid = "&#60;a href=\"mailto:$email\"&#62;$aid&#60;/a&#62;"; 
+        } else {
+            $aid = $aid;
+        } 
+   }else {
+        $sql = "SELECT user_id FROM ".$prefix."_users WHERE username='$aid'"; 
+        $result = $db-&#62;sql_query($sql); 
+        $row = $db-&#62;sql_fetchrow($result);
+        $user_id = $row[user_id];
+        $aid = "&#60;a
+        href=\"modules.php?name=Forums&#38;file=profile
+&#38;mode=viewprofile&#38;u=$user_id\"&#62;$aid&#60;/a&#62;";
+    }
+    echo "$aid"; 
+}</PRE
+></FONT
+></TD
+></TR
+></TABLE
+></DIV
+></DIV
+></DIV
+><DIV
+CLASS="NAVFOOTER"
+><HR
+ALIGN="LEFT"
+WIDTH="100%"><TABLE
+SUMMARY="Footer navigation table"
+WIDTH="100%"
+BORDER="0"
+CELLPADDING="0"
+CELLSPACING="0"
+><TR
+><TD
+WIDTH="33%"
+ALIGN="left"
+VALIGN="top"
+><A
+HREF="modifying-php-nuke-news-module.html"
+ACCESSKEY="P"
+>Prev</A
+></TD
+><TD
+WIDTH="34%"
+ALIGN="center"
+VALIGN="top"
+><A
+HREF="index.html"
+ACCESSKEY="H"
+>Home</A
+></TD
+><TD
+WIDTH="33%"
+ALIGN="right"
+VALIGN="top"
+><A
+HREF="modifying-php-nuke-sections-module.html"
+ACCESSKEY="N"
+>Next</A
+></TD
+></TR
+><TR
+><TD
+WIDTH="33%"
+ALIGN="left"
+VALIGN="top"
+>Modifying the <SPAN
+CLASS="APPLICATION"
+>PHP-Nuke</SPAN
+> News module</TD
+><TD
+WIDTH="34%"
+ALIGN="center"
+VALIGN="top"
+><A
+HREF="modifying-php-nuke-modules.html"
+ACCESSKEY="U"
+>Up</A
+></TD
+><TD
+WIDTH="33%"
+ALIGN="right"
+VALIGN="top"
+>Modifying the <SPAN
+CLASS="APPLICATION"
+>PHP-Nuke</SPAN
+> Sections module</TD
+></TR
+></TABLE
+></DIV
+></BODY
+></HTML
+>

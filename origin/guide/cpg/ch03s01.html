@@ -1,0 +1,28 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1"><title>1. Debugging with print_str()</title><link rel="stylesheet" type="text/css" href="style.css"><meta name="generator" content="DocBook XSL Stylesheets V1.79.1"><link rel="home" href="index.html" title="Custom Linux: A Porting Guide"><link rel="up" href="ch03.html" title="Chapter 3. Booting In The Dark"><link rel="prev" href="ch03.html" title="Chapter 3. Booting In The Dark"><link rel="next" href="ch03s02.html" title="2. Modifying code using compiler flags"></head><body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF"><div class="navheader"><table width="100%" summary="Navigation header"><tr><th colspan="3" align="center">1. Debugging with print_str()</th></tr><tr><td width="20%" align="left"><a accesskey="p" href="ch03.html">Prev</a> </td><th width="60%" align="center">Chapter 3. Booting In The Dark</th><td width="20%" align="right"> <a accesskey="n" href="ch03s02.html">Next</a></td></tr></table><hr></div><div class="sect1"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="idm186"></a>1. Debugging with print_str()</h2></div></div></div><p>As stated in the previous chapter, the machine starts to boot, but nothing happens. At least, nothing
+that we can see. The screen is blank and no kernel messages appear. At this point, you have to ask yourself,
+is it really booting?</p><p>Since the console wouldn't start, and ICE died real fast, we had no choice. We had to debug somehow,
+and the oldest way is good here - printing to the screen. Obviously, we couldn't use <code class="function">printk()</code>, so we wrote a short function which pushes characters straight into the serial port. We used the boot process <span class="quote">&#8220;<span class="quote">map</span>&#8221;</span> shown in the previous section, and inserted some prints along the way. This helped us to know at what stage we are completing and where we're dying. The following piece of code prints a single character to the serial port, by polling it and waiting for it to be free.
+
+</p><pre class="programlisting">
+
+                                 /* tx holding reg empty or tx    */
+#define LSR_THREMPTY 0x20        /* fifo is empty (in fifo mode ) */
+#define THR_REG      0x00        /* Transmit holding reg */
+#define LSR_REG      0x05        /* Line status reg */
+#define COM1_ADDRESS 0xFF600300  /* == replace with your UART address */
+
+void print_char (char ch) {
+	volatile  unsigned char status = 0;
+	/* wait until txempty */
+	while ((status &amp; LSR_THREMPTY ) == 0)
+		status = *((volatile unsigned char *)(COM1_ADDRESS + LSR_REG));
+
+	*((volatile unsigned char *)(COM1_ADDRESS + THR_REG)) = ch;
+}
+
+</pre><p>
+
+</p><div class="note" style="margin-left: 0.5in; margin-right: 0.5in;"><h3 class="title">Note</h3><p>There's a better code for printing directly to the serial port, however, it's a bit
+more complicated. You can find it in arch/ppc/boot/common/misc-common.c, using <code class="function">puts()</code> or 
+<code class="function">putc()</code>.</p></div><p>
+</p></div><div class="navfooter"><hr><table width="100%" summary="Navigation footer"><tr><td width="40%" align="left"><a accesskey="p" href="ch03.html">Prev</a> </td><td width="20%" align="center"><a accesskey="u" href="ch03.html">Up</a></td><td width="40%" align="right"> <a accesskey="n" href="ch03s02.html">Next</a></td></tr><tr><td width="40%" align="left" valign="top">Chapter 3. Booting In The Dark </td><td width="20%" align="center"><a accesskey="h" href="index.html">Home</a></td><td width="40%" align="right" valign="top"> 2. Modifying code using compiler flags</td></tr></table></div></body></html>

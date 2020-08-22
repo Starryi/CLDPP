@@ -1,0 +1,93 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1"><title>5. Resizing MD regions</title><link rel="stylesheet" type="text/css" href="style.css"><meta name="generator" content="DocBook XSL Stylesheets V1.79.1"><link rel="home" href="index.html" title="EVMS User Guide"><link rel="up" href="apb.html" title="Appendix B. The MD region manager"><link rel="prev" href="apbs04.html" title="4. Faulty objects"><link rel="next" href="apbs06.html" title="6. Replacing objects"></head><body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF"><div class="navheader"><table width="100%" summary="Navigation header"><tr><th colspan="3" align="center">5. Resizing MD regions</th></tr><tr><td width="20%" align="left"><a accesskey="p" href="apbs04.html">Prev</a> </td><th width="60%" align="center">Appendix B. The MD region manager</th><td width="20%" align="right"> <a accesskey="n" href="apbs06.html">Next</a></td></tr></table><hr></div><div class="sect1"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="resizemdreg"></a>5. Resizing MD regions</h2></div></div></div><p>
+RAID regions can be resized in order to expand or shrink the available
+data space in the region.
+Each RAID level has different characteristics, and thus each RAID level
+has different requirements for when and how they can expand or shrink.
+</p><p>
+See <a class="xref" href="ch16.html" title="Chapter 16. Expanding and shrinking volumes">Chapter 16, <i>Expanding and shrinking volumes</i></a> for general information about
+resizing EVMS volumes and objects.
+</p><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="linear"></a>5.1. Linear</h3></div></div></div><p>
+A Linear-RAID region can be expanded in two ways.
+First, if the last child object in the Linear-RAID region is
+expandable, then that object can be expanded, and the RAID region
+can expand into that new space.
+Second, one or more new objects can be added to the end of the region.
+</p><p>
+Likewise, a Linear-RAID region can be shrunk in two ways.
+If the last child object in the region is shrinkable, then that object
+can be shrunk, and the RAID region will shrink by the same amount.
+Also, one or more objects can be removed from the end of the RAID
+region (but the first object in the region cannot be removed).
+</p><p>
+Linear-RAID regions can be resized while they are active and in use.
+</p></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="resizeraid0"></a>5.2. RAID-0</h3></div></div></div><p>
+You can expand a RAID-0 region by adding one new object to the region.
+You can shrink a RAID-0 region by removing up to N-1 of the current
+child objects in a region with N objects.
+</p><p>
+Because RAID-0 regions stripe across the child objects, when a RAID-0
+region is resized, the data must be "re-striped" to account for the new
+number of objects.
+This means the MD plug-in will move each chunk of data from its
+location in the current region to the appropriate location in the
+expanded region.
+Be forewarned, the re-striping process can take a long time.
+At this time, there is no mechanism for speeding up or slowing down
+the re-striping process.
+The EVMS GUI and text-mode user interface will indicate the progress
+of the re-striping.
+Please do not attempt to interrupt the re-striping before it is
+complete, because the data in the RAID-0 region will likely become
+corrupted.
+</p><p>
+RAID-0 regions must be deactivated before they are resized in order to
+prevent data corruption while the data is being re-striped.
+</p><p>
+IMPORTANT: Please have a suitable backup available before attempting
+a RAID-0 resize.  If the re-striping process is interrupted before it
+completes (for example, the EVMS process gets killed, the machine
+crashes, or a child object in the RAID region starts returning I/O
+errors), then the state of that region cannot be ensured in all situations.
+</p><p>
+EVMS will attempt to recover following a problem during a RAID-0 resize.
+The MD plug-in does keep track of the progress of the resize in the MD
+metadata.
+Each time a data chunk is moved, the MD metadata is updated to
+reflect which chunk is currently being processed.
+If EVMS or the machine crashes during a resize, the next time you run
+EVMS the MD plug-in will try to restore the state of that region based
+on the latest metadata information.
+If an expand was taking place, the region will be "rolled back" to its
+state before the expand.
+If a shrink was taking place, the shrink will continue from the
+point it stopped.
+However, this recovery is not always enough to ensure that the entire
+volume stack is in the correct state.
+If the RAID-0 region is made directly into a volume, then it will
+likely be restored to the correct state.
+On the other hand, if the RAID region is a consumed-object in an
+LVM container, or a child-object of another RAID region, then the
+metadata for those plug-ins might not always be in the correct state
+and might be at the wrong location on the RAID region.
+Thus, the containers, objects, and volumes built on top of the RAID-0
+region might not reflect the correct size and might not even be discovered.
+</p></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="resizeraid1"></a>5.3. RAID-1</h3></div></div></div><p>
+A RAID-1 region can be resized if all of the child objects can be
+simultaneously resized by the same amount.
+</p><p>
+RAID-1 regions cannot be resized by adding additional objects.
+This type of operation is referred to as "adding active objects," and
+is discussed in <a class="xref" href="apbs03.html#addactobjsr1" title="3.3. Adding active objects to RAID-1">Section 3.3, &#8220;Adding active objects to RAID-1&#8221;</a>.
+</p><p>
+RAID-1 regions must be deactivated before they are resized.
+</p></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="resizeRAID-45"></a>5.4. RAID-4/5</h3></div></div></div><p> 
+Resizing a RAID-4/5 region follows the same rules and restrictions 
+for resizing a RAID-0 region.  Expand a RAID-4/5 region by 
+adding one new object to the region.   
+Shrink a RAID-4/5 region by removing up to N-1 of the current child objects in a region
+with N objects. 
+</p><p> 
+See <a class="xref" href="apbs05.html#resizeraid0" title="5.2. RAID-0">Section 5.2, &#8220;RAID-0&#8221;</a> for information about how to perform this function.
+</p><p>
+Like RAID-0, RAID-4/5 regions must be deactivated before they are resized.
+</p></div></div><div class="navfooter"><hr><table width="100%" summary="Navigation footer"><tr><td width="40%" align="left"><a accesskey="p" href="apbs04.html">Prev</a> </td><td width="20%" align="center"><a accesskey="u" href="apb.html">Up</a></td><td width="40%" align="right"> <a accesskey="n" href="apbs06.html">Next</a></td></tr><tr><td width="40%" align="left" valign="top">4. Faulty objects </td><td width="20%" align="center"><a accesskey="h" href="index.html">Home</a></td><td width="40%" align="right" valign="top"> 6. Replacing objects</td></tr></table></div></body></html>

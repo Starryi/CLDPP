@@ -1,0 +1,119 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1"><title>10. Appendix</title><link rel="stylesheet" type="text/css" href="style.css"><meta name="generator" content="DocBook XSL Stylesheets V1.79.1"><link rel="home" href="index.html" title="Linux Partition HOWTO"><link rel="up" href="index.html" title="Linux Partition HOWTO"><link rel="prev" href="ar01s09.html" title="9. Setting Up Swap Space"></head><body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF"><div class="navheader"><table width="100%" summary="Navigation header"><tr><th colspan="3" align="center">10. Appendix</th></tr><tr><td width="20%" align="left"><a accesskey="p" href="ar01s09.html">Prev</a> </td><th width="60%" align="center"> </th><td width="20%" align="right"> </td></tr></table><hr></div><div class="sect1"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="appendix"></a>10. Appendix</h2></div></div></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="formating"></a>10.1. Formating Partitions</h3></div></div></div><p>
+At the shell prompt, I begin making the file systems on my
+partitions.  Continuing with the example in (see <a class="xref" href="ar01s05.html#mixed" title="5.3. Mixed primary and logical partitions">Section 5.3, &#8220;Mixed primary and logical partitions&#8221;</a>),
+this is:
+
+</p><pre class="programlisting">
+# mke2fs /dev/sda1
+</pre><p>
+</p><p>
+I need to do this for each of my partitions, but not for <code class="filename">/dev/sda4</code> (my extended partition).
+
+Linux supports types of file systems other than ext2. You can find out
+what kinds your kernel supports by looking in: 
+<code class="filename">/usr/src/linux/include/linux/fs.h</code>
+</p><p>
+	The most common file systems can be made with programs in <code class="filename">/sbin</code> that start with "mk" like
+	<span class="command"><strong>mkfs.msdos</strong></span> and <span class="command"><strong>mke2fs</strong></span>.
+</p></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="swap"></a>10.2. Activating Swap Space</h3></div></div></div><p>
+
+To set up a swap partition:
+
+</p><pre class="programlisting">
+# mkswap -f /dev/hda5
+</pre><p>
+
+To activate the swap area:
+
+</p><pre class="programlisting">
+# swapon  /dev/hda5
+</pre><p>
+
+Normally, the swap area is activated by the initialization scripts at 
+boot time.
+</p></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="mounting"></a>10.3. Mounting Partitions</h3></div></div></div><p>
+
+Mounting a partition means attaching it to the linux file system. To
+mount a linux partition:
+
+</p><pre class="programlisting">
+# mount -t ext2 /dev/sda1 /opt
+</pre><p>
+
+</p><div class="variablelist"><dl class="variablelist"><dt><span class="term">-t ext2</span></dt><dd><p>
+    File system type. Other types you are likely to use are:
+      </p><div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem"><p>ext3 (journaling sile system based on ext2)</p></li><li class="listitem"><p>msdos (DOS)</p></li><li class="listitem"><p>hfs (mac)</p></li><li class="listitem"><p>iso9660 (CDROM)</p></li><li class="listitem"><p>nfs (network file system)</p></li></ul></div><p>
+    </p></dd><dt><span class="term">/dev/sda1</span></dt><dd><p>
+    Device name. Other device names you are likely to use:
+      </p><div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem"><p><code class="filename">/dev/hdb2</code> (second partition in second IDE drive)</p></li><li class="listitem"><p><code class="filename">/dev/fd0</code>  (floppy drive A)</p></li><li class="listitem"><p><code class="filename">/dev/cdrom</code>  (CDROM)</p></li></ul></div><p>
+    </p></dd><dt><span class="term">/opt</span></dt><dd><p>
+		mount point. This is where you want to "see" your partition.
+		When you type <strong class="userinput"><code>ls /opt</code></strong>, you can see what
+		is in <code class="filename">/dev/sda1</code>. If there
+		are already some directories and/or files under <code class="filename">/opt</code>, they will be invisible after
+		this mount command.
+    </p></dd></dl></div><p>
+</p></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="fragmentation"></a>10.4. Some facts about file systems and fragmentation</h3></div></div></div><p>
+Disk space is administered by the operating system in units of
+blocks and fragments of blocks. In ext2, fragments and blocks
+have to be of the same size, so we can limit our discussion to
+blocks.
+</p><p>
+Files come in any size. They don't end on block boundaries.  So
+with every file a part of the last block of every file is
+wasted. Assuming that file sizes are random, there is
+approximately a half block of waste for each file on your disk.
+Tanenbaum calls this "internal fragmentation" in his book
+"Operating Systems".
+</p><p>
+You can guess the number of files on your disk by the number of
+allocated inodes on a disk. On my disk
+</p><pre class="programlisting">
+# df -i
+Filesystem           Inodes   IUsed   IFree  %IUsed Mounted on
+/dev/hda3              64256   12234   52022    19%  /
+/dev/hda5              96000   43058   52942    45%  /var
+</pre><p>
+
+	there are about 12000 files on <code class="filename">/</code> and about 44000 files on <code class="filename">/var</code>.  At a block size of 1 KB, about
+	6+22 = 28 MB of disk space are lost in the tail blocks of files. Had
+	I chosen a block size of 4 KB, I had lost 4 times this space.
+</p><p>
+	Data transfer is faster for large contiguous chunks of data, though.
+	That's why ext2 tries to preallocate space in units of 8 contigous
+	blocks for growing files. Unused preallocation is released when the
+	file is closed, so no space is wasted.
+</p><p>
+	Noncontiguous placement of blocks in a file is bad for performance,
+	since files are often accessed in a sequential manner. It forces the
+	operating system to split a disk access and the disk to move the
+	head. This is called "external fragmentation" or simply
+	"fragmentation" and is a common problem with MS-DOS file systems. In
+	conjunction with the abysmal buffer cache used by MS-DOS, the
+	effects of file fragmentation on performance are very noticeable.
+	DOS users are accustomed to defragging their disks every few weeks
+	and some have even developed some ritualistic beliefs regarding
+	defragmentation.
+</p><p>
+	None of these habits should be carried over to Linux and ext2. Linux
+	native file systems do not need defragmentation under normal use and
+	this includes any condition with at least 5% of free space on a
+	disk. There is a defragmentation tool for ext2 called defrag, but
+	users are cautioned against casual use. A power outage during such
+	an operation can trash your file system. Since you need to back up
+	your data anyway, simply writing back from your copy will do the
+	job.
+</p><p>
+	The MS-DOS file system is also known to lose large amounts of disk
+	space due to internal fragmentation. For partitions larger than 256
+	MB, DOS block sizes grow so large that they are no longer useful
+	(This has been corrected to some extent with FAT32). Ext2 does not
+	force you to choose large blocks for large file systems, except for
+	very large file systems in the 0.5 TB range (that's terabytes with 1
+	TB equaling 1024 GB) and above, where small block sizes become
+	inefficient. So unlike DOS there is no need to split up large disks
+	into multiple partitions to keep block size down.
+</p><p>
+	Use a 1Kb block size if you have many small files. For large
+	partitions, 4Kb blocks are fine.
+</p></div></div><div class="navfooter"><hr><table width="100%" summary="Navigation footer"><tr><td width="40%" align="left"><a accesskey="p" href="ar01s09.html">Prev</a> </td><td width="20%" align="center"> </td><td width="40%" align="right"> </td></tr><tr><td width="40%" align="left" valign="top">9. Setting Up Swap Space </td><td width="20%" align="center"><a accesskey="h" href="index.html">Home</a></td><td width="40%" align="right" valign="top"> </td></tr></table></div></body></html>

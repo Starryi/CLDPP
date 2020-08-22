@@ -1,0 +1,765 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 3.2 Final//EN">
+<HTML>
+<HEAD>
+ <META NAME="GENERATOR" CONTENT="LinuxDoc-Tools 0.9.72">
+ <TITLE>Linux Bridge+Firewall Mini-HOWTO version 1.2.0</TITLE>
+</HEAD>
+<BODY>
+<H1>Linux Bridge+Firewall Mini-HOWTO version 1.2.0</H1>
+
+<H2>Peter Breuer (
+<A HREF="mailto:ptb@it.uc3m.es">ptb@it.uc3m.es</A>)</H2>v, 19 December 1997
+<H2><A NAME="Introduction"></A> <A NAME="s1">1. Introduction</A></H2>
+
+<P>You should look at the original
+<A HREF="ftp://sunsite.unc.edu/pub/Linux/docs/HOWTO/mini/Bridge">Bridging mini-HOWTO</A> by Chris Cole for a different perspective on this.
+He is 
+<A HREF="mailto:chris@polymer.uakron.edu">chris@polymer.uakron.edu</A>.  The version of his HOWTO
+that I have based this document on (alternatively, ripped off) is 1.03
+dated Aug 23 1996.</P>
+
+
+<H2><A NAME="What and Why (and How?)"></A> <A NAME="s2">2. What and Why (and How?)</A></H2>
+
+
+
+<H2><A NAME="What"></A> <A NAME="ss2.1">2.1 What</A>
+</H2>
+
+<P>A bridge is an intelligent connecting wire betwen two network cards.
+A firewall is an intelligent insulator.</P>
+
+<H2><A NAME="Why"></A> <A NAME="ss2.2">2.2 Why</A>
+</H2>
+
+<P>You might want a bridge if you have several computers:</P>
+<P>
+<OL>
+<LI>
+<A NAME="bridge1"></A> to save the price of a new hub when you just happen
+to have an extra ethernet card available.
+</LI>
+<LI>
+<A NAME="bridge2"></A>  to save the bother of learning how to do
+IP-forwarding and other tricks when you _have_ two cards in your
+computer.
+</LI>
+<LI>
+<A NAME="bridge3"></A>  to avoid maintenance work in the future when
+things change around!
+</LI>
+</OL>
+</P>
+
+<P>``Several computers'' might be as few as three if those are
+routing or bridging or just moving around the room from time to time! You
+also might want a bridge just for the fun of finding out what it does.
+<A HREF="#bridge2">2</A> was what I wanted a bridge for. </P>
+
+<P>If you are really interested in 
+<A HREF="#bridge1">1</A>, you have to be one of the
+very few.  Check the 
+<A HREF="ftp://sunsite.unc.edu/pub/Linux/docs/HOWTO/NET-2-HOWTO">NET-2-HOWTO</A> and the 
+<A HREF="ftp://sunsite.unc.edu/pub/Linux/docs/HOWTO/Serial-HOWTO">Serial-HOWTO</A> for better tricks.</P>
+
+<P>You want a firewall if</P>
+<P>
+<OL>
+<LI> you are trying to protect your network from
+external accesses, or
+<A NAME="firewall1"></A> 
+</LI>
+<LI> you are trying to deny access to the world
+outside from your network.
+<A NAME="firewall2"></A> 
+</LI>
+</OL>
+</P>
+
+<P>Curiously, I needed 
+<A HREF="#firewall2">2</A> here too.  Policy at my university
+presently is that we should not act as internet service providers to
+undergraduates.</P>
+
+<H2><A NAME="How?"></A> <A NAME="ss2.3">2.3 How?</A>
+</H2>
+
+<P>I started out bridging the network cards in a firewalling machine
+and ended up firewalling without having cut the bridge. It seems to work
+and is more flexible than either configuration alone. I can take down the
+firewall and keep bridging or take down the bridge when I want to be more
+circumspect.</P>
+
+<P>I would guess that the bridge code lives just above the physical device
+layer and the firewalling code lives one layer higher up, so that the bridging
+and firewalling configurations effectively act as though they are running
+connected together ``in sequence'' and not ``in parallel''
+(ouch!). Diagram: </P>
+<P>
+<BLOCKQUOTE><CODE>
+<PRE>
+-&gt; Bridge-in -&gt; Firewall-in -&gt; Kernel -&gt; Firewall-out -&gt; Bridge-out -&gt;
+</PRE>
+</CODE></BLOCKQUOTE>
+</P>
+
+<P>There is no other way to explain how one machine can be a
+``conductor'' and an ``insulator'' at the same time.  There are a few
+caveats but I'll come to those later.  Basically you must route packets
+that you want to firewall.  Anyway, it all seems to work together nicely
+for me.  Here is what you do ...</P>
+
+<H2><A NAME="BRIDGING"></A> <A NAME="s3">3. BRIDGING</A></H2>
+
+<H2><A NAME="Software"></A> <A NAME="ss3.1">3.1 Software</A>
+</H2>
+
+<P>Get the 
+<A HREF="ftp://shadow.cabi.net/pub/Linux/BRCFG.tgz">bridge configuration utility</A> from Alan Cox's home pages. This
+is the same reference as in Chris' document. I just didn't realize that
+it was an ftp and not an http URL ... </P>
+
+
+<H2><A NAME="Prior Reading"></A> <A NAME="ss3.2">3.2 Prior Reading.</A>
+</H2>
+
+<P>Read the 
+<A HREF="ftp://sunsite.unc.edu/pub/Linux/docs/HOWTO/mini/Multiple-Ethernet">Multiple Ethernet HOWTO</A> for some advice on getting more than
+one network card recognized and configured.</P>
+
+<P>Yet more details of the kind of boot magic that you may need are in
+the 
+<A HREF="ftp://sunsite.unc.edu/pub/Linux/docs/HOWTO/BootPrompt-HOWTO">Boot Prompt HOWTO</A>.</P>
+
+<P>You may be able to get away without the 
+<A HREF="ftp://sunsite.unc.edu/pub/Linux/docs/HOWTO/NET-2-HOWTO">NET-2 HOWTO</A>. It is a good long
+read and you will have to pick from it the details you need. </P>
+
+<H2><A NAME="Boot configuration"></A> <A NAME="ss3.3">3.3 Boot configuration</A>
+</H2>
+
+<P>The reading material above will tell you that you need to prepare the
+kernel to recognize a second ethernet device at boot up by adding this
+to your <B>/etc/lilo.conf</B>, and then re-run <B>lilo</B>: </P>
+<P>
+<BLOCKQUOTE><CODE>
+<PRE>
+append = &#34;ether=0,0,eth1&#34; 
+</PRE>
+</CODE></BLOCKQUOTE>
+</P>
+
+<P>Note the &#34;eth1&#34;. &#34;eth0&#34; is the first card. &#34;eth1&#34;
+is the second card. You can always add the boot parameters in your response
+to the line that lilo offers you. This is for three cards: </P>
+<P>
+<BLOCKQUOTE><CODE>
+<PRE>
+linux ether=0,0,eth1 ether=0,0,eth2 
+</PRE>
+</CODE></BLOCKQUOTE>
+</P>
+
+<P>I use <B>loadlin</B> to boot my kernel from DOS: </P>
+<P>
+<BLOCKQUOTE><CODE>
+<PRE>
+loadlin.exe c:\vmlinuz root=/dev/hda3 ro ether=0,0,eth1 ether=0,0,eth2 
+</PRE>
+</CODE></BLOCKQUOTE>
+</P>
+
+<P>Note that this trick makes the kernel probe at bootup. That will not
+happen if you load the ethernet drivers as <B>modules</B> (for safety since
+the probe order can't be determined) so if you use modules you will have
+to add the appropriate IRQ and port parameters for the driver in your <B>/etc/conf.modules</B>.
+I have at least </P>
+<P>
+<BLOCKQUOTE><CODE>
+ 
+<PRE>
+alias eth0 3c509
+alias eth1 de620
+options 3c509 irq=5 io=0x210
+options de620 irq=7 bnc=1
+</PRE>
+ 
+</CODE></BLOCKQUOTE>
+</P>
+
+<P>You can tell if you use modules by using ``ps -aux'' to see
+if <B>kerneld </B>is running and checking that there are .o files in a
+subdirectory of your <B>/lib/modules</B> directory. You want the directory
+named with what uname -r tells you. If you have kerneld and/or you have
+a foo.o then edit <B>/etc/conf.modules</B> and read the man page for depmod
+carefully. </P>
+
+<P>Note also that until recently (kernel 2.0.25) the <B>3c509</B> driver
+could not be used for more than one card if used as a module. I have seen
+a patch floating around that fixes the oversight. It may be in the kernel
+when you read this. </P>
+
+<H2><A NAME="Kernel configuration"></A> <A NAME="ss3.4">3.4 Kernel configuration </A>
+</H2>
+
+<P>Recompile the kernel with bridging enabled. </P>
+<P>
+<BLOCKQUOTE><CODE>
+<PRE>
+CONFIG_BRIDGE=y 
+</PRE>
+</CODE></BLOCKQUOTE>
+</P>
+
+<P>I also compiled with firewalling and IP-forwarding and -masquerading
+and the rest enabled. Only if you want firewalling too ... </P>
+<P>
+<BLOCKQUOTE><CODE>
+<PRE>
+CONFIG_FIREWALL=y           
+CONFIG_NET_ALIAS=y          
+CONFIG_INET=y               
+CONFIG_IP_FORWARD=y         
+CONFIG_IP_MULTICAST=y       
+CONFIG_IP_FIREWALL=y        
+CONFIG_IP_FIREWALL_VERBOSE=y
+CONFIG_IP_MASQUERADE=y      
+</PRE>
+</CODE></BLOCKQUOTE>
+</P>
+
+
+<P>You don't need all of this. What you do need apart from this is the
+standard net configuration: </P>
+<P>
+<BLOCKQUOTE><CODE>
+<PRE>
+CONFIG_NET=y 
+</PRE>
+</CODE></BLOCKQUOTE>
+</P>
+
+<P>and I do not think you need worry about any of the other networking
+options. I have any options that I did not actually compile into the kernel
+available through kernel modules that I can add in later. </P>
+
+<P>Install the new kernel in place, rerun lilo and reboot with the new
+kernel. Nothing should have changed at this point! </P>
+
+
+<H2><A NAME="Network addresses"></A> <A NAME="ss3.5">3.5 Network addresses </A>
+</H2>
+
+<P>Chris says that a bridge should not have an IP address but that is not
+the setup to be described here. </P>
+
+<P>You are going to want to use the machine for connecting to the net so
+you need an address and you need to make sure that you have the loopback
+device configured in the normal way so that your software can talk to the
+places they expect to be able to talk to. If loopback is down the name
+resolver or other net sevices might fail. See the NET-2-HOWTO, but your
+standard configuration should already have done this bit: </P>
+<P>
+<BLOCKQUOTE><CODE>
+<PRE>
+ifconfig lo 127.0.0.1 route add -net 127.0.0.0 
+</PRE>
+</CODE></BLOCKQUOTE>
+</P>
+
+<P>You will have to give addresses to your network cards. I altered
+the /etc/rc.d/rc.inet1 file in my slackware (3.x) to setup two cards
+and you should also essentially just look for your net configuration file
+and double or treble the number of instructions in it.  Suppose that you
+already have an address at</P>
+<P>
+<BLOCKQUOTE><CODE>
+<PRE>
+192.168.2.100 
+</PRE>
+</CODE></BLOCKQUOTE>
+</P>
+
+<P>(that is in the private net reserved address space, but never mind - it
+won't hurt anybody if you use this address by mistake) then you probably
+already have a line like </P>
+<P>
+<BLOCKQUOTE><CODE>
+<PRE>
+ifconfig eth0 192.168.2.100 netmask 255.255.255.0 metric 1 
+</PRE>
+</CODE></BLOCKQUOTE>
+</P>
+
+<P>in your configuration. The first thing you are going to probably want
+to do is cut the address space reached by this card in half so that you
+can eventually bridge or firewall the two halves.  So add a line which
+reduces the mask to address a smaller number of machines:</P>
+<P>
+<BLOCKQUOTE><CODE>
+<PRE>
+ifconfig eth0 netmask 255.255.255.128 
+</PRE>
+</CODE></BLOCKQUOTE>
+</P>
+
+<P>Try it too. That restricts the card to at most the address space between
+.0 and .127. </P>
+
+<P>Now you can set your second card up in the other half of the local address
+space. Make sure that nobody already has the address. For symmetry I set
+it at 228=128+100 here. Any address will do so long as it is not in the
+other card's mask, and even then, well, maybe. Avoid special addresses
+like .0, .1, .128 etc. unless you really know what you are doing. </P>
+<P>
+<BLOCKQUOTE><CODE>
+<PRE>
+ifconfig eth1 192.168.2.228 netmask 255.255.255.128 metric 1 
+</PRE>
+</CODE></BLOCKQUOTE>
+</P>
+
+<P>That restricts the second card to addresses between .128 and .255. </P>
+
+<H2><A NAME="Network routing"></A> <A NAME="ss3.6">3.6 Network routing </A>
+</H2>
+
+<P>This is where I have to announce the caveats in the bridging +
+firewalling scheme: you cannot firewall packets which are not routed.
+No routes, no firewall. At least this appears to be true in the 2.0.30
+and more recent kernels. The firewalling filters are closely involved
+with the ip-forwarding code.</P>
+
+<P>That does not mean that you cannot bridge. You can bridge between two
+cards and firewall them from a third. You can have only two cards
+and firewall both of them against an outside IP such as a nearby router,
+provided that the router is routed by you to exactly one of the
+cards.</P>
+
+<P>In other words, since I will be doing firewalling, so I want to precisely
+control the physical destination of some packets. </P>
+
+<P>I have the small net of machines attached to a hub hanging off eth0,
+so I configure a net there: </P>
+<P>
+<BLOCKQUOTE><CODE>
+<PRE>
+route add -net 192.168.2.128 netmask 255.255.255.128 dev eth0 
+</PRE>
+</CODE></BLOCKQUOTE>
+</P>
+
+<P>The 128 would be 0 if I had a full class C network there.  I don't,
+by definition, since I just halved the address space.  The &#34;dev
+eth0&#34; is not necessary here because the cards address falls within
+the mask, but it may be necessary for you.  One might need more than one
+card holding up this subnet (127 machines on one segment, oh yeah) but
+those cards would be being bridged under the same netmask so that they
+appear as one to the routing code.</P>
+
+<P>On the other card I have a line going straight through to a big router
+that I trust. </P>
+<P>
+<PRE>
+                                             client 129
+         __                                        |    __ 
+client 1   \    .0                    .128         |   /   net 1
+client 2 --- Hub - eth0 - Kernel - eth1 - Hub - Router --- net 2
+client 3 __/       .100            .228         .2 |   \__ net 3
+                                                   |
+                                             client 254 
+</PRE>
+</P>
+
+<P>I attach the address of the router to that card as a fixed
+(&#34;static&#34;) route because it would otherwise fall within the
+first cards netmask and the kernel would be thinking wrongly about how
+to send packets to the big router. I will want to firewall these packets
+and that is another reason fow wanting to route them specifically.</P>
+<P>
+<BLOCKQUOTE><CODE>
+<PRE>
+route add 192.168.2.2 dev eth1 
+</PRE>
+</CODE></BLOCKQUOTE>
+</P>
+
+<P>I don't need it, since I don't have any more machines in that half of
+the address space, but I declare a net also on the second card.
+Separating my interfaces into two sets via routing will allow me to do
+very tight firewalling eventually , but you can get away with far less
+routing than this.</P>
+<P>
+<BLOCKQUOTE><CODE>
+<PRE>
+route add -net 192.168.2.128 netmask 255.255.255.128 dev eth1 
+</PRE>
+</CODE></BLOCKQUOTE>
+</P>
+
+
+<P>I also need to send all non-local packets out to the world so I tell
+the kernel to send them to the big router </P>
+<P>
+<BLOCKQUOTE><CODE>
+<PRE>
+route add default gw 192.168.2.2 
+</PRE>
+</CODE></BLOCKQUOTE>
+</P>
+
+<H2><A NAME="Card configuration"></A> <A NAME="ss3.7">3.7 Card configuration </A>
+</H2>
+
+<P>So much was standard networking setup, but we are bridging so we also
+have to listen on both (?) cards for packets that are not aimed at us.
+The following should go into the network configuration file. </P>
+<P>
+<BLOCKQUOTE><CODE>
+<PRE>
+ifconfig promisc eth0 ifconfig promisc eth1 
+</PRE>
+</CODE></BLOCKQUOTE>
+</P>
+
+<P>The man page says allmulti=promisc, but it didn't work for me. </P>
+
+<H2><A NAME="Additional routing"></A> <A NAME="ss3.8">3.8 Additional routing </A>
+</H2>
+
+<P>One thing that I noticed was that I had to put at least the second card
+into a mode where it would respond to the big router's questions about
+which machines I was hiding in my local net. </P>
+<P>
+<BLOCKQUOTE><CODE>
+<PRE>
+ifconfig arp eth1 
+</PRE>
+</CODE></BLOCKQUOTE>
+</P>
+
+<P>For good measure I did this to the other card too. </P>
+<P>
+<BLOCKQUOTE><CODE>
+<PRE>
+ifconfig arp eth0. 
+</PRE>
+</CODE></BLOCKQUOTE>
+</P>
+
+<H2><A NAME="Bridge Configuration"></A> <A NAME="ss3.9">3.9 Bridge Configuration </A>
+</H2>
+
+<P>Put bridging enabling on and into your configuration file: </P>
+<P>
+<BLOCKQUOTE><CODE>
+<PRE>
+brcfg -enable 
+</PRE>
+</CODE></BLOCKQUOTE>
+</P>
+
+<P>You should have been trying this out in real time all along, of course!
+The bridge configure will bring up some numbers. You can experiment with
+turning on and off the ports one at a time </P>
+<P>
+<BLOCKQUOTE><CODE>
+<PRE>
+brcfg -port 0 -disable/-enable
+ brcfg -port 1 -disable/-enable 
+</PRE>
+</CODE></BLOCKQUOTE>
+</P>
+
+<P>You get status reports anytime by just running </P>
+<P>
+<BLOCKQUOTE><CODE>
+<PRE>
+brcfg 
+</PRE>
+</CODE></BLOCKQUOTE>
+</P>
+
+<P>without any parameters. You will see that the bridge listens,learns,
+and then does forwarding. (I don't understand why the code repeats the
+same hardware addresses for both my cards, but never mind .. Chris' howto
+say that is OK) </P>
+
+<H2><A NAME="Try it out"></A> <A NAME="ss3.10">3.10 Try it out </A>
+</H2>
+
+<P>If you are still up and running as things are, try out your configuration
+script for real by taking down both cards and then executing it: </P>
+<P>
+<BLOCKQUOTE><CODE>
+<PRE>
+ifconfig eth0 down ifconfig eth1 down /etc/rc.d/rc.inet1 
+</PRE>
+</CODE></BLOCKQUOTE>
+</P>
+
+<P>With any luck the various subsystems (<B>nfs</B>, <B>ypbind</B>, etc.)
+won't notice. <I>Do not try this unless you are sitting at the keyboard!</I></P>
+
+<P>If you want to be more careful than this, you should take down as many
+daemons as possible beforehand, and unmount nfs directories. The worst
+that can happen is that you have to reboot in single-user mode (the &#34;<B>single</B>&#34;
+parameter to <B>lilo </B>or <B>loadlin</B>), and take out your changes
+before rebooting with things the way they were before you started. </P>
+
+<H2><A NAME="ss3.11">3.11 Checks</A>
+</H2>
+
+<P>Verify that there is different traffic on each interface: </P>
+<P>
+<BLOCKQUOTE><CODE>
+<PRE>
+tcpdump -i eth0
+</PRE>
+ (in one window)
+<PRE>
+tcpdump -i eth1
+</PRE>
+ (in another window)
+</CODE></BLOCKQUOTE>
+</P>
+
+<P>You should get used to using <B>tcpdump</B> to look for things that
+should not be happening or that are happening and should not. </P>
+
+<P>For instance look for packets that have gone through the bridge to the
+second card from the internal net. Here I am looking for packets from the
+machine with address .22: </P>
+<P>
+<BLOCKQUOTE><CODE>
+<PRE>
+tcpdump -i eth1 -e host 192.168.2.22
+</PRE>
+</CODE></BLOCKQUOTE>
+</P>
+
+<P>Then send a ping from the .22 host to the router. You should see the
+packet reported by tcpdump. </P>
+
+<P>At this stage you should have a bridge ready that also has two
+network addreses.  Test that you can ping them from outside and inside
+your local net, and that you can telnet and ftp around between inside
+and outside too.</P>
+
+<H2><A NAME="FIREWALLING"></A> <A NAME="s4">4. FIREWALLING</A></H2>
+
+<H2><A NAME="Software and reading"></A> <A NAME="ss4.1">4.1 Software and reading </A>
+</H2>
+
+<P>You should read the 
+<A HREF="ftp://sunsite.unc.edu/pub/Linux/docs/HOWTO/Firewall-HOWTO">Firewall-HOWTO</A>. </P>
+
+<P>That will tell you where to get <B>ipfwadm</B> if you don't already
+have it. There are other tools you can get but I made no progress until
+I tried <B>ipfwadm</B>. It is nice and low level! You can see exactly what
+it is doing. </P>
+
+<H2><A NAME="Preliminary checks"></A> <A NAME="ss4.2">4.2 Preliminary checks </A>
+</H2>
+
+<P>You have compiled IP-forwarding and masquerading into the kernel so
+you will want to check that the firewall is in its default (accepting)
+state with </P>
+<P>
+<BLOCKQUOTE><CODE>
+<PRE>
+ipfwadm -I -l ipfwadm -O -l ipfwadm -F -l 
+</PRE>
+</CODE></BLOCKQUOTE>
+</P>
+
+<P>That is respectively, &#34;display the rules affecting the ..&#34;
+incoming or outgoing or forwarding (masquerading) &#34;.. sides of the
+firewall&#34;. The &#34;-l&#34; means &#34;list&#34;. </P>
+
+<P>You might have compiled in accounting too: </P>
+<P>
+<BLOCKQUOTE><CODE>
+<PRE>
+ipfwadm -A -l 
+</PRE>
+</CODE></BLOCKQUOTE>
+</P>
+
+<P>You should see that there are no rules defined and that the default
+is to accept every packet. You can get back to this working state anytime
+with </P>
+<P>
+<BLOCKQUOTE><CODE>
+<PRE>
+ipfwadm -I -f
+ipfwadm -O -f
+ipfwadm -F -f 
+</PRE>
+</CODE></BLOCKQUOTE>
+</P>
+
+<P>The &#34;-f&#34; means &#34;flush&#34;. You may need to use that.</P>
+
+
+<H2><A NAME="Default rule"></A> <A NAME="ss4.3">4.3 Default rule </A>
+</H2>
+
+<P>I want to cut the world off from my internal net and do nothing else,
+so I will want to give as a last (default) rule that the firewall should
+ignore any packets coming in from the internal net and directed to outside.
+I put all the rules (in this order) into <B>/etc/rc.d/rc.firewall </B>and
+execute it from <B>/etc/rc.d/rc.local</B> at bootup. </P>
+<P>
+<BLOCKQUOTE><CODE>
+<PRE>
+ipfwadm -I -a reject -S 192.168.2.0/255.255.255.128 -D 0.0.0.0/0.0.0.0 
+</PRE>
+</CODE></BLOCKQUOTE>
+</P>
+
+<P>The &#34;-S&#34; is the source address/mask. The &#34;-D&#34; is
+the destination address/mask. </P>
+
+<P>This format to is rather long-winded. <B>Ipfwadm</B>
+is intelligent about network names and some common abbreviations. Check
+the man pages. </P>
+
+<P>It is possibly more convenient to put some or all of these rules on
+the outgoing half of the firewall by using &#34;-O&#34; instead of &#34;-I&#34;,
+but I'll state the rules here all formulated for the incoming half. </P>
+
+<H2><A NAME="Holes per address"></A> <A NAME="ss4.4">4.4 Holes per address </A>
+</H2>
+
+<P>Before that default rule, I have to place some rules that serve as exceptions
+to this general denial of external services to internal clients. </P>
+
+<P>I want to treat the firewall machines address on the internal net specially.
+I will stop people logging in to the firewall machine unless they have
+special permission, but once they are there they should be allowed to talk
+to the world. </P>
+<P>
+<BLOCKQUOTE><CODE>
+<PRE>
+ipfwadm -I -i accept -S 192.168.2.100/255.255.255.255 \
+ -D 0.0.0.0/0.0.0.0 
+</PRE>
+</CODE></BLOCKQUOTE>
+</P>
+
+<P>I also want the internal clients to be able to talk to the firewalling
+machine. Maybe they can persuade it to let them get out! </P>
+<P>
+<BLOCKQUOTE><CODE>
+<PRE>
+ipfwadm -I -i accept -S 192.168.2.0/255.255.255.128 \
+ -D 192.168.2.100/255.255.255.255 
+</PRE>
+</CODE></BLOCKQUOTE>
+</P>
+
+<P>Check at this point that you can get in to the clients from outside
+the firewall via <B>telnet</B>, but that you cannot get out. That should
+mean that you can just about make first contact, but the clients cannot
+send you any prompts. You should be able to get all the way in if you use
+the firewall machine as a staging post. Try <B>rlogin</B> and <B>ping </B>too,
+with <B>tcpdump</B> running on one card or the other. You should be able
+to make sense of what you see. </P>
+
+<H2><A NAME="Holes per protocol"></A> <A NAME="ss4.5">4.5 Holes per protocol </A>
+</H2>
+
+<P>I went on to relax the rules protocol by protocol. I want to allow pings
+from the outside to the inside to get an echo back, for instance, so I
+inserted the rule: </P>
+<P>
+<BLOCKQUOTE><CODE>
+<PRE>
+ipfwadm -I -i accept -P icmp -S 192.168.2.0/255.255.255.128 \
+ -D 0.0.0.0/0.0.0.0 
+</PRE>
+</CODE></BLOCKQUOTE>
+</P>
+
+<P>The &#34;<CODE>-P icmp</CODE>&#34; works the protocol-specific magic.</P>
+
+
+<P>Until I get hold of an <B>ftp</B> proxy I am also allowing ftp calls
+out with port-specific relaxations. This targets ports 20 21 and 115 on
+outside machines. </P>
+<P>
+<BLOCKQUOTE><CODE>
+<PRE>
+ipfwadm -I -i accept -P tcp -S 192.168.2.0/255.255.255.128 \
+ -D 0.0.0.0/0.0.0.0 20 21 115 
+</PRE>
+</CODE></BLOCKQUOTE>
+</P>
+
+<P>I could not make <B>sendmail</B> between the local clients work without
+a nameserver. Rather than set up a nameserver right then on the firewall,
+I just lifted the firewall for tcp domain service queries precisely aimed
+at the nearest existing nameserver and put its address in the clients <B>/etc/resolv.conf</B>
+(&#34;<CODE>nameserver 123.456.789.31</CODE>&#34; on a separate line). </P>
+<P>
+<BLOCKQUOTE><CODE>
+<PRE>
+ipfwadm -I -i accept -P tcp -S 192.168.2.0/255.255.255.128 \
+ -D 123.456.789.31/255.255.255.255 54 
+</PRE>
+</CODE></BLOCKQUOTE>
+</P>
+
+<P>You can find which port number and protocol a service requires with
+<B>tcpdump</B>. Trigger the service with a an <B>ftp</B> or a <B>telnet</B>
+or whatever to or from the internal machine and then watch for it on the
+input and output ports of the firewall with <B>tcpdump</B>: </P>
+<P>
+<BLOCKQUOTE><CODE>
+<PRE>
+tcpdump -i eth1 -e host client04 
+</PRE>
+</CODE></BLOCKQUOTE>
+</P>
+
+<P>for example. The <B>/etc/services </B>file is another important source
+of clues. To let <B>telnet</B> and <B>ftp</B> IN to the firewall from outside,
+you have to allow the local clients to call OUT on a specific port. I understand
+why this is necessary for <B>ftp</B> - it's the server that establishes
+the data stream in the end - but I am not sure why <B>telnet</B> also needs
+this. </P>
+<P>
+<BLOCKQUOTE><CODE>
+<PRE>
+ipfwadm -I -i accept -P tcp -S 192.168.2.0/255.255.255.128 ftp telnet \
+ -D 0.0.0.0/0.0.0.0 
+</PRE>
+</CODE></BLOCKQUOTE>
+</P>
+
+<P>There is a particular problem with some daemons that look up the hostname
+of the firewalling machine in order to decide what is their networking
+address. <B>Rpc.yppasswdd</B> is the one I had trouble with. It insists
+on broadcasting information that says it is outside the firewall (on the
+second card). That means the clients inside can't contact it. </P>
+
+<P>Rather than start IP aliasing or change the daemon code, I mapped the
+name to the inside card address on the clients in their <B>/etc/hosts</B>.</P>
+
+
+<H2><A NAME="ss4.6">4.6 Checks</A>
+</H2>
+
+<P>You want to test that you can still <B>telnet</B>, <B>rlogin </B>and
+<B>ping</B> from the outside. From the inside you should be able to <B>ping</B>
+out. You should also be able to <B>telnet</B> to the firewall machine from
+the inside and the latter should be able to do anything. </P>
+
+<P>That is it. At this point you probably want to learn about <B>rpc</B>/<B>Y</B>ellow
+<B>P</B>ages and the interaction with the password file. The firewalled
+network wants to run without its unprivileged users being able to log on
+to the firewall - and thus get out. Some other HOWTO! </P>
+
+</BODY>
+</HTML>

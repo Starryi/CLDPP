@@ -1,0 +1,134 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1"><title>1. Pseudo drivers</title><link rel="stylesheet" type="text/css" href="style.css"><meta name="generator" content="DocBook XSL Stylesheets V1.79.1"><link rel="home" href="index.html" title="The Linux 2.4 SCSI subsystem HOWTO"><link rel="up" href="ch10.html" title="Chapter 10. Lower Level drivers"><link rel="prev" href="ch10.html" title="Chapter 10. Lower Level drivers"><link rel="next" href="ch11.html" title="Chapter 11. Raw devices"></head><body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF"><div class="navheader"><table width="100%" summary="Navigation header"><tr><th colspan="3" align="center">1. Pseudo drivers</th></tr><tr><td width="20%" align="left"><a accesskey="p" href="ch10.html">Prev</a> </td><th width="60%" align="center">Chapter 10. Lower Level drivers</th><td width="20%" align="right"> <a accesskey="n" href="ch11.html">Next</a></td></tr></table><hr></div><div class="sect1"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="llevelpseudo"></a>1. Pseudo drivers</h2></div></div></div><p>
+SCSI can be viewed as a command set and a set of hardware buses that convey
+that command set. Those hardware buses can be further divided into those
+used exclusively for SCSI (e.g. ultra wide), those shared with other
+protocols (e.g. USB, IEEE 1394) and those buses not defined by the various
+SCSI standards. In the final category there are several interesting examples
+including ATAPI CD writers and PC parallel bus ZIP drives. Such devices
+use the SCSI command set (or something very close to it) over a foreign bus.
+</p><p>
+This section briefly outlines various pseudo lower level drivers which essentially
+communicate with other Linux subsystems in order to send the SCSI command set
+to devices controlled by those other subsystems. This raises some ownership
+issues that often confuse users and result in many questions to the
+maintainers.
+</p><p><b>IDE-SCSI. </b>
+<a name="idescsi"></a>
+From configuration point of view, ide-scsi will grab and try to control
+every ATA (a.k.a. IDE) device which doesn't have a "native"
+driver attached (such as ide-cd, ide-tape, etc). So for example, if
+both ide-cd and ide-scsi are compiled into the kernel in a system
+which has an ATAPI cdrom, ide-cd will get to control it. If only
+ide-scsi is compiled in, it will get the device. There are some
+kernel boot time parameters to control which driver gets which device.
+</p><p>
+The preferences of the IDE subsystem can be overridden with one of these
+kernel boot time parameters (of which the first is most interesting for 
+this subsystem):
+</p><div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem"><p>
+hdx=ide-scsi
+</p></li><li class="listitem"><p>
+hdx=ide-cdrom
+</p></li><li class="listitem"><p>
+hdx=ide-floppy
+</p></li></ul></div><p>
+[The term <span class="emphasis"><em>hdx</em></span> is used
+to refer to one of the IDE/ATA devices in {hda, hdb, hdc ...}.]
+In the 2.4 series "hdx=scsi" was added but it is not very useful, see
+see <a class="xref" href="ch09s02.html#sratapi" title="2.4. ATAPI cdroms">Section 2.4, &#8220;ATAPI cdroms&#8221;</a>.
+</p><p>
+When the driver is running, the device will be accessible using
+the SCSI device (<code class="filename">/dev/sda</code>, <code class="filename">/dev/sr0
+</code>, etc), and not through the corresponding <code class="filename">
+/dev/hdx</code> device. Still, the <code class="filename">/dev/hdx
+</code> device will be available, but only for configuration.
+</p><p>
+All the generic IDE configuration parameters (DMA on/off, 32-bit
+I/O, unmasking irq's, etc) are available by using the <code class="filename">
+/dev/hdx</code> device, for example to enable DMA:
+</p><pre class="programlisting">
+        hdparm -d1 /dev/hdx
+</pre><p>
+<a href="#ftn.idm659" class="footnote" name="idm659"><sup class="footnote">[13]</sup></a>
+Using <span class="command"><strong>cat /proc/ide/hdx/settings</strong></span> will show the
+available settings.
+All the generic IDE driver settings will be available there, as well
+as the following "ide-scsi specific" settings:
+</p><div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem"><p>bios_cyl</p></li><li class="listitem"><p>bios_head</p></li><li class="listitem"><p>bios_sect</p></li><li class="listitem"><p>transform</p></li><li class="listitem"><p>log</p></li></ul></div><p>
+The first three choose the virtual geometry that the drive will
+return to the sd driver, in case it's a disk drive (ZIP, etc).
+"transform" will configure/enable/disable the SCSI to ATAPI CDB
+transformation layer:
+</p><div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem"><p>bit 0: Enable(1)/Disable(0) transformation for
+ commands not originated from the sg driver.</p></li><li class="listitem"><p>bit 1: Enable/Disable transformation for commands
+ issued using the sg driver.</p></li></ul></div><p>
+"log" will log debugging information. This is useful also to debug
+user-space programs using the sg driver, as it will list the CDB
+traffic on the bus -- each issued command, along with its completion
+status.
+To enable/disable a specific settings, use something like:
+</p><pre class="programlisting">
+        echo "log:1" &gt; /proc/ide/hdx/settings
+</pre><p>
+To turn off the "using_dma" flag use:
+</p><pre class="programlisting">
+        echo "using_dma:0" &gt; /proc/ide/hdx/settings
+</pre><p>
+</p><p><b>PPA + IMM. </b>
+Iomega ZIP drives come in a variety of flavours including parallel
+port, SCSI, and ATAPI.  The parallel port versions (both old and new)
+are driven by ppa and imm respectively.
+</p><p>
+The parallel port ZIP drives are actually SCSI devices which tunnel
+SCSI commands over the parallel port using interfaces called VPI0
+(older-style) and VPI2 (newer-style).  The ppa driver is the VPI0 host
+implementation and the imm driver is the VPI2 host implementation.
+</p><p>
+The way it works is that the HBA is a chip inside the ZIP drive, so
+that the host adapter and the peripheral are in the same actual case.
+</p><p><b>PPSCSI. </b>
+The new, not-yet-integrated, architecture for devices that use SCSI
+over a parallel port cable is ppscsi.  The ppscsi module provides the
+boiler plate code and makes it easy to write implementations for
+different interfaces.
+</p><p>
+Each ppscsi protocol module registers itself with the ppscsi module,
+passing in a list of entry points for the various things that are
+common to all protocol drivers.
+</p><div class="mediaobject"><img src="ppscsi.jpg"><div class="caption"><p>
+      The structure of the PPSCSI drivers.
+      </p></div></div><p>
+The plan is that the ppscsi architecture will absorb both the ppa and
+imm drivers and protocol modules; only vpi0 has been written so far.
+See <a class="ulink" href="http://www.torque.net/parport/ppscsi.html" target="_top">
+<code class="literal">www.torque.net/parport/ppscsi.html</code></a>.
+</p><p><b>USB. </b>
+USB classifies a group of devices as "mass storage" (e.g. disks) and
+interacts with these using the SCSI command set. The module name is
+"usb-storage".
+See <a class="ulink" href="http://www.one-eyed-alien.net/~mdharm/linux-usb" target="_top">
+<code class="literal">www.one-eyed-alien.net/~mdharm/linux-usb</code></a>.
+</p><p>
+There is also the usb/microtek driver for controlling X6 USB scanners
+from Microtek. When configured, the SANE application uses the sg
+driver to send SCSI commands over USB to control this scanner.
+</p><p><b>I2O. </b>
+See kernel source file <code class="filename">/usr/src/linux/drivers/i2o/io2_scsi.c
+</code>.
+</p><p><b>IEEE 1394. </b>
+Support for IEEE 1394 devices that use the SBP-2 protocol is now
+available (lk 2.4.7). See the IEEE 1394 paragraph in this
+<a class="link" href="apa.html#ieee1394">section</a> for more information.
+</p><p><b>iSCSI. </b>
+An IETF draft is taking shape for iSCSI. This sends the SCSI command
+set over a TCP network connection. iSCSI seems to be gaining popularity
+quickly and there are several implementations for Linux taking shape.
+One implementation is at
+<a class="ulink" href="http://sourceforge.net/projects/intel-iscsi/" target="_top">
+<code class="literal">sourceforge.net/projects/intel-iscsi/</code></a>. 
+Use your favourite search engine to find other projects.
+</p><div class="footnotes"><br><hr style="width:100; text-align:left;margin-left: 0"><div id="ftn.idm659" class="footnote"><p><a href="#idm659" class="para"><sup class="para">[13] </sup></a>
+It has been reported that in some distributions the attempt
+to use the hdparm command fails. In this case use the "echo ... &gt;
+/proc/ide/hdx/settings" form.
+</p></div></div></div><div class="navfooter"><hr><table width="100%" summary="Navigation footer"><tr><td width="40%" align="left"><a accesskey="p" href="ch10.html">Prev</a> </td><td width="20%" align="center"><a accesskey="u" href="ch10.html">Up</a></td><td width="40%" align="right"> <a accesskey="n" href="ch11.html">Next</a></td></tr><tr><td width="40%" align="left" valign="top">Chapter 10. Lower Level drivers </td><td width="20%" align="center"><a accesskey="h" href="index.html">Home</a></td><td width="40%" align="right" valign="top"> Chapter 11. Raw devices</td></tr></table></div></body></html>

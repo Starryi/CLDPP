@@ -1,0 +1,82 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1"><title>2. Examples of functions in scripts</title><link rel="stylesheet" type="text/css" href="style.css"><meta name="generator" content="DocBook XSL Stylesheets V1.79.1"><meta name="keywords" content="Linux, Scripts, linux, Bash, guide, Guide, Exercises, exercises, bash, scripting, Scripting, awk, sed, variables, functions, loops, conditionals"><link rel="home" href="index.html" title="Bash Guide for Beginners"><link rel="up" href="ch11.html" title="Chapter 11. Functions"><link rel="prev" href="ch11s01.html" title="1. Introduction"><link rel="next" href="ch11s03.html" title="3. Summary"></head><body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF"><div class="navheader"><table width="100%" summary="Navigation header"><tr><th colspan="3" align="center">2. Examples of functions in scripts</th></tr><tr><td width="20%" align="left"><a accesskey="p" href="ch11s01.html">Prev</a> </td><th width="60%" align="center">Chapter 11. Functions</th><td width="20%" align="right"> <a accesskey="n" href="ch11s03.html">Next</a></td></tr></table><hr></div><div class="sect1"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="sect_11_02"></a>2. Examples of functions in scripts</h2></div></div></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="sect_11_02_01"></a>2.1. Recycling</h3></div></div></div><p>There are plenty of scripts on your system that use functions as a structured way of handling series of commands.  On some Linux systems, for instance, you will find the <code class="filename">/etc/rc.d/init.d/functions</code> definition file, which is sourced in all init scripts.  Using this method, common tasks such as checking if a process runs, starting or stopping a daemon and so on, only have to be written once, in a general way.  If the same task is needed again, the code is recycled.</p><p>You could make your own <code class="filename">/etc/functions</code> file that contains all functions that you use regularly on your system, in different scripts.  Just put the line </p><div class="cmdsynopsis"><p><code class="command">. <code class="filename">/etc/functions</code></code> </p></div><p>somewhere at the start of the script and you can recycle functions.</p></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="sect_11_02_02"></a>2.2. Setting the path</h3></div></div></div><p>This section might be found in your <code class="filename">/etc/profile</code> file.  The function <span class="command"><strong>pathmunge</strong></span> is defined and then used to set the path for the <span class="emphasis"><em>root</em></span> and other users:</p><pre class="screen">
+pathmunge () {
+        if ! echo $PATH | /bin/egrep -q "(^|:)$1($|:)" ; then
+           if [ "$2" = "after" ] ; then
+              PATH=$PATH:$1
+           else
+              PATH=$1:$PATH
+           fi
+        fi
+}
+
+# Path manipulation
+if [ `id -u` = 0 ]; then
+        pathmunge /sbin
+        pathmunge /usr/sbin
+        pathmunge /usr/local/sbin
+fi
+
+pathmunge /usr/X11R6/bin after
+
+unset pathmunge
+</pre><p>The function takes its first argument to be a path name.  If this path name is not yet in the current path, it is added.  The second argument to the function defines if the path will be added in front or after the current <code class="varname">PATH</code> definition.</p><p>Normal users only get <code class="filename">/usr/X11R6/bin</code> added to their paths, while <span class="emphasis"><em>root</em></span> gets a couple of extra directories containing system commands.  After being used, the function is unset so that it is not retained.</p></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="sect_11_02_03"></a>2.3. Remote backups</h3></div></div></div><p>The following example is one that I use for making backups of the files for my books.  It uses SSH keys for enabling the remote connection.  Two functions are defined, <span class="command"><strong>buplinux</strong></span> and <span class="command"><strong>bupbash</strong></span>, that each make a <code class="filename">.tar</code> file, which is then compressed and sent to a remote server.  After that, the local copy is cleaned up.</p><p>On Sunday, only <span class="command"><strong>bupbash</strong></span> is executed.</p><pre class="screen">
+#/bin/bash
+
+LOGFILE="/nethome/tille/log/backupscript.log"
+echo "Starting backups for `date`" &gt;&gt; "$LOGFILE"
+
+buplinux()
+{
+DIR="/nethome/tille/xml/db/linux-basics/"
+TAR="Linux.tar"
+BZIP="$TAR.bz2"
+SERVER="rincewind"
+RDIR="/var/www/intra/tille/html/training/"
+
+cd "$DIR"
+tar cf "$TAR" src/*.xml src/images/*.png src/images/*.eps
+echo "Compressing $TAR..." &gt;&gt; "$LOGFILE"
+bzip2 "$TAR"
+echo "...done." &gt;&gt; "$LOGFILE"
+echo "Copying to $SERVER..." &gt;&gt; "$LOGFILE"
+scp "$BZIP" "$SERVER:$RDIR" &gt; /dev/null 2&gt;&amp;1
+echo "...done." &gt;&gt; "$LOGFILE"
+echo -e "Done backing up Linux course:\nSource files, PNG and EPS images.\nRubbish removed." &gt;&gt; "$LOGFILE"
+rm "$BZIP"
+}
+
+bupbash()
+{
+DIR="/nethome/tille/xml/db/"
+TAR="Bash.tar"
+BZIP="$TAR.bz2"
+FILES="bash-programming/"
+SERVER="rincewind"
+RDIR="/var/www/intra/tille/html/training/"
+
+cd "$DIR"
+tar cf "$TAR" "$FILES"
+echo "Compressing $TAR..." &gt;&gt; "$LOGFILE"
+bzip2 "$TAR"
+echo "...done." &gt;&gt; "$LOGFILE"
+echo "Copying to $SERVER..." &gt;&gt; "$LOGFILE"
+scp "$BZIP" "$SERVER:$RDIR" &gt; /dev/null 2&gt;&amp;1
+echo "...done." &gt;&gt; "$LOGFILE"
+
+echo -e "Done backing up Bash course:\n$FILES\nRubbish removed." &gt;&gt; "$LOGFILE"
+rm "$BZIP"
+}
+
+DAY=`date +%w`
+
+if [ "$DAY" -lt "2" ]; then
+  echo "It is `date +%A`, only backing up Bash course." &gt;&gt; "$LOGFILE"
+  bupbash
+else
+  buplinux
+  bupbash
+fi
+
+
+echo -e "Remote backup `date` SUCCESS\n----------" &gt;&gt; "$LOGFILE"
+</pre><p>This script runs from cron, meaning without user interaction, so we redirect standard error from the <span class="command"><strong>scp</strong></span> command to <code class="filename">/dev/null</code>.</p><p>It might be argued that all the separate steps can be combined in a command such as</p><div class="cmdsynopsis"><p><code class="command">tar <code class="option">c</code> <code class="filename">dir_to_backup/</code> | bzip2 | ssh <code class="option">server</code> "cat &gt; <code class="filename">backup.tar.bz2</code>"</code> </p></div><p>However, if you are interested in intermediate results, which might be recovered upon failure of the script, this is not what you want.</p><p>The expression</p><div class="cmdsynopsis"><p><code class="command">command &amp;&gt; <code class="filename">file</code></code> </p></div><p>is equivalent to</p><div class="cmdsynopsis"><p><code class="command">command &gt; <code class="filename">file</code> 2&gt;&amp;1</code> </p></div></div></div><div class="navfooter"><hr><table width="100%" summary="Navigation footer"><tr><td width="40%" align="left"><a accesskey="p" href="ch11s01.html">Prev</a> </td><td width="20%" align="center"><a accesskey="u" href="ch11.html">Up</a></td><td width="40%" align="right"> <a accesskey="n" href="ch11s03.html">Next</a></td></tr><tr><td width="40%" align="left" valign="top">1. Introduction </td><td width="20%" align="center"><a accesskey="h" href="index.html">Home</a></td><td width="40%" align="right" valign="top"> 3. Summary</td></tr></table></div></body></html>

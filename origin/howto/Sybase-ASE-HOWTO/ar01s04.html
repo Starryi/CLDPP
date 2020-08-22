@@ -1,0 +1,149 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1"><title>4. Basic Usage</title><link rel="stylesheet" type="text/css" href="style.css"><meta name="generator" content="DocBook XSL Stylesheets V1.79.1"><link rel="home" href="index.html" title="Sybase Adaptive Server Enterprise / SQL Server HOWTO"><link rel="up" href="index.html" title="Sybase Adaptive Server Enterprise / SQL Server HOWTO"><link rel="prev" href="ar01s03.html" title="3. Configuring an ASE Server"><link rel="next" href="ar01s05.html" title="5. ASE Architecture: Observing the Server"></head><body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF"><div class="navheader"><table width="100%" summary="Navigation header"><tr><th colspan="3" align="center">4. Basic Usage</th></tr><tr><td width="20%" align="left"><a accesskey="p" href="ar01s03.html">Prev</a> </td><th width="60%" align="center"> </th><td width="20%" align="right"> <a accesskey="n" href="ar01s05.html">Next</a></td></tr></table><hr></div><div class="sect1"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="usage"></a>4. Basic Usage</h2></div></div></div><p>
+The intention behind this section is to allow you to get started with the Sybase-specific parts quickly. You will still need to know a little bit about relational databases, creating tables, designing the database and so on. You will see how to start and stop the server, execute commands and a little bit about backups.
+</p><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="idm417"></a>4.1. Starting and Stopping the Server</h3></div></div></div><p>
+Starting the server is done with the <span class="command"><strong>startserver</strong></span> utility. During installation a script file was created named <code class="filename">RUN_</code> and then the name of the server. Since the file name will vary with your server name, it is generally referred to as the <code class="filename">RUN_SERVER</code> file. To start your server, make sure all environment variables (in particular <code class="varname">$SYBASE</code>) are set correctly. Check with <span class="command"><strong>showserver</strong></span> that the server is not already running -  there is no risk of starting the server twice, but you may get some confusing error messages about the master device already being in use. Assuming the server is not started, execute the following: <span class="command"><strong>startserver -f RUN_SYBASE</strong></span>Assuming that you named your server "SYBASE" at install time, this should make various messages starting with a timestamp scroll over your screen and hopefully end with messages about the default character set and sort order. If not, read the messages carefully for any errors. If they have scrolled out of your screen buffer you can read the error log file instead, located in the same directory as the <code class="filename">RUN_SERVER</code> file. 
+</p></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="idm427"></a>4.2. Connecting to the Server</h3></div></div></div><p>
+Once the server is up and running, you can attempt to connect to it. Start with the simplest tool, which is also the traditional utility for Sybase administration and use; <span class="command"><strong>isql</strong></span>. It takes many parameters, as listed in the Utility Guide, but we only need a few. Make your first connection like this: <span class="command"><strong>isql -Usa -P -S<em class="replaceable"><code>server</code></em></strong></span>Replace the <em class="parameter"><code>-S</code></em> parameter with your logical server name that you chose during installation.
+</p><div class="caution" style="margin-left: 0.5in; margin-right: 0.5in;"><h3 class="title">Remember to change the blank sa password</h3><p>
+The <em class="parameter"><code>-U</code></em> parameter is the login name, we are here logging in as "<span class="emphasis"><em>sa</em></span>" the Sybase equivalent of "<span class="emphasis"><em>root</em></span>". The password specified with the <em class="parameter"><code>-P</code></em> parameter is blank, which is the default password for this user. It should be fairly obvious that you don't want to leave your most powerful login with a blank password. Note that the ASE logins are independent from the OS logins and passwords.</p></div><p>
+The result should be a simple prompt:
+</p><p>
+</p><pre class="screen">1&gt;</pre><p>
+</p><p>If the connection did not succeed, make sure the server is running and that the port is reported by <span class="command"><strong>netstat -na</strong></span> to have a LISTENING state. </p><p>
+You can now start typing T-SQL commands and use the keyword "<span class="command"><strong>go</strong></span>" as a terminator.
+</p><pre class="screen">isql -Usa -P -SSERVER
+1&gt; select @@version
+2&gt; go
+ -----------------------------------------------------------------------------------------------------------------------------------------------
+ Adaptive Server Enterprise/12.5.0.3/EBF 10980 ESD#1/P/Linux Intel/Linux 2.4.18-18.7.xsmp i686/rel12503/1919/32-bit/OPT/Mon Mar 24 20:49:12 2003
+
+(1 row affected)
+</pre><p>
+</p></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="idm449"></a>4.3. Your First Useful Commands</h3></div></div></div><p>
+The first thing to do is to set a password for "sa" and then create a new login with less privileges that we can use to play around with. By default you are placed in the <code class="filename">master</code> database once you are logged in. We will make our new login default to an example database instead to avoid creating objects in the master database by mistake. So, we first set a password for sa by calling the stored procedure <span class="command"><strong>sp_password</strong></span> with old and new passwords as parameters:
+</p><pre class="screen">
+1&gt; exec sp_password NULL, "Secr3t"
+2&gt; go
+Password correctly set.
+(return status = 0)
+</pre><p>
+Now sa has a new password, changed from the old null default. We add a new login with <span class="command"><strong>sp_addlogin</strong></span>:
+</p><pre class="screen">
+1&gt; exec sp_addlogin "sybtest", "SomePass"
+2&gt; go
+Password correctly set.
+Account unlocked.
+New login created.
+(return status = 0)
+</pre><p>
+We can log out by telling isql to disconnect using the <span class="command"><strong>exit</strong></span> command.
+</p><pre class="screen">
+1&gt; exit
+</pre><p>
+Since this is not a T-SQL command but a directive to isql we don't need to terminate with "go".
+</p><p>
+The <span class="command"><strong>isql</strong></span> command can also be used non-interactively to apply scripts of T-SQL to the server. One such script that is shipped with the server is <code class="filename">installpubs2</code>, located in the scripts directory. This is a very simple example database for a bookshop or a publishing house holding data about books, authors, publishers and so on. It is used in Sybase manuals and training courses and also in some SQL books. Microsoft SQL Server contains a similar database in addition to the Northwind example database they have added. In order to create the database, use the <em class="parameter"><code>-i</code></em> parameter to read the script in. Have a look at the file first so you understand the basics of what it is doing; it will create a database named pubs2 and several tables populated with data. It is time to execute the script. We'll do this as sa who will also become the owner (dbo - database owner ) of the database. We redirect the output to a file we call <code class="filename">errors.out</code>. The <em class="parameter"><code>-e</code></em> parameter tells isql to also echo the T-SQL commands to the same file, giving more output but making it easier to match any errors to the commands causing them.
+</p><pre class="screen">
+bash$ cd $SYBASE/$SYBASE_ASE/scripts
+bash$ isql -Usa -PSecr3t -SSYBASE -iinstallpubs2 -e -oerrors.out
+</pre><p>
+In order to allow our new login full privileges to this sample database we change ownership of the database to the new login. Here's how we give the database away with <span class="command"><strong>sp_changedbowner</strong></span>:
+</p><pre class="screen">
+isql -Usa -PSecr3t -SSYBASE
+1&gt; use pubs2
+2&gt; go
+1&gt; exec sp_changedbowner sybtest
+2&gt; go
+DBCC execution completed. If DBCC printed error messages, contact a user with
+System Administrator (SA) role.
+Database owner changed.
+(return status = 0)
+</pre><p>
+We can now log in interactively as our new user and check what has been installed.
+</p><pre class="screen">
+1&gt; exit
+bash$ isql -Usybtest -PSomePass -SSYBASE
+1&gt; use pubs2
+2&gt; go
+1&gt; sp_help
+2&gt; go
+[Lots of output deleted - the command displays all objects in the current database]
+</pre><p>
+(Note that we don't actually have to use "exec" to execute a stored procedure, the server will assume any non-keyword is a procedure.)
+</p><pre class="screen">
+1&gt; quit
+</pre><p>
+One last command as the sa login in order to make life more convenient when we continue to use our new login - we make the new pubs2 database the default database.
+</p><pre class="screen">
+1&gt; exit
+bash$ isql -Usa -PSecr3t -SSYBASE
+1&gt; sp_modifylogin sybtest, "defdb", "pubs2"
+2&gt; go
+Default database changed.
+(return status = 0)
+</pre><p>
+</p></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="idm471"></a>4.4. Stopping the Server</h3></div></div></div><p>
+In order to stop the server in a controlled fashion, log in as sa and issue the <span class="command"><strong>shutdown</strong></span> command.
+</p><pre class="screen">
+bash$ isql -Usa -PSecr3t -SSYBASE
+1&gt; shutdown
+2&gt; go
+Server SHUTDOWN by request.
+The SQL Server is terminating this process.
+CT-LIBRARY error:
+        ct_results(): network packet layer: internal net library error: Net-Library operation terminated due to disconnect
+</pre><p>
+You will immediately be disconnected and a message is printed by isql to warn you of this fact. You can check the error log for a message about the server being shutdown and you can verify that the process is no longer running with <span class="command"><strong>showserver</strong></span>.
+</p></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="idm477"></a>4.5. Maintenance</h3></div></div></div><p>
+One of the most important aspects of being a database administrator may be the backup. The I/O load of a relational database means little rest for the hard drives and once a drive fails the database is in need of serious disaster recovery. Even a mistyped command may result in the need to revert to a previous backup generation. For this purpose, a separate server application called the Backup Server is used. It is by default named the same as your server with an extension of BCK. Start it with <span class="command"><strong>startserver -f RUN_SYBASE_BCK</strong></span>. Certain commands typed into the isql propmt will be forwarded from the <code class="filename">dataserver</code> process to the <code class="filename">backupserver</code> process, which will then proceed with the actual backup (in Sybase terminology, this is a database dump) while processing in the database continues unaffected. You should schedule database dumps (usually via cron) to run at low activity hours. A typical full database bacup is simply done like this:
+</p><pre class="screen">
+isql -Usa -PSecr3t -SSYBASE
+1&gt; dump database pubs2 to "/mnt/backup/pubs2.bkp"
+2&gt; go
+Backup Server session id is:  8.  Use this value when executing the
+'sp_volchanged' system stored procedure after fulfilling any volume change
+request from the Backup Server.
+Backup Server: 4.41.1.1: Creating new disk file /mnt/backup/pubs2.bkp.
+Backup Server: 6.28.1.1: Dumpfile name 'pubs2011710275E  ' section number 1
+mounted on disk file '/mnt/backup/pubs2.bkp'
+Backup Server: 4.58.1.1: Database pubs2: 396 kilobytes DUMPed.
+Backup Server: 4.58.1.1: Database pubs2: 602 kilobytes DUMPed.
+Backup Server: 3.43.1.1: Dump phase number 1 completed.
+Backup Server: 3.43.1.1: Dump phase number 2 completed.
+Backup Server: 3.43.1.1: Dump phase number 3 completed.
+Backup Server: 4.58.1.1: Database pubs2: 610 kilobytes DUMPed.
+Backup Server: 3.42.1.1: DUMP is complete (database pubs2).
+1&gt;
+</pre><p>
+You can restore this back into your database using the load database command.
+</p><p>
+As time passes while users are doing modifications in the database, adding, deleting or changing data, all operations are being written to the transaction log. This keeps track of changes so they can be undone by an implicit or explicit rollback, or for the undo/redo phases of revocery at startup. This transaction log should normally be placed on a device of its own for several reasons, but a small test database can be created on a single mixed log and data device.
+</p><p>
+Apart from the performance benefits of spreading I/O, one reason for keeping the log and data separate is for recovery purposes. You can at regular intervals, depending upon your recovery needs, dump this log of changes to the database. Together with the full database dump, this transaction log dump now constitute an incremental backup. Should a restore become necessary, you can load the database dump, then load all subsequent transaction log dumps. There is even an "until_time" option to the load command enabling you to specify the exact time you want to restore until, abandoning any mistakes done after that time. Dumping the log is done with a similar syntax:
+</p><pre class="screen">
+isql -Usa -PSecr3t -SSYBASE
+1&gt; dump transaction <em class="parameter"><code>database</code></em> to "/mnt/backup/dbtrandump2003_08_27_T23_32.bkp"
+2&gt; go
+</pre><p>
+Note that we could not do this with pubs2 as it was not created with a separate log fragment.
+</p><p>
+Unless you keep dumping the transaction log, it will just keep growing until it fills up it's space and starts reporting error 1105. Users will be suspended and appear to be hanging while the situation remains unresolved. Dump the transaction log to file or tape, or simply truncate it if you don't use incremental backups.
+</p><pre class="screen">
+isql -Usa -PSecr3t -SSYBASE
+1&gt; dump transaction pubs2 with truncate_only
+2&gt; go
+1&gt;
+</pre><p>
+Other maintenance commands you should read up on are
+</p><div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem"><p>
+<span class="command"><strong>DBCC</strong></span>, the DataBase Consistency Checker which will verify that the physical integrity of the data structures on the ASE devices are OK.</p></li><li class="listitem"><p>
+<span class="command"><strong>update statistics</strong></span>, which will make sure that ASE has a correct view of how your data is distributed in your tables, enabling it to make the best decisions of how to retrieve the data in the shortest possible time.</p></li></ul></div><p>
+
+</p></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="idm497"></a>4.6. Other Sybase Utilities</h3></div></div></div><p>
+There are some other external utilities that are useful to know. The Java based applications need the JDBC driver installed, this is included with newer servers under the product name jConnect. There is a separate CD that comes with ASE 11.9.2.x and 12.5.0.x called "PC Client CD". This is a set of Windows-based tools for administration, pop the CD into your Windows box and the installer will start up so you can select components from the CD.</p><div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem"><p>
+bcp or Bulk Copy is a command-line utility with a plethora of parameters that imports table data from flat files and exports data out to files.
+</p></li><li class="listitem"><p>
+Sybase Central is a GUI tool for database adminstration. It used to be a native Win32 application, but in ASE 12.5.0.x it is now Java based and can be installed on Linux. Note that you also need to install and register the plug-in for administering ASE since Sybase Central is only a framework which is used for many Sybase products by registering their respective plugins.
+</p></li><li class="listitem"><p>
+Jisql is a Java based GUI version of isql with some neat features such as command history and table and column name lookup.
+</p></li></ul></div></div></div><div class="navfooter"><hr><table width="100%" summary="Navigation footer"><tr><td width="40%" align="left"><a accesskey="p" href="ar01s03.html">Prev</a> </td><td width="20%" align="center"> </td><td width="40%" align="right"> <a accesskey="n" href="ar01s05.html">Next</a></td></tr><tr><td width="40%" align="left" valign="top">3. Configuring an ASE Server </td><td width="20%" align="center"><a accesskey="h" href="index.html">Home</a></td><td width="40%" align="right" valign="top"> 5. ASE Architecture: Observing the Server</td></tr></table></div></body></html>

@@ -1,0 +1,369 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN""http://www.w3.org/TR/html4/loose.dtd">
+<HTML
+><HEAD
+><TITLE
+>How to ban IP addresses</TITLE
+><META
+NAME="GENERATOR"
+CONTENT="Modular DocBook HTML Stylesheet Version 1.79"><LINK
+REL="HOME"
+TITLE="PHP-Nuke: Management and Programming"
+HREF="index.html"><LINK
+REL="UP"
+TITLE="Security "
+HREF="security.html"><LINK
+REL="PREVIOUS"
+TITLE="How to guard against security vulnerabilities in PHP-Nuke"
+HREF="guard-security-vulnerabilities-in-php-nuke.html"><LINK
+REL="NEXT"
+TITLE="Hacked - now what?"
+HREF="hacked-now-what.html"></HEAD
+><BODY
+CLASS="SECT1"
+BGCOLOR="#FFFFFF"
+TEXT="#000000"
+LINK="#0000FF"
+VLINK="#840084"
+ALINK="#0000FF"
+><DIV
+CLASS="NAVHEADER"
+><TABLE
+SUMMARY="Header navigation table"
+WIDTH="100%"
+BORDER="0"
+CELLPADDING="0"
+CELLSPACING="0"
+><TR
+><TH
+COLSPAN="3"
+ALIGN="center"
+>PHP-Nuke: Management and Programming</TH
+></TR
+><TR
+><TD
+WIDTH="10%"
+ALIGN="left"
+VALIGN="bottom"
+><A
+HREF="guard-security-vulnerabilities-in-php-nuke.html"
+ACCESSKEY="P"
+>Prev</A
+></TD
+><TD
+WIDTH="80%"
+ALIGN="center"
+VALIGN="bottom"
+>Chapter 23. Security</TD
+><TD
+WIDTH="10%"
+ALIGN="right"
+VALIGN="bottom"
+><A
+HREF="hacked-now-what.html"
+ACCESSKEY="N"
+>Next</A
+></TD
+></TR
+></TABLE
+><HR
+ALIGN="LEFT"
+WIDTH="100%"></DIV
+><DIV
+CLASS="SECT1"
+><H1
+CLASS="SECT1"
+><A
+NAME="BAN-IP-ADDRESSES"
+>23.5. How to ban IP addresses</A
+></H1
+><P
+>So you have been hacked and your IP Tracking module (<A
+HREF="php-nuke-add-on-modules.html#PHP-NUKE-IP-TRACKING-MODULE"
+>Section 8.3.6</A
+>) shows you it was an attack from a few IP addresses? Perhaps your site is continuing to be the aim of notorious cracking attempts from those IP addresses and you now want to ban them? That's something you can accomplish easily in two ways, a hard-coded approach and a more elaborate one.</P
+><P
+>The hard-coded approach (suitable only for just a few IP addresses, unless you want to clutter the code with unwanted IPs) requires you to place this 4-liner:</P
+><TABLE
+BORDER="1"
+BGCOLOR="#E0E0E0"
+WIDTH="100%"
+><TR
+><TD
+><FONT
+COLOR="#000000"
+><PRE
+CLASS="SCREEN"
+>$ip = getenv("REMOTE_ADDR");
+if ($ip != "66.666.66.6" AND $ip != "55.555.55.5") {
+return 0;
+}</PRE
+></FONT
+></TD
+></TR
+></TABLE
+><P
+>in two places:</P
+><P
+></P
+><OL
+TYPE="1"
+><LI
+><P
+>after the global line of the is_amdin() function in mainfile.php and</P
+></LI
+><LI
+><P
+>at the begining of the admin.php file.</P
+></LI
+></OL
+><P
+>Change the &#8220;66.666.66.6&#8221; and &#8220;55.555.55.5&#8221; to the IP addresses you want to block and you are done! See <A
+HREF="http://www.nukeforums.com/forums/viewtopic.php?t=13987"
+TARGET="_top"
+>How to block an IP address in PHP-Nuke</A
+>.</P
+><P
+>The more elaborate approach is to create a text file, call it banned.txt, containing all the IP addresses you want to ban, one address per line. Upload banned.txt in the <SPAN
+CLASS="APPLICATION"
+>PHP-Nuke</SPAN
+> root directory on your web server (this is the same directory where also config.php is located). Then include the following code in the includes/my_header.php file (the custom HTML header file of PHP-Nuke, see <A
+HREF="modifying-php-nuke-html-header.html"
+>Chapter 15</A
+>):</P
+><TABLE
+BORDER="1"
+BGCOLOR="#E0E0E0"
+WIDTH="100%"
+><TR
+><TD
+><FONT
+COLOR="#000000"
+><PRE
+CLASS="SCREEN"
+>if (isset($_SERVER['HTTP_X_FORWARDED_FOR'])) {
+    $ip = $_SERVER['HTTP_X_FORWARDED_FOR'];
+}
+elseif (isset($_SERVER['HTTP_VIA'])) {
+    $ip = $_SERVER['HTTP_VIA'];
+}
+elseif (isset($_SERVER['REMOTE_ADDR'])) {
+    $ip = $_SERVER['REMOTE_ADDR'];
+}
+else {
+    $ip = "Banned";
+}
+$banned = file("banned.txt", "r+");
+$nbanned = count($banned);
+function ban($ip, $banned, $nbanned){
+    for ($i = 0 ; $i &#60; $nbanned ; $i++) {
+        
+        // Use this if you want to use IP patterns with regular expressions:
+        // if (eregi($ip, $banned[$i])) {
+        // We have to strip the end-of-line characters, to test for equality: 
+        if ($ip ==  rtrim($banned[$i])) {
+            echo "You have been banned from this portal, if you feel this is in error ";
+            echo "please send email to you@yoursite.com ";
+            die();
+        }
+    }
+}
+ban($ip, $banned, $nbanned);</PRE
+></FONT
+></TD
+></TR
+></TABLE
+><P
+>If you are having problems with <ACRONYM
+CLASS="ACRONYM"
+>PHP</ACRONYM
+> not recognizing the line endings when reading files with the <A
+HREF="http://www.php.net/manual/en/function.file.php"
+TARGET="_top"
+>PHP file() function</A
+> (see the code above), either on or created by a Macintosh computer, you might want to enable the <A
+HREF="http://www.php.net/manual/en/ref.filesystem.php#ini.auto-detect-line-endings"
+TARGET="_top"
+>auto_detect_line_endings</A
+> run-time configuration option (which, however, is available only starting <ACRONYM
+CLASS="ACRONYM"
+>PHP</ACRONYM
+> v. 4.3.0).</P
+><P
+>If you would like to ban whole ranges of IP addresses, you can play with the <A
+HREF="http://www.php.net/manual/en/function.eregi.php"
+TARGET="_top"
+>PHP eregi() function</A
+> and use </P
+><TABLE
+BORDER="1"
+BGCOLOR="#E0E0E0"
+WIDTH="100%"
+><TR
+><TD
+><FONT
+COLOR="#000000"
+><PRE
+CLASS="SCREEN"
+>if (eregi($ip, $banned[$i])) {</PRE
+></FONT
+></TD
+></TR
+></TABLE
+><P
+>instead of</P
+><TABLE
+BORDER="1"
+BGCOLOR="#E0E0E0"
+WIDTH="100%"
+><TR
+><TD
+><FONT
+COLOR="#000000"
+><PRE
+CLASS="SCREEN"
+>if ($ip ==  rtrim($banned[$i])) {</PRE
+></FONT
+></TD
+></TR
+></TABLE
+><P
+>You then use patterns of IP addresses, i.e. regular expressions (see <A
+HREF="regular-expressions.html"
+>Section 25.3</A
+>, <A
+HREF="http://www.php.net/regex"
+TARGET="_top"
+>Regular Expression Functions (POSIX Extended)</A
+>), instead of constant IPs in banned.txt. See also <A
+HREF="http://www.grancanariayoungsters.com/ftopicp-322.html"
+TARGET="_top"
+>How to ban IPs real fast</A
+>.</P
+><DIV
+CLASS="TIP"
+><P
+></P
+><TABLE
+CLASS="TIP"
+WIDTH="100%"
+BORDER="0"
+><TR
+><TD
+WIDTH="25"
+ALIGN="CENTER"
+VALIGN="TOP"
+><IMG
+SRC="../images/tip.png"
+HSPACE="5"
+ALT="Tip"></TD
+><TH
+ALIGN="LEFT"
+VALIGN="MIDDLE"
+><B
+>How to ban IPs using the web server</B
+></TH
+></TR
+><TR
+><TD
+>&nbsp;</TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+>Of course, you can achieve the same results by putting deny directives in the server configuration file, or .htaccess file (<A
+HREF="htaccess-file.html"
+>Section 25.4</A
+>):</P
+><TABLE
+BORDER="1"
+BGCOLOR="#E0E0E0"
+WIDTH="100%"
+><TR
+><TD
+><FONT
+COLOR="#000000"
+><PRE
+CLASS="SCREEN"
+>deny from xxx.xxx.xxx.xxx</PRE
+></FONT
+></TD
+></TR
+></TABLE
+></TD
+></TR
+></TABLE
+></DIV
+><P
+>See the Protector Module (<A
+HREF="php-nuke-add-on-modules.html#PHP-NUKE-PROTECTOR-MODULE"
+>Section 8.3.7</A
+>) for a <SPAN
+CLASS="APPLICATION"
+>PHP-Nuke</SPAN
+> module for IP banning.</P
+></DIV
+><DIV
+CLASS="NAVFOOTER"
+><HR
+ALIGN="LEFT"
+WIDTH="100%"><TABLE
+SUMMARY="Footer navigation table"
+WIDTH="100%"
+BORDER="0"
+CELLPADDING="0"
+CELLSPACING="0"
+><TR
+><TD
+WIDTH="33%"
+ALIGN="left"
+VALIGN="top"
+><A
+HREF="guard-security-vulnerabilities-in-php-nuke.html"
+ACCESSKEY="P"
+>Prev</A
+></TD
+><TD
+WIDTH="34%"
+ALIGN="center"
+VALIGN="top"
+><A
+HREF="index.html"
+ACCESSKEY="H"
+>Home</A
+></TD
+><TD
+WIDTH="33%"
+ALIGN="right"
+VALIGN="top"
+><A
+HREF="hacked-now-what.html"
+ACCESSKEY="N"
+>Next</A
+></TD
+></TR
+><TR
+><TD
+WIDTH="33%"
+ALIGN="left"
+VALIGN="top"
+>How to guard against security vulnerabilities in PHP-Nuke</TD
+><TD
+WIDTH="34%"
+ALIGN="center"
+VALIGN="top"
+><A
+HREF="security.html"
+ACCESSKEY="U"
+>Up</A
+></TD
+><TD
+WIDTH="33%"
+ALIGN="right"
+VALIGN="top"
+>Hacked - now what?</TD
+></TR
+></TABLE
+></DIV
+></BODY
+></HTML
+>

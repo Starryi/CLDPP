@@ -1,0 +1,205 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1"><title>3. Stateless NAT with iproute2</title><link rel="stylesheet" type="text/css" href="style.css"><meta name="generator" content="DocBook XSL Stylesheets V1.79.1"><meta name="keywords" content="linux, ip, iproute2, ifconfig, firewall, ARP, NAT, route, routing, route selection, routing selection, network administration"><link rel="home" href="index.html" title="Guide to IP Layer Network Administration with Linux"><link rel="up" href="ch05.html" title="Chapter 5. Network Address Translation (NAT)"><link rel="prev" href="ch05s02.html" title="2. Application Layer Protocols with Embedded Network Information"><link rel="next" href="ch05s04.html" title="4. Stateless NAT and Packet Filtering"></head><body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF"><div class="navheader"><table width="100%" summary="Navigation header"><tr><th colspan="3" align="center">3. Stateless NAT with <span class="command"><strong>iproute2</strong></span></th></tr><tr><td width="20%" align="left"><a accesskey="p" href="ch05s02.html">Prev</a> </td><th width="60%" align="center">Chapter 5. Network Address Translation (NAT)</th><td width="20%" align="right"> <a accesskey="n" href="ch05s04.html">Next</a></td></tr></table><hr></div><div class="section"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="nat-stateless"></a>3. Stateless NAT with <span class="command"><strong>iproute2</strong></span></h2></div></div></div><p>
+      Stateless NAT, occasionally maligned as dumb NAT
+      <a href="#ftn.idm2560" class="footnote" name="idm2560"><sup class="footnote">[31]</sup></a>,
+      is the simplest form of
+      NAT.  It involves rewriting addresses passing through a
+      routing device:
+      inbound packets will undergo destination address rewriting and
+      outbound packets will undergo source address rewriting.
+      The <span class="command"><strong>iproute2</strong></span> suite of tools provides the two commands
+      required to configure the kernel to perform stateless NAT.
+      This section will cover only
+      stateless NAT, which can only be accomplished under linux with the
+      <span class="command"><strong>iproute2</strong></span> tools, although it can be
+      <a class="link" href="ch05s05.html#ex-nat-dnat-full" title="Example 5.7. Simulating full NAT with SNAT and DNAT">simulated with netfilter</a>.
+    </p><a name="nat-stateless-arp"></a><p>
+      Creating an <span class="command"><strong>iproute2</strong></span> NAT mapping has the side
+      effect of causing the kernel to answer ARP requests for the NAT IP.
+      For more detail on ARP filtering, suppression and conditional ARP, see
+      <a class="xref" href="ch02.html" title="Chapter 2. Ethernet">Chapter 2, <i>Ethernet</i></a>.  This can be considered, alternatively, a
+      benefit or a misfeature of the kernel support for NAT.
+      The <code class="constant">nat</code> entry in the local routing table causes
+      the kernel to reply for ARP requests to the NAT IP.
+      Conversely,
+      <a class="link" href="ch05s05.html" title="5. Destination NAT with netfilter (DNAT)">netfilter DNAT</a> makes no ARP entry or
+      provision for neighbor advertisement.
+    </p><p>
+    </p><p>
+      Whether or not it is using a packet filter, a linux machine can perform
+      NAT using the <span class="command"><strong>iproute2</strong></span> suite of tools.  This chapter
+      will document the use of <span class="command"><strong>iproute2</strong></span> tools for NAT with
+      <a class="link" href="ch05s03.html#nat-stateless-simple" title="3.1. Stateless NAT Packet Capture and Introduction">a simple example</a> and
+      <a class="link" href="ch05s03.html#nat-stateless-howto" title="3.2. Stateless NAT Practicum">an explanation of the required
+      commands</a>, then an example of
+      <a class="link" href="ch05s03.html#nat-stateless-rpdb" title="3.3. Conditional Stateless NAT">using NAT with the RPDB</a> and
+      <a class="link" href="ch05s04.html" title="4. Stateless NAT and Packet Filtering">using NAT with a packet
+      filter</a>.
+    </p><p>
+      NAT with iproute2 can be used in conjunction with the routing policy
+      database (cf. <a class="link" href="ch05s03.html#nat-stateless-rpdb" title="3.3. Conditional Stateless NAT">RPDB</a>) to support
+      conditional NAT, e.g. only perform NAT if the source IP falls within
+      a certain range.  See <a class="xref" href="ch05s03.html#nat-stateless-rpdb" title="3.3. Conditional Stateless NAT">Section 3.3, &#8220;Conditional Stateless NAT&#8221;</a>.
+    </p><div class="section"><div class="titlepage"><div><div><h3 class="title"><a name="nat-stateless-simple"></a>3.1. Stateless NAT Packet Capture and Introduction</h3></div></div></div><p>
+        Assume that example company in
+        <a class="link" href="apa.html" title="Appendix A. An Example Network and Description">example network</a> wants to
+        provide SMTP service on a public IP (205.254.211.0/24) but plans to
+        move to a different IP addressing space in the near future.  Network
+        address translation can assist example company prepare for the move.
+        The administrator will select an IP on the internal network
+        (192.168.100.0/24) and configure the router to accept and translate 
+        packets for the publicly reachable IP into the private IP.
+      </p><div class="example"><a name="ex-nat-basic"></a><p class="title"><b>Example 5.1. 
+          Stateless NAT Packet Capture
+          <a href="#ftn.idm2590" class="footnote" name="idm2590"><sup class="footnote">[32]</sup></a>
+        </b></p><div class="example-contents"><pre class="programlisting">
+<code class="prompt">[root@masq-gw]# </code><strong class="userinput"><code>tcpdump -qnn</code></strong>
+<code class="computeroutput">19:30:17.824853 eth1 &lt; 64.70.12.210.35131 &gt; 205.254.211.17.25: tcp 0 (DF)  <a class="co" name="ex-nb-public-in" href="ch05s03.html#ex-nb-public-in-text"><span><img src="images/callouts/1.png" alt="1" border="0"></span></a>
+19:30:17.824976 eth0 &gt; 64.70.12.210.35131 &gt; 192.168.100.17.25: tcp 0 (DF)  <a class="co" name="ex-nb-private-out" href="ch05s03.html#ex-nb-private-out-text"><span><img src="images/callouts/2.png" alt="2" border="0"></span></a>
+19:30:17.825400 eth0 &lt; 192.168.100.17.25 &gt; 64.70.12.210.35131: tcp 0 (DF)  <a class="co" name="ex-nb-private-in" href="ch05s03.html#ex-nb-private-in-text"><span><img src="images/callouts/3.png" alt="3" border="0"></span></a>
+19:30:17.825568 eth1 &gt; 205.254.211.17.25 &gt; 64.70.12.210.35131: tcp 0 (DF)  <a class="co" name="ex-nb-public-out" href="ch05s03.html#ex-nb-public-out-text"><span><img src="images/callouts/4.png" alt="4" border="0"></span></a></code>
+        </pre><div class="calloutlist"><table border="0" summary="Callout list"><tr><td width="5%" valign="top" align="left"><p><a name="ex-nb-public-in-text"></a><a href="#ex-nb-public-in"><span><img src="images/callouts/1.png" alt="1" border="0"></span></a> </p></td><td valign="top" align="left">
+                The first packet comes in on eth1, <code class="systemitem">masq-gw</code>'s
+                outside interface.  The packet is addressed to the NAT IP,
+                205.254.211.17 on tcp/25.  This is the IP/port pair on which
+                which our service runs.  This is a snapshot
+                of the packet before it has been handled by the NAT code.
+              </td></tr><tr><td width="5%" valign="top" align="left"><p><a name="ex-nb-private-out-text"></a><a href="#ex-nb-private-out"><span><img src="images/callouts/2.png" alt="2" border="0"></span></a> </p></td><td valign="top" align="left">
+                The next line is the "same" packet leaving eth0, <code class="systemitem">masq-gw</code>'s
+                inside interface, bound for the internal network.
+                The NAT code has substituted the real IP of the server,
+                192.168.100.17.  This rewriting is handled by the
+                <code class="constant">nat</code> entry in the
+                <code class="constant">local</code> routing table (<strong class="userinput"><code>ip
+                route</code></strong>).  See also
+                <a class="xref" href="ch05s03.html#ex-nat-basic-commands" title="Example 5.2. Basic commands to create a stateless NAT">Example 5.2, &#8220;Basic commands to create a stateless NAT&#8221;</a>.
+              </td></tr><tr><td width="5%" valign="top" align="left"><p><a name="ex-nb-private-in-text"></a><a href="#ex-nb-private-in"><span><img src="images/callouts/3.png" alt="3" border="0"></span></a> </p></td><td valign="top" align="left">
+                The SMTP server then sends a return packet which arrives on
+                eth0.  This is the packet before the NAT code on <code class="systemitem">masq-gw</code>
+                has rewritten the outbound packet.  This rewriting is handled
+                by the RPDB entry (<strong class="userinput"><code>ip rule</code></strong>).  See also
+                <a class="xref" href="ch05s03.html#ex-nat-basic-commands" title="Example 5.2. Basic commands to create a stateless NAT">Example 5.2, &#8220;Basic commands to create a stateless NAT&#8221;</a>.
+              </td></tr><tr><td width="5%" valign="top" align="left"><p><a name="ex-nb-public-out-text"></a><a href="#ex-nb-public-out"><span><img src="images/callouts/4.png" alt="4" border="0"></span></a> </p></td><td valign="top" align="left">
+                Finally, the return packet is transmitted on eth1 after having
+                been rewritten.  The source IP address on the packet is now
+                the public IP on which the service is published.
+              </td></tr></table></div></div></div><br class="example-break"><p>
+      </p></div><div class="section"><div class="titlepage"><div><div><h3 class="title"><a name="nat-stateless-howto"></a>3.2. Stateless NAT Practicum</h3></div></div></div><p>
+          There are only a few commands which are required to enable stateless
+          NAT on a linux routing device.  The commands below will configure
+          the host <code class="systemitem">masq-gw</code> (see 
+          <a class="xref" href="apas01.html" title="1. Example Network Map and General Notes">Section 1, &#8220;Example Network Map and General Notes&#8221;</a> and
+          <a class="xref" href="apas02.html" title="2. Example Network Addressing Charts">Section 2, &#8220;Example Network Addressing Charts&#8221;</a>) as shown above in
+          <a class="xref" href="ch05s03.html#ex-nat-basic" title="Example 5.1.  Stateless NAT Packet Capture">Example 5.1, &#8220;
+          Stateless NAT Packet Capture
+          
+        &#8221;</a>.
+        </p><div class="example"><a name="ex-nat-basic-commands"></a><p class="title"><b>Example 5.2. Basic commands to create a stateless NAT</b></p><div class="example-contents"><pre class="programlisting">
+<code class="prompt">[root@masq-gw]# </code><strong class="userinput"><code>ip route add nat 205.254.211.17 via 192.168.100.17</code></strong>  <a class="co" name="ex-nbc-routenat" href="ch05s03.html#ex-nbc-routenat-text"><span><img src="images/callouts/1.png" alt="1" border="0"></span></a>
+<code class="prompt">[root@masq-gw]# </code><strong class="userinput"><code>ip rule add nat 205.254.211.17 from 192.168.100.17</code></strong>  <a class="co" name="ex-nbc-rulenat" href="ch05s03.html#ex-nbc-rulenat-text"><span><img src="images/callouts/2.png" alt="2" border="0"></span></a>
+<code class="prompt">[root@masq-gw]# </code><strong class="userinput"><code>ip route flush cache</code></strong>                                <a class="co" name="ex-nbc-flushcache" href="ch05s03.html#ex-nbc-flushcache-text"><span><img src="images/callouts/3.png" alt="3" border="0"></span></a>
+<code class="prompt">[root@masq-gw]# </code><strong class="userinput"><code>ip route show table all | grep ^nat</code></strong>                 <a class="co" name="ex-nbc-routeshow" href="ch05s03.html#ex-nbc-routeruleshow-text"><span><img src="images/callouts/4.png" alt="4" border="0"></span></a>
+<code class="computeroutput">nat 205.254.211.17 via 192.168.100.17  table local  scope host</code>
+<code class="prompt">[root@masq-gw]# </code><strong class="userinput"><code>ip rule show</code></strong>                                        <a class="co" name="ex-nbc-ruleshow" href="ch05s03.html#ex-nbc-routeruleshow-text"><span><img src="images/callouts/5.png" alt="5" border="0"></span></a>
+<code class="computeroutput">0:      from all lookup local 
+32765:  from 192.168.100.17 lookup main map-to 205.254.211.17 
+32766:  from all lookup main 
+32767:  from all lookup 253</code>
+          </pre><div class="calloutlist"><table border="0" summary="Callout list"><tr><td width="5%" valign="top" align="left"><p><a name="ex-nbc-routenat-text"></a><a href="#ex-nbc-routenat"><span><img src="images/callouts/1.png" alt="1" border="0"></span></a> </p></td><td valign="top" align="left">
+                  This command tells the kernel to perform network
+                  address translation on any packet bound for
+                  205.254.211.17.  The parameter via tells the NAT code
+                  to rewrite the packet bound for 205.254.211.17 with the
+                  new destination address 192.168.100.17.  Note, that this
+                  only handles inbound packets; that is, packets whose
+                  destination address contains 205.254.211.17.
+                </td></tr><tr><td width="5%" valign="top" align="left"><p><a name="ex-nbc-rulenat-text"></a><a href="#ex-nbc-rulenat"><span><img src="images/callouts/2.png" alt="2" border="0"></span></a> </p></td><td valign="top" align="left">
+                  This command enters the corresponding rule for the
+                  outbound traffic into the RPDB (kernel 2.2 and up).
+                  This rule will cause the kernel rewrite any packet from
+                  192.168.100.17 with the specified source address
+                  (205.254.211.17).  Any packet originating from
+                  192.168.100.17 which passes through this router
+                  will trigger this rule.  In short, this command rewrites the
+                  source address of outbound packets so that they appear to
+                  originate from the NAT IP.
+                </td></tr><tr><td width="5%" valign="top" align="left"><p><a name="ex-nbc-flushcache-text"></a><a href="#ex-nbc-flushcache"><span><img src="images/callouts/3.png" alt="3" border="0"></span></a> </p></td><td valign="top" align="left">
+                  The kernel maintains a routing cache to handle routing
+                  decisions more quickly
+                  (<a class="xref" href="ch04s07.html" title="7. Routing Cache">Section 7, &#8220;Routing Cache&#8221;</a>).  After making changes
+                  to the routing tables on a system, it is good practice to
+                  empty the routing cache with <strong class="userinput"><code>ip route flush
+                  cache</code></strong>.  Once the cache is empty, the
+                  kernel is guaranteed to consult the routing tables again
+                  instead of the routing cache.
+                </td></tr><tr><td width="5%" valign="top" align="left"><p><a name="ex-nbc-routeruleshow-text"></a><a href="#ex-nbc-routeshow"><span><img src="images/callouts/4.png" alt="4" border="0"></span></a> <a href="#ex-nbc-ruleshow"><span><img src="images/callouts/5.png" alt="5" border="0"></span></a> </p></td><td valign="top" align="left">
+                  These two commands allow the user to inspect the
+                  routing policy database and the <code class="constant">local</code>
+                  routing table to determine if the NAT routes and rules were
+                  added correctly.
+                </td></tr></table></div></div></div><br class="example-break"><p>
+        </p></div><div class="section"><div class="titlepage"><div><div><h3 class="title"><a name="nat-stateless-rpdb"></a>3.3. Conditional Stateless NAT</h3></div></div></div><p>
+          NAT introduces a complexity to the network in which it is
+          used because a service is reachable on a public and a private IP.
+          Usually, this is a reasonable tradeoff or else stateless NAT would
+          fail in the selection process.
+          In the case that the linux routing device is connected to a public
+          network and more than one private
+          network, there is more work to do.
+        </p><p>
+          Though the service is available to the public network on
+          a public (NAT) IP, internal users may need to connect to the private
+          or internal IP.
+        </p><p>
+          This is accomplished by use of the routing policy database (RPDB),
+          which allows conditional routing based on packet characteristics.
+          For a more complete explanation of the RPDB, see 
+          <a class="xref" href="ch04s09.html" title="9. Routing Policy Database (RPDB)">Section 9, &#8220;Routing Policy Database (RPDB)&#8221;</a>.  The routing policy database can
+          be manipulated with the <a class="link" href="apds03.html" title="3. ip rule"><span class="command"><strong>
+          ip rule</strong></span></a> command.
+          In order to successfully configure NAT, familiarity with the
+          <span class="command"><strong> ip rule</strong></span> command is required.
+        </p><div class="example"><a name="ex-nat-stateless-rpdb"></a><p class="title"><b>Example 5.3. Conditional Stateless NAT (not performing NAT for a
+            specified destination network)</b></p><div class="example-contents"><pre class="programlisting">
+<code class="prompt">[root@masq-gw]# </code><strong class="userinput"><code>ip rule add to 192.168.99.0/24 from 192.168.100.17</code></strong>
+<code class="prompt">[root@masq-gw]# </code><strong class="userinput"><code>ip route flush cache</code></strong>
+<code class="prompt">[root@masq-gw]# </code><strong class="userinput"><code>ip rule show</code></strong>
+<code class="computeroutput">0:      from all lookup local 
+32764:  from 192.168.100.17 to 192.168.99.0/24 lookup main 
+32765:  from 192.168.100.17 lookup main map-to 205.254.211.17 
+32766:  from all lookup main 
+32767:  from all lookup 253</code>
+          </pre></div></div><br class="example-break"><p>
+          Note that we now have an entry of higher priority in the RPDB
+          for any packets returning from 192.168.100.17 bound for
+          192.168.99.0/24.  The rule tells the kernel to find the route
+          for 192.168.99.0/24 (from 192.168.100.17) in the main
+          routing table.  This exception to the NAT mapping of our public
+          IP to our internal server will allow the hosts in our second
+          internal network to reach the host named <code class="systemitem">isolde</code> on
+          its private IP address.
+        </p><p>
+          If <code class="systemitem">tristan</code> were to initiate a connection to <code class="systemitem">isolde</code> now, the
+          packet would return from IP 192.168.100.17 instead of being
+          rewritten from 205.254.211.17.
+        </p><p>
+          Now we have had success creating a NAT mapping with the iproute2
+          tools and we have successfully made an exception for another
+          internal network which is connected to our linux router.  Now,
+          supposing we learn that we will be losing our IP space
+          next week, we are prepared to change our NAT rules without
+          readdressing our server network.
+        </p><p>
+          Naturally, you may not wish to create these rules manually every time
+          you want to use NAT on every device.  A standard
+          <a class="link" href="ch11s02.html#ex-sc-nat" title="Example 11.3. Static NAT SysV initialization script">SysV initialization script</a> and
+          <a class="link" href="ch11s02.html#ex-sc-static-nat" title="Example 11.4. Static NAT configuration file">configuration file</a>
+          can ease the burden of managing a number of NAT IPs on your system.
+        </p></div><div class="footnotes"><br><hr style="width:100; text-align:left;margin-left: 0"><div id="ftn.idm2560" class="footnote"><p><a href="#idm2560" class="para"><sup class="para">[31] </sup></a>
+          In the kernel code tree, stateless NAT, <span class="command"><strong>iproute2</strong></span> NAT can be
+          located in the file <code class="filename">net/ipv4/ip_nat_dumb.c</code>.
+          Even in the kernel, it has this reputation.
+        </p></div><div id="ftn.idm2590" class="footnote"><p><a href="#idm2590" class="para"><sup class="para">[32] </sup></a>
+              If you are having some difficulty understanding the
+              output of <span class="command"><strong>tcpdump</strong></span>, please see the
+              section on <a class="link" href="apgs05.html" title="5. tcpdump">tcpdump</a>.
+            </p></div></div></div><div class="navfooter"><hr><table width="100%" summary="Navigation footer"><tr><td width="40%" align="left"><a accesskey="p" href="ch05s02.html">Prev</a> </td><td width="20%" align="center"><a accesskey="u" href="ch05.html">Up</a></td><td width="40%" align="right"> <a accesskey="n" href="ch05s04.html">Next</a></td></tr><tr><td width="40%" align="left" valign="top">2. Application Layer Protocols with Embedded Network Information </td><td width="20%" align="center"><a accesskey="h" href="index.html">Home</a></td><td width="40%" align="right" valign="top"> 4. Stateless NAT and Packet Filtering</td></tr></table></div></body></html>

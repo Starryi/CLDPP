@@ -1,0 +1,166 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 3.2 Final//EN">
+<HTML>
+<HEAD>
+ <META NAME="GENERATOR" CONTENT="LinuxDoc-Tools 0.9.72">
+ <TITLE>Compressed TCP/IP-Sessions using SSH-like tools</TITLE>
+</HEAD>
+<BODY>
+<H1>Compressed TCP/IP-Sessions using SSH-like tools</H1>
+
+ 
+<H2>Sebastian Schreiber &lt;Schreib@SySS.de&gt;
+ </H2>2.2.2000
+ 
+<H2><A NAME="s1">1. Introduction  </A></H2>
+
+<P>In the past, we used to compress files in order to save disk space. Today,
+disk space is cheap - but bandwidth is limited. By compressing data streams,
+you achieve two goals:</P>
+<P>1) You save bandwidth/transfered volume (that is important if you have
+to pay for traffic or if your network is loaded.).</P>
+<P>2) Speeding up low-bandwidth connections (Modem, GSM, ISDN).</P>
+<P>This HowTo explains how to save both bandwith and connection time by using
+tools like SSH1, SSH2, OpenSSH or LSH.</P>
+<H2><A NAME="s2">2. Compressing HTTP/FTP,...  </A></H2>
+
+<P>My office is connected with a 64KBit ISDN line to the internet, so the
+maximum transfer rate is about 7K/s. You can speed up the connection by compressing
+it: when I download files, Netscape shows up a transfer rate of up to 40K/s
+(Logfiles are compressable by factor 15). SSH is a tool that is mainly designed
+to build up secure connections over unsecured networks. Further more, SSH is
+able to compress connections and to do port forwarding (like rinetd or redir).
+So it is the appropriate tool to compress any simple TCP/IP connection. "Simple"
+means, that only one TCP-connection is opened. An FTP-connections or the connection
+between M$-Outlook and MS-Exchange are not simple as several connections
+are established. SSH uses the LempleZiv (LZ77) compression algorithm - so you
+will achieve the same high compression rate as winzip/pkzip. In order to compress
+all HTTP-connections from my intranet to the internet, I just have to execute
+one command on my dial-in machine: </P>
+<P><CODE>ssh -l &lt;login ID&gt; &lt;hostname&gt; -C -L8080:&lt;proxy_at_ISP&gt;:80
+-f sleep 10000</CODE> </P>
+<P>&lt;<CODE>hostname</CODE>&gt; = host that is located at my ISP. SSH-access is required.</P>
+<P>&lt;<CODE>login ID</CODE>&gt; = my login-ID on &lt;<CODE>hostname</CODE>&gt;</P>
+<P><CODE>&lt;proxy_at_ISP&gt; =</CODE>the web proxy of my ISP</P>
+<P>My browser is configured to use <CODE>localhost:8080</CODE> as proxy. My laptop connects
+to the same socket. The connection is compressed and forwarded to the real
+proxy by SSH. The infrastructure looks like:</P>
+<P>
+<PRE>
+                  64KBit ISDN
+My PC--------------------------------A PC (Unix/Linux/Win-NT) at my ISP
+SSH-Client         compressed        SSH-Server, Port 22
+Port 8080                             |
+ |                                    |
+ |                                    |
+ |                                    |
+ |10MBit Ethernet                     |100MBit
+ |not compressed                      |not compressed
+ |                                    |
+ |                                    |
+My second PC                         ISP's WWW-proxy
+with Netscape,...                    Port 80
+(Laptop)
+
+ 
+</PRE>
+</P>
+<H2><A NAME="s3">3. Compressing Email  </A></H2>
+
+<H2><A NAME="ss3.1">3.1 Incoming Emails (POP3, IMAP4)  </A>
+</H2>
+
+<P>Most people fetch their email from the mailserver via POP3. POP3 is a protocol
+with many disadvantages:</P>
+<P>
+<OL>
+<LI>POP3 transfers password in clear text. (There are SSL-implementations of
+POP/IMAP and a challenge/response authentication, defined in RFC-2095/2195).</LI>
+<LI>POP3 causes much protocol overhead: first the client requests a message
+than the server sends the message. After that the client requests the transferred
+article to be deleted. The server confirms the deletion. After that the server
+is ready for the next transaction. So 4 transactions are needed for each email.</LI>
+<LI>POP3 transfers the mails without compression although email is highly compressible
+(factor=3.5).</LI>
+</OL>
+</P>
+<P>You could compress POP3 by forwarding localhost:110 through a compressed
+connection to your ISP's POP3-socket. After that you have to tell your mail
+client to connect to localhost:110 in order to download mail. That secures
+and speeds up the connection -- but the download time still suffers from the
+POP3-inherent protocol overhead.</P>
+<P> </P>
+<P>It makes sense to substitute POP3 by a more efficient protocol. The idea
+is to download the entire mailbox at once without generating protocol overhead.
+Furthermore it makes sense to compress the connections. The appropriate tool
+which offers both features is SCP. You can download your mail-file like this:</P>
+<P> </P>
+<P><CODE>scp -C -l loginId:/var/spool/mail/loginid /tmp/newmail</CODE></P>
+<P> </P>
+<P>But there is a problem: what happens if a new email arrives at the server
+during the download of your mailbox? The new mail would be lost. Therefore
+it makes more sense to use the following commands:</P>
+<P><CODE>ssh -l loginid mailserver -f mv /var/spool/mail/loginid /tmp/loginid_fetchme</CODE></P>
+<P><CODE>scp -C -l loginid:/tmp/my_new_mail /tmp/loginid_fetchme</CODE></P>
+<P>A move (mv) is a elementary operation, so you won't get into truble if
+you receive new mail during the execution of the comands. But if the mail server
+directories /tmp/ and /var/spool/mail are not on the same disc you might get
+problems. A solution is to create a lockfile on the server before you execute
+the mv: <CODE>touch /var/spool/mail/loginid.lock</CODE>. You should remove it, after that.
+A better solution is to move the file loginid in the same directory:</P>
+<P><CODE>ssh -l loginid mailserver -f mv /var/spool/mail/loginid /var/spool/mail/loginid_fetchme</CODE></P>
+<P>After that you can use formail instead of procmail in order to filter /tmp/newmail
+into the right folder(s): <CODE>formail -s procmail &lt; /tmp/newmail</CODE></P>
+<H2><A NAME="ss3.2">3.2 Outgoing Email (SMTP)  </A>
+</H2>
+
+<P>You send email over compresses and encrypted SSH-connections, in order
+to:</P>
+<P>
+<UL>
+<LI>Save network traffic</LI>
+<LI>Secure the connection (This does not make sense, if the mail is transported
+over untrusted networks, later.)</LI>
+<LI>Authenticate the sender.
+Many mail servers deny mail relaying in order
+to prevent abuse. If you send an email over an SSH-connection, the remote mail
+server (i.e. sendmail or MS-exchange) thinks to be connected, locally.</LI>
+</UL>
+</P>
+<P>If you have SSH-access on the mail server, you need the following command:</P>
+<P><CODE>ssh -C -l loginid mailserver -L2525:mailserver:25</CODE></P>
+<P>If you don't have SSH-access on the mail server but to a server that is
+allowed to use your mail server as relay, the command is:</P>
+<P><CODE>ssh -C -l loginid other_server -L2525:mailserver:25</CODE></P>
+<P>After that you can configure your mail client (or mail server: see "smarthost")
+to send out mails to localhost port 2525.</P>
+<H2><A NAME="s4">4. Thoughts about performance.  </A></H2>
+
+<P>Of course compression/encryption takes CPU time. It turned out that an
+old Pentium-133 is able to encrypt and compress about 1GB/hour -- that's quite
+a lot. If you compile SSH with the option &#34;--with-none&#34; you can
+tell SSH to use no encryption. That saves a little performance. Here is a comprise
+between several download methods (during the test, a noncompressed 6MB-file
+was transfered from a 133MHz-Pentium-1 to a 233MHz Pentium2 laptop over a 10MBit
+ethernet without other load).</P>
+<P>
+<PRE>
++-------------------+--------+----------+-----------+----------------------+
+|                   |  FTP   |encrypted |compressed |compressed &amp; encrypted|
++-------------------+--------+----------+-----------+----------------------+
++-------------------+--------+----------+-----------+----------------------+
+|   Elapsed Time    | |7.6s  |   26s    |    9s     |          23s         |
++-------------------+--------+----------+-----------+----------------------+
+|    Throughput     | 790K/s |  232K/s  |  320K/s   |        264K/s        |
++-------------------+--------+----------+-----------+----------------------+
+|Compression Factor |   1    |    1     |    3.8    |          3.8         |
++-------------------+--------+----------+-----------+----------------------+
+ 
+</PRE>
+</P>
+<H2><A NAME="s5">5. Greetings  </A></H2>
+
+<P>Thanks to Harald König &lt;koenig@tat.physik.uni-tuebingen.de&gt;, who
+used rcp in order to download complete mailboxes. The latest version of this
+howto is available on <CODE>http://www.syss.de/howto.</CODE></P>
+</BODY>
+</HTML>

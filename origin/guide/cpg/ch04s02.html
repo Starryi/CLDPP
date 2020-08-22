@@ -1,0 +1,25 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1"><title>2. Big-little endian (we should have known)</title><link rel="stylesheet" type="text/css" href="style.css"><meta name="generator" content="DocBook XSL Stylesheets V1.79.1"><link rel="home" href="index.html" title="Custom Linux: A Porting Guide"><link rel="up" href="ch04.html" title="Chapter 4. Linux Still Isn't Booting"><link rel="prev" href="ch04s01.html" title="1. Memory probing, RTC and decrementors"><link rel="next" href="ch04s03.html" title="3. Ethernet: our first PCI device"></head><body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF"><div class="navheader"><table width="100%" summary="Navigation header"><tr><th colspan="3" align="center">2. Big-little endian (we should have known)</th></tr><tr><td width="20%" align="left"><a accesskey="p" href="ch04s01.html">Prev</a> </td><th width="60%" align="center">Chapter 4. Linux Still Isn't Booting</th><td width="20%" align="right"> <a accesskey="n" href="ch04s03.html">Next</a></td></tr></table><hr></div><div class="sect1"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="idm247"></a>2. Big-little endian (we should have known)</h2></div></div></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="idm249"></a>2.1. Probing the CPC700</h3></div></div></div><p>Finally, we reached the PCI-probing part of the boot process, only to discover that it didn't work. We tried communicating with the CPC700 using <code class="function">cpc700_read_local_pci_cfgb()</code>, which was supplied along with the PMPPC's LSP, and tried to read CPC's config register.  We should have gotten <code class="envar">0x1014</code>, which is the vendor ID, but we didn't. We realized that we were talking little-endian and the CPC was listening in big-endian. We made a small patch to the functions, so that we spoke big-endian to the CPC700.  We could then read the vendor ID correctly, but the rest of it still didn't work.  We didn't want to alter the code so that everything would be done big-endian style.</p></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="idm254"></a>2.2. Making CPC700 speak little-endian</h3></div></div></div><p>We discovered that the CPC700 can be initialized to do automatic byte-swapping, which does little-to-big endian convertion on the fly.  As it seems, our board was initialized to do just that.  We added a small code segment in <code class="function">setup_arch()</code>, which checks if byte-swapping is enabled, and if so, disables it:
+
+</p><pre class="programlisting">
+
+while (cnt&lt;2) {
+	cpc700_read_local_pci_cfgb(0, );
+	cpc700_read_local_pci_cfgb(1, );
+	if (l == 0 &amp;&amp; h == 0) {
+		if (cnt == 0) {
+			printk("CPC700 byte swaping enabled - trying to disable ... ");
+			cpc700_write_pifcfg_be(0x18, 0); /* disable byte-swapping */
+		} else {
+			printk("FAILED !!\n");
+			break;
+		}
+	} else {cd
+		printk("byte swapping disabled.\n");
+		break;
+	}
+	++cnt;
+}
+
+</pre><p>
+
+A short compilation later, PCI probing was working! We got some beer and partied ;-)</p></div></div><div class="navfooter"><hr><table width="100%" summary="Navigation footer"><tr><td width="40%" align="left"><a accesskey="p" href="ch04s01.html">Prev</a> </td><td width="20%" align="center"><a accesskey="u" href="ch04.html">Up</a></td><td width="40%" align="right"> <a accesskey="n" href="ch04s03.html">Next</a></td></tr><tr><td width="40%" align="left" valign="top">1. Memory probing, RTC and decrementors </td><td width="20%" align="center"><a accesskey="h" href="index.html">Home</a></td><td width="40%" align="right" valign="top"> 3. Ethernet: our first PCI device</td></tr></table></div></body></html>

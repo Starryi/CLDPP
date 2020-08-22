@@ -1,0 +1,106 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1"><title>4. Configuring and Setting up the WebDAV services</title><link rel="stylesheet" type="text/css" href="style.css"><meta name="generator" content="DocBook XSL Stylesheets V1.79.1"><link rel="home" href="index.html" title="Apache based WebDAV Server with LDAP and SSL"><link rel="up" href="index.html" title="Apache based WebDAV Server with LDAP and SSL"><link rel="prev" href="ar01s03.html" title="3. Installation"><link rel="next" href="ar01s05.html" title="5. WebDAV server management"></head><body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF"><div class="navheader"><table width="100%" summary="Navigation header"><tr><th colspan="3" align="center">4. Configuring and Setting up the
+ WebDAV services</th></tr><tr><td width="20%" align="left"><a accesskey="p" href="ar01s03.html">Prev</a> </td><th width="60%" align="center"> </th><td width="20%" align="right"> <a accesskey="n" href="ar01s05.html">Next</a></td></tr></table><hr></div><div class="sect1"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="config-webdav"></a>4. Configuring and Setting up the
+ WebDAV services</h2></div></div></div><p> Now for the easy part. In this section we will WebDAV enable a
+directory under Apache root.  </p><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="idm293"></a>4.1. Modifications to  the
+<code class="filename">/usr/local/apache/conf/httpd.conf</code></h3></div></div></div><p>
+Please verify that the following Apache directive appears in the 
+<code class="filename">/usr/local/apache/conf/httpd.conf</code> :</p><pre class="screen">
+  Addmodule mod_dav.c
+</pre><p> If it does not please add it. This directive informs Apache
+about DAV capability. The directive must be placed outside any
+container.  </p><p>
+Next we must specify where Apache should store 
+the DAVLockDB file. DAVLockDB is a lock database for the WebDAV. 
+This directory should be writable by the httpd process.
+</p><p>
+I store the DAVLock file under <code class="filename">/usr/local/apache/var</code>.
+I use this directory for other purposes as well. Please add the
+following line to your
+<code class="filename">/usr/local/apache/conf/httpd.conf</code> to specify
+that the DAVLockDB file will be under
+<code class="filename">/usr/local/apache/var</code> : </p><pre class="screen">
+  DAVLockDB      /usr/local/apache/var/DAVLock 
+</pre><p>The directive must be placed outside any container.</p></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="idm309"></a>4.2. Creating a directory for DAVLockDB</h3></div></div></div><p> As mentioned above a directory must be created  for DAVLockDB
+that can be written by the web server process. Usually web server
+process runs under the user '<span class="emphasis"><em>nobody</em></span>' . Please
+verify this for your system using the command: 
+</p><pre class="screen"><span class="command"><strong>ps -ef | grep httpd</strong></span></pre><p>
+Under <code class="filename">/usr/local/apache</code> create
+the directory and set the permissions on it using the following
+commands:  </p><pre class="screen">
+  <span class="command"><strong># cd /usr/local/apache</strong></span>
+  <span class="command"><strong># mkdir var</strong></span>
+  <span class="command"><strong># chmod -R 755 var/</strong></span>
+  <span class="command"><strong># chown -R nobody var/</strong></span>
+  <span class="command"><strong># chgrp -R nobody var/</strong></span>
+</pre></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="idm323"></a>4.3. Enabling DAV</h3></div></div></div><p> Enabling DAV is a trivial task. To enable DAV for a directory
+under Apache root, just add the following directive in the container
+for that particular directory: </p><pre class="screen">
+  DAV On
+</pre><p> This directive will enable DAV for the directory and its
+sub-directories.  </p><p>The following is a sample configuration that will enable WebDAV
+and LDAP authentication on
+<code class="filename">/usr/local/apache/htdocs/DAVtest</code>.  Place this in
+the <code class="filename">/usr/local/apache/conf/httpd.conf</code> file.
+</p><pre class="screen">
+ DavLockDB /tmp/DavLock
+&lt;Directory "/usr/local/apache2/htdocs/DAVtest"&gt;
+Options Indexes FollowSymLinks
+AllowOverride None
+order allow,deny
+allow from all
+AuthName "SMA Development server"
+AuthType Basic
+LDAP_Debug On
+#LDAP_Protocol_Version 3
+#LDAP_Deref NEVER
+#LDAP_StartTLS On
+LDAP_Server you.ldap.server.com 
+#LDAP_Port 389
+# If SSL is on, must specify the LDAP SSL port, usually 636
+LDAP_Port 636
+LDAP_CertDbDir /usr/local/apache2/sslcert
+Base_DN "o=SDS"
+UID_Attr uid
+DAV On
+#require valid-user
+require valid-user 
+#require roomnumber "123 Center Building"
+#require filter "(&amp;(telephonenumber=1234)(roomnumber=123))"
+#require group cn=rcs,ou=Groups
+&lt;/Directory&gt;
+</pre></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="idm333"></a>4.4. Create a Directory called DAVtest</h3></div></div></div><p>As mentioned in a earlier section, all DAV directories have to
+be writable by the WebServer process. In this example we assume
+WebServer is running under username '<span class="emphasis"><em>nobody</em></span>'.
+This is usually the case. To check httpd is running under what user,
+please use: </p><pre class="screen"><span class="command"><strong># ps -ef | grep httpd</strong></span></pre><p>Create a test directory  called '<code class="filename">DAVtest</code>'
+under <code class="filename">/usr/local/apache2/htdocs</code> :</p><p><span class="command"><strong># mkdir /usr/local/apache/htdocs/DAVtest</strong></span></p><p>Change the permissions on the directory  to make it is
+read-writable by the httpd process. Assuming the httpd is running
+under username '<span class="emphasis"><em>nobody</em></span>', use the following
+commands:</p><pre class="screen">
+  # cd /usr/local/apache/htdocs
+  # chmod -R 755 DAVtest/
+  # chown -R nobody DAVtest/
+  # chgrp -R nobody DAVtest/
+</pre></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="idm347"></a>4.5. Restart Apache</h3></div></div></div><p> Finally you must run the configuration test routine that comes
+with Apache to  verify the syntax in <code class="filename">httpd.conf</code> :
+</p><pre class="screen"><span class="command"><strong># /usr/local/apache/bin/apachectl configtest</strong></span></pre><p>
+If you get error messages please verify that you followed all of
+the above mentioned steps correctly. If you can not figure out the
+error message feel free to email me with the error message
+(<a class="ulink" href="mailto:saqib@seagate.com" target="_top">saqib@seagate.com</a>).
+</p><p>If the configtest is successful start the apache web-server: </p><p><span class="command"><strong># /usr/local/apache/bin/apachectl restart</strong></span></p><p>Now you have WebDAV enabled Apache Server with LDAP
+authentication and SSL encryption.  </p></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="idm359"></a>4.6. WebDAV server protocol compliance testing</h3></div></div></div><p>It is very important that the WebDAV that we just implemented be fully complaint with the WebDAV-2 protocol. If it is not 
+fully compatible, the client side WebDAV applications will not function properly.</p><p>To test the complaince we will use a tool called Litmus. Litmus is a WebDAV server protocol compliance test suite, 
+which aims to test whether a server is compliant with the WebDAV protocol as specified in RFC2518. </p><p>Please download the Litmus source code from <a class="ulink" href="http://www.webdav.org/neon/litmus/" target="_top">http://www.webdav.org/neon/litmus/</a> and place it in the /tmp/downloads directory.</p><p>Then use gzip and tar to extract the files:</p><pre class="screen">
+<span class="command"><strong># cd /tmp/downloads</strong></span>
+<span class="command"><strong># gzip -d litmus-0.6.x.tar.gz</strong></span>
+<span class="command"><strong># tar -xvf litmus-0.6.x.tar</strong></span>
+<span class="command"><strong># cd litmus-0.6.x</strong></span>
+</pre><p>Compiling and installing Litmus is easy:</p><pre class="screen">
+<span class="command"><strong># ./configure</strong></span>
+<span class="command"><strong># make</strong></span>
+<span class="command"><strong># make install</strong></span>
+</pre><p><span class="command"><strong>make install</strong></span> will install the Litmus binary files under <code class="filename">/usr/local/bin</code> and the help files under <code class="filename">/usr/local/man</code></p><p>To the test the complaince of the WebDAV server that you just installed, please use the following command</p><pre class="screen">
+<span class="command"><strong># /usr/local/bin/litmus http://you.dav.server/DAVtest userid passwd</strong></span>
+</pre></div></div><div class="navfooter"><hr><table width="100%" summary="Navigation footer"><tr><td width="40%" align="left"><a accesskey="p" href="ar01s03.html">Prev</a> </td><td width="20%" align="center"> </td><td width="40%" align="right"> <a accesskey="n" href="ar01s05.html">Next</a></td></tr><tr><td width="40%" align="left" valign="top">3. Installation </td><td width="20%" align="center"><a accesskey="h" href="index.html">Home</a></td><td width="40%" align="right" valign="top"> 5. WebDAV server management</td></tr></table></div></body></html>

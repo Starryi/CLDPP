@@ -1,0 +1,486 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN""http://www.w3.org/TR/html4/loose.dtd">
+<HTML
+><HEAD
+><TITLE
+>Monitoring Network Performance</TITLE
+><META
+NAME="GENERATOR"
+CONTENT="Modular DocBook HTML Stylesheet Version 1.79"><LINK
+REL="HOME"
+TITLE="Tuning Linux"
+HREF="index.html"><LINK
+REL="UP"
+TITLE="Network Tuning"
+HREF="network.html"><LINK
+REL="PREVIOUS"
+TITLE="Wireless Ethernet"
+HREF="networkwireless.html"><LINK
+REL="NEXT"
+TITLE="Kernel Tuning"
+HREF="kernel.html"></HEAD
+><BODY
+CLASS="SECTION"
+BGCOLOR="#FFFFFF"
+TEXT="#000000"
+LINK="#0000FF"
+VLINK="#840084"
+ALINK="#0000FF"
+><DIV
+CLASS="NAVHEADER"
+><TABLE
+SUMMARY="Header navigation table"
+WIDTH="100%"
+BORDER="0"
+CELLPADDING="0"
+CELLSPACING="0"
+><TR
+><TH
+COLSPAN="3"
+ALIGN="center"
+>Tuning Linux</TH
+></TR
+><TR
+><TD
+WIDTH="10%"
+ALIGN="left"
+VALIGN="bottom"
+><A
+HREF="networkwireless.html"
+ACCESSKEY="P"
+>Prev</A
+></TD
+><TD
+WIDTH="80%"
+ALIGN="center"
+VALIGN="bottom"
+>Chapter 5. Network Tuning</TD
+><TD
+WIDTH="10%"
+ALIGN="right"
+VALIGN="bottom"
+><A
+HREF="kernel.html"
+ACCESSKEY="N"
+>Next</A
+></TD
+></TR
+></TABLE
+><HR
+ALIGN="LEFT"
+WIDTH="100%"></DIV
+><DIV
+CLASS="SECTION"
+><H1
+CLASS="SECTION"
+><A
+NAME="NETWORKMONITORING"
+>5.7. Monitoring Network Performance</A
+></H1
+><P
+>      The best way to make sure your network is not the bottleneck
+      is to monitor how much traffic is flowing.  Because of collision
+      detection and avoidance in Ethernet, once the load gets above
+      about 50% to 60% of its maximum, you will start to see degrading 
+      performance
+      if using hubs.  This number if higher for switches, but still exists
+      since the silicon on the switch needs to analyze and move the data
+      around.
+    </P
+><P
+>      To make best use of your networking equipment, you will want to
+      monitor the amount of traffic that is flowing through the network.
+      The easiest way to do this is to use <ACRONYM
+CLASS="ACRONYM"
+>SNMP</ACRONYM
+>,
+      or Simple Network Management Protocol.  SNMP was designed to manage
+      and monitor machines via the network, be it servers, desktops, or
+      other network devices such as switches or network storage.  As you
+      would guess, there are SNMP clients and servers avilable for Linux
+      to monitor the statistics and usage of network interfaces.
+    </P
+><P
+>      SNMP uses an <ACRONYM
+CLASS="ACRONYM"
+>MIB</ACRONYM
+> or Management Information 
+      Base to keep track of the features of an SNMP device.  While
+      a Linux box can have things like monitoring the number of
+      users logged in, a Cisco router will not need these functions.
+      So the MIBs are used to identify devices and their particular
+      features.
+    </P
+><P
+>      The SNMP daemon for Linux is net-snmp, formerly known as usd-snmp,
+      and based on the cmu SNMP package.  Your distribution should 
+      be mostly configured.  The only thing you need to do is set
+      the community name, which is really just the password to access
+      the snmpd server.  By default, the community name is
+      <SPAN
+CLASS="QUOTE"
+>"private"</SPAN
+>, but should be changed to something else.
+      You will also want to change the security such that you have readonly
+      access to <SPAN
+CLASS="APPLICATION"
+>snmpd</SPAN
+>.
+    </P
+><TABLE
+BORDER="1"
+BGCOLOR="#E0E0E0"
+WIDTH="100%"
+><TR
+><TD
+><FONT
+COLOR="#000000"
+><PRE
+CLASS="SCREEN"
+>#        sec.name  source          community
+com2sec  paranoid  default         public
+#com2sec readonly  default         public
+#com2sec readwrite default         private</PRE
+></FONT
+></TD
+></TR
+></TABLE
+><P
+>      Change the <SPAN
+CLASS="QUOTE"
+>"paranoid"</SPAN
+> above to read <SPAN
+CLASS="QUOTE"
+>"readonly"</SPAN
+>
+      and restart <SPAN
+CLASS="APPLICATION"
+>snmpd</SPAN
+>.
+    </P
+><DIV
+CLASS="NOTE"
+><P
+></P
+><TABLE
+CLASS="NOTE"
+WIDTH="100%"
+BORDER="0"
+><TR
+><TD
+WIDTH="25"
+ALIGN="CENTER"
+VALIGN="TOP"
+><IMG
+SRC="../images/note.png"
+HSPACE="5"
+ALT="Note"></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+>        This setting will give readonly access to the entire world to your
+	SNMP server.  While a malicious intruder will not be able to change
+	data on your machine, it can give them plenty of information about
+	your box to find a weakness and exploit it.  You can change the
+	<SPAN
+CLASS="QUOTE"
+>"source"</SPAN
+> entry to a machine name, a network address.
+	Default means any machine can access <SPAN
+CLASS="APPLICATION"
+>snmpd</SPAN
+>.
+      </P
+></TD
+></TR
+></TABLE
+></DIV
+><P
+>      You can test that <SPAN
+CLASS="APPLICATION"
+>snmpd</SPAN
+> is working
+      properly by using <B
+CLASS="COMMAND"
+>snmpwalk</B
+> to
+      query <B
+CLASS="COMMAND"
+>snmpd</B
+>.
+    </P
+><P
+><B
+CLASS="COMMAND"
+>snmpwalk</B
+>  {<TT
+CLASS="REPLACEABLE"
+><I
+>host</I
+></TT
+>} {<TT
+CLASS="REPLACEABLE"
+><I
+>community</I
+></TT
+>} [<TT
+CLASS="REPLACEABLE"
+><I
+>start point</I
+></TT
+>]</P
+><TABLE
+BORDER="1"
+BGCOLOR="#E0E0E0"
+WIDTH="100%"
+><TR
+><TD
+><FONT
+COLOR="#000000"
+><PRE
+CLASS="SCREEN"
+>$ snmpwalk 192.168.1.175 public system.sysDescr.0
+system.sysDescr.0 = Linux clint 2.2.18 #1 Mon Dec 18 11:23:05 EST 2000 i686
+$</PRE
+></FONT
+></TD
+></TR
+></TABLE
+><P
+>      Since this example uses system.sysDescr.0 as its start point, there is
+      only one entry that gets listed, that of the output of
+      <B
+CLASS="COMMAND"
+>uname</B
+>.
+    </P
+><DIV
+CLASS="SECTION"
+><H2
+CLASS="SECTION"
+><A
+NAME="NETWORKMONITORINGMRTG"
+>5.7.1. Network Monitoring with MRTG</A
+></H2
+><P
+>        The most popular application for monitoring network traffic is <A
+HREF="http://www.mrtg.org/"
+TARGET="_top"
+>MRTG</A
+>, the Multi Router Traffic
+	Grapher.
+        MRTG tracks and graphs network usage in graphs ranging from the last 24
+        hours to a year, all on a web page.  MRTG uses SNMP to fetch information
+        from routers.  You can also track individual servers for ingoing and
+        outgoing traffic.
+      </P
+><DIV
+CLASS="NOTE"
+><P
+></P
+><TABLE
+CLASS="NOTE"
+WIDTH="100%"
+BORDER="0"
+><TR
+><TD
+WIDTH="25"
+ALIGN="CENTER"
+VALIGN="TOP"
+><IMG
+SRC="../images/note.png"
+HSPACE="5"
+ALT="Note"></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+>          The process of monitoring a server using SNMP will consume a small
+          portion of network, memory, and CPU.
+        </P
+></TD
+></TR
+></TABLE
+></DIV
+><P
+>        MRTG is available for Red Hat and Debian distributions.  You can also
+        download the source from the MRTG home page.  Once installed, you
+        will need to configure MRTG to point to the servers or routers you wish
+        to monitor.  You can do this with <B
+CLASS="COMMAND"
+>cfgmaker</B
+>.
+        The options to cfgmaker have to include the machine and community name
+	that you want to monitor.
+      </P
+><TABLE
+BORDER="1"
+BGCOLOR="#E0E0E0"
+WIDTH="100%"
+><TR
+><TD
+><FONT
+COLOR="#000000"
+><PRE
+CLASS="SCREEN"
+>mkomarinski@clint:~$ cfgmaker public@localhost
+--base: Get Device Info on public@localhost
+--base: Vendor Id: 
+--base: Populating confcache
+--base: Get Interface Info
+--base: Walking ifIndex
+--base: Walking ifType
+--base: Walking ifSpeed
+--base: Walking ifAdminStatus
+--base: Walking ifOperStatus
+# Created by 
+# /usr/bin/cfgmaker public@localhost
+
+
+### Global Config Options
+
+#  for Debian
+WorkDir: /var/www/mrtg
+
+#  or for NT
+# WorkDir: c:\mrtgdata
+
+### Global Defaults
+
+#  to get bits instead of bytes and graphs growing to the right
+# Options[_]: growright, bits
+
+
+######################################################################
+# System: clint
+# Description: Linux clint 2.2.18 #1 Mon Dec 18 11:23:05 EST 2000 i686
+# Contact: mkomarinski@valinux.com
+# Location: Laptop (various locations)
+######################################################################
+### Interface 3 &#62;&#62; Descr: 'wvlan0' | Name: '' | Ip: '192.168.1.175' | Eth:
+'00-02-2d-08-ae-c1' ###
+
+Target[localhost_3]: 3:public@localhost
+MaxBytes[localhost_3]: 1250000
+Title[localhost_3]: Traffic Analysis for 3 -- clint
+PageTop[localhost_3]: &#60;H1&#62;Traffic Analysis for 3 -- clint&#60;/H1&#62;
+ &#60;TABLE&#62;
+   &#60;TR&#62;&#60;TD&#62;System:&#60;/TD&#62;     &#60;TD&#62;clint in Laptop (various
+locations)&#60;/TD&#62;&#60;/TR&#62;
+   &#60;TR&#62;&#60;TD&#62;Maintainer:&#60;/TD&#62;
+&#60;TD&#62;mkomarinski@valinux.com&#60;/TD&#62;&#60;/TR&#62;
+   &#60;TR&#62;&#60;TD&#62;Description:&#60;/TD&#62;&#60;TD&#62;wvlan0
+&#60;/TD&#62;&#60;/TR&#62;
+   &#60;TR&#62;&#60;TD&#62;ifType:&#60;/TD&#62;     &#60;TD&#62;ethernetCsmacd
+(6)&#60;/TD&#62;&#60;/TR&#62;
+   &#60;TR&#62;&#60;TD&#62;ifName:&#60;TD&#62;     &#60;TD&#62;&#60;/TD&#62;&#60;/TR&#62;
+   &#60;TR&#62;&#60;TD&#62;Max Speed:&#60;/TD&#62;  &#60;TD&#62;1250.0
+kBytes/s&#60;/TD&#62;&#60;/TR&#62;
+   &#60;TR&#62;&#60;TD&#62;Ip:&#60;/TD&#62;         &#60;TD&#62;192.168.1.175
+()&#60;/TD&#62;&#60;/TR&#62;
+ &#60;/TABLE&#62;</PRE
+></FONT
+></TD
+></TR
+></TABLE
+><P
+>        All the configuration information has been pulled from
+	<SPAN
+CLASS="APPLICATION"
+>snmpd</SPAN
+>.  You can redirect the output
+	of <B
+CLASS="COMMAND"
+>cfgmaker</B
+> into
+	<TT
+CLASS="FILENAME"
+>/etc/mrtg.cfg</TT
+>.
+      </P
+><P
+>        Most installations of <SPAN
+CLASS="APPLICATION"
+>mrtg</SPAN
+> will
+	include a <SPAN
+CLASS="APPLICATION"
+>cron</SPAN
+> process to run
+	<B
+CLASS="COMMAND"
+>mrtg</B
+> if <TT
+CLASS="FILENAME"
+>/etc/mrtg.cfg</TT
+>
+	exists every five minutes.  Within five minutes,
+	you will see data on your web site.
+      </P
+></DIV
+></DIV
+><DIV
+CLASS="NAVFOOTER"
+><HR
+ALIGN="LEFT"
+WIDTH="100%"><TABLE
+SUMMARY="Footer navigation table"
+WIDTH="100%"
+BORDER="0"
+CELLPADDING="0"
+CELLSPACING="0"
+><TR
+><TD
+WIDTH="33%"
+ALIGN="left"
+VALIGN="top"
+><A
+HREF="networkwireless.html"
+ACCESSKEY="P"
+>Prev</A
+></TD
+><TD
+WIDTH="34%"
+ALIGN="center"
+VALIGN="top"
+><A
+HREF="index.html"
+ACCESSKEY="H"
+>Home</A
+></TD
+><TD
+WIDTH="33%"
+ALIGN="right"
+VALIGN="top"
+><A
+HREF="kernel.html"
+ACCESSKEY="N"
+>Next</A
+></TD
+></TR
+><TR
+><TD
+WIDTH="33%"
+ALIGN="left"
+VALIGN="top"
+>Wireless Ethernet</TD
+><TD
+WIDTH="34%"
+ALIGN="center"
+VALIGN="top"
+><A
+HREF="network.html"
+ACCESSKEY="U"
+>Up</A
+></TD
+><TD
+WIDTH="33%"
+ALIGN="right"
+VALIGN="top"
+>Kernel Tuning</TD
+></TR
+></TABLE
+></DIV
+></BODY
+></HTML
+>

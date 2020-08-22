@@ -1,0 +1,3264 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1"><title>The X Window User HOWTO</title><link rel="stylesheet" type="text/css" href="style.css"><meta name="generator" content="DocBook XSL Stylesheets V1.79.1"><meta name="description" content="v4.x changes: - artheader tag changed to articleinfo - graphic tag is being depricated in DocBook 5.x. To prepare for this, you should instead use the mediaobject tag. - file format for imagedata has to be in capital letters. - added support for PNG (notation in the DTD) --s+ [ser@metalab.unc.edu] aspell -H -c ~/ldp/x-user/LDP/howto/docbook/XWindow-User-HOWTO.sgml submit@linuxdoc.org export CVSROOT=:pserver:hal@cvs.linuxdoc.org:/cvsroot cvs -d $CVSROOT login pword: XXXXXXXXXXXXXX $cvs get LDP/howto/docbook/XWindow-User-HOWTO.sgml upload... $ cvs commit XWindow-User-HOWTO.sgml !!!!!!!!!!!!!!!! (from the LDP/howto/docbook/ dir) check here: http://cvs.pld.org.pl/LDP/howto/docbook/XWindow-User-HOWTO.sgml ==================================== Start 3.1: TODO: Changes: http://www.plig.org/xwinman (plus freshmeat) VNC vs X for performance on network. lbxproxy, performance. Add fluxbox. Start rewrite 01/13/02 Hal Burgiss. Changes: Converted to DocBook Rewrite! Rewrite! A zillion changes. ToDo: $DISPLAY http://www.superant.com/cgi-bin/smalllinux.pl?smallX http://www.linuxgazette.com/issue27/kaszeta.html (xdm) http://linux.daphnis.com/RedHat/Custom-X-Tips.html#toc4 (Xclients, etc) http://www.linuxjournal.com/print.php?sid=5304 (X config, etc) log file http://www.linux.gr/cgi-bin/man2html/usr/X11R6/man/man7/X.7.gz http://www.x-docs.org/ startx &amp;&gt; log _X11TransSocketUNIXConnect: Can't connect: errno = 111 giving up. xinit: Connection refused (errno 111): unable to connect to X server xinit: No such process (errno 3): Server error. ## Makefile to build this doc as HTML and TXT #################### # X Windows User HOWTO Makefile # # Hal Burgiss hal@foobox.net # TITLE = XWindow-User-HOWTO EXT = sgml SRC_DIR = LDP/howto/docbook HTML_DIR = X-USER SRC = $(SRC_DIR)/$(TITLE).$(EXT) BUILD = jade -t sgml -ihtml -d /usr/lib/sgml/stylesheets/ldp.dsl\#html BUILD_TXT = jade -t sgml -i html -d /usr/lib/sgml/stylesheets/ldp.dsl\#html -V nochunks SPELL_CMD = aspell -H -c LINKS_CMD = /usr/bin/linkchecker *html EDIT_CMD = /usr/bin/vim -g TBROWSER = w3m TMP_TXT = __tmp.sgml WWW=/var/www/html/ldp/x-user SRC_URL = http://feenix.burgiss.net/ldp/x-user/$(TITLE).$(EXT).gz all: doc txt doc: html html: rm -fr $(HTML_DIR) mkdir -p __tmp_htmls mv -f *.html __tmp_htmls 2&gt;/dev/null || : mkdir -p $(HTML_DIR) $(BUILD) $(SRC) ||\ (rm -f *.html &amp;&amp; mv -f __tmp_htmls/* . || : &amp;&amp; rm -rf __tmp_htmls &amp;&amp; false) mv -f *html $(HTML_DIR) mv -f __tmp_htmls/* . 2&gt;/dev/null || : rm -fr __tmp_htmls clean: rm -fr $(HTML_DIR) *~ __tmp_htmls edit: $(EDIT_CMD) $(SRC) spell: $(SPELL_CMD) $(SRC) spellchecker: spell links: cd $(HTML_DIR) &amp;&amp; $(LINKS_CMD) linkchecker: links linkcheck: links txt: $(BUILD_TXT) $(SRC) &gt; $(TMP_TXT).html $(TBROWSER) -dump $(TMP_TXT).html &gt; $(TITLE).txt &amp;&amp; gzip -f $(TITLE).txt &amp;&amp; rm -f $(TMP_TXT).html text: txt www: cp -fv $(HTML_DIR)/* $(TITLE).txt.gz $(SRC) $(WWW) gzip -f $(WWW)/$(TITLE).sgml rsync -auv $(WWW)/* feenix://$(WWW)/ submit: @echo &quot;Updated and ready: $(SRC_URL)&quot; |\ mail -s &quot;$(TITLE) update&quot; submit@linuxdoc.org &amp;&amp;\ echo &quot; $(TITLE) Submitted!&quot; This document provides basic information on understanding and configuring the X Window System for Linux users. This is meant to be an introductory level document. A basic knowledge of software configuration is assumed, as is the presence of an installed and working X Window System."><meta name="keywords" content="X, X11, XFree, XFree86, X Window, GUI, windows, desktop, display, display manager, xdm"></head><body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF"><div class="article"><div class="titlepage"><div><div><h2 class="title"><a name="index.html"></a>The X Window User HOWTO</h2></div><div><div class="authorgroup"><div class="author"><h3 class="author"><span class="firstname">Christopher</span> <span class="surname">Yeleighton</span></h3><div class="affiliation"><div class="address"><p><br>
+     <code class="email">&lt;<a class="email" href="mailto:x11user@tldp.org">x11user@tldp.org</a>&gt;</code><br>
+    </p></div></div></div><div class="author"><h3 class="author"><span class="firstname">Hal</span> <span class="surname">Burgiss</span></h3><div class="affiliation"><div class="address"><p><br>
+     <code class="email">&lt;<a class="email" href="mailto:hal@foobox.net">hal@foobox.net</a>&gt;</code><br>
+    </p></div></div></div></div></div><div><p class="pubdate">v4.0 Jan. 12th, 2010</p></div><div><div class="revhistory"><table style="border-style:solid; width:100%;" summary="Revision History"><tr><th align="left" valign="top" colspan="3"><b>Revision History</b></th></tr><tr><td align="left">Revision v4.0
+  </td><td align="left">2010-01-12</td><td align="left">cy</td></tr><tr><td align="left" colspan="3">Converted to XML docbook and to the new domain.</td></tr><tr><td align="left">Revision v3.1</td><td align="left">2002-10-10</td><td align="left">hb</td></tr><tr><td align="left" colspan="3">
+      Some minor additions and updates.
+     </td></tr><tr><td align="left">Revision v3.0</td><td align="left">2002-03-06</td><td align="left">hb</td></tr><tr><td align="left" colspan="3">
+       Rewrite of the original document. Convert to DocBook. Many, many changes.
+     </td></tr></table></div></div><div><div class="abstract"><p class="title"><b>Abstract</b></p><p>
+ <a href="#ftn.ftn-changelog-dump" class="footnote" name="ftn-changelog-dump"><sup class="footnote">[1]</sup></a>
+</p><p>
+ This document provides basic information on understanding and configuring the
+ X Window System for Linux users. This is meant to be an introductory
+ level document. A basic knowledge of software configuration is assumed, as is
+ the presence of an installed and working X Window System.
+
+</p><div class="footnotes"><br><hr style="width:100; text-align:left;margin-left: 0"><div id="ftn.ftn-changelog-dump" class="footnote"><div class="literallayout"><p><a href="#ftn-changelog-dump" class="literallayout"><sup>[1] </sup></a><br>
+<br>
+v4.x changes:<br>
+- artheader tag changed to articleinfo<br>
+- graphic tag is being depricated in DocBook 5.x. To prepare for<br>
+  this, you should instead use the mediaobject tag.<br>
+- file format for imagedata has to be in capital letters.<br>
+- added support for PNG (notation in the DTD)<br>
+<br>
+<br>
+  --s+ [ser@metalab.unc.edu]<br>
+  <br>
+ aspell -H -c ~/ldp/x-user/LDP/howto/docbook/XWindow-User-HOWTO.sgml<br>
+ submit@linuxdoc.org<br>
+ <br>
+ export CVSROOT=:pserver:hal@cvs.linuxdoc.org:/cvsroot<br>
+ cvs -d $CVSROOT login<br>
+ pword: XXXXXXXXXXXXXX<br>
+<br>
+ $cvs get LDP/howto/docbook/XWindow-User-HOWTO.sgml<br>
+<br>
+ upload...<br>
+ $ cvs commit XWindow-User-HOWTO.sgml      !!!!!!!!!!!!!!!!<br>
+ (from the LDP/howto/docbook/ dir)<br>
+<br>
+check here: http://cvs.pld.org.pl/LDP/howto/docbook/XWindow-User-HOWTO.sgml<br>
+<br>
+====================================<br>
+Start 3.1:<br>
+ TODO:<br>
+<br>
+Changes:<br>
+    http://www.plig.org/xwinman (plus freshmeat)<br>
+    VNC vs X for performance on network.<br>
+    lbxproxy, performance.<br>
+    Add fluxbox.<br>
+<br>
+Start rewrite 01/13/02 Hal Burgiss.<br>
+<br>
+Changes:<br>
+ Converted to DocBook<br>
+ Rewrite! Rewrite! <br>
+ A zillion changes.<br>
+<br>
+ToDo:<br>
+ $DISPLAY<br>
+ http://www.superant.com/cgi-bin/smalllinux.pl?smallX<br>
+ http://www.linuxgazette.com/issue27/kaszeta.html (xdm)<br>
+ http://linux.daphnis.com/RedHat/Custom-X-Tips.html#toc4 (Xclients, etc)<br>
+ http://www.linuxjournal.com/print.php?sid=5304 (X config, etc)<br>
+ log file<br>
+ <br>
+http://www.linux.gr/cgi-bin/man2html/usr/X11R6/man/man7/X.7.gz<br>
+http://www.x-docs.org/<br>
+<br>
+startx &amp;&gt; log<br>
+<br>
+_X11TransSocketUNIXConnect: Can't connect: errno = 111 giving up.<br>
+xinit:  Connection refused (errno 111):  unable to connect to X server<br>
+xinit:  No such process (errno 3):  Server error.<br>
+<br>
+## Makefile to build this doc as HTML and TXT ####################<br>
+<br>
+# X Windows User HOWTO Makefile<br>
+#<br>
+# Hal Burgiss hal@foobox.net<br>
+#<br>
+<br>
+TITLE = XWindow-User-HOWTO<br>
+EXT = sgml<br>
+SRC_DIR = LDP/howto/docbook<br>
+HTML_DIR = X-USER<br>
+SRC = $(SRC_DIR)/$(TITLE).$(EXT)<br>
+<br>
+BUILD = jade -t sgml -ihtml -d /usr/lib/sgml/stylesheets/ldp.dsl\#html<br>
+BUILD_TXT = jade -t sgml -i html -d /usr/lib/sgml/stylesheets/ldp.dsl\#html -V nochunks<br>
+SPELL_CMD = aspell -H -c<br>
+LINKS_CMD = /usr/bin/linkchecker *html<br>
+EDIT_CMD = /usr/bin/vim -g<br>
+TBROWSER = w3m<br>
+TMP_TXT = __tmp.sgml<br>
+WWW=/var/www/html/ldp/x-user<br>
+SRC_URL = http://feenix.burgiss.net/ldp/x-user/$(TITLE).$(EXT).gz<br>
+<br>
+all: doc txt<br>
+<br>
+doc: html<br>
+<br>
+html:<br>
+	rm -fr $(HTML_DIR)<br>
+	mkdir -p __tmp_htmls<br>
+	mv -f *.html __tmp_htmls 2&gt;/dev/null || :<br>
+	mkdir -p $(HTML_DIR) <br>
+	$(BUILD) $(SRC) ||\<br>
+	 (rm -f *.html &amp;&amp; mv -f __tmp_htmls/* . || : &amp;&amp; rm -rf __tmp_htmls &amp;&amp; false)<br>
+	mv -f *html $(HTML_DIR)<br>
+	mv -f __tmp_htmls/* .  2&gt;/dev/null || :<br>
+	rm -fr __tmp_htmls<br>
+<br>
+clean:<br>
+	rm -fr $(HTML_DIR) *~  __tmp_htmls<br>
+<br>
+edit:<br>
+	$(EDIT_CMD) $(SRC)<br>
+<br>
+<br>
+spell:<br>
+	$(SPELL_CMD) $(SRC)<br>
+<br>
+spellchecker: spell<br>
+<br>
+<br>
+links:<br>
+	cd $(HTML_DIR) &amp;&amp; $(LINKS_CMD)<br>
+<br>
+linkchecker: links<br>
+<br>
+linkcheck: links<br>
+<br>
+txt:<br>
+	$(BUILD_TXT) $(SRC) &gt; $(TMP_TXT).html <br>
+	$(TBROWSER) -dump $(TMP_TXT).html &gt; $(TITLE).txt &amp;&amp; gzip -f $(TITLE).txt &amp;&amp; rm -f $(TMP_TXT).html<br>
+<br>
+text: txt<br>
+<br>
+www:<br>
+	cp -fv $(HTML_DIR)/* $(TITLE).txt.gz $(SRC) $(WWW)<br>
+	gzip -f $(WWW)/$(TITLE).sgml<br>
+	rsync -auv $(WWW)/* feenix://$(WWW)/<br>
+<br>
+submit:<br>
+	@echo "Updated and ready:  $(SRC_URL)" |\<br>
+	mail -s "$(TITLE) update" submit@linuxdoc.org &amp;&amp;\<br>
+	echo " $(TITLE) Submitted!"<br>
+<br>
+ </p></div></div></div></div></div></div><hr></div><div class="toc"><p><b>Table of Contents</b></p><dl class="toc"><dt><span class="sect1"><a href="#intro">1. Introduction</a></span></dt><dd><dl><dt><span class="sect2"><a href="#idm96">1.1. New Versions and ChangeLog</a></span></dt><dt><span class="sect2"><a href="#idm106">1.2. To Do</a></span></dt><dt><span class="sect2"><a href="#idm109">1.3. Feedback</a></span></dt><dt><span class="sect2"><a href="#idm113">1.4. Help!</a></span></dt><dt><span class="sect2"><a href="#idm117">1.5. Acknowledgments</a></span></dt><dt><span class="sect2"><a href="#idm124">1.6. Copyright</a></span></dt><dt><span class="sect2"><a href="#idm138">1.7. Standard Disclaimer</a></span></dt></dl></dd><dt><span class="sect1"><a href="#xfree86">2. XFree86</a></span></dt><dd><dl><dt><span class="sect2"><a href="#idm208">2.1. Hardware</a></span></dt><dt><span class="sect2"><a href="#idm239">2.2. XF86Config</a></span></dt><dt><span class="sect2"><a href="#idm300">2.3. xvidtune and Monitor Tuning</a></span></dt></dl></dd><dt><span class="sect1"><a href="#runningx">3. Running X</a></span></dt><dd><dl><dt><span class="sect2"><a href="#idm357">3.1. startx</a></span></dt><dt><span class="sect2"><a href="#idm464">3.2. Display Managers</a></span></dt></dl></dd><dt><span class="sect1"><a href="#moreconfig">4. More X Configuration</a></span></dt><dd><dl><dt><span class="sect2"><a href="#xresources">4.1. X Resources</a></span></dt><dt><span class="sect2"><a href="#idm715">4.2. xmodmap, the Keyboard and Mice</a></span></dt><dt><span class="sect2"><a href="#idm842">4.3. xset</a></span></dt></dl></dd><dt><span class="sect1"><a href="#fontscolors">5. Fonts and Colors</a></span></dt><dd><dl><dt><span class="sect2"><a href="#idm866">5.1. Fonts Demystified</a></span></dt><dt><span class="sect2"><a href="#idm1000">5.2. Colors</a></span></dt></dl></dd><dt><span class="sect1"><a href="#windowman">6. Window Managers and Desktops</a></span></dt><dd><dl><dt><span class="sect2"><a href="#idm1022">6.1. Window Managers</a></span></dt><dt><span class="sect2"><a href="#idm1065">6.2. Desktop Environments</a></span></dt></dl></dd><dt><span class="sect1"><a href="#cli">7. X and the Command Line</a></span></dt><dd><dl><dt><span class="sect2"><a href="#idm1176">7.1. xterm and friends</a></span></dt></dl></dd><dt><span class="sect1"><a href="#xsecurity">8. <span class="application">X</span> Networking and Security</a></span></dt><dt><span class="sect1"><a href="#performance">9. Performance Considerations</a></span></dt><dd><dl><dt><span class="sect2"><a href="#idm1265">9.1. Hardware</a></span></dt><dt><span class="sect2"><a href="#idm1276">9.2. Memory</a></span></dt><dt><span class="sect2"><a href="#idm1367">9.3. X over the Network</a></span></dt><dt><span class="sect2"><a href="#idm1377">9.4. Other Tips</a></span></dt></dl></dd><dt><span class="sect1"><a href="#appendix">10. Appendix</a></span></dt><dd><dl><dt><span class="sect2"><a href="#terms">10.1. Terminology and Usage</a></span></dt><dt><span class="sect2"><a href="#links">10.2. Links and other References</a></span></dt></dl></dd></dl></div><div class="sect1"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="intro"></a>1. Introduction</h2></div></div></div><p>
+ The <span class="emphasis"><em>X Window System</em></span> is an advanced, graphical
+ computing and network environment that was designed from the ground up as a
+ multi-user system. <span class="application">X</span> was first released in 1984.
+ If you are not familiar with the basic concepts surrounding
+ <span class="application">X</span> and it's related components, you should first
+ read the <em class="citetitle">X Window System Architecture Overview HOWTO</em>, <a class="ulink" href="http://linuxdoc.org/HOWTO/XWindow-Overview-HOWTO/index.html" target="_top">http://linuxdoc.org/HOWTO/XWindow-Overview-HOWTO/index.html</a>,
+ to get an idea of how the various pieces fit together. There is also 
+ an attempt to define to various <span class="application">X</span> related
+ terminology in the <a class="link" href="#terms" title="10.1. Terminology and Usage">Appendix</a>, if concepts such 
+ as <span class="quote">&#8220;<span class="quote">displays</span>&#8221;</span> and <span class="quote">&#8220;<span class="quote">X clients</span>&#8221;</span> in this context are
+ confusing to you.
+
+</p><p>
+ This document will address basic X Window configuration and usage on Linux. We will
+ also look at how <span class="application">X</span> is commonly started in Linux,
+ and how the start up can be configured, and related issues. We will
+ <span class="emphasis"><em>not</em></span> examine Window Manager (e.g.
+ <span class="application">fvwm</span>), or Desktop Environment
+ (<span class="application">KDE</span> and <span class="application">GNOME</span>)
+ configuration. There are just too many variables there, and the pace of
+ change moves too quickly. Of course, to a large extent the user interacts
+ more directly with these components than the X server itself, so additional
+ reading would be worthwhile. Check your locally installed documentation, and
+ the respective home pages for more information.
+
+</p><p>
+ Some other important points to remember here:
+
+</p><p>
+ </p><div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem"><p>
+    <span class="application">X</span> is a client-server, multi-user system in
+    every respect, and not just a GUI.
+   </p></li><li class="listitem"><p>
+   <span class="application">X</span> is not integrated into the operating system,
+   and rides on top of it, like other servers.
+  </p></li><li class="listitem"><p>
+   <span class="application">X</span> is an open standard, and runs on many platforms. 
+  </p></li><li class="listitem"><p>
+    What you actually see on the screen is the result of various components,
+    all working together: operating system, <span class="application">X</span>,
+    Window Manager, and optionally, a desktop environment like
+    <span class="application">GNOME</span> or <span class="application">KDE</span>. These
+    are all <span class="quote">&#8220;<span class="quote">plug and play</span>&#8221;</span> components, meaning you can
+    interchange an individual component without touching the other components.
+    
+  </p></li><li class="listitem"><p>
+    Each of the various components has its own configuration. This makes for a
+    very flexible, and potentially very robust, system. It also adds 
+    complexity.
+  </p></li></ul></div><p>
+</p><p>
+ The discussion here will be limited to <span class="application">X</span> as
+ implemented by <a class="ulink" href="http://xfree86.org" target="_top">The XFree86 Project,
+ Inc.</a> on Linux. There are other implementations, including
+ commercial ones. XFree86 v4.x has been out for some time now, so we will be
+ assuming that version. Much of the discussion applies to the previous 3.x
+ version as well, but there are some occasional differences.
+
+</p><p>
+ It is also worth noting that there are conceivably many ways to start
+ <span class="application">X</span>, and to set up a Linux system. We will focus on
+ the common methods found in Linux distributions. Also, vendors may vary on
+ where they put configuration files, and how they name them. Keep this in mind
+ if you see such discrepancies in this document. If this is a problem, your
+ vendor surely has their own documentation. And as always, hopefully the man
+ pages will conform to your installation.
+
+</p><p>
+ Also, we will look at various configuration files in the following sections.
+ These are all plain text files, and can be edited with your favorite editor.
+ Always make a backup copy before editing important files, in case Murphy pays
+ a visit (e.g. <span class="quote">&#8220;<span class="quote">cp /etc/X11/XF86Config-4  /etc/X11/XF86Config-4.bak</span>&#8221;</span>).
+
+</p><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="idm96"></a>1.1. New Versions and ChangeLog</h3></div></div></div><p>
+ 
+The <a class="ulink" href="http://tldp.org/HOWTO/XWindow-User-HOWTO.html" target="_top">current official version of this HOWTO </a>
+may be found at the Linux Documentation Project.
+</p><p>
+ v3.1: This is just some small, minor updates. Include link 
+ to <a class="ulink" href="http://www.plig.org/xwinman/" target="_top">http://www.plig.org/xwinman/</a>
+ as a good resource for shopping Window Managers. Add link for fluxbox, 
+ a Window Manager with Tabbed windows. And add a brief section on improving 
+ network performance. Verify links all work.
+</p><p>
+ v3.0: This is a major rewrite with several new sections. Some
+ sections were removed, with the focus more now on just
+ <span class="application">X</span> itself (and not clients like Window Managers).
+ New maintainer too :-)
+</p><p>
+ v2.0: includes corrections from Guus Bosch, Brian J.
+ Miller, and myself, as well as lots of new updates and info.
+</p><p>
+ v1.4: include corrections and additions from Anthony J., and
+ some very good security tips from Tomasz Motylewski.
+</p></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="idm106"></a>1.2. To Do</h3></div></div></div><p>
+ A rudimentary troubleshooting section. Probably for v3.2.
+
+</p></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="idm109"></a>1.3. Feedback</h3></div></div></div><p>
+ If you have questions or comments about this document, please feel free to
+ email me, Hal Burgiss at <code class="email">&lt;<a class="email" href="mailto:hal@foobox.net">hal@foobox.net</a>&gt;</code>. I welcome any
+ suggestions, corrections, or additions. If you have information you would
+ like to see in future revisions, or you would like to contribute to a future
+ revision, please drop me a note.  
+
+</p></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="idm113"></a>1.4. Help!</h3></div></div></div><p>
+ I have assumed maintainership of this document because it was abandoned, and
+ I had wanted to offer a suggested change. Well, to make a long story short,
+ this led to a major re-write. You can help make this a better document by
+ correcting inaccuracies, clarifying the unclear, and suggesting improvements.
+ There is much about this topic I may not know, or not have explained well. Your
+ help will improve this document and help other users. This document 
+ <span class="emphasis"><em>needs</em></span> your help!
+ 
+</p></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="idm117"></a>1.5. Acknowledgments</h3></div></div></div><p>
+ Thanks to the XFree86 development team for their efforts in providing a
+ robust and flexible GUI. And to the whole GNU/Linux and Open Source
+ community for making it all possible.
+ 
+</p><p>
+ Also, the original author, Ray Brigleb.
+
+</p><p>
+ Various users on comp.os.linux.x that have helped in one way or another, 
+ whether they know it or not.
+
+</p><p>
+ Lastly, <a class="ulink" href="http://google.com/linux" target="_top">http://google.com/linux</a>, 
+ who saved me much time with their incredible repository of information. Use 
+ it to answer questions not answered here!
+
+</p></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="idm124"></a>1.6. Copyright</h3></div></div></div><p>
+ Copyright © 2002, Hal Burgiss. 
+</p><p>
+ Unless otherwise stated, Linux HOWTO documents are copyrighted by their
+ respective authors. Linux HOWTO documents may be reproduced and distributed
+ in whole or in part, in any medium physical or electronic, as long as this
+ copyright notice is retained on all copies. Commercial redistribution is
+ allowed and encouraged; however, the author would like to be notified of any
+ such distributions.
+</p><p>
+ All translations, derivative works, or aggregate works incorporating any
+ Linux HOWTO documents must be covered under this copyright notice. That is,
+ you may not produce a derivative work from a HOWTO and impose additional
+ restrictions on its distribution. Exceptions to these rules may be granted
+ under certain conditions; please contact the Linux HOWTO coordinator for more
+ information. 
+ 
+</p><p>
+ In short, we wish to promote dissemination of this information through as
+ many channels as possible. However, we do wish to retain copyright on the
+ HOWTO documents, and would very much like to be notified of any plans to
+ redistribute the HOWTOs, this one in particular!
+</p><p>
+ Some of the terms mentioned in this document are trade names. Unless
+ otherwise stated, all trademarks are property of their respective owners.
+</p><p>
+ <span class="quote">&#8220;<span class="quote">X Window System</span>&#8221;</span> is a trademark of the X Consortium, Inc 
+ [now the OpenGroup?].
+
+</p><p>
+ <span class="quote">&#8220;<span class="quote">XFree86</span>&#8221;</span> is a trademark of <a class="ulink" href="http://xfree86.org" target="_top">The
+ XFree86 Project, Inc</a>.
+
+</p><p>
+ <span class="quote">&#8220;<span class="quote">Linux</span>&#8221;</span> is a Registered Trademark of Linus Torvalds.
+</p></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="idm138"></a>1.7. Standard Disclaimer</h3></div></div></div><p>
+ The information and examples given here are for illustrative purposes. Use at
+ your own risk. Every attempt has been made to insure that the content of this
+ document was accurate when written. If you find inaccuracies, please send me 
+ clarifications.
+
+</p><p>
+ References to any particular company, product or brand name should not be
+ construed as an endorsement.
+
+</p></div></div><div class="sect1"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="xfree86"></a>2. XFree86</h2></div></div></div><p>
+ Virtually every Linux distribution comes with XFree86's
+ <span class="application">X Window System</span> implementation. This project, of
+ course, provides us the X server, but also includes an extensive suite of
+ utilities and applications to help implement a fully functional GUI
+ environment.
+
+</p><p>
+ In fact, the list would be just too long to list everything that
+ comes with XFree86. In addition to the X server itself, here are a few of the
+ noteworthy utilities:
+</p><table border="0" summary="Simple list" class="simplelist"><tr><td>
+   <span class="command"><strong>xdm</strong></span> - the X Display Manager.
+ </td></tr></table><table border="0" summary="Simple list" class="simplelist"><tr><td>
+   <span class="command"><strong>xfs</strong></span> - the X Font Server.
+ </td></tr></table><table border="0" summary="Simple list" class="simplelist"><tr><td>
+  <span class="command"><strong>twm</strong></span> - a lightweight Window Manager.
+ </td></tr></table><table border="0" summary="Simple list" class="simplelist"><tr><td>
+  <span class="command"><strong>xterm</strong></span> - the best known terminal emulator. Also,
+  <span class="command"><strong>xterm3d</strong></span> and <span class="command"><strong>nxterm</strong></span>.
+ </td></tr></table><table border="0" summary="Simple list" class="simplelist"><tr><td>
+  <span class="command"><strong>xwd</strong></span> - a screen and window image capturer.
+ </td></tr></table><table border="0" summary="Simple list" class="simplelist"><tr><td>
+  <span class="command"><strong>xf86config</strong></span> - X server configuration utility.
+ </td></tr></table><table border="0" summary="Simple list" class="simplelist"><tr><td>
+  <span class="command"><strong>xdpyinfo</strong></span> - X display information utility. This
+  shows great detail about the X server.
+ </td></tr></table><table border="0" summary="Simple list" class="simplelist"><tr><td>
+  <span class="command"><strong>xlsclients</strong></span> - lists currently connected X server
+  clients.
+ </td></tr></table><table border="0" summary="Simple list" class="simplelist"><tr><td>
+  <span class="command"><strong>xlsfonts</strong></span> - lists fonts available to
+  <span class="application">X</span>.
+ </td></tr></table><table border="0" summary="Simple list" class="simplelist"><tr><td>
+  <span class="command"><strong>appres</strong></span> - lists the X <span class="quote">&#8220;<span class="quote">resources</span>&#8221;</span> that a
+  program will use.
+ </td></tr></table><table border="0" summary="Simple list" class="simplelist"><tr><td>
+  <span class="command"><strong>xfontsel</strong></span> - an application for viewing or
+  selecting fonts.
+ </td></tr></table><table border="0" summary="Simple list" class="simplelist"><tr><td>
+  <span class="command"><strong>xprop</strong></span> - a tool for displaying window  
+  <span class="quote">&#8220;<span class="quote">properties</span>&#8221;</span>, such as the Class name of the client.
+ </td></tr></table><table border="0" summary="Simple list" class="simplelist"><tr><td>
+  <span class="command"><strong>xset</strong></span> - sets user preferences for many things,
+  including mouse, keyboard, sound (bell), etc.
+ </td></tr></table><table border="0" summary="Simple list" class="simplelist"><tr><td>
+  <span class="command"><strong>xsetroot</strong></span> - a program for changing the
+  <span class="quote">&#8220;<span class="quote">root window</span>&#8221;</span> appearance, e.g. setting a background color.
+ </td></tr></table><table border="0" summary="Simple list" class="simplelist"><tr><td>
+  <span class="command"><strong>xvidtune</strong></span> - an application to adjust X server 
+  video modes and monitor related settings.
+ </td></tr></table><table border="0" summary="Simple list" class="simplelist"><tr><td>
+  <span class="command"><strong>xwininfo</strong></span> - displays information about a selected
+  <span class="quote">&#8220;<span class="quote">window</span>&#8221;</span>.
+ </td></tr></table><table border="0" summary="Simple list" class="simplelist"><tr><td>
+  <span class="command"><strong>xmodmap</strong></span> - a utility for manipulating keyboard and mouse
+  button mappings.
+ </td></tr></table><table border="0" summary="Simple list" class="simplelist"><tr><td>
+   Many, many fonts. And quite a bit of documentation as well.
+ </td></tr></table><p>
+ There are many more. We'll just touch on a few of these utilities here. But
+ feel free to explore the others. Most should have their own man pages.
+
+</p><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="idm208"></a>2.1. Hardware</h3></div></div></div><p>
+ The X server controls both input (keyboard, mouse, etc) and output (display,
+ monitor) devices.
+
+</p><p>
+ Compatible hardware is a tough topic, since it is very much a moving target.
+ We are forced here to avoid specifics, since this would surely change by the
+ time you read this. And would be tediously lengthy anyway.
+
+</p><p>
+ So let's settle for some generalities. <span class="emphasis"><em>Most</em></span> PC type
+ hardware is supported to one degree or another. Big help ;-)
+
+</p><p>
+ Rule of thumb: if it is a device that uses a long-standing, commonplace
+ protocol (e.g. PS/2), it should be well supported. Conversely, if it is
+ something relatively new, with  ground-breaking technology, the odds 
+ are not as good. This is just the nature of the beast with open source 
+ development versus manufacturers that cater more to the most popular
+ platforms. Some manufacturers are more co-operative than others too.
+
+</p><p>
+ Now, some general guidelines:
+
+</p><p>
+ </p><div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem"><p>
+     Monitors - This is easy. Linux does not really need to be compatible with
+     the monitor per se. That is the job of the video card. Any monitor that
+     your graphics card can drive should do fine. Including, flat panel 
+     monitors.
+   </p></li><li class="listitem"><p>
+     Video cards - This is much tougher. The X server is determined by the 
+     the chipset. Many, many are supported. But inevitably there are always 
+     some newer cards, or even revised cards, that are not. And some may have
+     better support and better optimization than others. Advanced
+     features such as multi-headed displays, 3D, TV out, DRI, etc., have some
+     support as well, though this should be researched first, as the support
+     may be limited. Supported cards are listed: <a class="ulink" href="http://xfree86.org/cardlist.html" target="_top">http://xfree86.org/cardlist.html</a>.
+
+   </p><p>
+     Open source drivers are often developed incrementally. For instance, a
+     particular card may work well for basic display purposes, but specialized 
+     features such as 3D may come much later in the development cycle. This
+     is a quite different development model than with proprietary drivers from 
+     the manufacturer.
+
+   </p></li><li class="listitem"><p>
+    Keyboards -- Any standard PC type keyboard should do fine,
+    including PS/2, USB and many infra-red devices. Probably many 
+    <span class="quote">&#8220;<span class="quote">non-standard</span>&#8221;</span> ones too ;-)
+
+   </p></li><li class="listitem"><p>
+    Mice and other pointer devices -- Most should be supported including 
+    PS/2, bus, serial, USB and many infra-red devices. Optical mice also. Unix
+    has long preferred three button mice, though more buttons is supported as
+    well. Many wheeled mice have X server support via the
+    <span class="quote">&#8220;<span class="quote">IMPS/2</span>&#8221;</span> (IntelliMouse), or other specific protocols, though
+    may require supplemental configuration for some individual applications.
+    (See the <a class="link" href="#links" title="10.2. Links and other References">Links</a> section.)
+   
+   </p></li><li class="listitem"><p>
+   Laptops have their own unique set of problems since the hardware tends to
+   be very specialized, and often different from what is commonly found on
+   desktop style systems. <span class="application">X</span> is supported by many.
+   Check for details at <a class="ulink" href="http://www.linux-laptop.net/" target="_top">http://www.linux-laptop.net/</a>.
+  
+  </p></li></ul></div><p>
+</p><p>
+ You can check the <span class="quote">&#8220;<span class="quote">hardware compatibility list</span>&#8221;</span> at your
+ distribution's web site too. This should give a very good idea of what 
+ <span class="emphasis"><em>should work</em></span> with your release.
+
+</p><p>
+ Newer versions of XFree86 obviously will have better hardware support. If you
+ are using an older Linux version and don't have full hardware support, see
+ about upgrading XFree86. Check first to see if your distribution has updates 
+ for your release.
+
+</p></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="idm239"></a>2.2. XF86Config</h3></div></div></div><p>
+ The primary configuration file for XFree86 is
+ <code class="filename">XF86Config</code>, which may exist on your system as
+ <code class="filename">XF86Config-4</code> for XFree86 v4.x, or possibly other
+ variations (see man page). It is typically located as
+ <code class="filename">/etc/X11/XF86Config</code>, though again, there may be
+ variations in the path. If both a <code class="filename">XF86Config-4</code> 
+ and <code class="filename">XF86Config</code> exist, XFree86 v4.x will use the former.
+ This is a required file.
+
+</p><p>
+ <code class="filename">XF86Config</code> file defines hardware devices, and other
+ critical components of the X server environment. 
+
+</p><p>
+ While this is a plain text file, and is editable, it is most often created
+ during installation by whatever utility your vendor uses for this purpose. 
+ XFree86 also includes the <span class="command"><strong>xf86config</strong></span> utility for this, 
+ but many distributions have their own such utilities. These utilities can be
+ run after installation if need be, to alter the configuration, or if new
+ hardware is installed. Read your locally installed documentation first. If
+ you attempt to hand edit this file, be sure to make a backup copy first since
+ <span class="application">X</span> will not start if this file is not to its liking
+ ;-)
+
+</p><p>
+ This file contains various <span class="quote">&#8220;<span class="quote">sections</span>&#8221;</span>. Each section defines some
+ fundamental aspect of XFree86, such as <span class="quote">&#8220;<span class="quote">InputDevice</span>&#8221;</span> (mouse,
+ keyboard, joystick, etc), <span class="quote">&#8220;<span class="quote">monitor</span>&#8221;</span>, or <span class="quote">&#8220;<span class="quote">screen</span>&#8221;</span>. The 
+ <code class="filename">XF86Config</code> man page describes the sections and
+ common values for each. Note that the values listed in the man page is not a
+ comprehensive listing. There are many device specific <span class="quote">&#8220;<span class="quote">options</span>&#8221;</span>.
+ Check <a class="ulink" href="http://xfree86.org" target="_top">http://xfree86.org</a> for notes
+ and tips on your hardware.
+
+</p><p>
+ The author's current <code class="filename">XF86Config-4</code>, as generated by Red
+ Hat's installer for XFree86 4.1:
+
+</p><p>
+ </p><pre class="screen">
+
+Section "ServerLayout"
+	Identifier "XFree86 Configured"
+	Screen      0  "Screen0" 0 0
+	InputDevice    "Mouse0" "CorePointer"
+	InputDevice    "Keyboard0" "CoreKeyboard"
+EndSection
+
+Section "Files"
+   # The location of the RGB database.
+   RgbPath     "/usr/X11R6/lib/X11/rgb"
+
+   # Multiple FontPath entries are allowed (they are concatenated together)
+   # By default, Red Hat 6.0 and later now use a font server independent of
+   # the X server to render fonts.
+   FontPath "unix/:7100"
+EndSection
+
+# Module loading section
+
+Section "Module"
+	Load  "dbe"		# Double-buffering
+	Load  "GLcore"		# OpenGL support
+	Load  "dri"		# Direct rendering infrastructure
+	Load  "glx"		# OpenGL X protocol interface
+	Load  "extmod"		# Misc. required extensions
+	Load  "v4l"		# Video4Linux
+#    Load  "fbdevhw"
+     Load  "pex5"
+     Load  "record"
+     Load  "xie"
+EndSection
+
+
+Section "InputDevice"
+	Identifier  "Keyboard0"
+	Driver      "keyboard"
+	Option      "XkbLayout"	"us"
+
+#    Option  "AutoRepeat"    "500 5"
+
+# when using XQUEUE, comment out the above line, and uncomment the
+# following line
+#    Option  "Protocol"      "Xqueue"
+
+# Specify which keyboard LEDs can be user-controlled (eg, with xset(1))
+#    Option  "Xleds"         "1 2 3"
+
+# To disable the XKEYBOARD extension, uncomment XkbDisable.
+#    Option  "XkbDisable"
+
+# To customize the XKB settings to suit your keyboard, modify the
+# lines below (which are the defaults).  For example, for a non-U.S.
+# keyboard, you will probably want to use:
+#   Option  "XkbModel"      "pc102"
+# If you have a US Microsoft Natural keyboard, you can use:
+#   Option  "XkbModel"      "microsoft"
+EndSection
+
+Section "InputDevice"
+	Identifier  "Mouse0"
+	Driver      "mouse"
+	Option      "Device" "/dev/mouse"
+	Option      "Protocol" "IMPS/2"
+	Option      "Emulate3Buttons" "off"
+	Option      "ZAxisMapping" "4 5"
+EndSection
+
+Section "Monitor"
+	Identifier "Sylvania F74"
+	VendorName "Unknown"
+	ModelName  "Unknown"
+	HorizSync   30 - 70
+	VertRefresh 55 - 120
+	Option "dpms"
+#    Modelines go here if necessary. Use xvidtune to get proper values.
+EndSection
+
+Section "Device"
+	Identifier "ATI Rage 128"
+	Driver "r128"
+	BoardName "Unknown"
+EndSection
+
+Section "Device"
+	Identifier "Linux Frame Buffer"
+	Driver "fbdev"
+	BoardName "Unknown"
+EndSection
+
+Section "Screen"
+	Identifier "Screen0"
+	Device "ATI Rage 128"
+	Monitor "Sylvania F74"
+	DefaultDepth 24
+	Subsection "Display"
+		Depth 24
+		Modes "1400x1050" "1280x1024" "1152x864" "1024x768" "800x600"
+	EndSubSection
+	Subsection "Display"
+		Depth 16
+		Modes "1600x1200" "1400x1050" "1280x1024" "1152x864" "1024x768" "800x600"
+	EndSubSection
+	Subsection "Display"
+		Depth 8
+		Modes "1024x768" "800x600" "640x480"
+	EndSubSection
+EndSection
+
+Section "DRI"
+	Mode 0666
+EndSection
+
+ </pre><p>
+</p><p>
+ Yours may look quite different. This is just one possible configuration with
+ gratuitous comments from Red Hat (and me), and is for a fairly ordinary set
+ up. There is nothing exotic here like multiple screens or displays.
+
+</p><p>
+ It is beyond the scope of this document to explain this in detail. See the 
+ <code class="filename">XF86Config</code> man page. Also, consider visiting 
+ <a class="ulink" href="http://xfree86.org" target="_top">xfree86.org</a>
+ and look for specific options that might apply to your card or other
+ hardware.
+
+</p><p>
+ Just one quick note on the <span class="quote">&#8220;<span class="quote">Screen</span>&#8221;</span> section above. Notice there are
+ three sub-sections, identified as <span class="quote">&#8220;<span class="quote">Display</span>&#8221;</span>. Each sub-section
+ has a different <span class="quote">&#8220;<span class="quote">Depth</span>&#8221;</span> specified, (a.k.a. ColorDepth). The
+ <span class="quote">&#8220;<span class="quote">Modes</span>&#8221;</span> also vary somewhat according to the respective
+ <span class="quote">&#8220;<span class="quote">Depth</span>&#8221;</span> setting. The active <span class="quote">&#8220;<span class="quote">Display</span>&#8221;</span> sub-section
+ that will be used, is determined by the <span class="quote">&#8220;<span class="quote">DefaultDepth</span>&#8221;</span> setting 
+ (unless over-ridden by command line options). The default in this example is
+ defined as <span class="quote">&#8220;<span class="quote">24</span>&#8221;</span>, so the first sub-section will be used. Also,
+ the highest <span class="quote">&#8220;<span class="quote">Mode</span>&#8221;</span> listed in this sub-section will be the default
+ mode (resolution), which here is the first one listed. The first listed mode 
+ also determines the viewable screen area, which can be smaller than the mode
+ (resolution) itself. In which case, you would have a virtual desktop that is
+ larger than the viewable screen. To have the viewable screen, and resolution 
+ match, have the largest value as the first value listed for each
+ <span class="quote">&#8220;<span class="quote">Mode</span>&#8221;</span>.
+
+</p><p>
+ Another note on the <span class="quote">&#8220;<span class="quote">Modes</span>&#8221;</span> here: what you see is the result of
+ my choices during Red Hat's <span class="command"><strong>Xconfigurator's</strong></span> configuration. These 
+ are standard resolutions, but do not have to be! This is only limited by what
+ your hardware can support. And you don't have to use standard width x height 
+ ratios either. Something like <code class="literal">1355x1112</code> is a valid setting (if
+ your hardware supports it and it floats your boat!).
+
+</p><p>
+ The X server will reject any <span class="quote">&#8220;<span class="quote">Modes</span>&#8221;</span> it thinks are invalid. You
+ can cycle through valid modes to change screen resolution with
+ <code class="literal">Ctrl-Alt-+</code> and <code class="literal">Ctrl-Alt--</code> (that's the
+ keypad plus and minus keys).
+
+</p><p>
+ In versions prior to v4.x, you would also see many <span class="quote">&#8220;<span class="quote">Modeline</span>&#8221;</span> 
+ statements that attempted to define the monitor's capabilities. These
+ statements would look something like:
+
+</p><p>
+ </p><pre class="screen">
+
+ # 1024x768 @ 100Hz, 80.21 kHz hsync
+ Modeline "1024x768"  115.5  1024 1056 1248 1440  768  771  781  802 -HSync -VSync
+
+ </pre><p>
+</p><p>
+ Explicit <span class="quote">&#8220;<span class="quote">Modeline</span>&#8221;</span> definitions are not required as of 4.x ;-)
+ This sometimes required hand editing to get optimal values in earlier versions of 
+ 
+XFree86, though is generally not necessary with v4.x. 
+<a class="ulink" href="http://tldp.org/HOWTO/XFree86-Video-Timings-HOWTO/index.html" target="_top">The XFree86 Video
+ Timings HOWTO
+</a>
+ has a nice, but rather technical, explanation of this.
+
+</p><p>
+ If whatever configuration utility you are using, does not automatically
+ recognize your video card or monitor specifications correctly, you are
+ unlikely to get an optimal configuration. In such cases, you may have to
+ manually supply the correct values. This should be available from your 
+ owner's manual (you kept that, right?). Or, check the manufacturer's web site.
+
+</p><p>
+ Again, hand editing of this file is generally unnecessary. Should you decide
+ this is indeed necessary, be careful. One small error may cause
+ <span class="application">X</span> to fail. Any changes to this file will require
+ restarting <span class="application">X</span> for the changes to take
+ effect.
+
+</p><p>
+ Using somebody else's <code class="filename">XF86Config</code> file, is generally a
+ bad idea since they are unlikely to have identical hardware.
+
+</p></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="idm300"></a>2.3. xvidtune and Monitor Tuning</h3></div></div></div><p>
+ You probably want to get the most out of your hardware. If
+ <span class="application">X</span> isn't configured optimally, consider re-running
+ your vendor's <span class="application">X</span> configuration utility and try to
+ get better results. It is highly unlikely that you could hurt anything by
+ experimenting. Most modern monitors now have safeguards that prevent a
+ meltdown ;-)
+ 
+</p><p>
+ If you over-do it though <span class="application">X</span> may not be able to
+ start. For this reason, I prefer to use the <span class="quote">&#8220;<span class="quote">startx</span>&#8221;</span> way of
+ starting <span class="application">X</span> (see below) while
+ <span class="quote">&#8220;<span class="quote">experimenting</span>&#8221;</span>. This way if <span class="application">X</span>
+ crashes, the display manager (GUI login) will not loop and cause you severe
+ headaches. <span class="command"><strong>startx</strong></span> just gracefully goes back to a text
+ console screen, where an error message may be visible.
+
+</p><p>
+ Another way of tweaking monitor related settings is with XFree86's 
+ <span class="command"><strong>xvidtune</strong></span> program. This is run interactively and can be
+ used to adjust various settings (see man page). The simple dialog box has
+ sliders and buttons that allow user input and adjustment. The top part has
+ horizontal monitor settings on the left, and vertical settings on the right.
+ The buttons just below the sliders can be used to adjust each.
+
+</p><p>
+ This is sometimes used to adjust the viewable screen area, such as to center
+ it, or increase its size to fill the monitor's viewport. When
+ <span class="command"><strong>xvidtune</strong></span> is launched, it defaults to the current settings.
+
+</p><p>
+ The bottom left corner has buttons that can <span class="quote">&#8220;<span class="quote">Apply</span>&#8221;</span> new
+ settings, <span class="quote">&#8220;<span class="quote">Test</span>&#8221;</span> new settings, or <span class="quote">&#8220;<span class="quote">Show</span>&#8221;</span> current
+ settings (i.e. dump to screen), among other things. Any changes made here are
+ not saved. If new settings are <span class="quote">&#8220;<span class="quote">Applied</span>&#8221;</span>, it is just for
+ the current session. Example output of <span class="command"><strong>xvidtune</strong></span>
+ <span class="quote">&#8220;<span class="quote">Show</span>&#8221;</span>:
+
+</p><p>
+ </p><pre class="screen">
+
+ Vendor: Unknown, Model: Unknown
+ Num hsync: 1, Num vsync: 1
+ hsync range 0:  30.00 -  70.00
+ vsync range 0:  55.00 - 120.00
+ "1400x1050"   122.00   1400 1488 1640 1880   1050 1052 1064 1082 +hsync +vsync
+
+ </pre><p>
+</p><p>
+ The last line is the <span class="quote">&#8220;<span class="quote">Modeline</span>&#8221;</span> being used to drive the current
+ screen. See <a class="ulink" href="http://tldp.org/HOWTO/XFree86-Video-Timings-HOWTO/index.html" target="_top">The XFree86 Video
+ Timings HOWTO
+</a>, 
+ for more on <span class="quote">&#8220;<span class="quote">Modelines</span>&#8221;</span>.
+
+
+</p><p>
+ You can test modifications, and apply them to the current session.
+ For changes to be made permanent, they will have to be added manually to 
+ the <span class="quote">&#8220;<span class="quote">Monitor</span>&#8221;</span> section of <code class="filename">XF86Config</code> (or
+ <code class="filename">XF86Config-4</code> for v.4.x) with a text editor.
+
+</p><p>
+  <span class="command"><strong>xvidtune</strong></span> will dutifully warn of you of the hazards of
+  playing with the monitor settings. It is unlikely you can hurt anything 
+  with modern monitors. But it is best used to make minor adjustments. Use at
+  your own risk!
+
+</p></div></div><div class="sect1"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="runningx"></a>3. Running X</h2></div></div></div><p>
+ Starting an <span class="application">X</span> session is typically done in one of
+ two ways: the <span class="application">X</span> session is started via a display
+ manager (like <span class="command"><strong>xdm</strong></span>), and the user logs in at a GUI screen.
+ Or, the user starts <span class="application">X</span> manually after logging in to
+ a text console. The latter is typically done with the
+ <span class="command"><strong>startx</strong></span> command, which is a simple shell script wrapper
+ for <span class="command"><strong>xinit</strong></span>. <span class="application">X</span> runs with root
+ privileges in either case, since it needs raw access to hardware devices.
+
+</p><p>
+ Typically, which method is used, is determined by the system 
+ <span class="quote">&#8220;<span class="quote">runlevel</span>&#8221;</span>. The default runlevel to launch at boot is
+ generally set in <code class="filename">/etc/inittab</code> on Linux: 
+
+</p><p>
+ </p><pre class="screen">
+
+ # Run xdm in runlevel 5
+ x:5:respawn:/etc/X11/xdm -nodaemon
+
+ </pre><p>
+</p><p>
+ That would start <span class="command"><strong>xdm</strong></span>, and thus
+ <span class="application">X</span>, at runlevel 5. It will <span class="quote">&#8220;<span class="quote">respawn</span>&#8221;</span>,
+ if it dies or is stopped for any reason. You can also use the
+ <span class="quote">&#8220;<span class="quote"><span class="command"><strong>init</strong></span></span>&#8221;</span> command to change runlevels without
+ rebooting (see man page).
+
+</p><p>
+ Let's look briefly at both approaches, and then some additional configuration 
+ to set up the user's working environment.
+
+</p><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="idm357"></a>3.1. startx</h3></div></div></div><p>
+ <span class="command"><strong>startx</strong></span> will start <span class="application">X</span> by first
+ invoking <span class="command"><strong>xinit</strong></span>. By itself, this would put you at a blank,
+ fuzzy looking, bare-bones desktop with no Window Manager loaded.
+ <span class="command"><strong>xinit</strong></span> basically takes two sets of command line
+ arguments: client specifications (programs to run, etc), and server
+ specifications (X server options), separated by <span class="quote">&#8220;<span class="quote">--</span>&#8221;</span>. If no
+ client program is specified on the command line, <span class="command"><strong>xinit</strong></span>
+ will look for a <code class="filename">.xinitrc</code> file in the user's home
+ directory, to run as a shell script. If found, this then would in turn run
+ whatever user specified commands to set up the environment, or launch
+ programs that the file contained. If this file does not exist,
+ <span class="command"><strong>xinit</strong></span> will use the following initial command:
+
+</p><p>
+ </p><pre class="screen">
+ 
+ xterm -geometry +1+1 -n login -display :0
+ 
+ </pre><p>
+</p><p>
+ If no <code class="filename">.xserverrc</code> is found in the user's home directory, 
+ <span class="application">X</span> itself will be started with the following command:
+
+</p><p>
+ </p><pre class="screen">
+
+ X :0
+
+ </pre><p>
+</p><p>
+ As you see, this is not overly helpful as it just launches one
+ <span class="application">xterm</span>. The <span class="command"><strong>startx</strong></span>
+ shell wrapper provides additional functionality and flexibility to 
+ <span class="command"><strong>xinit</strong></span>. <span class="command"><strong>startx</strong></span> will invoke 
+ <span class="command"><strong>xinit</strong></span> for us, and provide some simple configuration
+ options as well. You can also issue commands such as the following, for
+ instance:
+ 
+</p><p>
+ </p><pre class="screen">
+ 
+ startx -- -dpi 100 -depth 16   #force X to 100 dots per inch
+                                #and colordepth of 16 (X v4 syntax)
+ 
+ </pre><p>
+</p><p>
+ Anything after the double dashes are passed as arguments directly to the X
+ server via <span class="command"><strong>xinit</strong></span>. In this example, you can force
+ <span class="application">X</span> to the resolution of your preference, and still
+ have it use the configuration files we will cover later in this document. See
+ the Xserver man page for more command line options.
+
+</p><p>
+ Instead of issuing the same command line every time, it is easier to use the
+ configuration files to store this type of information for us.
+
+</p><p>
+ If you take a look at the <span class="command"><strong>startx</strong></span> script
+ (<code class="filename">/usr/X11R6/bin/startx</code> on my system), you see it uses
+ two default configuration files to help set up the
+ <span class="application">X</span> environment: <code class="filename">xinitrc</code> and
+ <code class="filename">xserverrc</code>. It looks first in
+ <code class="filename">/etc/X11/xinit/</code>, for the system wide files. It then
+ checks the user's home directory for similar files, which will take
+ precedence if found. Note that the latter are Unix style <span class="quote">&#8220;<span class="quote">dot</span>&#8221;</span> files
+ (e.g. <code class="filename">~/.xinitrc</code>), and are executable shell scripts.
+
+</p><p>
+ You normally would not want to edit the system wide files, but you can freely
+ copy these to your home directory as a starting point, or just start from
+ scratch. As you can tell by the names, one helps set up the X server, and one
+ sets up <span class="command"><strong>xinit</strong></span> by executing commands, preparing the
+ environment and possibly starting client programs like
+ <span class="command"><strong>xterm</strong></span> or a Window Manager (yes, it's a client too).
+
+</p><div class="sect3"><div class="titlepage"><div><div><h4 class="title"><a name="idm399"></a>3.1.1. xserverrc</h4></div></div></div><p>
+ As with all XFree86 configuration files, this is a plain text file, and is
+ usually a simple, one line statement to start the X server. It can include
+ any valid command line options supported by your <span class="application">X</span>
+ installation. If you always start <span class="application">X</span> with your own
+ options, this should be easier than typing the options each time. One
+ possible <code class="filename">~/.xserverrc</code>:
+
+</p><p>
+ </p><pre class="screen">
+
+ exec X :0 -dpi 100 -nolisten tcp
+
+ </pre><p>
+</p><p>
+ This will start <span class="application">X</span> on display :0, the first
+ <span class="quote">&#8220;<span class="quote">display</span>&#8221;</span>, at a dots-per-inch resolution of 100, and disables
+ TCP connections. See the Xserver man page for other valid options. This is
+ just an example.
+
+</p></div><div class="sect3"><div class="titlepage"><div><div><h4 class="title"><a name="idm410"></a>3.1.2. xinitrc</h4></div></div></div><p>
+ <code class="filename">xinitrc</code> is used to set up a suitable
+ <span class="application">X</span> environment, and to launch other programs, a.k.a
+ <span class="quote">&#8220;<span class="quote">clients</span>&#8221;</span> that we may want available as soon as
+ <span class="application">X</span> is started. You likely have a system wide
+ <code class="filename">xinitrc</code> to start a predefined set off programs. To
+ customize this, create your own in your home directory. Name it
+ <code class="filename">.xinitrc</code>, make sure it is an executable script, and
+ <span class="command"><strong>chmod +x</strong></span>. An example (slightly modified from the original
+ on my system):
+
+</p><p>
+ </p><pre class="screen">
+
+#!/bin/sh
+# $XConsortium: xinitrc.cpp,v 1.4 91/08/22 11:41:34 rws Exp $
+
+userresources=$HOME/.Xresources
+usermodmap=$HOME/.Xmodmap
+
+# merge in defaults and keymaps
+if [ -f $userresources ]; then
+    xrdb -merge $userresources
+fi
+
+if [ -f $usermodmap ]; then
+    xmodmap $usermodmap
+fi
+
+if [ -z "$BROWSER" ] ; then
+	# we need to find a browser on this system
+	BROWSER=`which netscape`
+	if [ -z "$BROWSER" ] || [ ! -e "$BROWSER" ] ; then
+	# not found yet
+		BROWSER=
+	fi
+fi
+if [ -z "$BROWSER" ] ; then
+	# we need to find a browser on this system
+	BROWSER=`which lynx`
+	if [ -z "$BROWSER" ] || [ ! -e "$BROWSER" ] ; then
+	# not found yet
+		BROWSER=
+	else
+		BROWSER="xterm -font 9x15 -e lynx"
+	fi
+fi
+
+export BROWSER
+
+# start some nice programs
+if [ -f $HOME/.Xclients ]; then
+    exec $HOME/.Xclients
+else
+    xclock -geometry 50x50-1+1 &amp;
+    xterm -geometry 80x50+494+51 &amp;
+    if [ -f /usr/X11R6/bin/fvwm ]; then
+        exec fvwm
+    else
+        exec twm
+    fi
+fi
+
+#eof
+
+ </pre><p>
+</p><p>
+ Briefly, what this script does, is set up our working environment, with
+ <span class="command"><strong>xmodmap</strong></span> (keyboard) and <span class="command"><strong>xrdb</strong></span>
+ (application resource settings). More on these below.  Then the shell variable
+ <code class="literal">$BROWSER</code> is set for a GUI environment (Netscape in this
+ example) so that any applications that might expect this, have a reasonable
+ choice available. Then the presence of the file <code class="filename">Xclients</code>
+ is checked, both as a system wide file and in the user's home directory. In
+ this particular example, this is where any client applications are to be
+ started, including a Window Manager (see below). These could just have as
+ easily been started here if we had wanted to. If an
+ <code class="filename">Xclients</code> file can't be found, then a Window Manager is
+ started for us. Either <span class="command"><strong>fvwm</strong></span>, if available, or XFree86's
+ minimalist <span class="command"><strong>twm</strong></span> if not. If for some reason, neither of
+ these can be started, the script would exit, and <span class="application">X</span>
+ would fail to start.
+
+</p></div><div class="sect3"><div class="titlepage"><div><div><h4 class="title"><a name="idm431"></a>3.1.3. Xclients</h4></div></div></div><p>
+ Everything up to this point has followed pretty much a standard and
+ predictable sequence of events. To summarize, we have invoked
+ <span class="command"><strong>startx</strong></span>, which in turn invoked <span class="command"><strong>xinit</strong></span>, 
+ which has parsed <code class="filename">xinitrc</code> for initial settings. Most
+ Linuxes should follow this same sequence, though the various values and
+ settings may differ.
+
+</p><p>
+ We now are at the last link in the chain where the user normally would 
+ specify his or her preferences, including the Window Manager and/or 
+ desktop environment to be used. The system will provide sane, though possibly
+ uninteresting, defaults if the user has not done so. Presumably, this is why
+ you are here ;-)
+
+</p><p>
+ The Window Manager, or desktop environment, is typically the last application
+ started. If you want other programs (like <span class="command"><strong>xterm</strong></span>) started,
+ they should be started before the Window Manager and
+ <span class="quote">&#8220;<span class="quote">backgrounded</span>&#8221;</span> with an <span class="quote">&#8220;<span class="quote">&amp;</span>&#8221;</span>. This can all be
+ done in the user's <code class="filename">~/.xinitrc</code>. Or as in the above
+ example, the actual applications are started from yet another script. Let's
+ look at one short, hypothetical such script, <code class="filename">.Xclients</code>:
+
+</p><p>
+ </p><pre class="screen">
+ 
+#!/bin/bash
+# ~/.Xclients, start my programs.
+
+xset s off s noblank
+xset m 30/10 4
+xset r rate 200 40
+
+xscreensaver &amp; 
+rxvt -geometry 80x50-50+150 &amp;
+
+echo Starting Window Manager...
+
+if [ -x /usr/X11R6/bin/wmaker ]; then
+  echo `date`: Trying /usr/X11R6/bin/wmaker... |tee -a ~/.wm-errors 2&gt;&amp;1
+  exec /usr/X11R6/bin/wmaker &gt;&gt; ~/.wm-errors 2&gt;&amp;1
+fi 
+
+echo `date`: Failed, trying fvwm... |tee -a ~/.wm-errors 2&gt;&amp;1
+
+# let's try regular fvwm (AnotherLevel doesn't work with fvwm1).
+if [ -n "$(type -path fvwm)" ]; then
+  # if this works, we stop here
+  exec fvwm &gt;&gt; ~/.wm-errors 2&gt;&amp;1
+fi
+
+echo `date`: Failed, trying twm... |tee -a ~/.wm-errors 2&gt;&amp;1
+
+# wow, fvwm isn't here either ... 
+# use twm as a last resort.
+exec twm &gt;&gt; ~/.wm-errors 2&gt;&amp;1
+
+# Dead in the water here, X will exit as well, sigh...
+echo `date`: Unable to start a Window Manager ... |tee -a ~/.wm-errors 2&gt;&amp;1
+
+# eof
+
+ </pre><p>
+</p><p>
+ This really isn't so different than what <code class="filename">xinitrc</code> was
+ doing at all. We added a few wrinkles, including starting a screen saver, a
+ different terminal emulator that this user prefers (<span class="command"><strong>rxvt</strong></span>),
+ with even more setting up of the environment (monitor, mouse and keyboard) using
+ <span class="command"><strong>xset</strong></span> this time, and a different Window Manager than was
+ available with the system defaults. This is in the user's home directory, so
+ it will not be overwritten during upgrades too.
+
+</p><p>
+ Actually, <span class="application">X</span> has already started at this point, and
+ we are just putting the finishing touches on the configuration. Notice the
+ Window Managers are not <span class="quote">&#8220;<span class="quote">backgrounded</span>&#8221;</span> with <span class="quote">&#8220;<span class="quote">&amp;</span>&#8221;</span>
+ here. This is important! Something has to run in the foreground, or
+ <span class="application">X</span> will exit. We didn't start a desktop environment
+ in this example, like <span class="application">KDE</span> or
+ <span class="application">GNOME</span>, but if we did, this final application
+ would have to be <span class="command"><strong>gnome-session</strong></span> or
+ <span class="command"><strong>startkde</strong></span> instead. Since we are rolling our own here, if we
+ wanted to change Window Managers, all we have to do is edit this file, and
+ restart <span class="application">X</span>. Vendor supplied configurations may be
+ more complex than this, but the same principles apply.
+
+</p><p>
+ As an afterword, do not think that any initial client applications
+ <span class="emphasis"><em>must</em></span> be started as we've done here. This is how it has
+ been traditionally done, and some may prefer this approach. Most window
+ managers have their own built-in ways to start initial programs, as do 
+ <span class="application">KDE</span> and <span class="application">GNOME</span>. See 
+ the respective documentation.
+
+</p></div></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="idm464"></a>3.2. Display Managers</h3></div></div></div><p>
+ The other, more common, approach is the <span class="quote">&#8220;<span class="quote">GUI log-in</span>&#8221;</span>, where
+ <span class="application">X</span> is running before log-in. This is done with the
+ help of a <span class="quote">&#8220;<span class="quote">display manager</span>&#8221;</span>, of which there are various
+ implementations. XFree86 includes <span class="command"><strong>xdm</strong></span> (X Display Manager)
+ for this purpose, though your distribution may use one of the others such as
+ <span class="command"><strong>gdm</strong></span> (<span class="application">GNOME</span>) or <span class="command"><strong>kdm</strong></span>
+ (<span class="application">KDE</span>).
+
+</p><p>
+ Display managers really do much more than enable GUI style log-ins. They 
+ are also used to manage local as well as remote <span class="quote">&#8220;<span class="quote">displays</span>&#8221;</span> on a
+ network. We shall not get into details on this here, but it is nicely covered in
+ the <em class="citetitle">Remote X Apps Mini HOWTO</em> and the <em class="citetitle">XDMCP
+ HOWTO</em> (see the <a class="link" href="#links" title="10.2. Links and other References">links section</a>). For
+ our purposes here, they provide similar services to <span class="command"><strong>getty</strong></span>
+ and <span class="command"><strong>login</strong></span>, which allow users to log into a system and
+ start their default shell, but in a GUI environment. 
+
+</p><p>
+ Here is an example of a more advanced usage of what else a display manager
+ might be used for, from Diego Zamboni:
+
+</p><div class="blockquote"><blockquote class="blockquote"><p>
+ I have two X sessions running with different resolutions. I switch between
+ them depending on whether my laptop is connected to an external monitor or
+ using its own LCD display.
+
+</p><p>
+ Here's my <code class="filename">/usr/lib/X11/xdm/Xservers</code> file that initiates 
+ both displays:
+</p><p>
+ </p><pre class="screen">
+
+ :1 local /usr/X11R6/bin/X :1 -layout 1024x768
+ :0 local /usr/X11R6/bin/X :0 -layout 1600x1200
+
+ </pre><p>
+</p><p>
+ Then I have <span class="quote">&#8220;<span class="quote">1024x768</span>&#8221;</span> and <span class="quote">&#8220;<span class="quote">1600x1200</span>&#8221;</span> defined as
+ <span class="quote">&#8220;<span class="quote">server layouts</span>&#8221;</span> in my
+ <code class="filename">/etc/X11/XF86Config-4</code>, as follows:
+
+</p><p>
+ </p><pre class="screen">
+
+ Section "ServerLayout"
+         Identifier     "1600x1200"
+         Screen         "Screen0" 0 0
+         InputDevice    "Mouse0" "CorePointer"
+         InputDevice    "Keyboard0" "CoreKeyboard"
+ EndSection
+ 
+ Section "ServerLayout"
+         Identifier     "1024x768"
+         Screen         "Screen1" 0 0
+         InputDevice    "Mouse0" "CorePointer"
+         InputDevice    "Keyboard0" "CoreKeyboard"
+ EndSection
+ 
+ ## snip ...
+ 
+ Section "Screen"
+         Identifier   "Screen0"
+         Device       "S3 Savage/MX"
+         Monitor      "Monitor0"
+         DefaultDepth 16
+         
+         Subsection "Display"
+                 Depth  16
+                 Modes  "1600x1200" "1280x1024" "1024x768"
+         EndSubsection
+ EndSection
+ 
+ Section "Screen"
+         Identifier   "Screen1"
+         Device       "S3 Savage/MX"
+         Monitor      "Monitor0"
+         DefaultDepth 16
+
+         Subsection "Display"
+                 Depth  16
+                 Modes  "1024x768" "800x600"
+         EndSubsection
+ EndSection
+
+ </pre><p>
+</p></blockquote></div><p>
+ Note the use of <span class="quote">&#8220;<span class="quote">Identifiers</span>&#8221;</span> here. Diego is starting two
+ separate <span class="quote">&#8220;<span class="quote">displays</span>&#8221;</span> here. Then he can choose which one he 
+ wants when he logs in.
+
+</p><p>
+ Most display managers are derived from XFree86's venerable
+ <span class="command"><strong>xdm</strong></span>, and add their own enhancements. Let's look at the
+ most popular ones briefly. 
+
+</p><div class="sect3"><div class="titlepage"><div><div><h4 class="title"><a name="idm501"></a>3.2.1. xdm</h4></div></div></div><p>
+ <span class="command"><strong>xdm</strong></span> can be configured with configuration files located in
+ <code class="filename">/etc/X11/xdm/</code>,
+ <code class="filename">/usr/X11R6/lib/X11/xdm</code>, or similar locations depending
+ on your system. These are system wide files. The file
+ <code class="filename">xdm-config</code> is the main configuration file, and mostly
+ describes where to find secondary configuration files:
+
+</p><p>
+ </p><pre class="screen">
+
+ ! $XConsortium: xdm-conf.cpp /main/3 1996/01/15 15:17:26 gildea $
+ DisplayManager.errorLogFile:	/var/log/xdm-errors
+ DisplayManager.servers:		/etc/X11/xdm/Xservers
+ DisplayManager.accessFile:	/etc/X11/xdm/Xaccess
+ ! All displays should use authorization, but we cannot be sure
+ ! X terminals will be configured that way, so by default
+ ! use authorization only for local displays :0, :1, etc.
+ DisplayManager._0.authorize:	true
+ DisplayManager._1.authorize:	true
+ ! The following three resources set up display :0 as the console.
+ DisplayManager._0.setup:	/etc/X11/xdm/Xsetup_0
+ DisplayManager._0.startup:	/etc/X11/xdm/GiveConsole
+ DisplayManager._0.reset:	/etc/X11/xdm/TakeConsole
+ !
+ DisplayManager*resources:	/etc/X11/xdm/Xresources
+ DisplayManager*session:		/etc/X11/xdm/Xsession
+ !
+ ! SECURITY: do not listen for XDMCP or Chooser requests
+ ! Comment out this line if you want to manage X terminals with xdm
+ DisplayManager.requestPort:	0
+
+ </pre><p>
+</p><p>
+ The <span class="quote">&#8220;<span class="quote">!</span>&#8221;</span> denotes comments. The command that starts the X server
+ is in <code class="filename">/etc/X11/xdm/Xservers</code> in this particular example
+ as defined by <span class="quote">&#8220;<span class="quote">DisplayManager.servers</span>&#8221;</span>, and is the equivalent to
+ <code class="filename">xserverrc</code> that was used for <span class="command"><strong>startx</strong></span> X
+ server start up commands, but the syntax is slightly different here. The
+ contents of <code class="filename">/etc/X11/xdm/Xservers</code> on my system are simply:
+
+</p><p>
+ </p><pre class="screen">
+
+ :0 local /usr/X11R6/bin/X 
+
+ </pre><p>
+</p><p>
+ This starts <span class="application">X</span> on the first local display
+ (designated by 0). Any special command line arguments that you want to add go
+ here at the end.
+
+</p><p>
+ Below is a sample <code class="filename">/etc/X11/xdm/Xsetup_0</code> which is
+ used to configure the log-in screen only. Notice that we're using a shell
+ script here, and it's calling <span class="command"><strong>xv</strong></span> (a graphics display
+ program) to set the background to a nice image (instead of the boring black
+ and white background pattern), and if that fails,
+ <span class="command"><strong>xsetroot</strong></span> is then invoked to at least try to set the
+ background to a nicer blue color. This does not configure the login widget
+ itself -- just other things that might be wanted on the screen during login.
+ 
+</p><p>
+ </p><pre class="screen">
+ 
+ #!/bin/sh
+ xconsole -geometry 480x100-0-0 -daemon -notify -verbose -fn \
+   '-schumacher-clean-medium-r-*-*-10-*-*-*-*-*-*-*' -exitOnFail  &amp;
+ 
+ /usr/X11R6/bin/xv -quit -root /usr/share/pixmaps/Backgrounds/InDreams.jpg \
+   || xsetroot -solid darkblue
+ 
+ </pre><p>
+</p><p>
+ <code class="filename">/etc/X11/xdm/Xresources</code> controls the X
+ <span class="quote">&#8220;<span class="quote">resources</span>&#8221;</span> used during log in. In this context, <span class="quote">&#8220;<span class="quote">resources</span>&#8221;</span> 
+ are user preferences for such items as fonts and colors (described in more
+ detail below). Below is a snippet that sets up fonts for the log-in widget:
+
+</p><p>
+ </p><pre class="screen">
+
+ #if WIDTH &gt; 800
+ xlogin*greetFont: -adobe-helvetica-bold-o-normal--24-240-75-75-p-138-iso8859-1
+ xlogin*font: -adobe-helvetica-medium-r-normal--18-180-75-75-p-103-iso8859-1
+ xlogin*promptFont: -adobe-helvetica-bold-r-normal--18-180-75-75-p-103-iso8859-1
+ xlogin*failFont: -adobe-helvetica-bold-r-normal--18-180-75-75-p-103-iso8859-1
+ #else
+ xlogin*greetFont: -adobe-helvetica-bold-o-normal--17-120-100-100-p-92-iso8859-1
+ xlogin*font: -adobe-helvetica-medium-r-normal--12-120-75-75-p-69-iso8859-1
+ xlogin*promptFont: -adobe-helvetica-bold-r-normal--12-120-75-75-p-69-iso8859-1
+ xlogin*failFont: -adobe-helvetica-bold-o-normal--14-140-75-75-p-82-iso8859-1
+ #endif
+
+ </pre><p>
+</p><p>
+ As you can see this is using helvetica as the preferred font, with different
+ point sizes and dots per inch depending on the screen size. This is
+ customizable to suit individual needs. (See below for more on understanding X
+ font naming conventions.) Various other aspects can similarly be configured.
+
+</p><p>
+ <code class="filename">/etc/X11/xdm/Xsession</code> is the rough equivalent to
+ <code class="filename">xinitrc</code> for <span class="command"><strong>startx</strong></span>. It will similarly
+ set up a default environment for keyboard, etc. And can also start either 
+ <span class="application">KDE</span> or <span class="application">GNOME</span>, and other
+ <span class="application">X</span> client programs. This is the system wide
+ configuration file. It should also check the user's home directory for
+ <code class="filename">~/.xsession</code>, and possibly
+ <code class="filename">~/.Xclients</code>, which would contain the user's preferred
+ environment and start up programs, just as <code class="filename">~/.xinitrc</code>
+ did with <span class="command"><strong>startx</strong></span>. Again, the files in a user's home
+ directory may be created or modified by the user any time and must be
+ executable shell scripts.
+
+</p><p>
+ We shall not include an <code class="filename">~/.xsession</code> example here, since it
+ would be very similar to the <code class="filename">~/.xinitrc</code> and 
+ <code class="filename">~/.Xclients</code> examples above.
+
+</p><p>
+ We've looked only briefly at the main <span class="command"><strong>xdm</strong></span> configuration files.
+ Be sure to read the man page, and look at what is installed locally, for more 
+ information. Let's look now at <span class="command"><strong>gdm</strong></span> and <span class="command"><strong>kdm</strong></span>. 
+ We'll just highlight significant differences, since they essentially provide
+ the same functionality.
+
+</p></div><div class="sect3"><div class="titlepage"><div><div><h4 class="title"><a name="idm553"></a>3.2.2. gdm</h4></div></div></div><p>
+ <span class="command"><strong>gdm</strong></span> is the default display manager for
+ <span class="application">GNOME</span>. <span class="command"><strong>gdm</strong></span> was written 
+ from scratch, but functions similarly to <span class="command"><strong>xdm</strong></span>. The main
+ configuration file is <code class="filename">gdm.conf</code>, typically located as
+ <code class="filename">/etc/X11/gdm/gdm.conf</code>. This is quite different looking
+ than <code class="filename">xdm-config</code>. Comments are denoted with a
+ <span class="quote">&#8220;<span class="quote">#</span>&#8221;</span>, and the file has sections, with section headers enclosed
+ in square brackets. The command to start <span class="application">X</span> is in
+ the <span class="quote">&#8220;<span class="quote">[servers]</span>&#8221;</span> section:
+
+</p><p>
+ </p><pre class="screen">
+
+ [servers]
+ 0=/usr/bin/X11/X
+ #1=/usr/bin/X11/X
+
+ </pre><p>
+</p><p>
+ Notice this has potentially two displays set up, but the second one is
+ commented out. Add any additional <span class="application">X</span> startup
+ options here, e.g. <span class="quote">&#8220;<span class="quote">-dpi 100</span>&#8221;</span>. The log-in screen and log-in
+ widget are configured in the <span class="quote">&#8220;<span class="quote">[greeter]</span>&#8221;</span> section. 
+
+</p><p>
+ Start up clients and programs are determined by the <span class="quote">&#8220;<span class="quote">SessionDir</span>&#8221;</span>
+ statement in the <span class="quote">&#8220;<span class="quote">[daemon]</span>&#8221;</span> section. On my installation, this
+ points to <code class="filename">/etc/X11/gdm/Sessions/</code>, which contains several
+ short scripts. If I look at my <code class="filename">Default</code> script, it
+ actually executes <code class="filename">/etc/X11/xdm/Xsession</code>, which in turn
+ would execute <code class="filename">~/.xsession</code>, if present. So at this final 
+ stage, <span class="command"><strong>gdm</strong></span> acts very much like <span class="command"><strong>xdm</strong></span>.
+
+</p><p>
+ <span class="application">GNOME</span> includes the <span class="command"><strong>gdmconfig</strong></span>
+ utility to control many aspects of <span class="command"><strong>gdm</strong></span> behavior. 
+
+</p></div><div class="sect3"><div class="titlepage"><div><div><h4 class="title"><a name="idm585"></a>3.2.3. kdm</h4></div></div></div><p>
+ <span class="command"><strong>kdm</strong></span> is the display manager from <span class="application">KDE</span>. 
+ The main configuration file for <span class="command"><strong>kdm</strong></span> is
+ <code class="filename">kdmrc</code> and is typically installed
+ as <code class="filename">/etc/kde/kdm/kdmrc</code>. As is the case with
+ <code class="filename">gdm.conf</code>, <code class="filename">kdmrc</code> uses
+ <span class="quote">&#8220;<span class="quote">#</span>&#8221;</span> for comments, and has sections with section headers in
+ similar square brackets. <span class="command"><strong>kdm</strong></span> configuration can also be
+ edited with the <span class="command"><strong>kcontrol</strong></span> utility.
+
+</p><p>
+ The visible desktop is configured in the <span class="quote">&#8220;<span class="quote">[Desktop*]</span>&#8221;</span>
+ section(s), and by the <span class="quote">&#8220;<span class="quote">Setup</span>&#8221;</span> directive which should point to a
+ file like <code class="filename">/usr/share/config/kdm/Xsetup</code> or 
+ <code class="filename">/etc/X11/xdm/Xsetup_0</code>. This will accomplish the same
+ thing as <span class="command"><strong>xdm</strong></span>'s <code class="filename">Xsetup_0</code> does: namely
+ running any programs the user might want such as <span class="command"><strong>xconsole</strong></span>.
+
+</p><p>
+ The command to launch the X server is the <span class="quote">&#8220;<span class="quote">Xservers</span>&#8221;</span> directive
+ in the <span class="quote">&#8220;<span class="quote">[General]</span>&#8221;</span>. Again, this should point to a file such as 
+ <code class="filename">/etc/X11/xdm/Xservers</code>, and uses the same syntax as
+ <span class="command"><strong>xdm</strong></span>:
+
+</p><p>
+ </p><pre class="screen">
+
+ :0 local /usr/X11R6/bin/X 
+
+ </pre><p>
+</p><p>
+ Any command line options for the X server, go here.
+
+</p><p>
+ The login widget itself is configured in the <span class="quote">&#8220;<span class="quote">[X-*-Greeter]</span>&#8221;</span>
+ section(s). Compiled in defaults are used if the user does not specify any.
+
+</p><p>
+ <span class="application">KDE</span> includes the <span class="command"><strong>kdmdesktop</strong></span>
+ utility to control some aspects of <span class="command"><strong>kdm</strong></span> behavior, mostly 
+ just the login background.
+
+</p></div></div></div><div class="sect1"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="moreconfig"></a>4. More X Configuration</h2></div></div></div><p>
+ Before taking a look at various configuration mechanisms for X servers and
+ clients, it should be noted that the advent of Desktop Environments like 
+ <span class="application">KDE</span> have become popular in part because they can
+ control much of the user interaction configuration themselves with nice, 
+ <span class="quote">&#8220;<span class="quote">user friendly</span>&#8221;</span> GUI controls. And in fact,
+ the compliant applications that are part of the respective Desktops will be
+ best configured through the Desktop's configuration tools, or the
+ application's own GUI configuration methods. So, for instance,
+ <span class="command"><strong>gtop</strong></span>, a <span class="application">GNOME</span> client
+ application, is best configured via <span class="application">GNOME</span> or 
+ <span class="command"><strong>gtop's</strong></span> own menus. But this is not true of all 
+ <span class="application">X</span> applications. 
+
+</p><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="xresources"></a>4.1. X Resources</h3></div></div></div><p>
+ The X server can store various configuration values for client programs
+ so they are readily available when needed. If the application supports this,
+ it will use these as defaults whenever that program is invoked. These are
+ known as <span class="quote">&#8220;<span class="quote">Resources</span>&#8221;</span>, and are often used to define user preferences
+ on a per application basis for fonts, colors, screen placement (geometry) and
+ various other attributes. This makes it easy to customize applications.
+
+</p><p>
+ Resources are specified as text strings (e.g. Netscape*blinkingEnabled:
+ False) that can be read from disk in various places when
+ <span class="application">X</span> is starting, or even interactively defined on the
+ command line. Program components are named in a hierarchical fashion, with
+ each object in the hierarchy identified by a class as well as an instance
+ name. At the top level of the hierarchy is the class and instance name of the
+ application itself. Typically, the class name of the application is the
+ same as the program name, but with the first letter capitalized (e.g.  Vim or
+ Emacs) although some programs that begin with the letter <span class="quote">&#8220;<span class="quote">X</span>&#8221;</span>
+ also capitalize the second letter for historical reasons (e.g. XTerm). 
+ Each definition  will specify a class (or instance), with corresponding
+ resource and value. Below this in the hierarchy are the various attributes
+ that make up the definable aspects of the application. 
+
+</p><p>
+ Traditionally, most <span class="application">X</span> programs were  configured
+ this way. This is not as true today with the advent of Desktop Environments
+ which often have their own configuration mechanisms.
+
+</p><p>
+ As an example, say we prefer to run <span class="command"><strong>xterm</strong></span> with a blue
+ background. So if we run it from the command line, we would run it as:
+
+</p><p>
+ </p><pre class="screen">
+
+ xterm -bg blue &amp;
+
+ </pre><p>
+</p><p>
+ If this is our preference, it would be easier to put this preference in a
+ file somewhere, and have the system use our preference. That way whenever we
+ started <span class="command"><strong>xterm</strong></span>, it would use our preferred value, and we 
+ wouldn't need the command line options (unless as an override).
+
+</p><p>
+ The basic <span class="application">X</span> resource syntax is expressed like:
+
+</p><p>
+ </p><pre class="screen">
+
+ &lt;program&gt;&lt;binding&gt;&lt;widget&gt;&lt;binding&gt;&lt;widget&gt;&lt;...&gt;&lt;resource&gt;:&lt;value&gt;
+
+ </pre><p>
+</p><p>
+ Which, in real life, typically looks something like:
+
+</p><p>
+ </p><pre class="screen">
+
+ xterm*fontMenu*background: darkblue
+
+ </pre><p>
+</p><p>
+ It should be obvious what this does. The use of <span class="quote">&#8220;<span class="quote">*</span>&#8221;</span> in the
+ definition, is called a <span class="quote">&#8220;<span class="quote">loose binding</span>&#8221;</span> and acts as a 
+ wild-card. Meaning there may be gaps in the widget hierarchy. For instance:
+
+</p><p>
+ </p><pre class="screen">
+
+ xterm*background: darkblue
+
+ </pre><p>
+</p><p>
+ This would also give a dark blue background for the <span class="command"><strong>xterm</strong></span>
+ fontMenu, but also any other <span class="command"><strong>xterm</strong></span> properties that also have a
+ <span class="quote">&#8220;<span class="quote">background</span>&#8221;</span> attribute (e.g. window background, etc), no matter 
+ where they may be in the widget hierarchy. Similarly:
+
+</p><p>
+ </p><pre class="screen">
+
+ *background: darkblue
+
+ </pre><p>
+</p><p>
+ This would define the background for any and all programs that support it -- not just
+ <span class="command"><strong>xterm</strong></span>. Using a <span class="quote">&#8220;<span class="quote">.</span>&#8221;</span> in place of a
+ <span class="quote">&#8220;<span class="quote">*</span>&#8221;</span> would be more precise, and will not allow for wild-card gaps
+ in the hierarchy. Also, the application must support the particular widget 
+ attribute. <span class="quote">&#8220;<span class="quote">Background</span>&#8221;</span> is a fairly safe bet, but many
+ applications will have more specialized resources that are not so obvious. It
+ is best to check local documentation (man pages, etc), or see if an
+ application has an included examples. For instance, <span class="command"><strong>Netscape</strong></span> 
+ generally comes with an <code class="filename">Netscape.ad</code> file that has an extensive 
+ set of resource definitions that can be customized.
+
+</p><p>
+ <span class="application">X</span> resources are typically stored in more than one
+ place (see below) and are processed by the <span class="command"><strong>xrdb</strong></span> command (see man page).
+
+</p><div class="sect3"><div class="titlepage"><div><div><h4 class="title"><a name="idm673"></a>4.1.1. App Defaults</h4></div></div></div><p>
+ One way of storing preferred application resources is via files named for the
+ application in an <span class="quote">&#8220;<span class="quote">app-defaults</span>&#8221;</span> directory. For instance, on my
+ system, these are in <code class="filename">/usr/X11R6/lib/X11/app-defaults/</code>,
+ though this may vary according to options your vendor has chosen. This
+ directory contains a number of files for such well known
+ <span class="application">X</span> applications as <span class="command"><strong>xterm</strong></span>,
+ <span class="command"><strong>xclock</strong></span>, <span class="command"><strong>xcalc</strong></span>,
+ <span class="command"><strong>xload</strong></span>, and so on. All in all, it is a relatively small 
+ number of applications in the overall scheme of things. So not all
+ applications use this scheme. In fact, most do not.
+
+</p><p>
+ Each file will contain resource definitions for that application. The X
+ server loads these by itself during start up. A brief example from 
+ <code class="filename">XTerm-color</code>:
+
+</p><p>
+ </p><pre class="screen">
+
+ ! $XFree86$
+
+ #include "XTerm"
+
+ *VT100*colorMode: on
+ *VT100*dynamicColors: on
+
+ ! Uncomment this use color for underline attribute
+ !*VT100*colorULMode: on
+ !*VT100*underLine: off
+
+ ! Uncomment this to use color for the bold attribute
+ !*VT100*colorBDMode: on
+
+ *VT100*color0: black
+ *VT100*color1: red3
+ *VT100*color2: green3
+ *VT100*color3: yellow3
+ *VT100*color4: blue3
+ *VT100*color5: magenta3
+ *VT100*color6: cyan3
+ *VT100*color7: gray90
+ *VT100*color8: gray30
+ *VT100*color9: red
+ *VT100*color10: green
+ *VT100*color11: yellow
+ *VT100*color12: blue
+ *VT100*color13: magenta
+ *VT100*color14: cyan
+ *VT100*color15: white
+ *VT100*colorUL: yellow
+ *VT100*colorBD: white
+
+ </pre><p>
+</p><p>
+ This is mostly various color definitions. The application classname is not
+ explicitly stated, and is assumed from the filename. So think of each line as
+ starting: <code class="literal">XTerm-color*</code>. Also, notice at the top, the
+ <code class="literal">#include "XTerm"</code> line, which <span class="quote">&#8220;<span class="quote">includes</span>&#8221;</span> the
+ resource definitions for <span class="command"><strong>XTerm</strong></span>, a much longer file with a
+ more diverse set of definitions. (Not included due to length, but worth
+ looking at.) These files provide system wide defaults, and generally
+ speaking, would not normally be edited by the user.
+ 
+</p></div><div class="sect3"><div class="titlepage"><div><div><h4 class="title"><a name="idm692"></a>4.1.2. Xdefaults</h4></div></div></div><p>
+ Another common method of reading in resource preferences, is with an
+ <code class="filename">Xdefaults</code> file. Or, sometimes the naming 
+ scheme may be <code class="filename">Xresources</code> instead. This may exist as a
+ system wide file, such as <code class="filename">/etc/X11/Xresources</code>. 
+ Of course, the user is free to create a personal version in his home
+ directory, e.g. <code class="filename">~/.Xdefaults</code>. The user's version will 
+ over-ride any system wide settings, and will remain after system upgrades. 
+ Obviously, this is the place to put your own preferences.
+
+</p><p>
+ <code class="filename">Xresources</code> files are read into the resource database
+ with the <span class="command"><strong>xrdb</strong></span> command. Example:
+
+</p><p>
+ </p><pre class="screen">
+
+ xrdb -merge ~/.Xresources
+
+ </pre><p>
+</p><p>
+ This can be done interactively at the command line, or placed in a script and
+ run automatically as the <span class="application">X</span> session is started. In
+ the case of system wide files, this should be taken care of by the vendor
+ supplied start up scripts. Generally, such scripts will also check the user's
+ home directory as well (see the <code class="filename">xinitrc</code> example above).
+ So probably all that need be done, is to create the file with a text editor.
+
+</p><p>
+ Here's an example to illustrate a very few of the many things that might
+ be done with an <code class="filename">.Xdefaults</code> file:
+
+</p><p>
+ </p><pre class="screen">
+
+ ! This is a comment ;-)
+
+ #ifdef COLOR
+ *customization: -color
+ #endif
+
+ !! Let's cast a wide net, for any app supporting these
+ ! Blink instead of beeping
+ *visualBell: True
+ *scrollTtyOutput: False
+ *scrollKey:       True
+
+ ! See Netscape.ad for many settable resources
+ Netscape*noAboutSplash:	True
+ Netscape*documentFonts.sizeIncrement: 5
+ Netscape*documentFonts.xResolution*iso-8859-1: 120
+ Netscape*documentFonts.yResolution*iso-8859-1: 120
+ netscape-navigator*geometry: 960x820+240+140
+
+ emacs*Background: DarkBlue
+ emacs*Foreground: Wheat
+ emacs*pointerColor: Orchid
+ emacs*cursorColor: Orchid
+ emacs*bitmapIcon: on
+ emacs*font: 10x20
+
+ ! GVim colors, etc
+ !! GTK versions of gvim will not use all these.
+ Vim*useSchemes:         all
+ Vim*sgiMode:            true
+ Vim*useEnhancedFSB:     true
+ Vim.foreground:         Black
+ !Vim.background:        lightyellow2
+ Vim*background:         white
+ ! geometry: width x height
+ Vim.geometry:  88x40
+ Vim*font:  -misc-fixed-medium-r-normal--20-200-75-75-c-100-iso8859-15-*5
+ Vim*menuBackground: yellow
+ Vim*menuForeground: black
+
+ rxvt*backspacekey: ^?
+ rxvt*background: Black
+ rxvt*foreground: wheat
+ rxvt*cursorColor: Orchid
+ rxvt*geometry: 100x18+40+300 
+ rxvt*title: Linux
+ rxvt*reverseVideo: false
+ !rxvt*backgroundPixmap: ~/penguinitis.xpm
+ rxvt*scrollBar: true
+ rxvt*reverseWrap: true
+ rxvt*font: -*-lucidatypewriter-medium-*-*-*-14-*-*-*-*-*-*-*
+ rxvt*fullCursor: true
+ rxvt*saveLines:  1500
+ rxvt*menu: ~/rxvt.menu
+
+ XTerm*saveLines:    1500
+ ! Do not clear the screen after the program exits
+ XTerm*VT100*titeInhibit: true
+
+ ! Fix up xterm's keybindings 
+ xterm*VT100.translations:	#override \
+       &lt;Key&gt;BackSpace:    string(0x7F) \n\
+       &lt;Key&gt;Insert:       string(0x1b) string("[2~")\n\
+       &lt;Key&gt;Delete:       string(0x1b) string("[3~")\n\
+       &lt;Key&gt;Home:         string(0x1b) string("[1~")\n\
+       &lt;Key&gt;End:	     string(0x1b) string("[4~")\n\
+       &lt;Key&gt;Page_Up:      string(0x1b) string("[5~")\n\
+       &lt;Key&gt;Page_Down:    string(0x1b) string("[6~")\n\
+       &lt;KeyPress&gt;Prior : scroll-back(1,page)\n\
+       &lt;KeyPress&gt;Next : scroll-forw(1,page)
+
+ ! Ghostview
+ Ghostview*Font: *-helvetica-bold-r-normal--12-*-*-*-*-*-*
+ Ghostview*BorderColor:  white
+ Ghostview*Text*Font:    rk14
+ Ghostview*Background:   #d9d9d9
+ !Ghostview*Foreground:  white
+ ghostview.form.pageview.page.background: white
+ ghostview.form.pageview.page.foreground: black
+ .ghostview.zoom.form.page.background: white
+ .ghostview.zoom.form.page.foreground: black
+
+ ! xscreensaver !
+ ! Time out after 12 minutes, cycle mode after each 2
+ xscreensaver.timeout: 12
+ xscreensaver.cycle: 5
+ ! Run low priority, and fade between modes
+ xscreensaver.nice: 12
+ xscreensaver.fadeSeconds: 2
+
+ XFontsel.menu.options.showUnselectable: False
+ 
+ </pre><p>
+</p><p>
+ Hopefully, these few examples will give you some ideas to build on.
+ <span class="application">X</span> does not need to be restarted if
+ <span class="command"><strong>xrdb</strong></span> is used interactively from the command line after
+ making changes. The effects are immediate.
+
+</p><p>
+ Resources are sometimes available also as command line options. See below. 
+ Command line options will over-ride any existing resource definitions.
+
+</p></div></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="idm715"></a>4.2. xmodmap, the Keyboard and Mice</h3></div></div></div><p>
+ The keyboard and mouse, as well as other possible input devices, are defined
+ in <code class="filename">XF86Config</code> (or <code class="filename">XF86Config-4</code>).
+ There is a keyboard layout that is defined based on the preferred language:
+
+</p><p>
+ </p><pre class="screen">
+
+ Section "InputDevice"
+	Identifier  "Keyboard0"
+	Driver      "keyboard"
+	Option      "XkbLayout"	"us"
+ EndSection
+
+ </pre><p>
+</p><p>
+ This gives us our default keyboard layout. Valid layout labels are listed in
+ <code class="filename">/usr/X11R6/lib/X11/xkb/symbols</code>. Also, the
+ <span class="command"><strong>setxkbmap</strong></span> utility can be used to change this
+ interactively.
+
+</p><p>
+ <span class="application">X</span> is highly customizable, and we can modify the
+ keyboard and mouse pointer mappings to suit our own preferences. The utility
+ to do this is <span class="command"><strong>xmodmap</strong></span> (see man page). You don't like where
+ the capslock key is? So move it ;-)
+
+</p><p>
+ Like <span class="command"><strong>xrdb</strong></span>, <span class="command"><strong>xmodmap</strong></span> can be run from the
+ command line. Or, preferred settings can be stored in a file. Typically this
+ is <code class="filename">~/.Xmodmap</code>, or similar. If your
+ <span class="application">X</span> start up files don't parse this, then edit as
+ appropriate so that they do (probably from <code class="filename">~/.xinitrc</code> or
+ <code class="filename">~/.xsession</code>).
+
+</p><p>
+ You can view your current key and mouse mappings with: <span class="command"><strong>xmodmap -pk
+ -pp |less</strong></span>. This will print out all active <span class="quote">&#8220;<span class="quote">keycode</span>&#8221;</span>
+ values, with corresponding <span class="quote">&#8220;<span class="quote">keysym</span>&#8221;</span> values, and any keysym names
+ that <span class="command"><strong>xmodmap</strong></span> knows about (e.g. <span class="quote">&#8220;<span class="quote">BackSpace</span>&#8221;</span>).
+ And should also give you an idea of how <span class="command"><strong>xmodmap</strong></span>
+ understands key and mouse events. There are two keysyms per keycode. The
+ second is the shifted value. XFree86's <span class="command"><strong>xev</strong></span> utility can be
+ used to dump a lot of information on key-presses and mouse events
+ interactively. Pay attention to the <span class="quote">&#8220;<span class="quote">keycode</span>&#8221;</span> value. That is
+ what you will need to know in order to re-map.
+
+</p><p>
+ <span class="command"><strong>xmodmap</strong></span> is often used to make minor keyboard adjustments,
+ like proper Backspace/Delete mapping. Or can be used make major adjustments
+ such as for international mappings. You can only re-map keys and mouse events
+ -- you cannot assign macros to key events (your Window Manager or Desktop
+ might have some of this functionality).
+
+</p><p>
+ A nice discussion of 
+<a class="ulink" href="http://tldp.org/HOWTO/Intkeyb/index.html" target="_top">setting up international keyboards
+</a>.
+ 
+Also, 
+<a class="ulink" href="http://google.com/linux" target="_top">Google search</a> 
+ will turn up many creative examples.
+
+</p><p>
+ The man page has many brief examples of various usages. Here is what an 
+ one hypothetical <code class="filename">~/.Xmodmap</code> might look like:
+
+</p><p>
+ </p><pre class="screen">
+
+ ! /home/hal/.Xmodmap, last change 10/03/01
+ !
+ ! Force backspace to 22 and Delete to 111
+ keycode 22 = BackSpace
+ keycode 111 = Delete
+ !
+ ! My keyboard handles right and left Alt differently. Make the 
+ ! Right act like the Left to avoid digital gymnastics.
+ keycode 63 = Alt_L
+ keycode 113 = Meta_L
+ !
+ ! Hard-code the keypad to numeric values as if numlock is always on 
+ ! since I never use it for anything else.
+ keycode 79=7
+ keycode 80=8
+ keycode 81=9
+ keycode 83=4
+ keycode 84=5
+ keycode 85=6
+ keycode 87=1
+ keycode 88=2
+ keycode 89=3
+ keycode 90=0
+ keycode 91=period
+ keycode 86 = plus
+ ! deactivate Num_Lock key since we don't need it now.
+ keycode 77 =
+ !
+ ! My capslock is next to tab. I hit it by mistake sometimes, 
+ ! and don't use it anyway. So make capslock act like Tab.
+ keycode 66 = Tab
+ clear lock
+ !
+ ! Reverse mouse buttons for left-handed people
+ pointer = 3 2 1
+
+ </pre><p>
+</p><p>
+ As with many XFree86 files, the <span class="quote">&#8220;<span class="quote">!</span>&#8221;</span> represents a comment. 
+ Another possible use, is to redefine those annoying <span class="quote">&#8220;<span class="quote">Windows</span>&#8221;</span>
+ keys to something useful. Hopefully this gives an idea of some things one
+ might want to do to make the keyboard more agreeable to us.
+
+</p><p>
+ Speaking of the <code class="literal">Numlock</code> key, <span class="application">X</span>
+ will typically disable this when it starts up. No matter how you have the
+ BIOS set up, or Linux set up before <span class="application">X</span> starts. So the
+ trick above is one way. There is also a utility available as either
+ <span class="application">numlockx</span>, or
+ <span class="application">setnumlock</span>, that can be found on the &#8217;Net, if
+ your distribution does not include one or the other. This can be put in a
+ start up file to turn <code class="literal">Numlock</code> on automatically if you would
+ prefer.
+
+</p><p>
+ Window Managers and Desktop Environments will also allow customization of the
+ keyboard and mouse (as long as it is recognized correctly by
+ <span class="application">X</span>). This may be an easier way to configure certain 
+ customizations.
+
+</p><div class="sect3"><div class="titlepage"><div><div><h4 class="title"><a name="idm765"></a>4.2.1. Special Key Mappings</h4></div></div></div><p>
+ There are several special key mappings traditionally used in
+ XFree86.
+
+</p><div class="variablelist"><dl class="variablelist"><dt><span class="term"><span class="keycap"><strong>Ctrl</strong></span>+<span class="keycap"><strong>Alt</strong></span>+<span class="keycap"><strong>BackSpace</strong></span></span></dt><dd><p>
+     Will kill the <span class="application">X</span> server process in an orderly
+     fashion. This is a quick, easy, legitimate way to restart
+     <span class="application">X</span>. Note it does not restart the display
+     manager (if used) &#8212; just <span class="application">X</span> itself.
+   </p></dd><dt><span class="term"><span class="keycap"><strong>Ctrl</strong></span>+<span class="keycap"><strong>Alt</strong></span>+<span class="keycap"><strong>F<em class="replaceable"><code>n</code></em></strong></span></span></dt><dd><p>
+    
+where <em class="replaceable"><code>n</code></em> 
+corresponds to a valid <acronym class="acronym">TTY</acronym> number
+    (typically 1&#8211;6). 
+This is typically used to jump to a text console login,
+    while <span class="application">X</span> remains running. To get back to
+    <span class="application">X</span>, 
+press 
+<span class="keycap"><strong>Alt</strong></span>+<span class="keycap"><strong>F<em class="replaceable"><code>n</code></em></strong></span>. In this
+    case, <em class="replaceable"><code>n</code></em> 
+represents one plus the last <acronym class="acronym">TTY</acronym> 
+(e.g. <span class="keycap"><strong>Alt</strong></span>+<span class="keycap"><strong>F7</strong></span> if
+    there are six available <acronym class="acronym">TTY</acronym>&#8217;s). 
+   </p></dd><dt><span class="term"><span class="keycap"><strong>Ctrl</strong></span>+<span class="keycap"><strong>Alt</strong></span>+<span class="keycap"><strong>+</strong></span> 
+and <span class="keycap"><strong>Ctrl</strong></span>+<span class="keycap"><strong>Alt</strong></span>+<span class="keycap"><strong>-</strong></span></span></dt><dd><p>
+    That is the plus and minus keys on
+    the keypad. This will cycle through any existing valid screen resolution 
+    modes, e.g. 1024×768 &#8594; 600×800. Note the actual screen
+    size is the same &#8212; just the view and resolution changes. 
+Not all that
+    useful for most purposes. You cannot permanently change the screen 
+    resolution without restarting <span class="application">X</span>.
+    
+   </p></dd></dl></div><p>
+ It's possible your Window Manager, Desktop Environment or other system
+ component may trap these, and alter the standard behavior. In addition, the
+ <span class="keycap"><strong>Ctrl</strong></span>+<span class="keycap"><strong>Alt</strong></span>+<span class="keycap"><strong>Delete</strong></span> may be trapped as well. This should shut
+ <span class="application">X</span> (and the system) down orderly, if it is
+ available.
+
+</p></div><div class="sect3"><div class="titlepage"><div><div><h4 class="title"><a name="idm822"></a>4.2.2. Mice and Pointers</h4></div></div></div><p>
+  As mentioned, Linux and Unix make heavy use of three mouse buttons. If a
+  mouse only has two buttons, then the third (i.e. the middle) button can
+  be simulated by pressing both buttons simultaneously. This is a
+  configuration option set in <code class="filename">XF86Config</code> as the 
+  <span class="quote">&#8220;<span class="quote">Emulate3Buttons</span>&#8221;</span> directive:
+
+</p><p>
+ </p><pre class="screen">
+
+ Section "InputDevice"
+	Identifier  "Mouse0"
+	Driver      "mouse"
+	Option      "Device" "/dev/mouse"
+	Option      "Protocol" "PS/2"
+	Option      "Emulate3Buttons" "on"
+ EndSection
+
+ </pre><p>
+</p><p>
+ When all is said and done, a third button is quite handy and I would personally recommend
+ having one. On wheeled mice, the <span class="quote">&#8220;<span class="quote">wheel</span>&#8221;</span> acts as the third
+ button, if pressed. Many standard wheel mice seem to work with the
+ <span class="quote">&#8220;<span class="quote">IMPS/2</span>&#8221;</span> protocol option.
+
+</p><p>
+ Specifically, the third button (middle) is the <span class="quote">&#8220;<span class="quote">paste</span>&#8221;</span> button in
+ virtually all Linux applications. Copy and paste works a little different in
+ Linux. The left button is the copy button. Just hold it down, and drag over
+ text. It is automatically copied to the <span class="application">X</span>
+ <span class="quote">&#8220;<span class="quote">clipboard</span>&#8221;</span>. Then, the middle button will paste from there. A
+ very simple process. A double-click should copy individual words, and a
+ triple-click individual lines of text. If for some reason, this does not
+ work, it is either a poorly implemented application, or a bug of some kind.
+ Some older versions of <span class="application">Netscape</span> were not
+ consistent about this, for instance. To paste from the keyboard, this should 
+ be shift+insert.
+
+</p><p>
+ <span class="quote">&#8220;<span class="quote">Drag and Drop</span>&#8221;</span> is not natively supported by
+ <span class="application">X</span> itself. But, is implemented by some toolkits and
+ Desktop Environments. One should not expect this to work with non-compliant
+ applications (i.e non-<span class="application">KDE</span> aware applications in 
+ <span class="application">KDE</span> for example).
+
+</p></div></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="idm842"></a>4.3. xset</h3></div></div></div><p>
+ <span class="command"><strong>xset</strong></span> is yet another XFree86 utility to set user
+ preferences. <span class="command"><strong>xset</strong></span> is a bit of a catch-all and is used 
+ to change various, unrelated X server settings. Mostly this is a command 
+ line way of configuring some of the same things that are defined in 
+ <code class="filename">XF86Config</code> (but not everything!).
+
+</p><p>
+ Common usages of <span class="command"><strong>xset</strong></span> are to set DPMS on or off and
+ preferred intervals, to dynamically change the FontPath or re-read it, to
+ control keyboard LEDs, to adjust mouse (or other pointer) movement speed,
+ set keyboard <span class="quote">&#8220;<span class="quote">autorepeat</span>&#8221;</span> and <span class="quote">&#8220;<span class="quote">repeat</span>&#8221;</span> rates, and
+ to control <span class="application">X's</span> built in screen blanking. See the
+ man page, of course, for detailed explanations, and other
+ <span class="command"><strong>xset</strong></span> usages.
+
+</p><p>
+ Again, <span class="command"><strong>xset</strong></span> can be used interactively from the command
+ line. But most often preferred settings are stored in one of the start up 
+ configuration files, like <code class="filename">.xinitrc</code> or
+ <code class="filename">.xsession</code>. A very brief example:
+
+</p><p>
+ </p><pre class="screen">
+
+ # Turn off screen blanking
+ xset s off
+ 
+ # Enable DPMS energy saving
+ xset +dpms
+ 
+ # Tweak the rodent
+ xset m 30/10 4
+ 
+ # Speed up keyboard
+ xset r rate 200 40
+
+ </pre><p>
+</p><p>
+ Your desktop may have a GUI front-end for <span class="command"><strong>xset</strong></span>.
+
+</p></div></div><div class="sect1"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="fontscolors"></a>5. Fonts and Colors</h2></div></div></div><p>
+ Understanding fonts and colors can be more complex in
+ <span class="application">X</span> than on other platforms. 
+</p><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="idm866"></a>5.1. Fonts Demystified</h3></div></div></div><p>
+ <span class="application">X</span> knows about various font types, including
+ bitmaps, Type 1, and as of v4.x, TrueType. The X server can either handle
+ fonts itself, or sometimes this duty is forked to a font server (of which
+ there are several). <span class="command"><strong>xfs</strong></span> (X Font Server) is the most common
+ font server in use on Linux.
+
+</p><p>
+ A font server is not required, as <span class="application">X</span> can handle
+ most font rendering itself. Font servers are traditionally used for serving
+ fonts to multiple hosts on a network, but sometimes are also used to provide 
+ enhanced functionality. Additionally, a font server may provide a modest
+ performance boost by off-loading font rendering to a separate process.
+
+</p><p>
+ <span class="application">X</span> knows about fonts according to fonts that are in
+ the <span class="quote">&#8220;<span class="quote">FontPath</span>&#8221;</span>. This is set initially in
+ <code class="filename">XF86Config</code>. If the X server is handling font duties
+ itself (i.e. no font server), this will be a list of directories that contain
+ font files, like:
+
+</p><p>
+ </p><pre class="screen">
+
+ FontPath        "/usr/X11R6/lib/X11/fonts/misc:unscaled"
+ FontPath        "/usr/X11R6/lib/X11/fonts/100dpi:unscaled"
+ FontPath        "/usr/X11R6/lib/X11/fonts/75dpi:unscaled"
+ FontPath        "/usr/X11R6/lib/X11/fonts/Type1"
+ FontPath        "/usr/X11R6/lib/X11/fonts/misc"
+ FontPath        "/usr/X11R6/lib/X11/fonts/100dpi"
+ FontPath        "/usr/X11R6/lib/X11/fonts/75dpi"
+
+ </pre><p>
+</p><p>
+ If a font server is being used, the <span class="quote">&#8220;<span class="quote">FontPath</span>&#8221;</span> will point to the
+ socket where the font server is serving (this is just one possible example):
+
+</p><p>
+ </p><pre class="screen">
+
+ FontPath "unix/:7101"
+
+ </pre><p>
+</p><p>
+ In this latter case, the actual font directories that are available will be
+ configured with the font server (see local documentation), which will use a
+ similar directory type scheme as shown for <code class="filename">XF86Config</code>.
+
+</p><p>
+ Once suitable fonts have been installed, they must be
+ <span class="quote">&#8220;<span class="quote">prepared</span>&#8221;</span>. For most fonts, this means running the 
+ <span class="command"><strong>mkfontdir</strong></span> utility (see man page) in the directory where
+ the fonts are (as root). Type 1 and TrueType require additional steps (see
+ below). Your vendor has done this for any fonts that were included with your
+ distribution. So, this will only need to be done for fonts that you add. For
+ newly added fonts to become visible to <span class="application">X</span>, 
+ you will need to run the appropriate
+ <span class="command"><strong>xset</strong></span> commands to either modify the existing FontPath, or
+ re-read it (see man page). Or, re-initialize your font server.
+
+</p><p>
+ Example: Preparing fonts, and re-initializing font server after adding new
+ fonts:
+
+</p><p>
+ </p><pre class="screen">
+
+ su 
+ &lt;password&gt;
+ mkfontdir /usr/X11R6/lib/X11/fonts/my_new_fonts/
+ /etc/init.d/xfs restart
+
+ </pre><p>
+</p><p>
+ The first command may not be necessary on newer distros (since it's done by
+ the init script in some cases). And the font server configuration would need
+ to be modified, if this is a new directory. Example: re-initializing with no
+ font server:
+
+</p><p>
+ </p><pre class="screen">
+
+ su 
+ &lt;password&gt;
+ mkfontdir /usr/X11R6/lib/X11/fonts/my_new_fonts/
+ xset +fp /usr/X11R6/lib/X11/fonts/my_new_fonts/
+ xset fp rehash
+
+ </pre><p>
+</p><p>
+ The <span class="quote">&#8220;<span class="quote"><span class="command"><strong>xset +fp</strong></span></span>&#8221;</span> would not be necessary if the
+ directory is already part of the FontPath.
+
+</p><p>
+ <span class="command"><strong>xlsfonts | less</strong></span> can be used to list what fonts are known,
+ and thus available, to <span class="application">X</span> and its clients. Run
+ <span class="command"><strong>xlsfonts | less</strong></span>, and you also can get an idea of the font
+ definition as understood by <span class="application">X</span>. Font resources are
+ specified quite explicitly, and it may seem complex at first. The <span class="emphasis"><em>X
+ Logical Font Description</em></span> (<span class="quote">&#8220;<span class="quote">XLFD</span>&#8221;</span>) is the full
+ description for any given font. The XLFD looks like: 
+ 
+</p><p>
+ </p><pre class="screen">
+
+ -adobe-helvetica-medium-r-normal-*-*-120-*-*-p-*-iso10646-1
+
+ </pre><p>
+</p><p>
+ Where each field, left to right is:
+
+</p><table border="0" summary="Simple list" class="simplelist"><tr><td>
+  <code class="literal">fndry</code> - font foundry, the company or individual
+  which made the font.
+ </td></tr></table><table border="0" summary="Simple list" class="simplelist"><tr><td>
+  <code class="literal">fmly</code> - font family, the popular nickname of the font
+ </td></tr></table><table border="0" summary="Simple list" class="simplelist"><tr><td>
+  <code class="literal">wght</code> - font weight (bold, medium, etc.)
+ </td></tr></table><table border="0" summary="Simple list" class="simplelist"><tr><td>
+  <code class="literal">slant</code> - font slant (italics, oblique, roman
+  (normal), etc.)
+
+ </td></tr></table><table border="0" summary="Simple list" class="simplelist"><tr><td>
+  <code class="literal">sWdth</code> - font width (normal, condensed, extended, etc.)
+ </td></tr></table><table border="0" summary="Simple list" class="simplelist"><tr><td>
+  <code class="literal">adstyl</code> - additional style (sans serif, serif, etc.)
+ </td></tr></table><table border="0" summary="Simple list" class="simplelist"><tr><td>
+  <code class="literal">pxlsz</code> - pixel size, the number of pixels
+  vertically in a character
+ </td></tr></table><table border="0" summary="Simple list" class="simplelist"><tr><td>
+  <code class="literal">ptSz</code> - approximate point size of the text
+  (similar to pxlsz)
+ </td></tr></table><table border="0" summary="Simple list" class="simplelist"><tr><td>
+  <code class="literal">resx</code> - horizontal resolution, in dpi
+ </td></tr></table><table border="0" summary="Simple list" class="simplelist"><tr><td>
+  <code class="literal">resy</code> - vertical resolution, in dpi
+ </td></tr></table><table border="0" summary="Simple list" class="simplelist"><tr><td>
+  <code class="literal">spc</code> - spacing, only useful, apparently, in the
+  Schumacher fonts
+ </td></tr></table><table border="0" summary="Simple list" class="simplelist"><tr><td>
+  <code class="literal">avgWidth</code> - average character width of the font
+ </td></tr></table><table border="0" summary="Simple list" class="simplelist"><tr><td>
+  <code class="literal">rgstry</code> - the recognized registry that lists
+  the font 
+ </td></tr></table><table border="0" summary="Simple list" class="simplelist"><tr><td>
+  <code class="literal">encdng</code> - nationality encoding
+ </td></tr></table><p>
+ The <span class="quote">&#8220;<span class="quote">*</span>&#8221;</span> acts as a wild-card character. In fact, if not every
+ field is specified, the X server will take the first match it finds in 
+ the FontPath. This is why it is best to order the FontPath with preferred
+ fonts coming first since some programs will deliberately specify fonts 
+ <span class="quote">&#8220;<span class="quote">loosely</span>&#8221;</span> so that your system has some discretion.
+
+</p><p>
+ The program <span class="command"><strong>xfontsel</strong></span> (<span class="application">X</span> 
+ Font Selector) may be useful. Try launching it now. You will see 
+ nothing helpful in the main window at first, but try holding the left button
+ down on the <code class="literal">fndry</code> button. If all your fonts are
+ in order, you will see a menu of selections such as <code class="literal">adobe</code> and <code class="literal">b&amp;h</code> and
+ <code class="literal">bitstream</code> and so forth. Select one such as
+ <code class="literal">b&amp;h</code> and you will notice that the font in
+ the lower window changes to something intelligible. This is the way 
+ fonts are selected with this program; starting from the left, which is the
+ most general selection, and moving toward the right, to the more specific
+ options. Selecting an option toward the rightmost end will not make much
+ sense before the foundry, for instance, is selected, because the options are
+ generally ordered by their dependence on each other. 
+ 
+</p><p>
+ When you select from the <code class="literal">fmly</code> selection,
+ you will see most of the options grayed out, and only three remaining. That
+ means that these three are the only families of font made by this foundry.
+ Some families appear under more than one foundry, for instance, both
+ <span class="emphasis"><em>Adobe</em></span> and <span class="emphasis"><em>Bitstream</em></span> make a
+ variation of the Courier font. Now you can select the <code class="literal">wght</code>, and so forth. After you get far enough you will
+ have narrowed it down to the font that you want. You don't necessarily have
+ to fill in all the options to choose a single font, there's not
+ <span class="emphasis"><em>that</em></span> many fonts on your system! The options that you do
+ not select will be represented by a <code class="literal">*</code>
+ indicating that any option will do in that spot, and gives X some leeway.
+</p><p>
+ When you are satisfied with your font selection, hit the select button,
+ and your selection will be placed in the <span class="application">X</span>
+ clipboard, ready to be pasted into your document or whatever you are working
+ on. For example, open an <span class="emphasis"><em>xterm</em></span> window and
+ type in something like <code class="literal">xterm -font </code> followed by
+ an opening quotation mark. Then point to that spot on your screen, and click
+ your middle mouse button (or click both the left and right, if you are
+ middle-button impaired). This will paste the selection from the clipboard,
+ which should be the font you just selected. Then enter the closing quote, and
+ hit <code class="literal">Enter</code>. For instance, a nice big <span class="emphasis"><em>xterm</em></span> with a Courier font specified would look like
+ this: <code class="literal">xterm -font
+ "-adobe-courier-medium-r-*-*-14-*-*-*-*-*-*-*"</code>. 
+</p><p>
+ If you've found a font you prefer, this can permanently be used by placing the 
+ font definition in the appropriate configuration file (see above).
+
+</p><p>
+  Note that you can also limit the number of fonts that you want 
+  <span class="command"><strong>xfontsel</strong></span> to display with the command line option
+ <span class="emphasis"><em>-pattern</em></span>, followed by a quoted font specification, as
+ discussed above.
+
+</p><p>
+ The <span class="command"><strong>xfd</strong></span> utility is also helpful for examining
+ individual fonts. If launched with a command line such as <span class="command"><strong>xfd
+ -fn fixed</strong></span>, it will show you the complete character set for that font.
+</p><p>
+ <span class="application">KDE</span> and <span class="application">GNOME</span> have
+ their own utilities that are not quite as obtuse ;-)
+
+</p><div class="sect3"><div class="titlepage"><div><div><h4 class="title"><a name="idm986"></a>5.1.1. Type 1 and TrueType Fonts</h4></div></div></div><p>
+ The fonts provided with XFree86 are of limited use for many of us,
+ considering that about the only place you'll find fonts of that kind, are
+ used in the X Window System itself for the most part. Unfortunately many
+ media junkies, web designers and fontaholics work in operating systems that
+ rely on other formats. And then, there often does not seem to be much
+ emphasis by some distributions on making the best of the default fonts
+ either. 
+</p><p>
+ Type 1 fonts, most commonly used in conjunction with PostScript document
+ formats, are the traditional standard in Unix and Linux environments. You
+ should have a reasonably good starter selection installed already. Or, more
+ can be found for free on the Internet with considerable ease, and Try <a class="ulink" href="ftp://ftp.cdrom.com/pub/os2/fonts/" target="_top">ftp://ftp.cdrom.com/pub/os2/fonts/</a>
+ for starters. Type 1 are scalable fonts, and have many of the same benefits
+ of the better known TrueType fonts. If you don't have a good selection of
+ TrueType fonts installed, then Type 1 is what you want for most GUI
+ applications. But again, this is not standard on  other platforms, and can 
+ present problems when viewing documents (e.g. web pages) that are designed 
+ with <span class="quote">&#8220;<span class="quote">other platforms</span>&#8221;</span> in mind.
+
+</p><p>
+ TrueType fonts started with Apple, and later were licensed by Microsoft. So
+ people migrating from non-Unix platforms are already familiar with these high
+ quality fonts. Unfortunately, there are not many quality TrueType fonts under
+ a suitable license, and thus there are not many included with Linux
+ distributions. And the ones that are, often are not as high quality. Also
+ unfortunately, TrueType has become somewhat of a standard on the Web and in
+ other venues, and not having good TrueType fonts can be a detriment. 
+ XFree86 also seems to render TrueType a little better than Type1.
+
+</p><p>
+ That is the bad news. The good news is that any TrueType font included with
+ any version of Windows, or any Windows applications, should work on Linux.
+ Though you will have to take some additional steps to integrate them. This 
+ particularly helps web browsing where <span class="application">X's</span>
+ bitmapped fonts just don't scale well.
+
+</p><p>
+ 
+We shall not go into detail on installing and configuring these fonts here, 
+as it is addressed in depth in other documents. See 
+<a class="ulink" href="http://tldp.org/HOWTO/Font-HOWTO.html" target="_top">The Font HOWTO</a>
+ for general font information, and Type 1 tips. 
+See <em class="citetitle">The Font De-Uglification 
+ Mini HOWTO</em>, 
+<a class="ulink" href="http://tldp.org/HOWTO/FDU/index.html" target="_top">The Font De-Uglification 
+ Mini HOWTO</a>,
+ for various <span class="application">X</span> related font tips, especially TrueType.
+
+</p></div></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="idm1000"></a>5.2. Colors</h3></div></div></div><p>
+ Let's go back to our terminal window and try something. Open an
+ <span class="command"><strong>xterm</strong></span> with a command line like the following:
+</p><p>
+ </p><pre class="screen">
+ 
+ xterm -fg DarkSteelBlue1 -bg red3 &amp;
+ 
+ </pre><p>
+</p><p>
+ Ouch! While that may not be pretty, and you may not do much of your best work
+ in it, it demonstrates one interesting aspect of <span class="application">X</span>
+ configuration -- color names. While not particularly precise, this is a nice
+ way to remember a variety of colors. Note that color names are never
+ case-sensitive.
+
+</p><p>
+ The X server will actually deal with color values as a hexadecimal
+ Red-Green-Blue (RGB) color notation. This would look something like
+ <span class="quote">&#8220;<span class="quote">#0aff0a</span>&#8221;</span> in hex. Not so easy to remember. But
+ <span class="application">X</span> gives a more mnemonic way of remembering valid
+ color definitions. These are stored in a text table, typically as
+ <code class="filename">/usr/X11R6/lib/X11/rgb.txt</code>, and is defined in 
+ <code class="filename">XF86Config</code> in the <span class="quote">&#8220;<span class="quote">Files</span>&#8221;</span> section.
+
+</p><p>
+ If you are interested, have a look with a text editor. There are many, many
+ shades defined. I count eighty-three shades of blue in mine, for instance. Brief
+ snip:
+
+</p><p>
+ </p><pre class="screen">
+
+ 176 226 255             LightSkyBlue1
+ 164 211 238             LightSkyBlue2
+ 141 182 205             LightSkyBlue3
+  96 123 139             LightSkyBlue4
+ 202 225 255             LightSteelBlue1
+ 188 210 238             LightSteelBlue2
+ 162 181 205             LightSteelBlue3
+ 110 123 139             LightSteelBlue4
+ 191 239 255             LightBlue1
+ 178 223 238             LightBlue2
+ 154 192 205             LightBlue3
+ 104 131 139             LightBlue4
+
+ </pre><p>
+</p><p>
+ This file can be customized should you desire, but this is rarely needed for
+ most of us. It is important to have though, since some applications depend on
+ it. 
+
+</p><p>
+ Desktop Environments will have a GUI utility for selecting colors.
+
+</p></div></div><div class="sect1"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="windowman"></a>6. Window Managers and Desktops</h2></div></div></div><p>
+ We shall not delve into configuring Window Manager's and Desktop Environments.
+ There is just too much to try to cover in one document. It is important to
+ realize that the two are not the same. There are many, many Window Managers
+ available. 
+</p><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="idm1022"></a>6.1. Window Managers</h3></div></div></div><p>
+ Window Managers are highly configurable. Many aspects of user interaction can 
+ be controlled by the Window Manager.
+
+</p><p>
+ Some of the most popular Window Managers:
+
+</p><table border="0" summary="Simple list" class="simplelist"><tr><td>
+  aewm: <a class="ulink" href="http://www.red-bean.com/~decklin/aewm/" target="_top">http://www.red-bean.com/~decklin/aewm/</a>
+ </td></tr></table><table border="0" summary="Simple list" class="simplelist"><tr><td>
+  AfterStep: <a class="ulink" href="http://www.afterstep.org/" target="_top">http://www.afterstep.org/</a>
+ </td></tr></table><table border="0" summary="Simple list" class="simplelist"><tr><td>
+  BlackBox: <a class="ulink" href="http://sourceforge.net/projects/blackboxwm" target="_top">http://sourceforge.net/projects/blackboxwm</a>
+ </td></tr></table><table border="0" summary="Simple list" class="simplelist"><tr><td>
+  Enlightenment: <a class="ulink" href="http://www.enlightenment.org/pages/main.html" target="_top">http://www.enlightenment.org/pages/main.html</a>
+ </td></tr></table><table border="0" summary="Simple list" class="simplelist"><tr><td>
+  Fluxbox: <a class="ulink" href="http://fluxbox.sourceforge.net/" target="_top">http://fluxbox.sourceforge.net/</a>
+ </td></tr></table><table border="0" summary="Simple list" class="simplelist"><tr><td>
+  fvwm: <a class="ulink" href="http://www.fvwm.org/" target="_top">http://www.fvwm.org/</a>
+ </td></tr></table><table border="0" summary="Simple list" class="simplelist"><tr><td>
+  IceWM: <a class="ulink" href="http://www.icewm.org/" target="_top">http://www.icewm.org/</a>
+ </td></tr></table><table border="0" summary="Simple list" class="simplelist"><tr><td>
+  olwm (OpenLook Window Manager): 
+  <a class="ulink" href="http://www.plig.org/xwinman/olvwm.html" target="_top">http://www.plig.org/xwinman/olvwm.html</a>
+ </td></tr></table><table border="0" summary="Simple list" class="simplelist"><tr><td>
+  Sawmill: <a class="ulink" href="http://sawmill.sourceforge.net/" target="_top">http://sawmill.sourceforge.net/</a>
+ </td></tr></table><table border="0" summary="Simple list" class="simplelist"><tr><td>
+  WindowMaker: <a class="ulink" href="http://www.windowmaker.org/" target="_top">http://www.windowmaker.org/</a>
+ </td></tr></table><table border="0" summary="Simple list" class="simplelist"><tr><td>
+  XFce: <a class="ulink" href="http://xfce.org/" target="_top">http://xfce.org/</a>
+ </td></tr></table><p>
+ There are many, many lesser known ones as well. 
+ <a class="ulink" href="http://www.plig.org/xwinman/" target="_top">http://www.plig.org/xwinman/</a> 
+ has an updated list of Window Managers, and related information.
+ There is always <a class="ulink" href="http://freshmeat.net" target="_top">freshmeat</a> too.
+
+</p><p>
+ <span class="application">GNOME</span> and <span class="application">KDE</span>
+ both have their default Window Manager, but support other, compliant Window
+ Managers as well. Your distribution probably has included at least several.
+ Try them all if you don't already have a favorite. Your distribution probably
+ also has a method of switching dynamically between Window Managers (and Desktop
+ Environments too).
+
+</p></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="idm1065"></a>6.2. Desktop Environments</h3></div></div></div><p>
+ Desktop Environments are not really new, but their popularity has increased
+ with advent of the two big names: <span class="application">KDE</span> and
+ <span class="application">GNOME</span>. To a certain extent, the Desktop
+ Environment functionality overlaps the Window Manager's. They both can be
+ responsible for the root window background, root window menu, icons,
+ taskbars, etc. Generally speaking, if a Desktop Environment is running, it is
+ controlling these aspects. That is the main idea behind them -- to integrate
+ the various components into a cohesive, consistent whole. Desktop
+ Environments also add some interoperability and ease-of-use features that a
+ simple Window Manager cannot. 
+</p><p>
+ Oh, another point: Desktop Environments also try to do as much
+ <span class="application">X</span> session configuration as possible. Any of their
+ compliant clients will more than likely be configured by the Desktop, or have
+ it's own configuration that conforms to the Desktop's style. This is at
+ least partly to avoid much of the seemingly helter-skelter text file
+ configuration we looked at in the above sections, and make life a little
+ easier for the user.
+
+</p><p>
+ There is a trade-off in this additional functionality, and that is that it
+ takes memory and system resources to oversee all this. If you have plenty of
+ memory and a fast computer, this is no problem. But in low memory situations,
+ this can cause a slowdown (see the <a class="link" href="#performance" title="9. Performance Considerations">performance
+ section</a> below). 64M of RAM is probably borderline with either 
+ <span class="application">KDE</span> or <span class="application">GNOME</span>.
+
+</p><p>
+ So do you need a Desktop Environment? That is up to the user. They are
+ certainly not required to run <span class="application">X</span>, but do add
+ features that many users want or expect in a GUI. Which one is better? Ah,
+ but that is up to you to decide!
+
+</p><p>
+ <span class="application">KDE</span> has been around longer than
+ <span class="application">GNOME</span>, and some would say maybe a little more
+ mature. <span class="application">KDE</span> is based on the QT widget toolkit. A
+ quote from the <a class="ulink" href="http://kde.org" target="_top">KDE home page</a>:
+
+</p><div class="blockquote"><blockquote class="blockquote"><p> 
+  KDE is a powerful Open Source graphical desktop environment for Unix
+  workstations.  It combines ease of use, contemporary functionality, and
+  outstanding graphical design with the technological superiority of the Unix
+  operating system.
+</p><p>
+ KDE is a mature desktop suite providing a solid basis to an ever growing
+ number of applications for Unix workstations.  KDE has developed a high
+ quality development framework for Unix, which allows for the rapid and
+ efficient creation of applications.
+</p></blockquote></div><p>
+ <span class="application">GNOME</span> is based on the GTK+ toolkit.
+ And a quote from the <a class="ulink" href="http://gnome.org" target="_top">GNOME home page</a>:
+</p><div class="blockquote"><blockquote class="blockquote"><p>
+ GNOME stands for GNU Network Object Model Environment. The GNOME project
+ intends to build a complete, user-friendly desktop based entirely on free
+ software. GNOME is part of the GNU project, and GNOME is part of the Open
+ Source(tm) movement. The desktop will consist of small utilities and larger
+ applications which share a consistent look and feel. GNOME uses GTK+ as the
+ GUI toolkit for all GNOME-compliant applications.
+ </p></blockquote></div><p>
+ <span class="application">XFce</span> is a lighter weight, less featureful Desktop
+ Environment that does not get as much attention as the others.
+ <span class="application">XFce</span> is also based on the GTK+ toolkit. And a
+ quote from the <a class="ulink" href="http://xfce.org" target="_top">XFce home page</a>:
+</p><div class="blockquote"><blockquote class="blockquote"><p>
+  The XFce project was first started because I needed a simple, light and
+  efficient environment for my Linux System.
+ </p><p>
+  I believe that the desktop environment should be made to increase user
+  productivity. Therefore, the goal is keep most system resources for the
+  applications, and not to consume all memory and CPU usage with the desktop
+  environment.
+ </p></blockquote></div><p>
+ All these have their own extensive documentation. If you can't find what you
+ need installed on your system, check the respective home pages.
+
+</p></div></div><div class="sect1"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="cli"></a>7. X and the Command Line</h2></div></div></div><p>
+ What would a Unix-like operating system be without a command line 
+ interface?  The command line can be useful, and is readily available with
+ <span class="application">X</span>. In fact, for many it is an integral part 
+ of their <span class="application">X</span> working environment. 
+
+</p><p>
+ Any <span class="application">X</span> program can be started directly from the
+ command line just by typing the program name at a shell prompt in an
+ <span class="command"><strong>xterm</strong></span>, or other terminal window. Most applications will
+ have a very rich set of command line <span class="quote">&#8220;<span class="quote">options</span>&#8221;</span>, such as
+ background color, font, geometry (screen placement), etc, etc. Command line
+ options over-ride compiled in defaults, or other system enabled
+ <span class="quote">&#8220;<span class="quote">resources</span>&#8221;</span>.
+ 
+</p><p>
+ Many traditional <span class="application">X</span> programs will use the same
+ basic names for command line options. All applications written using the 
+ MIT X Toolkit Intrinsics (Xt) (such as those included with XFree86)
+ automatically accept the following options. Some non-Xt applications also use
+ these, or something similar. For instance, <span class="quote">&#8220;<span class="quote">geometry</span>&#8221;</span> is close 
+ to a universally accepted option.
+</p><p>
+ </p><div class="variablelist"><dl class="variablelist"><dt><span class="term">-display <span class="emphasis"><em>[host]:display[.screen]</em></span></span></dt><dd><p>
+    This option specifies the X server display to use. This is often used 
+    where applications are run on one system, and displayed on another. The 
+    application needs to know <span class="emphasis"><em>where</em></span> to display. This 
+    is sometimes also accomplished by setting the <span class="quote">&#8220;<span class="quote">$DISPLAY</span>&#8221;</span> 
+    variable, which uses the same syntax.
+   </p></dd><dt><span class="term">-geometry <span class="emphasis"><em>geometry</em></span></span></dt><dd><p>
+    The initial size and location of the window, in a format such as
+    <code class="literal">width x height +horz_offset +vert_offset</code> or
+    <code class="literal">+horz_offset -vert_offset</code>. Note that if you put in a
+    negative horizontal or vertical offset, the window will be placed counting
+    backward from the right or the bottom of the screen, respectively, instead
+    of from the top left corner.
+   </p></dd><dt><span class="term">-font <span class="emphasis"><em>fontname</em></span></span></dt><dd><p>
+    The font to use for displaying the text in your window (see font section
+    below).
+   </p></dd><dt><span class="term">-bg <span class="emphasis"><em>color</em></span></span></dt><dd><p>
+    The color to use for the window background. Typically this is a
+    <span class="quote">&#8220;<span class="quote">color name</span>&#8221;</span> (see below).
+   </p></dd><dt><span class="term">-fg <span class="emphasis"><em>color</em></span></span></dt><dd><p>
+    The color to use for the window foreground (i.e. fonts, etc).
+   </p></dd><dt><span class="term">-name <span class="emphasis"><em>resource-name</em></span></span></dt><dd><p>
+    Useful for specifying the name under which the resources for this
+    application will be found (e.g. as specified in
+    <code class="filename">.Xdefaults</code>). This is useful to distinguish between
+    invocations of the same application. For example, two
+    <span class="command"><strong>xterms</strong></span> can be <span class="quote">&#8220;<span class="quote">named</span>&#8221;</span> differently so that
+    they may inherit different resources based upon the specified names in
+    the resource database.
+   </p></dd><dt><span class="term">-title <span class="emphasis"><em>string</em></span></span></dt><dd><p>
+    This is the title to be used for the window on your display, generally used
+    by the Window Manager to put a descriptive title at the top of the window.
+    Not to be confused with the <span class="quote">&#8220;<span class="quote">-name</span>&#8221;</span> option.
+   </p></dd><dt><span class="term">-iconic</span></dt><dd><p>
+    Open window in an iconified state.
+   </p></dd><dt><span class="term">-xrm <span class="emphasis"><em>resource-string</em></span></span></dt><dd><p>
+    This option specifies a resource name and value to override any defaults
+    that may already be set (i.e. via <code class="filename">.Xresources</code> or
+    similar). Also useful for setting <span class="application">X</span> resources
+    that do not have explicit command line options. For example, the command
+    line <span class="quote">&#8220;<span class="quote">xterm -xrm xterm*background: blue &amp;</span>&#8221;</span> is
+    functionally the same as <span class="quote">&#8220;<span class="quote">xterm -bg blue &amp;</span>&#8221;</span>.
+   </p></dd></dl></div><p>
+</p><p>
+ These are the most noteworthy. There are others. Many programs will have
+ their own additional options that are application specific. Many newer
+ applications today don't necessarily adhere to the Xt standards, and will use
+ their own options, or those provided by their respective toolkit.
+ If nothing else, man pages are a good reference for command syntax, and are
+ your friends here. Or, the application will have a <span class="quote">&#8220;<span class="quote">--usage</span>&#8221;</span> or 
+ <span class="quote">&#8220;<span class="quote">--help</span>&#8221;</span> command line switch to list available options:
+ 
+</p><p>
+ </p><pre class="screen">
+
+ $ gnome-terminal --usage
+ Usage: gnome-terminal [-?] [--disable-sound] [--enable-sound]
+   [--espeaker=HOSTNAME:PORT] [--version] [--usage] [--gdk-debug=FLAGS]
+   [--gdk-no-debug=FLAGS] [--display=DISPLAY] [--sync] [--no-xshm]
+   [--name=NAME] [--class=CLASS] [--gxid_host=HOST] [--gxid_port=PORT]
+   [--xim-preedit=STYLE] [--xim-status=STYLE] [--gtk-debug=FLAGS]
+   [--gtk-no-debug=FLAGS] [--g-fatal-warnings] [--gtk-module=MODULE]
+   [--disable-crash-dialog] [--sm-client-id=ID] [--sm-config-prefix=PREFIX]
+   [--sm-disable] [--tclass=TCLASS] [--font=FONT] [--nologin] [--login]
+   [--geometry=GEOMETRY] [-e COMMAND] [-x COMMAND] [--foreground=COLOR]
+   [--background=COLOR] [--solid] [--pixmap=PIXMAP] [--bgscroll]
+   [--bgnoscroll] [--shaded] [--noshaded] [--transparent] [--utmp]
+   [--noutmp] [--wtmp] [--nowtmp] [--lastlog] [--nolastlog] [-t TITLE]
+   [--icon=ICON] [--termname=TERMNAME] [--start-factory-server]
+   [--use-factory]
+
+ </pre><p>
+</p><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="idm1176"></a>7.1. xterm and friends</h3></div></div></div><p>
+ Sooner or later, most of us need to access the <span class="quote">&#8220;<span class="quote">command line</span>&#8221;</span> 
+ for one reason or another. For some, this might even be a common way of
+ working in <span class="application">X</span>. In addition to being able to launch 
+ <span class="application">X</span> applications from the command prompt, there
+ is also a wealth of programs that run in <span class="quote">&#8220;<span class="quote">text mode</span>&#8221;</span> for
+ Linux. 
+
+</p><p>
+ This is possible via <span class="quote">&#8220;<span class="quote">terminal emulators</span>&#8221;</span> such as
+ <span class="command"><strong>xterm</strong></span>. The closest counterpart from Microsoft is the
+ so-called DOS-box, which is child's play by comparison. Linux terminals support
+ color, full mouse copy/paste (and some wheeled mice), pseudo-transparency and
+ pixmap backgrounds, scrollbars, menus and generally a slew of other 
+ features. While <span class="command"><strong>xterm</strong></span> is the best known such terminal 
+ emulator, there are many similar programs. To name a few:
+ <span class="command"><strong>Eterm</strong></span>, <span class="command"><strong>rxvt</strong></span>,
+ <span class="command"><strong>aterm</strong></span>, <span class="command"><strong>konsole</strong></span>
+ (<span class="application">KDE</span>) and <span class="command"><strong>gnome-terminal</strong></span>.
+
+</p><p>
+  In typical usage, when a terminal emulator window is opened, a shell is
+  started for the user to interact with. The default for essentially all
+  Linuxes, is the <span class="application">bash</span> shell. So when all is said
+  and done, the user is interacting with <span class="application">X</span>, the
+  terminal, and the shell all at once. Each may have it's own influence. For
+  example, how keystrokes are handled since they move from hardware to X
+  server to terminal to the shell and finally echoed back to the user.
+
+</p><p> 
+ Quick and easy terminal configuration is done via the <span class="quote">&#8220;<span class="quote">$TERM</span>&#8221;</span> 
+ variable, which is typically set in one of the user's shell configuration
+ files. Or the terminal itself will have a compiled in default. The default
+ value for this is most often <span class="quote">&#8220;<span class="quote">xterm</span>&#8221;</span>:
+
+</p><p>
+ </p><pre class="screen">
+
+ $ echo $TERM
+ xterm
+
+ </pre><p>
+</p><p>
+ Normally this is sufficient, as your vendor has already set this up in a
+ reasonable way. The <span class="quote">&#8220;<span class="quote">$TERM</span>&#8221;</span> variable is actually a reference to
+ an entry in the <span class="quote">&#8220;<span class="quote">termcap</span>&#8221;</span> database (man termcap), which is
+ typically installed as <code class="filename">/etc/termcap</code>. Unless you are
+ doing something really unusual, you probably will not need to change this.
+ Some additional terminal configuration can be done with the
+ <span class="command"><strong>stty</strong></span> command (see man page). Terminal configuration is
+ really beyond the scope of this document.
+
+</p><p>
+ The terminal application itself (e.g. <span class="command"><strong>xterm</strong></span>) will also
+ have various configuration options. Permanent settings are best stored in 
+ a <code class="filename">~/.Xdefaults</code> or similar file for those applications 
+ that support this. Generally speaking, applications with a GUI configuration 
+ (such as <span class="command"><strong>gnome-terminal</strong></span>), will be configured by their own
+ menu driven configuration instead.
+
+</p><p>
+ Also, you are interacting with the shell too, which can have it's own impact,
+ particularly on how keystrokes are handled at the shell prompt. For
+ <span class="application">bash</span>, this can be adjusted in
+ <code class="filename">~/.inputrc</code>. Again, this is beyond the scope of this
+ document, but check with either local or on-line
+ <span class="application">bash</span> (or other shell) references.
+
+</p><p>
+ Terminal emulators like <span class="command"><strong>xterm</strong></span> require a monospaced font.
+ So forget about TrueType or Type 1 fonts. 
+
+</p></div></div><div class="sect1"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="xsecurity"></a>8. <span class="application">X</span> Networking and Security</h2></div></div></div><p>
+ As mentioned, <span class="application">X</span> is essentially a networking
+ protocol with graphical displaying capabilities. This makes for some
+ interesting usage possibilities. And also means there are inherent security
+ considerations, as there is with any networking environment. And if you ever
+ connect to the Internet, you are in the midst of one very large, hostile
+ network ;-)
+
+</p><p>
+ X clients connect to X servers via various networking protocols, including
+ TCP/IP. Even with just local connections. Possible usages here are to run an
+ application on one computer, and display it on another. Or, to actually log
+ in to a remote system, and have it display to your local screen, with the
+ client apps using the remote system's CPU and RAM.
+
+</p><p>
+ Without any precautions, this can leave you wide open to various types of
+ mischief and abuse. For instance, anyone logged into to your system can
+ access your <span class="quote">&#8220;<span class="quote">display</span>&#8221;</span>, meaning they can see what you are doing
+ if they want to. Thankfully, most recent Linux releases come with some
+ default security precautions enabled. But it is best to make sure for
+ yourself that you are protected.
+
+</p><p>
+ Both <span class="application">X</span> networking and security are nicely covered 
+ in <a class="ulink" href="http://tldp.org/HOWTO/Remote-X-Apps.html" target="_top">The Remote X Apps Mini HOWTO
+</a>, 
+ so we shall not need to try to rehash it here. Recommended reading. See other
+ references in the <a class="link" href="#links" title="10.2. Links and other References">Links section</a> of the
+ Appendix below.
+
+</p><p>
+ A few recommended precautions:
+
+</p><p>
+ </p><div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem"><p>
+   Never, ever run <span class="application">X</span> as root. The number of bad
+   things that can happen, dramatically increases when logged in as root.
+   Learn to run as much as possible as a regular user, and su to root only
+   when needed. This may sound like a lot of extra work (and probably is at
+   first), but once the <span class="quote">&#8220;<span class="quote">right</span>&#8221;</span> way of doing things is learned,
+   it soon becomes second nature.
+   
+  </p><p>
+   A brief anecdote from a friend: he had a client who's new system stopped 
+   <span class="quote">&#8220;<span class="quote">working</span>&#8221;</span>. Curiously, he found the entire
+   <code class="filename">/dev</code> directory was missing, which he re-installed and
+   all was well again. He was back a few days later and found the system
+   logged in as root to <span class="application">X</span>, and someone had clicked
+   on <code class="filename">/dev</code> in the file manager, and dragged it onto the
+   desktop. Smooth move!
+
+  </p></li><li class="listitem"><p>
+   If you ever connect to a network with untrusted users, be sure to have a 
+   firewall between you and them. This goes double for the Internet.
+   Firewalling is beyond the scope of this document, but is covered in many
+   other places, including your vendor's website. <a class="ulink" href="http://linuxdoc.org" target="_top">http://linuxdoc.org</a> has several security
+   HOWTOs that can help as well. <a class="ulink" href="http://linuxsecurity.com/docs/" target="_top">http://linuxsecurity.com/docs/</a>
+   is another good place to look.
+
+  </p></li><li class="listitem"><p>
+   You can disable TCP connections with  the <span class="quote">&#8220;<span class="quote">-nolisten tcp</span>&#8221;</span>
+   command line X server switch. This does not help for local connections
+   though. For <span class="command"><strong>xinit/startx</strong></span>:
+  </p><p>
+   </p><pre class="screen">
+
+ exec X :0 -dpi 100 -nolisten tcp
+
+   </pre><p>
+  </p><p>
+   Placed in <code class="filename">~/.xserverrc</code>. And for <span class="command"><strong>xdm</strong></span>, 
+   in <code class="filename">/usr/lib/X11/xdm/Xservers</code>:
+  
+  </p><p>
+   </p><pre class="screen">
+
+ :0 local /usr/X11R6/bin/X :0 -nolisten tcp
+
+   </pre><p>
+  </p></li></ul></div><p>
+</p></div><div class="sect1"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="performance"></a>9. Performance Considerations</h2></div></div></div><p>
+ As has been discussed, what we call <span class="application">X</span>, is actually
+ a convergence of various components: X server, Window Manager, Desktop, etc.
+ With MS Windows, the GUI desktop is tightly integrated with the operating
+ system itself. This is not the case in Linux which follows the Unix tradition
+ of combining various independent components to achieve some end result. So we
+ have choices with each component and it's attendant configuration and
+ implementation. In short, much flexibility. This is where you come in. You
+ can try various possibilities and decide what you gives you the most bang for
+ the buck.
+
+</p><p>
+ On low end hardware, this gives us much latitude to decrease the demand on
+ available system resources. This is good because, if given the opportunity,
+ <span class="application">X</span> can be quite greedy with system resources. If
+ you've recently installed a new Linux distribution, you've probably been
+ given a default Desktop with many bells and whistles. And something
+ that will probably need a fair amount of memory and CPU to achieve a
+ reasonable level of performance. If you have the horse power, this should not
+ be a problem.
+
+</p><p>
+ It is often said that Linux functions very well with relatively little
+ memory. This is true to a point. It does not mean though that every possible
+ configuration will run with low memory. So if you want to use memory hungry
+ applications, then you will have to have the memory. Or you will have to make
+ sacrifices to achieve a satisfactory level of performance. It is quite
+ possible to run <span class="application">X</span> with reasonable performance on
+ 16 Meg of RAM, and even less if you really want to push it. But you would
+ have to live with some real limitations.
+
+</p><p>
+ Let's look at some of the components and ways to decrease the demand on
+ system resources, in case you are at the low end on hardware, or performance
+ is not up to expectations.
+</p><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="idm1265"></a>9.1. Hardware</h3></div></div></div><p>
+ </p><div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem"><p>
+ No big surprise, but overall system performance will be best with a fast
+ graphics card, a fast hard drive, and lots and lots of memory -- if you want
+ <span class="emphasis"><em>both</em></span> a fast and flashy system.
+
+ </p></li><li class="listitem"><p>
+ Graphics cards are of course necessary, and the X server's video performance
+ is tied to the card's chipset, and the corresponding XFree86 driver. Just
+ because a given card is supported by XFree86 does not necessarily mean it is
+ as well optimized as other cards! It may also perform better at a lower color
+ depth (see below). It may well be worth the trip to xfree86.org to see if
+ there are any notes related to your card with respect to performance or other
+ issues.
+
+ </p></li><li class="listitem"><p>
+  And you might try other versions of XFree86. At this time v4.2 was just
+  recently released. Some cards may still perform better with 3.3.6 due to the
+  way v4.x is being incrementally developed. If you are using x4.x and
+  performance is not good, then make sure you are using the latest available
+  version.
+
+ </p></li></ul></div><p>
+</p></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="idm1276"></a>9.2. Memory</h3></div></div></div><p>
+ The more memory, the better. <span class="application">X</span> will do a lot
+ caching to help performance. But caching requires memory, and if there isn't
+ much to start with, then we would need to reduce memory requirements. Some
+ tips for those with low memory or performance problems:
+</p><p>
+ </p><div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem"><p>
+ Use the <span class="command"><strong>free</strong></span> command to make sure all memory and swap is
+ recognized. 
+
+ </p></li><li class="listitem"><p>
+ Make sure you don't have other system services that are hogging memory or
+ CPU. Use <span class="command"><strong>top</strong></span> or <span class="command"><strong>ps</strong></span> to see what is
+ running, and disable anything you can to free up memory and CPU. Again, a
+ default installation may have many things running that you don't really
+ need.
+ </p></li><li class="listitem"><p>
+ Make sure you have plenty of swap space. With low, or even modest, memory,
+ swap is all the more important. A general rule of thumb is twice as much swap
+ as physical memory. With low memory, this is not enough. Try four times real
+ memory. Or more. If you can't create more swap partitions, see the
+ <span class="command"><strong>mkswap</strong></span> man page about creating swap files instead.
+ Constant disk churning is a symptom of insufficient swap space, and the
+ system will be slowed as a result, sometimes drastically. Or, possibly this
+ may be the symptom of a poorly behaved kernel VM system (try another kernel
+ in this case).
+
+ </p></li><li class="listitem"><p>
+ Drive performance is important for swap performance. Make sure your drive has
+ DMA enabled if the drive supports it, and is otherwise tuned and performing
+ up to snuff. See the <span class="command"><strong>hdparm</strong></span> man page. Slow drive + slow
+ card + low memory = slow system.
+ </p></li><li class="listitem"><p>
+ Don't use <span class="application">KDE</span> or <span class="application">GNOME</span>
+ if memory is tight. These both require substantial memory, and are not
+ required to just run <span class="application">X</span>. Think of these as
+ usability enhancements. 32M probably may not be enough. 64M may be decent,
+ depending on what other applications are being used, and other variables. 128M
+ <span class="emphasis"><em>should</em></span> be adequate in most situations. 256M or more to
+ be comfortable. File Managers like <span class="application">Nautilus</span> and
+ <span class="application">gmc</span> can also be memory hungry. 
+ 
+ </p></li><li class="listitem"><p>
+ Use a lightweight window manger. <span class="application">WindowMaker</span>,
+ <span class="application">BlackBox</span>, <span class="application">IceWM</span>,
+ <span class="application">fvwm</span> (and variants),
+ <span class="application">XFce</span>, all have reputations of performing well with
+ low memory. There are surely others as well. Experiment.
+ <span class="application">fvwm</span> is generally considered the lightest of the
+ light. 
+</p><p>
+ A very nice desktop is still very possible even without
+ <span class="application">KDE</span> or <span class="application">GNOME</span>. In fact,
+ most <span class="application">KDE</span> and <span class="application">GNOME</span>
+ applications can still be used even if <span class="application">KDE</span> and
+ <span class="application">GNOME</span> are not running themselves (assuming the
+ right libs are installed).
+ 
+ </p></li><li class="listitem"><p>
+ Don't use fancy themes or backgrounds. Plain and simple is easier on
+ resources. Use a solid color background. Avoid pixmaps or gradients for any
+ kind of background, including menus, title bars, etc.
+ </p></li><li class="listitem"><p>
+ Use a lesser screen size and color depth. 800x600x16 will not push
+ <span class="application">X</span> as hard and be easier on system resources than
+ higher values. While a ColorDepth of 24 is preferred, you probably will not
+ notice the difference of 16 with the majority of applications.
+ </p></li><li class="listitem"><p>
+ Some applications require much more memory than others. Some notable hogs are
+ <span class="command"><strong>Netscape</strong></span>, <span class="command"><strong>Mozilla</strong></span>, office suites, and
+ <span class="command"><strong>the Gimp</strong></span>. <span class="command"><strong>Netscape</strong></span> is faster than
+ <span class="command"><strong>Mozilla</strong></span> (but not as nice).
+ <span class="command"><strong>Netscape-Navigator</strong></span> uses less memory than
+ <span class="command"><strong>Netscape-Communicator</strong></span>. Close any of these apps when not in
+ use. Use text browsers like <span class="command"><strong>lynx</strong></span> or <span class="command"><strong>w3m</strong></span>
+ wherever you can, like reading locally installed HTML documentation. Much
+ faster, and much less memory is required. 
+ </p></li><li class="listitem"><p>
+ Also, use text based clients for mail (<span class="command"><strong>mutt</strong></span> or
+ <span class="command"><strong>pine</strong></span>) and news (<span class="command"><strong>slrn</strong></span> or
+ <span class="command"><strong>trn</strong></span>). Again, faster and much less memory is used, 
+ and these are after all text based protocols at heart anyway.
+ </p></li><li class="listitem"><p>
+ <span class="command"><strong>rxvt</strong></span> uses less memory than <span class="command"><strong>xterm</strong></span>,
+ <span class="command"><strong>konsole</strong></span> or <span class="command"><strong>gnome-terminal</strong></span>.
+ </p></li><li class="listitem"><p>
+ If you run an <span class="application">X</span> session for long periods of time
+ (like days or weeks), restart <span class="application">X</span> occasionally to
+ free memory tied up as cache.
+ </p></li><li class="listitem"><p>  
+  Disable <span class="quote">&#8220;<span class="quote">backing store</span>&#8221;</span> and <span class="quote">&#8220;<span class="quote">save-unders</span>&#8221;</span> to
+  reduce memory usage (performance penalty though). Check
+  your Window Manager's settings too. See what modules are being loaded 
+  in the <span class="quote">&#8220;<span class="quote">Modules</span>&#8221;</span> section of <code class="filename">XF86Config</code> as
+  well. Your installation may have many unnecessary ones enabled, or ones you
+  can't take advantage of (e.g. <span class="quote">&#8220;<span class="quote">v4l</span>&#8221;</span>, aka
+  <span class="quote">&#8220;<span class="quote">Video4Linux</span>&#8221;</span>).
+ </p></li><li class="listitem"><p>  
+  Font servers may provide a slight performance boost by off-loading font
+  rendering to the font server, while freeing the X server to do other things.
+  But, the font server will use a small additional amount of memory as well.
+  So, you can try it either way to see if it makes a difference.
+ </p></li><li class="listitem"><p>
+ Lastly, RAM is cheap now. Buy some ;-) A new drive too.
+ </p></li><li class="listitem"><p>
+ RAM is still just too low for <span class="application">X</span>? Check out
+ <span class="application">tinyX</span>: 
+ <a class="ulink" href="http://www.superant.com/smalllinux/tinyX01.html" target="_top">http://www.superant.com/smalllinux/tinyX01.html</a>.
+ Reportedly runs in as little as 4 Meg of RAM.
+
+ </p></li></ul></div><p>
+</p></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="idm1367"></a>9.3. X over the Network</h3></div></div></div><p>
+ X is not particularly network friendly. In other words, it is a bandwidth
+ hog. This should not be a problem in LAN situations, but may be if trying to
+ use X over the Internet.
+</p><p>
+ </p><div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem"><p>
+     <span class="command"><strong>lbxproxy</strong></span>, the low bandwidth X proxy, utilizes 
+     various optimizations to improve performance in low bandwidth, or 
+     high latency situations. See the man page.
+   </p></li><li class="listitem"><p>
+     VNC (Virtual Network Computing), has some of the same advantages as 
+     X for displaying applications on remote systems, but is more network
+     friendly. Your Linux installation should have both VNC client and server
+     packages available.
+   </p></li></ul></div><p>
+</p></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="idm1377"></a>9.4. Other Tips</h3></div></div></div><p>
+ Other tips to eek out better performance:
+</p><p>
+ </p><div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem"><p>
+ Use <span class="command"><strong>xset</strong></span> to speed up the keyboard. This can make the
+ system feel more responsive even if it isn't really. The default always
+ seemed sluggish to me. 
+ </p></li><li class="listitem"><p>
+ <span class="command"><strong>renice</strong></span> <span class="application">X</span> to give it a higher
+ priority. Other platforms give the GUI high scheduling priority to achieve
+ better responsiveness. But this is at a cost to other processes. Linux is a
+ blank slate. You might include the font server (if being used), and key
+ <span class="application">KDE</span> and <span class="application">GNOME</span> processes
+ as well. 
+</p><p>
+ </p><pre class="screen">
+
+ nice -n -10 X :0
+
+ </pre><p>
+</p><p>
+ This will not do much on systems that are mostly idle.
+
+</p><p>
+ This does not work so well with <span class="command"><strong>startx</strong></span> since
+ <span class="application">X</span> runs as root, and you are not root, right? So
+ you would have to use something like <span class="command"><strong>sudo</strong></span> to have this done
+ automatically.
+
+ </p></li></ul></div><p>
+</p></div></div><div class="sect1"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="appendix"></a>10. Appendix</h2></div></div></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="terms"></a>10.1. Terminology and Usage</h3></div></div></div><p>
+ There are a few basic concepts and terminologies you should be familiar with.
+ These terms will appear here, in the manual pages, and in other help files and
+ documentation. 
+ 
+</p><p>
+ </p><div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem"><p>
+   The <span class="quote">&#8220;<span class="quote">X server</span>&#8221;</span> is the low-level driver software that interacts
+   with your video card and other system hardware, and manages the 
+   <span class="quote">&#8220;<span class="quote">display</span>&#8221;</span> and the various components attached to the
+   <span class="quote">&#8220;<span class="quote">display</span>&#8221;</span> (keyboard, mouse, etc.). And, of course, handles 
+   requests from clients as well. There are different X servers for different
+   chipsets.
+  </p><p>
+   X Servers are referenced in the form of:
+  </p><p>
+   <span class="emphasis"><em>host.domain:display_number.screen_number</em></span>
+  </p><p>
+   An example would look like: <span class="emphasis"><em>my_computer:0.0</em></span>
+
+  </p><p>
+   If host (and domain) is omitted, localhost is assumed. <span class="quote">&#8220;<span class="quote">Host</span>&#8221;</span>
+   can be a remote host. If <span class="quote">&#8220;<span class="quote">screen</span>&#8221;</span> is omitted, then
+   <span class="quote">&#8220;<span class="quote">0</span>&#8221;</span> (the first screen) is assumed. In it's shortest form, the
+   X server is often represented as just <span class="quote">&#8220;<span class="quote">:0</span>&#8221;</span>, which would be the
+   first local <span class="quote">&#8220;<span class="quote">display</span>&#8221;</span>. <span class="application">X</span> supports
+   multiple <span class="quote">&#8220;<span class="quote">displays</span>&#8221;</span> <span class="emphasis"><em>and</em></span> multiple
+   <span class="quote">&#8220;<span class="quote">screens</span>&#8221;</span>.
+
+  </p><p>
+   <span class="quote">&#8220;<span class="quote">Screen</span>&#8221;</span> and <span class="quote">&#8220;<span class="quote">Display</span>&#8221;</span> have special meanings in
+   relation to X servers, in addition to their more common usage.
+
+  </p></li><li class="listitem"><p>
+    When <span class="application">X</span> is invoked, the X server will initialize 
+    one or more <span class="quote">&#8220;<span class="quote">displays</span>&#8221;</span>. Yes, <span class="application">X</span> can
+    have more than one <span class="quote">&#8220;<span class="quote">display</span>&#8221;</span> available (though this is not a
+    common configuration for the average user). Each <span class="quote">&#8220;<span class="quote">display</span>&#8221;</span> is
+    a separate instance of <span class="quote">&#8220;<span class="quote">X</span>&#8221;</span>. The <span class="quote">&#8220;<span class="quote">display</span>&#8221;</span>
+    includes not only the obvious video components, but also the keyboard,
+    mouse and other input type components. The user can only access one
+    <span class="application">display</span> at a time via the same keyboard and
+    monitor. <span class="quote">&#8220;<span class="quote">Displays</span>&#8221;</span> may reside locally, or on a networked
+    host <span class="quote">&#8220;<span class="quote">somewhere</span>&#8221;</span>, or both. It is possible that if multiple
+    <span class="quote">&#8220;<span class="quote">displays</span>&#8221;</span> are available, the user can choose which one he
+    wants when he logs in. Each <span class="quote">&#8220;<span class="quote">display</span>&#8221;</span> may have its own
+    unique configuration (e.g. resolution). But again, the most typical 
+    configuration is just one <span class="quote">&#8220;<span class="quote">display</span>&#8221;</span> with one <span class="quote">&#8220;<span class="quote">screen</span>&#8221;</span>, 
+    which is how most of us use <span class="application">X</span>.
+    
+   </p></li><li class="listitem"><p>  
+   In reference to X servers, <span class="quote">&#8220;<span class="quote">screen</span>&#8221;</span> means the primary video
+   output with which you view <span class="application">X</span>.
+   And there can be more than one <span class="quote">&#8220;<span class="quote">screen</span>&#8221;</span>, just like you can
+   have more than one <span class="quote">&#8220;<span class="quote">display</span>&#8221;</span>. Additional
+   <span class="quote">&#8220;<span class="quote">screens</span>&#8221;</span> are used in <span class="quote">&#8220;<span class="quote">multi-headed displays</span>&#8221;</span> for
+   instance. In fact you can even have more than one computer running off a
+   single X server. This is beyond the scope of this document, but you should
+   be aware of this degree of flexibility as it is an important ingredient of
+   the <span class="application">X</span> protocol.
+   
+  </p></li><li class="listitem"><p>
+    <span class="quote">&#8220;<span class="quote">Desktop</span>&#8221;</span> can mean different things in different
+    contexts. Often, <span class="quote">&#8220;<span class="quote">desktop</span>&#8221;</span> means what is more properly 
+    called the <span class="quote">&#8220;<span class="quote">Desktop Environment</span>&#8221;</span>. Prime examples of this are
+    <span class="application">KDE</span>, <span class="application">GNOME</span>, and the not 
+    as well-known <span class="application">CDE</span>, which are high level
+    applications that control much of how the user interacts with the
+    <span class="application">X</span> session. They provide consistent look and
+    feel, as well as consistent configuration and come bundled with their own
+    set of utilities for common tasks.
+  </p><p>
+   <span class="quote">&#8220;<span class="quote">Desktop</span>&#8221;</span> also sometimes just means the viewable screen area.
+   This is more of the MS Window's meaning. <span class="application">X</span>
+   environments though are capable of having multiple virtual
+   <span class="quote">&#8220;<span class="quote">desktops</span>&#8221;</span> that can be switched between as needed. This helps with
+   organizing different tasks. Each <span class="quote">&#8220;<span class="quote">desktop</span>&#8221;</span> may its own windows
+   and clients that are specific to it. Right now I have seven
+   <span class="application">WindowMaker</span> desktops
+   (<span class="application">WindowMaker</span> calls them
+   <span class="quote">&#8220;<span class="quote">WorkSpaces</span>&#8221;</span>), and one of those I have dedicated to writing
+   this document. This <span class="quote">&#8220;<span class="quote">desktop</span>&#8221;</span> has thirteen unique windows at
+   the moment (man pages, browser windows, clock, gvim, xterms, etc).
+  </p></li><li class="listitem"><p>
+   <span class="quote">&#8220;<span class="quote">Clients</span>&#8221;</span> are any program that connect to the X server, and
+   require an X server for some task (e.g. to display itself). Often, these
+   are displayed in their own <span class="quote">&#8220;<span class="quote">window</span>&#8221;</span>, but not always. For
+   instance, if I use <code class="literal">CTRL-N</code> to open a new
+   <span class="application">Mozilla</span> window, this is one
+   <span class="application">X</span> client but with two windows. If I run a command
+   line <span class="application">X</span> utility like <span class="command"><strong>xev</strong></span> to
+   view key and mouse events, this runs in the <span class="command"><strong>xterm's</strong></span>
+   window, so has none of its own, but is still a <span class="quote">&#8220;<span class="quote">client</span>&#8221;</span>.
+   Clients can be locally running applications, or applications that are
+   running on another system over the network, but are displayed locally.
+  </p></li><li class="listitem"><p>  
+   The <span class="quote">&#8220;<span class="quote">Window Manager</span>&#8221;</span> is a special type of client application 
+   and a user definable component of the GUI. It is what the user interacts
+   with to a large extent. The Window Manager provides such functionality as
+   window borders and decorations, menus, icons, virtual desktops, button
+   bars, tool bars, and allows the user to customize these. It is technically
+   possible to run <span class="application">X</span> without a window manager
+   (though not very functional), but not the other way around. Window managers
+   should not be confused with <span class="quote">&#8220;<span class="quote">Desktop Environments</span>&#8221;</span> like
+   <span class="application">KDE</span>. Desktop Environments include their own
+   preferred Window Manager, but this is a configurable. There is some
+   overlapping of responsibilities between Window Managers and Desktop
+   Environments.
+   
+  </p></li><li class="listitem"><p>  
+   The <span class="quote">&#8220;<span class="quote">root window</span>&#8221;</span> is the background of your screen. It is
+   referred to as a window in name alone, it does not behave like any other
+   window, but rather you run your applications on the root window, or put an
+   image on it, or perhaps just a solid color. All other windows are children 
+   of this parent window. The root window conceivably can be larger than the viewable 
+   screen area.
+  </p></li><li class="listitem"><p>  
+   The <span class="quote">&#8220;<span class="quote">pointer</span>&#8221;</span> is the arrow or indicator of any
+   given shape which represents the location of your mouse, or other pointing
+   device. The pointer often changes to give you contextual feedback as to
+   what will happen when you use the mouse at that point on the screen. 
+  </p></li><li class="listitem"><p>  
+   The <span class="quote">&#8220;<span class="quote">window</span>&#8221;</span> is a frame in which any given application runs
+   and which is <span class="quote">&#8220;<span class="quote">managed</span>&#8221;</span> by the Window Manager. This includes
+   pretty much anything except the so-called root window. Even windows which
+   do not appear to have frames, titles, or normal borders of any kind are
+   being managed by your window manger. The <span class="quote">&#8220;<span class="quote">active window</span>&#8221;</span> is
+   the window you are currently using. This window will respond to the
+   keyboard when you type, and is traditionally denoted by the fact that your
+   mouse cursor is pointing at it, though this is not always the case. The
+   active window is said to have <span class="quote">&#8220;<span class="quote">focus</span>&#8221;</span>. Most Window Managers
+   will somehow highlight the <span class="quote">&#8220;<span class="quote">active</span>&#8221;</span>, or focused, window to
+   differentiate it from other windows.
+  </p></li><li class="listitem"><p>  
+   <span class="quote">&#8220;<span class="quote">Menus</span>&#8221;</span>, <span class="quote">&#8220;<span class="quote">icons</span>&#8221;</span> and <span class="quote">&#8220;<span class="quote">task bars</span>&#8221;</span>
+   behave in <span class="application">X</span> similar to the way they behave in
+   other windowing systems, and the same general principles apply. 
+  </p></li><li class="listitem"><p>  
+   Windows that run text only applications are called <span class="quote">&#8220;<span class="quote">terminal
+   emulators</span>&#8221;</span>, such as <span class="command"><strong>xterm</strong></span> and various 
+   similar applications. This is the well-known <span class="quote">&#8220;<span class="quote">command line</span>&#8221;</span> in
+   an X environment. These basically emulate a console text-only display, and
+   have some advantages due to their being used in
+   <span class="application">X</span>. These are much more complex and sophisticated
+   applications than a simple <span class="application">DOS</span> box on Windows.
+  </p></li><li class="listitem"><p>  
+   <span class="quote">&#8220;<span class="quote">Widgets</span>&#8221;</span> is the term used to describe such GUI control
+   components as buttons, sliders, menus, scrollbars, listboxes, checkboxes, etc.
+   <span class="quote">&#8220;<span class="quote">Toolkits</span>&#8221;</span> are libraries containing a diverse set of widgets
+   with the same look and feel. Some common examples are
+   <span class="application">GTK+</span> (used by <span class="application">GNOME</span>,
+   <span class="application">Mozilla</span> and others), <span class="application">Xaw</span> 
+   (X Athena Widget set), <span class="application">Tk</span>,
+   <span class="application">Motif</span> and <span class="application">QT</span> (used
+   by <span class="application">KDE</span>). Applications are built with one toolkit
+   or another. Sometimes the same application can be built with different
+   toolkits, depending on compile time options.
+  </p></li><li class="listitem"><p>
+    Window <span class="quote">&#8220;<span class="quote">geometry</span>&#8221;</span> is a shorthand way of expressing a window's
+    size and screen placement. This might look like
+    <span class="quote">&#8220;<span class="quote">60x20+10+50</span>&#8221;</span>, which is <code class="literal">WIDTH x HEIGHT +VERT_OFFSET
+    +HORZ_OFFSET</code>. While both pairs are often specified, it is
+    permissible to use just one or the other pair. 
+   </p></li><li class="listitem"><p>
+    In <span class="application">X</span> lingo, <span class="quote">&#8220;<span class="quote">resources</span>&#8221;</span> are
+    definable application attributes. Commonly available
+    <span class="quote">&#8220;<span class="quote">resources</span>&#8221;</span> are fonts, colors, size, window title, etc,
+    etc. 
+  </p></li></ul></div><p>
+</p></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="links"></a>10.2. Links and other References</h3></div></div></div><p>
+ </p><div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem"><p>
+     The definitive source of information on XFree86 is, of course, 
+     <a class="ulink" href="http://xfree86.org" target="_top">http://xfree86.org</a>. Don't forget
+     the man pages that you have installed already too (X, Xserver, XF86Config,
+     XFree86, xdm, xinit, xmodmap, startx, xauth, Xsecurity, etc, etc). These are
+     really mostly decent, though some are quite technical.
+   </p><p>
+    Some pages at xfree86.org to check:
+
+   </p><table border="0" summary="Simple list" class="simplelist"><tr><td>
+     Docs and support info: <a class="ulink" href="http://www.xfree86.org/support.html" target="_top">http://www.xfree86.org/support.html</a> for 
+     various versions and topics.
+    </td></tr></table><table border="0" summary="Simple list" class="simplelist"><tr><td>
+     README: <a class="ulink" href="http://www.xfree86.org/current/README.html" target="_top">http://www.xfree86.org/current/README.html</a>
+    </td></tr></table><table border="0" summary="Simple list" class="simplelist"><tr><td>
+     Release Notes: <a class="ulink" href="http://www.xfree86.org/current/RELNOTES.html" target="_top">http://www.xfree86.org/current/RELNOTES.html</a>
+    </td></tr></table><table border="0" summary="Simple list" class="simplelist"><tr><td>
+     DRI: <a class="ulink" href="http://www.xfree86.org/current/DRI.html" target="_top">http://www.xfree86.org/current/DRI.html</a>
+    </td></tr></table><table border="0" summary="Simple list" class="simplelist"><tr><td>
+     Status: <a class="ulink" href="http://www.xfree86.org/current/Status.html" target="_top">http://www.xfree86.org/current/Status.html</a>
+    </td></tr></table><table border="0" summary="Simple list" class="simplelist"><tr><td>
+     Mouse: <a class="ulink" href="http://www.xfree86.org/current/mouse.html" target="_top">http://www.xfree86.org/current/mouse.html</a>
+    </td></tr></table><table border="0" summary="Simple list" class="simplelist"><tr><td>
+     Supported card list: 
+     <a class="ulink" href="http://xfree86.org/cardlist.html" target="_top">http://xfree86.org/cardlist.html</a>
+    </td></tr></table></li><li class="listitem"><p>
+    Other related documents from LDP:
+   </p><p>
+     </p><div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: circle; "><li class="listitem"><p>
+        If you are just starting out, you may find the 
+        <a class="ulink" href="http://tldp.org/HOWTO/XWindow-Overview-HOWTO/index.html" target="_top">X Window System Architecture Overview HOWTO</a>
+        to be helpful. It covers all the basic concepts quite well.
+  
+       </p></li><li class="listitem"><p>
+<a class="ulink" href="http://tldp.org/HOWTO/Remote-X-Apps.html" target="_top">The Remote X Apps Mini HOWTO
+</a>
+        does a nice job of discussing running <span class="application">X</span>
+        remotely, and related security issues of <span class="application">X</span> networking.
+      </p></li><li class="listitem"><p>
+<a class="ulink" href="http://tldp.org/HOWTO/XDMCP-HOWTO/index.html" target="_top">The XDMCP HOWTO
+</a>
+        covers the X Display Manager Control Protocol, for running
+        <span class="application">X</span> remotely. Also, 
+<a class="ulink" href="http://tldp.org/HOWTO/XDM-Xterm/index.html" target="_top">The XDM and X Terminal mini-HOWTO
+</a>.
+      </p></li><li class="listitem"><p>
+<a class="ulink" href="http://tldp.org/HOWTO/XFree86-HOWTO/index.html" target="_top">The XFree86 HOWTO
+</a>
+        succinctly covers installation, and initial configuration.
+      </p></li><li class="listitem"><p>
+<a class="ulink" href="http://tldp.org/HOWTO/XFree86-Video-Timings-HOWTO/index.html" target="_top">The XFree86 Video Timings HOWTO
+</a>
+       gets down and dirty with the finer points of monitor tuning. Generally
+       not required for XFree86 v4.x.
+      </p></li><li class="listitem"><p>
+<a class="ulink" href="http://tldp.org/HOWTO/Xinerama-HOWTO.html" target="_top">The Xinerama HOWTO</a>
+       covers multi-headed displays.
+      </p></li><li class="listitem"><p>
+<a class="ulink" href="http://tldp.org/HOWTO/Font-HOWTO.html" target="_top">The Font HOWTO</a>
+        covers various font topics.
+      </p></li><li class="listitem"><p>
+<a class="ulink" href="http://tldp.org/HOWTO/FDU/index.html" target="_top">The Font De-Uglification Mini HOWTO
+</a>
+        covers a range of <span class="application">X</span> font issues.
+      </p></li><li class="listitem"><p>
+<a class="ulink" href="http://tldp.org/HOWTO/Intkeyb/index.html" target="_top">The International Keyboard HOWTO
+</a>
+      </p></li><li class="listitem"><p>
+<a class="ulink" href="http://tldp.org/HOWTO/Infrared-HOWTO/index.html" target="_top">The Linux Infrared HOWTO
+</a>
+      </p></li></ul></div><p>
+   </p></li><li class="listitem"><p>
+    Looking for information on a Window Manager, or wanting to try
+    something new or different:
+    <a class="ulink" href="http://www.plig.org/xwinman/" target="_top">http://www.plig.org/xwinman/</a>
+  </p></li><li class="listitem"><p>
+    Wheel mice tips and configuration: 
+    <a class="ulink" href="http://koala.ilog.fr/colas/mouse-wheel-scroll/" target="_top">http://koala.ilog.fr/colas/mouse-wheel-scroll/</a>
+  </p></li><li class="listitem"><p>
+   Linux and Laptops: 
+   <a class="ulink" href="http://www.linux-laptop.net/" target="_top">http://www.linux-laptop.net/</a>
+  </p></li><li class="listitem"><p>
+   The O'Reilly series on X Window! Visit <a class="ulink" href="http://www.ora.com/" target="_top">http://www.ora.com/</a> for the definitive books on <span class="application">X</span>.
+  </p></li><li class="listitem"><p>
+  The X Consortium's web site is <a class="ulink" href="http://www.x.org/" target="_top">http://www.x.org/</a> ... or perhaps it's moved to
+  <a class="ulink" href="http://www.opengroup.org/" target="_top">http://www.opengroup.org/</a>.
+ </p></li><li class="listitem"><p>
+  <a class="ulink" href="http://www.x11.org/" target="_top">http://www.x11.org/</a> is sort of a clearinghouse
+  for all things X.
+ </p></li><li class="listitem"><p>
+    And for everything else under the Sun: <a class="ulink" href="http://google.com/linux/" target="_top">http://google.com/linux/</a>.
+    An incredible resource in its own right.
+  </p></li></ul></div><p>
+</p></div></div><div class="footnotes"><br><hr style="width:100; text-align:left;margin-left: 0"><div id="ftn.ftn-changelog-dump" class="footnote"><div class="literallayout"><p><a href="#ftn-changelog-dump" class="literallayout"><sup>[1] </sup></a><br>
+<br>
+v4.x changes:<br>
+- artheader tag changed to articleinfo<br>
+- graphic tag is being depricated in DocBook 5.x. To prepare for<br>
+  this, you should instead use the mediaobject tag.<br>
+- file format for imagedata has to be in capital letters.<br>
+- added support for PNG (notation in the DTD)<br>
+<br>
+<br>
+  --s+ [ser@metalab.unc.edu]<br>
+  <br>
+ aspell -H -c ~/ldp/x-user/LDP/howto/docbook/XWindow-User-HOWTO.sgml<br>
+ submit@linuxdoc.org<br>
+ <br>
+ export CVSROOT=:pserver:hal@cvs.linuxdoc.org:/cvsroot<br>
+ cvs -d $CVSROOT login<br>
+ pword: XXXXXXXXXXXXXX<br>
+<br>
+ $cvs get LDP/howto/docbook/XWindow-User-HOWTO.sgml<br>
+<br>
+ upload...<br>
+ $ cvs commit XWindow-User-HOWTO.sgml      !!!!!!!!!!!!!!!!<br>
+ (from the LDP/howto/docbook/ dir)<br>
+<br>
+check here: http://cvs.pld.org.pl/LDP/howto/docbook/XWindow-User-HOWTO.sgml<br>
+<br>
+====================================<br>
+Start 3.1:<br>
+ TODO:<br>
+<br>
+Changes:<br>
+    http://www.plig.org/xwinman (plus freshmeat)<br>
+    VNC vs X for performance on network.<br>
+    lbxproxy, performance.<br>
+    Add fluxbox.<br>
+<br>
+Start rewrite 01/13/02 Hal Burgiss.<br>
+<br>
+Changes:<br>
+ Converted to DocBook<br>
+ Rewrite! Rewrite! <br>
+ A zillion changes.<br>
+<br>
+ToDo:<br>
+ $DISPLAY<br>
+ http://www.superant.com/cgi-bin/smalllinux.pl?smallX<br>
+ http://www.linuxgazette.com/issue27/kaszeta.html (xdm)<br>
+ http://linux.daphnis.com/RedHat/Custom-X-Tips.html#toc4 (Xclients, etc)<br>
+ http://www.linuxjournal.com/print.php?sid=5304 (X config, etc)<br>
+ log file<br>
+ <br>
+http://www.linux.gr/cgi-bin/man2html/usr/X11R6/man/man7/X.7.gz<br>
+http://www.x-docs.org/<br>
+<br>
+startx &amp;&gt; log<br>
+<br>
+_X11TransSocketUNIXConnect: Can't connect: errno = 111 giving up.<br>
+xinit:  Connection refused (errno 111):  unable to connect to X server<br>
+xinit:  No such process (errno 3):  Server error.<br>
+<br>
+## Makefile to build this doc as HTML and TXT ####################<br>
+<br>
+# X Windows User HOWTO Makefile<br>
+#<br>
+# Hal Burgiss hal@foobox.net<br>
+#<br>
+<br>
+TITLE = XWindow-User-HOWTO<br>
+EXT = sgml<br>
+SRC_DIR = LDP/howto/docbook<br>
+HTML_DIR = X-USER<br>
+SRC = $(SRC_DIR)/$(TITLE).$(EXT)<br>
+<br>
+BUILD = jade -t sgml -ihtml -d /usr/lib/sgml/stylesheets/ldp.dsl\#html<br>
+BUILD_TXT = jade -t sgml -i html -d /usr/lib/sgml/stylesheets/ldp.dsl\#html -V nochunks<br>
+SPELL_CMD = aspell -H -c<br>
+LINKS_CMD = /usr/bin/linkchecker *html<br>
+EDIT_CMD = /usr/bin/vim -g<br>
+TBROWSER = w3m<br>
+TMP_TXT = __tmp.sgml<br>
+WWW=/var/www/html/ldp/x-user<br>
+SRC_URL = http://feenix.burgiss.net/ldp/x-user/$(TITLE).$(EXT).gz<br>
+<br>
+all: doc txt<br>
+<br>
+doc: html<br>
+<br>
+html:<br>
+	rm -fr $(HTML_DIR)<br>
+	mkdir -p __tmp_htmls<br>
+	mv -f *.html __tmp_htmls 2&gt;/dev/null || :<br>
+	mkdir -p $(HTML_DIR) <br>
+	$(BUILD) $(SRC) ||\<br>
+	 (rm -f *.html &amp;&amp; mv -f __tmp_htmls/* . || : &amp;&amp; rm -rf __tmp_htmls &amp;&amp; false)<br>
+	mv -f *html $(HTML_DIR)<br>
+	mv -f __tmp_htmls/* .  2&gt;/dev/null || :<br>
+	rm -fr __tmp_htmls<br>
+<br>
+clean:<br>
+	rm -fr $(HTML_DIR) *~  __tmp_htmls<br>
+<br>
+edit:<br>
+	$(EDIT_CMD) $(SRC)<br>
+<br>
+<br>
+spell:<br>
+	$(SPELL_CMD) $(SRC)<br>
+<br>
+spellchecker: spell<br>
+<br>
+<br>
+links:<br>
+	cd $(HTML_DIR) &amp;&amp; $(LINKS_CMD)<br>
+<br>
+linkchecker: links<br>
+<br>
+linkcheck: links<br>
+<br>
+txt:<br>
+	$(BUILD_TXT) $(SRC) &gt; $(TMP_TXT).html <br>
+	$(TBROWSER) -dump $(TMP_TXT).html &gt; $(TITLE).txt &amp;&amp; gzip -f $(TITLE).txt &amp;&amp; rm -f $(TMP_TXT).html<br>
+<br>
+text: txt<br>
+<br>
+www:<br>
+	cp -fv $(HTML_DIR)/* $(TITLE).txt.gz $(SRC) $(WWW)<br>
+	gzip -f $(WWW)/$(TITLE).sgml<br>
+	rsync -auv $(WWW)/* feenix://$(WWW)/<br>
+<br>
+submit:<br>
+	@echo "Updated and ready:  $(SRC_URL)" |\<br>
+	mail -s "$(TITLE) update" submit@linuxdoc.org &amp;&amp;\<br>
+	echo " $(TITLE) Submitted!"<br>
+<br>
+ </p></div></div></div></div></body></html>

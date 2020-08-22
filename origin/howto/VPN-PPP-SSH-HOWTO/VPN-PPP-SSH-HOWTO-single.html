@@ -1,0 +1,2416 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN""http://www.w3.org/TR/html4/loose.dtd">
+<HTML
+><HEAD
+><TITLE
+>VPN PPP-SSH Mini-HOWTO</TITLE
+><META
+NAME="GENERATOR"
+CONTENT="Modular DocBook HTML Stylesheet Version 1.79"></HEAD
+><BODY
+CLASS="ARTICLE"
+BGCOLOR="#FFFFFF"
+TEXT="#000000"
+LINK="#0000FF"
+VLINK="#840084"
+ALINK="#0000FF"
+><DIV
+CLASS="ARTICLE"
+><DIV
+CLASS="TITLEPAGE"
+><H1
+CLASS="TITLE"
+><A
+NAME="AEN2"
+>VPN PPP-SSH Mini-HOWTO</A
+></H1
+><H3
+CLASS="AUTHOR"
+><A
+NAME="AEN4"
+>Scott Bronson</A
+></H3
+><DIV
+CLASS="AFFILIATION"
+><DIV
+CLASS="ADDRESS"
+><P
+CLASS="ADDRESS"
+><CODE
+CLASS="EMAIL"
+>&#60;<A
+HREF="mailto:bronson@trestle.com"
+>bronson@trestle.com</A
+>&#62;</CODE
+></P
+></DIV
+></DIV
+><P
+CLASS="PUBDATE"
+>2001-07-29<BR></P
+><DIV
+CLASS="REVHISTORY"
+><TABLE
+WIDTH="100%"
+BORDER="0"
+><TR
+><TH
+ALIGN="LEFT"
+VALIGN="TOP"
+COLSPAN="3"
+><B
+>Revision History</B
+></TH
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+>Revision v1.00</TD
+><TD
+ALIGN="LEFT"
+>2002-01-16</TD
+><TD
+ALIGN="LEFT"
+>Revised by: sb</TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+COLSPAN="3"
+>Initial (public) release.</TD
+></TR
+></TABLE
+></DIV
+><DIV
+><DIV
+CLASS="ABSTRACT"
+><P
+></P
+><A
+NAME="AEN10"
+></A
+><P
+>A PPP-SSH VPN is probably the easiest type of VPN to set up.
+It uses nothing more than the very common PPP and SSH utilities
+to form an encrypted network tunnel between two hosts.
+  </P
+><P
+></P
+></DIV
+></DIV
+><HR></DIV
+><DIV
+CLASS="TOC"
+><DL
+><DT
+><B
+>Table of Contents</B
+></DT
+><DT
+>1. <A
+HREF="#INTRO"
+>Introduction</A
+></DT
+><DD
+><DL
+><DT
+>1.1. <A
+HREF="#AEN25"
+>Copyright</A
+></DT
+><DT
+>1.2. <A
+HREF="#AEN29"
+>Disclaimer</A
+></DT
+><DT
+>1.3. <A
+HREF="#AEN32"
+>Credits</A
+></DT
+></DL
+></DD
+><DT
+>2. <A
+HREF="#INTRODUCTION"
+>Introduction</A
+></DT
+><DD
+><DL
+><DT
+>2.1. <A
+HREF="#BENEFITS"
+>PPP-SSH Benefits</A
+></DT
+><DT
+>2.2. <A
+HREF="#DRAWBACKS"
+>PPP-SSH Drawbacks</A
+></DT
+><DT
+>2.3. <A
+HREF="#AEN99"
+>Suggested Reading</A
+></DT
+><DT
+>2.4. <A
+HREF="#ALTERNATIVES"
+>Alternatives</A
+></DT
+></DL
+></DD
+><DT
+>3. <A
+HREF="#INSTALLATION"
+>Software Installation</A
+></DT
+><DD
+><DL
+><DT
+>3.1. <A
+HREF="#AEN160"
+>Terminology</A
+></DT
+><DT
+>3.2. <A
+HREF="#AEN172"
+>Requirements</A
+></DT
+><DT
+>3.3. <A
+HREF="#PLANNING"
+>Planning</A
+></DT
+><DT
+>3.4. <A
+HREF="#KERNEL"
+>Set Up PPP</A
+></DT
+><DT
+>3.5. <A
+HREF="#SSHFIREWALL"
+>Allow SSH Through the Firewall</A
+></DT
+></DL
+></DD
+><DT
+>4. <A
+HREF="#CONFIGSERVER"
+>Configure the Server</A
+></DT
+><DD
+><DL
+><DT
+>4.1. <A
+HREF="#AEN237"
+>Create a VPN User</A
+></DT
+><DT
+>4.2. <A
+HREF="#AEN255"
+>Set up Authenticated Login</A
+></DT
+><DT
+>4.3. <A
+HREF="#AEN271"
+>Set Up sudo</A
+></DT
+></DL
+></DD
+><DT
+>5. <A
+HREF="#CONFIGCLIENT"
+>Configure the Client</A
+></DT
+><DD
+><DL
+><DT
+>5.1. <A
+HREF="#AEN291"
+>Install the Script</A
+></DT
+><DT
+>5.2. <A
+HREF="#AEN305"
+>The vpn-pppssh Script</A
+></DT
+></DL
+></DD
+><DT
+>6. <A
+HREF="#BRINGUP"
+>Bring up the Link</A
+></DT
+><DD
+><DL
+><DT
+>6.1. <A
+HREF="#AEN330"
+>Troubleshooting</A
+></DT
+></DL
+></DD
+><DT
+>7. <A
+HREF="#INTEGRATION"
+>Integrating the VPN into your system</A
+></DT
+><DD
+><DL
+><DT
+>7.1. <A
+HREF="#AEN357"
+>Connecting at Boot Time</A
+></DT
+><DT
+>7.2. <A
+HREF="#CONNDIALUP"
+>Connecting via Dial-Up</A
+></DT
+></DL
+></DD
+><DT
+>8. <A
+HREF="#FORWARDING"
+>Forwarding Between Subnets</A
+></DT
+><DD
+><DL
+><DT
+>8.1. <A
+HREF="#AEN393"
+>Forwarding</A
+></DT
+><DT
+>8.2. <A
+HREF="#AEN402"
+>Gatewaying</A
+></DT
+><DT
+>8.3. <A
+HREF="#AEN408"
+>Routing</A
+></DT
+><DT
+>8.4. <A
+HREF="#AEN412"
+>Masquerading</A
+></DT
+><DT
+>8.5. <A
+HREF="#AEN417"
+>Now try it</A
+></DT
+></DL
+></DD
+></DL
+></DIV
+><DIV
+CLASS="SECT1"
+><H2
+CLASS="SECT1"
+><A
+NAME="INTRO"
+>1. Introduction</A
+></H2
+><P
+>The technique described in this HOWTO uses PPP to convert packets
+into a character stream and SSH to encrypt it
+and transmit it to the remote computer.  Most system administrators
+are well acquainted with the tools and configuration files needed
+to set up a PPP-SSH VPN.</P
+><P
+>While it works well with moderate loads over a reliable
+connection, be warned that a PPP-SSH VPN is subject to
+some scalability problems.  I've included a list of benefits in
+<A
+HREF="#BENEFITS"
+>Section 2.1</A
+> and drawbacks in
+<A
+HREF="#DRAWBACKS"
+>Section 2.2</A
+> so you can decide
+for yourself if a PPP-SSH VPN is a good fit for your needs.</P
+><DIV
+CLASS="SECT2"
+><HR><H3
+CLASS="SECT2"
+><A
+NAME="AEN25"
+>1.1. Copyright</A
+></H3
+><P
+>Copyright © 2001 Scott Bronson.  This document may be distributed
+under the terms set forth in the GNU Free Documentation License.
+A copy of this license can be found at
+<A
+HREF="http://www.fsf.org/licenses/fdl.html"
+TARGET="_top"
+>http://www.fsf.org/licenses/fdl.html</A
+>.</P
+></DIV
+><DIV
+CLASS="SECT2"
+><HR><H3
+CLASS="SECT2"
+><A
+NAME="AEN29"
+>1.2. Disclaimer</A
+></H3
+><P
+>You use the information in this document entirely at your own risk.
+I especially make no guarantees as to the legality or cryptographic strength 
+of the techniques described here.
+If you feel that you cannot take full responsibility
+for your setup, then you need to put
+down this HOWTO and hire one of the many excellent companies who
+provide accountable, professional VPN service.</P
+></DIV
+><DIV
+CLASS="SECT2"
+><HR><H3
+CLASS="SECT2"
+><A
+NAME="AEN32"
+>1.3. Credits</A
+></H3
+><P
+>I took some notes as I adapted Bart Trojanowski's excellent
+<A
+HREF="http://www.jukie.net/~bart/security/vpn/"
+TARGET="_top"
+>instructions</A
+> to a newer version of PPP running on
+my Debian system.
+A few weeks later, I converted the notes into SGML.
+Eventually, those evolved into this HOWTO.</P
+><P
+>Bart's instructions were based on Arpad Magosanyi's 
+good but now fairly dated
+<A
+HREF="http://www.linuxdoc.org/HOWTO/mini/VPN.html"
+TARGET="_top"
+>VPN Mini-HOWTO</A
+>.
+If you run into troubles and my document doesn't seem to help,
+or if you're running an older version of the Linux kernel or PPP,
+you'll definitely want to give his HOWTO a read.</P
+></DIV
+></DIV
+><DIV
+CLASS="SECT1"
+><HR><H2
+CLASS="SECT1"
+><A
+NAME="INTRODUCTION"
+>2. Introduction</A
+></H2
+><DIV
+CLASS="SECT2"
+><H3
+CLASS="SECT2"
+><A
+NAME="BENEFITS"
+>2.1. PPP-SSH Benefits</A
+></H3
+><P
+>There are a number of benefits to setting up a PPP-SSH VPN.
+It's relatively simple, it uses common off-the-shelf tools,
+and it probably won't require a reboot before bringing up the link.
+Here's a more comprehensive list:</P
+><P
+></P
+><DIV
+CLASS="VARIABLELIST"
+><DL
+><DT
+>Easy to install</DT
+><DD
+><P
+>You probably won't need to patch or recompile your kernel, run
+LILO, reboot, or perform any other perilous administration activities.
+PPP and SSH are included with most distributions, and
+most kernels come preconfigured to use them properly.
+    </P
+></DD
+><DT
+>Easy to set up</DT
+><DD
+><P
+>You should not have to edit any existing configuration files.
+You simply customize the script file provided later in this document,
+which contains all the VPN configuration info, and then execute it
+on the client machine. Any existing PPP or SSH configurations
+should continue to work just fine.
+    </P
+></DD
+><DT
+>No mucking with firewalling</DT
+><DD
+><P
+>If the SSH protocol currently traverses your firewall,
+then PPP over SSH will traverse your firewall as well.
+(If you aren't using SSH, then why not?  It is almost
+a required tool for system administrators nowadays.)
+    </P
+></DD
+><DT
+>No mucking with manual routing</DT
+><DD
+><P
+>pppd automatically sets up routing for you.
+And, if you have very complex routing needs, it's very easy
+to put the custom routing commands in the script file.
+    </P
+></DD
+><DT
+>No need for static IP addresses</DT
+><DD
+><P
+>PPP-SSH VPNs have no trouble whatsoever with dynamic IP addressess.
+The client must be able to find the server to connect to, of course,
+but dynamic DNS would work fine for that.
+Setting up a VPN over a dialup connection is no problem.
+    </P
+></DD
+><DT
+>Multiple Tunnels are Easy</DT
+><DD
+><P
+>It's easy to set up multiple tunnels to a single computer.
+You simply need to make sure that the IP address for 
+each tunnel's network interface is distinct.
+    </P
+></DD
+></DL
+></DIV
+></DIV
+><DIV
+CLASS="SECT2"
+><HR><H3
+CLASS="SECT2"
+><A
+NAME="DRAWBACKS"
+>2.2. PPP-SSH Drawbacks</A
+></H3
+><P
+>This type of VPN is not without a few difficulties.
+Basically, it doesn't run unattended very well.  If you're
+looking for a production-quality VPN that you can
+set up and forget about, you will proabably find
+PPP-SSH a little disappointing.  Some alternatives
+are described in <A
+HREF="#ALTERNATIVES"
+>Section 2.4</A
+>.</P
+><P
+></P
+><DIV
+CLASS="VARIABLELIST"
+><DL
+><DT
+>Trying to maintain a TCP connection</DT
+><DD
+><P
+>If the SSH TCP connection is broken for any reason,
+your VPN goes down hard and takes all tunnelled TCP connections with it.
+If you have a less than reliable link --
+say it's difficult to download more than a few tens of megabytes
+at one go -- you will be re-starting the VPN a lot.
+    </P
+></DD
+><DT
+>Running IP packets over a TCP stream</DT
+><DD
+><P
+>The TCP protocol consists of streams layered on top
+of IP packets.
+When you <EM
+>then</EM
+> run IP packets
+over the TCP stream (as we're attempting to do),
+the personality conflict between the two can become very apparent.
+Mostly, this manifests itself as weird delays, dropouts, and oscillations.
+Sometimes you'll see problems at load, sometimes with next to no traffic.
+Short of changing the entire OSI model (ha ha), there's not much that can
+be done about this.
+    </P
+></DD
+><DT
+>Tends to be bursty</DT
+><DD
+><P
+>For some reason, when network load gets
+high, one tunneled TCP connection tends to get all the bandwidth
+and the others get ignored.
+This leads to timeouts and dropped connections.
+Theoretically, this is fixable.
+    </P
+></DD
+><DT
+>Can't reliably tell when link is down</DT
+><DD
+><P
+>Keepalives are small packets sent to tell the machine
+on the other end that the connection is still up.
+If the network load gets too high, keepalives
+will be delayed.  The other machine will mistakenly
+assume the connection has
+been dropped and take down its end of the link.
+    </P
+><P
+>Without keepalives, however, there's no way for either machine tell if the
+link has been dropped.  When one machine tries to bring the link back up,
+if the other machine thinks it already has it up, confusion can reign.
+Most often this will show up as multiple ppp network devices,
+duplicate routes, and tunnels that appear to be up but drop every packet.
+A liberal use of "killall -9 pppd" will usually set things back in order.
+A more intelligent start script could probably improve this.
+    </P
+></DD
+><DT
+>Too many simultaneous connections avalanches fast</DT
+><DD
+><P
+>When I use regular PPP over a 56K modem and Postfix opens 10+
+connections to deliver my outgoing mail, everything works well.
+However, when I try to run this exact traffic over a VPN tunneled
+over a much faster DSL link, it stalls out.
+Ping times skyrocket for a spell (2 minutes and beyond), traffic moves
+at a trickle for a while, then it stops completely.
+The only way to get packets moving again is to restart the tunnel.
+I'm not sure if this is a bug or an inherent
+limitation.  Reducing the number of connections that Postfix maintains
+for outgoing mail fixed this problem for me..
+    </P
+></DD
+><DT
+>It's high-overhead, high-latency</DT
+><DD
+><P
+>Ping times over my 57.6 modem connection are normally in the
+130-170 ms range.  However, ping times for a PPP-SSH VPN running 
+over the same modem connection are in the 300-330 ms range.  Turning
+on PPP compression can help a lot if you're transmitting compressible
+data.  Email is compressible, Vorbis files are not.
+    </P
+></DD
+></DL
+></DIV
+></DIV
+><DIV
+CLASS="SECT2"
+><HR><H3
+CLASS="SECT2"
+><A
+NAME="AEN99"
+>2.3. Suggested Reading</A
+></H3
+><P
+></P
+><DIV
+CLASS="VARIABLELIST"
+><DL
+><DT
+>VPN FAQ</DT
+><DD
+><P
+>The VPN FAQ at <A
+HREF="http://kubarb.phsx.ukans.edu/~tbird/vpn/FAQ.html"
+TARGET="_top"
+>http://kubarb.phsx.ukans.edu/~tbird/vpn/FAQ.html</A
+> is a very good resource.  It's comprehensive,
+kept reasonably up-to-date,
+and not afraid to express an opinion.
+    </P
+></DD
+><DT
+>Linux Kernel HOWTO</DT
+><DD
+><P
+>If your kernel doesn't already have PPP and IP Forwarding capability
+built-in, the <A
+HREF="http://www.linuxdoc.org/HOWTO/Kernel-HOWTO.html"
+TARGET="_top"
+>Linux Kernel HOWTO</A
+> will tell you how to recompile your kernel
+to add it.  It will also tell you how to load and unload the PPP kernel
+modules.
+    </P
+></DD
+><DT
+>PPP HOWTO</DT
+><DD
+><P
+>Tells how to install and set up the PPP daemon if your distribution
+did not automatically install it for you.
+Also has an excellent section on linking two networks using PPP.  That's
+pretty much what we're doing, except that we're also encrypting it.
+You can find it at <A
+HREF="http://www.linuxdoc.org/HOWTO/PPP-HOWTO/index.html"
+TARGET="_top"
+>http://www.linuxdoc.org/HOWTO/PPP-HOWTO/index.html</A
+>.
+    </P
+></DD
+><DT
+>SSH HOWTO</DT
+><DD
+><P
+>I wish there were an SSH HOWTO!  For now, the documentation that
+comes with your distribution should be a good start.  You might
+also check the <A
+HREF="http://www.openssh.org/"
+TARGET="_top"
+>OpenSSH web site</A
+>.
+    </P
+></DD
+><DT
+>Networking Documentation</DT
+><DD
+><P
+>If you're not very familiar with networking, you'll want to scour the
+<A
+HREF="http://www.linuxdoc.org/LDP/nag2/index.html"
+TARGET="_top"
+>Linux Network Administrators Guide</A
+>.
+It's an excellent introduction to most of the concepts we'll be using here.
+You may also find the Linux Networking HOWTO at <A
+HREF="http://www.linuxdoc.org/HOWTO/Networking-Overview-HOWTO.html"
+TARGET="_top"
+>http://www.linuxdoc.org/HOWTO/Networking-Overview-HOWTO.html</A
+> to be a useful introduction, especially
+itse sections on TCP/IP, PPP, and tunneling.
+    </P
+></DD
+></DL
+></DIV
+></DIV
+><DIV
+CLASS="SECT2"
+><HR><H3
+CLASS="SECT2"
+><A
+NAME="ALTERNATIVES"
+>2.4. Alternatives</A
+></H3
+><P
+>There are a ton of VPN technologies in the world now.  If PPP-SSH
+doesn't fit all your needs, you might want to check one of the
+following packages.</P
+><P
+></P
+><DIV
+CLASS="VARIABLELIST"
+><DL
+><DT
+>ipsec</DT
+><DD
+><P
+>ipsec describes a set of low-level protocols, 
+<A
+HREF="http://andrew2.andrew.cmu.edu/rfc/rfc2406.html"
+TARGET="_top"
+>ESP</A
+> and
+<A
+HREF="http://andrew2.andrew.cmu.edu/rfc/rfc2402.html"
+TARGET="_top"
+>AH</A
+>,
+to perform authentication and encryption
+at the packet level.  It also uses a higher-level protocol,
+<A
+HREF="http://andrew2.andrew.cmu.edu/rfc/rfc2408.html"
+TARGET="_top"
+>IKE</A
+>,
+to negotiate connection parameters and exchange encryption keys.
+    </P
+><P
+>FreeS/WAN is probably the best Linux ipsec implementation today.
+Although it can be very difficult to set up, especially for those
+who are not terribly familiar with networking,
+it is amazingly stable once it is working.
+You can find out more at the 
+<A
+HREF="http://www.freeswan.org/"
+TARGET="_top"
+>FreeS/WAN home page</A
+>.
+    </P
+><P
+>Another good, free ipsec implementation is 
+<A
+HREF="http://www.antd.nist.gov/cerberus/"
+TARGET="_top"
+>Cerberus</A
+>.
+Unfortunately, the National Institute of Standards and Technology
+only distributes Cerberus to US or Candadian citizens currently
+located in either the US or Canada. Therefore, depending on who
+you are, obtaining Cerberus ranges from moderately
+difficult to effectively impossible.
+    </P
+></DD
+><DT
+>PPTP</DT
+><DD
+><P
+>PPTP (Point-to-Point Tunnelling Protocol) is a Microsoft-developed
+VPN protocol, described in
+<A
+HREF="http://andrew2.andrew.cmu.edu/rfc/rfc2637.html"
+TARGET="_top"
+>RFC2637</A
+>.
+It is a very common and well-understood technology and has many
+mature implementations on all commonly-used computer platforms.
+However PPTP is generally considered to have 
+<A
+HREF="http://www.counterpane.com/pptp.html"
+TARGET="_top"
+>somewhat weak security</A
+>.
+    </P
+><P
+>Probably the best Linux PPTP implementation is PoPToP, found at
+<A
+HREF="http://poptop.lineo.com/"
+TARGET="_top"
+>http://poptop.lineo.com/</A
+>.
+    </P
+></DD
+><DT
+>CIPE</DT
+><DD
+><P
+>CIPE is Olaf Titz's protocol to encapsulate IP traffic over UDP packets.
+It has both a
+<A
+HREF="http://sites.inka.de/sites/bigred/devel/cipe.html"
+TARGET="_top"
+>Linux version</A
+>
+and a
+<A
+HREF="http://cipe-win32.sourceforge.net/"
+TARGET="_top"
+>Windows version</A
+>.
+I haven't used it yet, but it is in strong development and looks very
+promising.  For more information, the
+<A
+HREF="http://www.linuxdoc.org/HOWTO/mini/Cipe+Masq.html"
+TARGET="_top"
+>CIPE-MASQ
+Mini-HOWTO</A
+> is a terse but informative read.
+    </P
+></DD
+></DL
+></DIV
+></DIV
+></DIV
+><DIV
+CLASS="SECT1"
+><HR><H2
+CLASS="SECT1"
+><A
+NAME="INSTALLATION"
+>3. Software Installation</A
+></H2
+><DIV
+CLASS="SECT2"
+><H3
+CLASS="SECT2"
+><A
+NAME="AEN160"
+>3.1. Terminology</A
+></H3
+><P
+>Because setting up the VPN very much resembles a client-server
+transaction, I'll borrow from that terminology to give a name
+to the computer at each end of the tunnel:</P
+><P
+></P
+><DIV
+CLASS="VARIABLELIST"
+><DL
+><DT
+>Server</DT
+><DD
+><P
+>This is the computer that passively waits
+for incoming VPN connection requests.
+It runs completely unattended.
+    </P
+></DD
+><DT
+>Client</DT
+><DD
+><P
+>This is the computer that initiates the connection
+request, asking the Server to bring up the VPN.
+    </P
+></DD
+></DL
+></DIV
+></DIV
+><DIV
+CLASS="SECT2"
+><HR><H3
+CLASS="SECT2"
+><A
+NAME="AEN172"
+>3.2. Requirements</A
+></H3
+><P
+></P
+><UL
+><LI
+><P
+>Your kernel must have support for TCP/IP and PPP compiled in.
+Almost all distributions ship with PPP support straight
+out of the box.  If yours didn't, or if you're using a custom kernel,
+I'll include a little more detail about this in
+<A
+HREF="#KERNEL"
+>Section 3.4</A
+>.
+    </P
+></LI
+><LI
+><P
+>You must install the pppd daemon.  This most likely comes with your
+distribution. I'm using ppp-2.3.11.  Later versions should work just
+fine, and earlier versions should also work as
+well as long as they support the "pty" option.  You don't need to install
+chat or any of the other tools designed to work with PPP -- you just need
+pppd.
+    </P
+></LI
+><LI
+><P
+>The client machine needs to have the ssh client installed.
+There are many different versions of ssh floating around,
+but they should all work.
+I'm using OpenBSD's <A
+HREF="http://www.openssh.org/"
+TARGET="_top"
+>OpenSSH</A
+> package version 2.2.0p1.
+    </P
+></LI
+><LI
+><P
+>The server machine needs the sshd daemon to field ssh requests from
+the client.  OpenSSH includes a very good ssh daemon.
+    </P
+></LI
+><LI
+><P
+>Finally, you want to install the sudo tool on the server.
+You can find out more about sudo in the <A
+HREF="http://www.seifried.org/lasg/"
+TARGET="_top"
+>Linux Administrator's Security Guide</A
+>, in the Administration Tools
+section, and the <A
+HREF="http://www.linuxdoc.org/HOWTO/Security-HOWTO.html"
+TARGET="_top"
+>Linux Security HOWTO</A
+>, in the Root Security section.
+You might also want to look at <A
+HREF="http://www.courtesan.com/sudo/"
+TARGET="_top"
+>sudo's home page</A
+>.
+    </P
+></LI
+></UL
+></DIV
+><DIV
+CLASS="SECT2"
+><HR><H3
+CLASS="SECT2"
+><A
+NAME="PLANNING"
+>3.3. Planning</A
+></H3
+><P
+>To set up a PPP-SSH link, you need to specify the following parameters:</P
+><P
+></P
+><DIV
+CLASS="VARIABLELIST"
+><DL
+><DT
+>Server Hostname</DT
+><DD
+><P
+>What is the hostname or IP address for your VPN server?
+    </P
+></DD
+><DT
+>Server VPN Username</DT
+><DD
+><P
+>On your server, what username will the VPN software run under?
+This HOWTO includes instructions on how to create a
+user named "vpn" specifically for this.
+This should <EM
+>not</EM
+> be root!
+For security and logging, this should be a dedicated account.
+    </P
+></DD
+><DT
+>Server Interface IP Address</DT
+><DD
+><P
+>The PPP-SSH VPN sets up dedicated network interfaces on both the client
+and the server.  The interface will be pppN, where N is the number of
+the first unused ppp interface (i.e. it will be ppp1 if you're already
+using ppp0 to dial out over your modem).
+    </P
+><P
+>You will need to specify the IP address for the interface on the server.
+This address is only visible to the client and server (and to any machines
+on subnets that the client and server may be forwarding 
+unmasqueraded packets for).
+    </P
+><P
+>If you don't know what IP address to pick, read chapter 2.2 in the
+<A
+HREF="http://www.linuxdoc.org/LDP/nag2/index.html"
+TARGET="_top"
+>Linux Network Administrators Guide</A
+>
+and especially look at Table 2-1.
+For example, 192.168.0.1 is a good choice.
+    </P
+></DD
+><DT
+>Client Interface IP Address</DT
+><DD
+><P
+>You need to select the IP address for the interface on the
+client.  It must, of course, be on the same network as the
+server's IP address.
+It must not conflict with any other networks on the client, nor can
+it be the same as the server's network interface IP address.
+If you selected 192.168.0.1 for the previous answer, you
+would probably use 192.168.0.2 here.
+    </P
+></DD
+></DL
+></DIV
+><P
+>My setup looks like this:</P
+><TABLE
+BORDER="1"
+BGCOLOR="#E0E0E0"
+WIDTH="100%"
+><TR
+><TD
+><FONT
+COLOR="#000000"
+><PRE
+CLASS="SCREEN"
+>SERVER_HOSTNAME = eldivino.domain.com
+SERVER_USERNAME = vpn
+SERVER_IFIPADDR = 192.168.3.1
+CLIENT_IFIPADDR = 192.168.3.2</PRE
+></FONT
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><HR><H3
+CLASS="SECT2"
+><A
+NAME="KERNEL"
+>3.4. Set Up PPP</A
+></H3
+><P
+>The kernel's PPP code can either be compiled into the kernel
+itself or it can be put in loadable kernel modules.
+If you compiled it into the kernel, you can
+skip on to the next step -- you're done here.
+However, if you're loading PPP as modules, you need to make
+sure the modules get properly loaded.</P
+><P
+>You can check to see if ppp is listed, along with all other
+currently loaded modules, when you run lsmod.  Remember to check
+that the PPP module is loaded on both the client and the server.</P
+><TABLE
+BORDER="1"
+BGCOLOR="#E0E0E0"
+WIDTH="100%"
+><TR
+><TD
+><FONT
+COLOR="#000000"
+><PRE
+CLASS="SCREEN"
+>server$ /sbin/lsmod
+Module                  Size  Used by
+ppp                    20780   0 (unused)
+slhc                    4376   0 [ppp]
+3c59x                  21636   1
+
+client$ lsmod
+Module                  Size  Used by
+ppp_deflate            40308   0  (autoclean)
+bsd_comp                4076   0  (autoclean)
+ppp                    20844   2  [ppp_deflate bsd_comp]
+slhc                    4376   1  [ppp]</PRE
+></FONT
+></TD
+></TR
+></TABLE
+><P
+>If you're sure ppp was compiled as a module, but it's not loaded into
+the kernel, try loading it with modprobe:</P
+><TABLE
+BORDER="1"
+BGCOLOR="#E0E0E0"
+WIDTH="100%"
+><TR
+><TD
+><FONT
+COLOR="#000000"
+><PRE
+CLASS="SCREEN"
+># modprobe ppp</PRE
+></FONT
+></TD
+></TR
+></TABLE
+><P
+>If modprobe didn't return any errors, check lsmod again --
+it should be listed this time.  If so, then your ppp module
+is not being loaded at boot time.
+This is OK if you're running the kernel daemon as the PPP modules
+will be loaded on demand.
+If you're not, however, you'll need to manually load the
+modules at boot time by putting a single line consisting
+entirely of the word "ppp" in your /etc/modules file.</P
+><P
+>See the <A
+HREF="http://www.linuxdoc.org/HOWTO/Kernel-HOWTO.html"
+TARGET="_top"
+>Linux Kernel HOWTO</A
+> for more on this subject.</P
+></DIV
+><DIV
+CLASS="SECT2"
+><HR><H3
+CLASS="SECT2"
+><A
+NAME="SSHFIREWALL"
+>3.5. Allow SSH Through the Firewall</A
+></H3
+><P
+>The only network traffic between the two machines
+(as a result of the tunnel, of course) will be over the
+SSH protocol.</P
+><P
+>SSH uses only TCP streams -- no UDP or ICMP.
+ The ssh server (sshd) listens on port 22.
+Our client (because we use the -P flag) only uses the unpriveleged ports
+from 1024 through 65535.  This description should have given you
+enough information to set up your firewall.</P
+><P
+>For example, here are the ipchains commands needed to allow
+ssh connections to the server.
+We allow incoming SSH connection between port 22 on the local
+machine and any port on the remote.
+ Replace eth0 with the interface
+that will be carrying the ssh traffic and $IPADDR with the IP
+address of that interface.</P
+><TABLE
+BORDER="1"
+BGCOLOR="#E0E0E0"
+WIDTH="100%"
+><TR
+><TD
+><FONT
+COLOR="#000000"
+><PRE
+CLASS="SCREEN"
+>ipchains -A input  -i eth0 -p tcp -d $IPADDR 22 -j ACCEPT
+ipchains -A output -i eth0 -p tcp ! -y -s $IPADDR 22 -j ACCEPT</PRE
+></FONT
+></TD
+></TR
+></TABLE
+><P
+>And, here are the commands needed to set up the firewall on
+the client.  We don't allow incoming ssh connections, and we only allow
+the protocol to pass between port 22 on the remote machine and unprivileged
+ports on this machine.
+Again, replace eth0 with the interface that will be carrying
+the ssh traffic, and $IPADDR with the IP address of that interface..</P
+><TABLE
+BORDER="1"
+BGCOLOR="#E0E0E0"
+WIDTH="100%"
+><TR
+><TD
+><FONT
+COLOR="#000000"
+><PRE
+CLASS="SCREEN"
+>ipchains -A input  -i eth0 -p tcp ! -y --source-port 22 -d $IPADDR 1024:65535 -j ACCEPT
+ipchains -A output -i eth0 -p tcp -s $IPADDR 1024:65535 --destination-port 22 -j ACCEPT</PRE
+></FONT
+></TD
+></TR
+></TABLE
+></DIV
+></DIV
+><DIV
+CLASS="SECT1"
+><HR><H2
+CLASS="SECT1"
+><A
+NAME="CONFIGSERVER"
+>4. Configure the Server</A
+></H2
+><P
+>We need to set up the server to respond to the client's request
+to bring up the tunnel.</P
+><DIV
+CLASS="SECT2"
+><HR><H3
+CLASS="SECT2"
+><A
+NAME="AEN237"
+>4.1. Create a VPN User</A
+></H3
+><P
+>The incoming SSH VPN requests must be directed to a particular user
+on the server.  For security and accountability, I recommend you
+use a dedicated user to field VPN requests.  The following steps will
+set up a system user named "vpn" to do just that.</P
+><P
+></P
+><OL
+TYPE="1"
+><LI
+><P
+>First, we create the user's account.  Accounts come in two ranges:
+the system range (typically 100-999) and the regular user range (1000+).
+"--system" tells adduser to add the user in the system range and
+to give him /bin/false for the login shell.  "--group"
+tells adduser to also create a group of the same name as the user,
+and to add the user to the group.
+    </P
+><TABLE
+BORDER="1"
+BGCOLOR="#E0E0E0"
+WIDTH="90%"
+><TR
+><TD
+><FONT
+COLOR="#000000"
+><PRE
+CLASS="SCREEN"
+>server# adduser --sytem --group vpn</PRE
+></FONT
+></TD
+></TR
+></TABLE
+></LI
+><LI
+><P
+>Since the vpn user needs to log in via ssh, change vpn's shell from
+/bin/false to /bin/bash in the /etc/passwd file.  You can simply
+edit /etc/passwd using vi or any other decent text editor.</P
+></LI
+><LI
+><P
+>Create a password for the vpn user.  It can (and should) be very
+complex, since you'll only type it a few times while setting up the
+VPN.  After that, you'll never type it again.</P
+><TABLE
+BORDER="1"
+BGCOLOR="#E0E0E0"
+WIDTH="90%"
+><TR
+><TD
+><FONT
+COLOR="#000000"
+><PRE
+CLASS="SCREEN"
+>server# passwd vpn
+Enter new UNIX password: 
+Retype new UNIX password: 
+passwd: password updated successfully</PRE
+></FONT
+></TD
+></TR
+></TABLE
+></LI
+><LI
+><P
+>Now, try connecting to the server to ensure that you've created the account properly.</P
+><TABLE
+BORDER="1"
+BGCOLOR="#E0E0E0"
+WIDTH="90%"
+><TR
+><TD
+><FONT
+COLOR="#000000"
+><PRE
+CLASS="SCREEN"
+>client% ssh eldivino.domain.com -l vpn
+vpn@eldivino's password: 
+Linux eldivino 2.2.19 #6 Mon Jun 4 10:32:19 PDT 2001 i686 unknown
+No mail.
+vpn@eldivino:~$</PRE
+></FONT
+></TD
+></TR
+></TABLE
+><P
+>It may take a while for ssh to connect if
+you don't have reverse DNS set up properly.  You can fix that whenever
+you want.   It will only delay bringing up the VPN -- it won't prevent it
+from working.</P
+><P
+>If it just stalls, then the ssh protocol is probably
+being dropped by a firewall between the two machines.
+Have a look at section <A
+HREF="#SSHFIREWALL"
+>Section 3.5</A
+> again.</P
+></LI
+></OL
+></DIV
+><DIV
+CLASS="SECT2"
+><HR><H3
+CLASS="SECT2"
+><A
+NAME="AEN255"
+>4.2. Set up Authenticated Login</A
+></H3
+><P
+>It would be terrible to have to type in a password every time you
+wanted to bring the VPN link up, so we'll set up SSH's RSA
+authentication.  Skip this section if you truly don't mind
+typing a password every time.</P
+><P
+></P
+><OL
+TYPE="1"
+><LI
+><P
+>Ensure that the root account on the client machine has a public
+key in root's home directory (~/root/.ssh/identity.pub). If this
+file doesn't exist, then you must create it.  As root, run ssh-keygen:
+    </P
+><TABLE
+BORDER="1"
+BGCOLOR="#E0E0E0"
+WIDTH="90%"
+><TR
+><TD
+><FONT
+COLOR="#000000"
+><PRE
+CLASS="SCREEN"
+># ssh-keygen
+Generating public/private rsa1 key pair.
+Enter file in which to save the key (/root/.ssh/identity): 
+Enter passphrase (empty for no passphrase): 
+Enter same passphrase again: 
+Your identification has been saved in /root/.ssh/identity.
+Your public key has been saved in /root/.ssh/identity.pub.
+The key fingerprint is:
+15:61:57:7e:5c:26:91:09:5c:e6:10:b7:a1:74:bd:25 root@paradis</PRE
+></FONT
+></TD
+></TR
+></TABLE
+></LI
+><LI
+><P
+>Now, copy identity.pub to the vpn account's authorized_keys file
+on the server.
+You will almost certainly have to create this.  As
+root, perform the following commands on the server:</P
+><TABLE
+BORDER="1"
+BGCOLOR="#E0E0E0"
+WIDTH="90%"
+><TR
+><TD
+><FONT
+COLOR="#000000"
+><PRE
+CLASS="SCREEN"
+>server# cd ~vpn
+server# mkdir .ssh
+server# chown root.vpn .ssh
+server# chmod 755 .ssh
+server# cd .ssh</PRE
+></FONT
+></TD
+></TR
+></TABLE
+><P
+>Now, copy th the client's /root/.ssh/identity.pub file
+(it's only one line) to
+the server's ~vpn/.ssh/authorized_keys file.
+You can add more lines to authorized_keys, one for each client,
+if you want to allow multiple clients to connect.</P
+><TABLE
+BORDER="1"
+BGCOLOR="#E0E0E0"
+WIDTH="90%"
+><TR
+><TD
+><FONT
+COLOR="#000000"
+><PRE
+CLASS="SCREEN"
+>server# chown root.vpn authorized_keys
+server# chmod 644 authorized_keys</PRE
+></FONT
+></TD
+></TR
+></TABLE
+></LI
+><LI
+><P
+>Now, become root on the client, and try SSHing to the server.
+You may or may not need to use the -P option, depending on how your
+client's firewall is set up.  If port 22 is blocked on your client
+(not a bad idea if it's not running an SSH server),
+then -P tells ssh to use an unprivileged port even though it's
+running as a priveleged user.
+    </P
+><TABLE
+BORDER="1"
+BGCOLOR="#E0E0E0"
+WIDTH="90%"
+><TR
+><TD
+><FONT
+COLOR="#000000"
+><PRE
+CLASS="SCREEN"
+>client# ssh -P eldivino.domain.com -l vpn
+Linux eldivino 2.2.19 #6 Mon Jun 4 11:03:22 PDT 2001 i686 unknown
+No mail.
+vpn@eldivino:~$</PRE
+></FONT
+></TD
+></TR
+></TABLE
+><P
+>There, we were just RSA-authenticated.  Keep your private key 
+(the client's ~root/.ssh/identity file) private!  Anyone who
+has access to this file can log into the VPN account on the
+server.</P
+></LI
+></OL
+></DIV
+><DIV
+CLASS="SECT2"
+><HR><H3
+CLASS="SECT2"
+><A
+NAME="AEN271"
+>4.3. Set Up sudo</A
+></H3
+><P
+>pppd needs to run as root.  However, on the server, we're running
+everything as the "vpn" user.  How can the vpn user run pppd?</P
+><P
+>There are a number of ways of solving this problem.  One is to use
+the suid bit, and arrange permissions by groups.  However, this can get
+confusing and difficult to administer pretty fast, leading to unintentional
+security holes.  Personally,
+I find the sudo utility to be a much better solution.</P
+><P
+>sudo gives ordinary users superuser powers,
+but only for a very limited set of commands.
+The system administrator gets to decide what commands are allowed
+and how much logging to perform. In this case, we want to
+allow the user "vpn" to run pppd with superuser privilege, but
+not be allowed to do anything else.</P
+><P
+></P
+><OL
+TYPE="1"
+><LI
+><P
+>We need to edit sudo's configuration file, /etc/sudoers.
+To use proper locking, hopefully preventing accidents and race conditions,
+use the visudo command to edit /etc/sudoers.
+If you're not faimiliar with vi, see the <A
+HREF="http://www.linuxdoc.org/HOWTO/Vim-HOWTO.html"
+TARGET="_top"
+>VIM HOWTO</A
+>.</P
+><TABLE
+BORDER="1"
+BGCOLOR="#E0E0E0"
+WIDTH="90%"
+><TR
+><TD
+><FONT
+COLOR="#000000"
+><PRE
+CLASS="SCREEN"
+>server# visudo</PRE
+></FONT
+></TD
+></TR
+></TABLE
+><P
+>Add these two lines to the bottom of the file:</P
+><TABLE
+BORDER="1"
+BGCOLOR="#E0E0E0"
+WIDTH="90%"
+><TR
+><TD
+><FONT
+COLOR="#000000"
+><PRE
+CLASS="SCREEN"
+>Cmnd_Alias VPN=/usr/sbin/pppd
+vpn ALL=NOPASSWD: VPN</PRE
+></FONT
+></TD
+></TR
+></TABLE
+></LI
+><LI
+><P
+>Now, verify that sudo is set up correctly.  As the "vpn" user on the
+server, try running pppd using sudo:</P
+><TABLE
+BORDER="1"
+BGCOLOR="#E0E0E0"
+WIDTH="90%"
+><TR
+><TD
+><FONT
+COLOR="#000000"
+><PRE
+CLASS="SCREEN"
+>server# su - vpn
+server$ sudo /usr/sbin/pppd noauth
+~9}#ÀZ}!}!} }9}"}k} }r} }'}%}zt2-·}'}"}</PRE
+></FONT
+></TD
+></TR
+></TABLE
+><P
+>If you get a whole bunch of PPP garbage to the screen
+(like the last line above), this is
+good.  It means that the vpn user is allowed to run pppd.  You can
+now switch to another terminal to kill it off, or you can just
+let pppd finish on its own.  It should give up trying to connect
+after 30 seconds or so.</P
+><P
+>However, if you get "bash: /usr/sbin/pppd: Permission denied"
+or some other sort of error,
+or it asks for a password, then sudo is probably not working.
+You'll need to try figure out what is going wrong.  Verify
+that pppd is in /usr/sbin, and that you set up the sudoers
+file correctly.</P
+></LI
+></OL
+></DIV
+></DIV
+><DIV
+CLASS="SECT1"
+><HR><H2
+CLASS="SECT1"
+><A
+NAME="CONFIGCLIENT"
+>5. Configure the Client</A
+></H2
+><P
+>If ppp and ssh are set up on the client, and the server is ready
+to connect, then all we need to do on the client is create the
+script to bring up the link.</P
+><DIV
+CLASS="SECT2"
+><HR><H3
+CLASS="SECT2"
+><A
+NAME="AEN291"
+>5.1. Install the Script</A
+></H3
+><P
+>The VPN connection is initiated using the vpn-pppssh script
+below.</P
+><P
+></P
+><OL
+TYPE="1"
+><LI
+><P
+>Save this file on the client (it doesn't matter where --
+/usr/local/bin/vpn-pppssh is a good place) and make it
+executable by running "chmod a+x vpn-pppssh".</P
+></LI
+><LI
+><P
+>Fill in the settings at the top of the file with the values
+you decided on in <A
+HREF="#PLANNING"
+>Section 3.3</A
+>.</P
+><P
+>Remember that this is running under bash so you'll
+need to avoid whitespace around the equals sign, use quotes where
+necessary, and escape metacharacters such as $.  See the
+<A
+HREF="http://www.linuxdoc.org/HOWTO/Bash-Prog-Intro-HOWTO.html"
+TARGET="_top"
+>BASH Programming Introduction</A
+> or <A
+HREF="http://www.linuxdoc.org/LDP/abs/html/index.html"
+TARGET="_top"
+>Advanced Bash Scripting Guide</A
+> for more.</P
+><TABLE
+BORDER="1"
+BGCOLOR="#E0E0E0"
+WIDTH="90%"
+><TR
+><TD
+><FONT
+COLOR="#000000"
+><PRE
+CLASS="SCREEN"
+>SERVER_HOSTNAME=eldivino.domain.com
+SERVER_USERNAME=vpn
+SERVER_IFIPADDR=192.168.3.2
+CLIENT_IFIPADDR=192.168.3.1</PRE
+></FONT
+></TD
+></TR
+></TABLE
+><P
+>Run "vpn-pppssh config" to print out a list of the
+configuration variables.  This way, you can confirm that
+your settings are being interpreted correctly.</P
+></LI
+></OL
+></DIV
+><DIV
+CLASS="SECT2"
+><HR><H3
+CLASS="SECT2"
+><A
+NAME="AEN305"
+>5.2. The vpn-pppssh Script</A
+></H3
+><P
+>Here is vpn-pppssh.  All the action is on one line.
+(the one beginning with "PPPD" in the start clause).
+All the rest of this file is just support code.</P
+><TABLE
+BORDER="0"
+BGCOLOR="#E0E0E0"
+WIDTH="100%"
+><TR
+><TD
+><FONT
+COLOR="#000000"
+><PRE
+CLASS="PROGRAMLISTING"
+>#!/bin/sh
+# /usr/local/bin/vpn-pppssh
+#
+# This script initiates a ppp-ssh vpn connection.
+# see the VPN PPP-SSH HOWTO on http://www.linuxdoc.org for more information.
+#
+# revision history:
+# 1.6 11-Nov-1996 miquels@cistron.nl
+# 1.7 20-Dec-1999 bart@jukie.net
+# 2.0 16-May-2001 bronson@trestle.com
+
+
+#
+# You will need to change these variables...
+#
+
+
+# The host name or IP address of the SSH server that we are
+# sending the connection request to:
+SERVER_HOSTNAME=eldivino.domain.com
+
+# The username on the VPN server that will run the tunnel.
+# For security reasons, this should NOT be root.  (Any user
+# that can use PPP can intitiate the connection on the client)
+SERVER_USERNAME=vpn
+
+# The VPN network interface on the server should use this address:
+SERVER_IFIPADDR=192.168.3.2
+
+# ...and on the client, this address:
+CLIENT_IFIPADDR=192.168.3.1
+
+
+# This tells ssh to use unprivileged high ports, even though it's
+# running as root.  This way, you don't have to punch custom holes
+# through your firewall.
+LOCAL_SSH_OPTS="-P"
+
+
+#
+# The rest of this file should not need to be changed.
+#
+
+
+
+PATH=/usr/local/sbin:/sbin:/bin:/usr/sbin:/usr/bin:/usr/bin/X11/:
+
+#
+# required commands...
+#
+
+PPPD=/usr/sbin/pppd
+SSH=/usr/bin/ssh
+
+if ! test -f $PPPD  ; then echo "can't find $PPPD";  exit 3; fi
+if ! test -f $SSH   ; then echo "can't find $SSH";   exit 4; fi
+
+
+case "$1" in
+  start)
+    # echo -n "Starting vpn to $SERVER_HOSTNAME: "
+    ${PPPD} updetach noauth passive pty "${SSH} ${LOCAL_SSH_OPTS} ${SERVER_HOSTNAME} -l${SERVER_USERNAME} -o Batchmode=yes sudo ${PPPD} nodetach notty noauth" ipparam vpn ${CLIENT_IFIPADDR}:${SERVER_IFIPADDR}
+    # echo "connected."
+    ;;
+
+  stop)
+        # echo -n "Stopping vpn to $SERVER_HOSTNAME: "
+        PID=`ps ax | grep "${SSH} ${LOCAL_SSH_OPTS} ${SERVER_HOSTNAME} -l${SERVER_USERNAME} -o" | grep -v ' passive ' | grep -v 'grep ' | awk '{print $1}'`
+        if [ "${PID}" != "" ]; then
+          kill $PID
+          echo "disconnected."
+        else
+          echo "Failed to find PID for the connection"
+        fi
+    ;;
+
+  config)
+    echo "SERVER_HOSTNAME=$SERVER_HOSTNAME"
+    echo "SERVER_USERNAME=$SERVER_USERNAME"
+    echo "SERVER_IFIPADDR=$SERVER_IFIPADDR"
+    echo "CLIENT_IFIPADDR=$CLIENT_IFIPADDR"
+  ;;
+
+  *)
+    echo "Usage: vpn {start|stop|config}"
+    exit 1
+    ;;
+esac
+
+exit 0
+&#13;</PRE
+></FONT
+></TD
+></TR
+></TABLE
+></DIV
+></DIV
+><DIV
+CLASS="SECT1"
+><HR><H2
+CLASS="SECT1"
+><A
+NAME="BRINGUP"
+>6. Bring up the Link</A
+></H2
+><P
+>Everything should now be set up.  Now it's time to take
+a deep breath and try to bring up the link.</P
+><P
+></P
+><OL
+TYPE="1"
+><LI
+><P
+>Become root on the client machine and execute the vpn-pppssh script.
+    </P
+><TABLE
+BORDER="1"
+BGCOLOR="#E0E0E0"
+WIDTH="90%"
+><TR
+><TD
+><FONT
+COLOR="#000000"
+><PRE
+CLASS="SCREEN"
+>client# /usr/local/bin/vpn-pppssh start</PRE
+></FONT
+></TD
+></TR
+></TABLE
+></LI
+><LI
+><P
+>It will take a while to connect, but then it should come back with
+something like the following</P
+><TABLE
+BORDER="1"
+BGCOLOR="#E0E0E0"
+WIDTH="90%"
+><TR
+><TD
+><FONT
+COLOR="#000000"
+><PRE
+CLASS="SCREEN"
+>Using interface ppp1
+Connect: ppp1 &#60;--&#62; /dev/pts/1
+local  IP address 192.168.3.1
+remote IP address 192.168.3.2</PRE
+></FONT
+></TD
+></TR
+></TABLE
+></LI
+><LI
+><P
+>Did it work?  First try pinging the client's VPN interface:</P
+><TABLE
+BORDER="1"
+BGCOLOR="#E0E0E0"
+WIDTH="90%"
+><TR
+><TD
+><FONT
+COLOR="#000000"
+><PRE
+CLASS="SCREEN"
+>client$ ping 192.168.3.2</PRE
+></FONT
+></TD
+></TR
+></TABLE
+></LI
+><LI
+><P
+>If this worked, then you can reach the interface on the client OK.
+Don't get excited yet -- that was the easy part.  Now, try pinging
+the server's VPN interface:</P
+><TABLE
+BORDER="1"
+BGCOLOR="#E0E0E0"
+WIDTH="90%"
+><TR
+><TD
+><FONT
+COLOR="#000000"
+><PRE
+CLASS="SCREEN"
+>client$ ping 192.168.3.1</PRE
+></FONT
+></TD
+></TR
+></TABLE
+><P
+>If you get echoes back, then congratulations!  Your PPP-SSH VPN
+appears to be healthy.
+Packets are successfully travelling the route in both directions.
+You might want to log into your server and try initiating pings
+from the server to the client, but at this stage of the game,
+that's almost guaranteed to work.</P
+></LI
+></OL
+><P
+>You bring the VPN down with "vpn-pppssh stop".</P
+><P
+>Now that the tunnel works, you might want to integrate it
+into your system so it comes up automatically as described
+in <A
+HREF="#INTEGRATION"
+>Section 7</A
+>.
+Also, if you want to forward packets from an entire subnet over the
+link (rather than just the packets originating on the client and
+server as we have set up now) see <A
+HREF="#FORWARDING"
+>Section 8</A
+>.</P
+><DIV
+CLASS="SECT2"
+><HR><H3
+CLASS="SECT2"
+><A
+NAME="AEN330"
+>6.1. Troubleshooting</A
+></H3
+><P
+>The script itself is fairly simple.  The entire system, however,
+involves a lot of small parts.  If any one of them is misconfigured,
+it can prevent your VPN from working without so much as
+a message why.   Here is a list of things to check if you run
+into difficulties:</P
+><P
+></P
+><UL
+><LI
+><P
+>Double and triple check your network values.  Try running
+"vpn-pppssh config" to ensure the configuration
+is correct and the shell hasn't ruined any of your values.</P
+></LI
+><LI
+><P
+> Go back over
+each step and make sure that it all checks out.</P
+></LI
+><LI
+><P
+> Try temporarially turning
+off any firewalls on the client, on the server, and on any machines in
+between to see if any of them are getting in the way (not likely if
+you can SSH between the two machines).</P
+></LI
+><LI
+><P
+>Ensure that your routes are correct.  You can list your routes
+using "route -n".  See the
+<A
+HREF="http://www.linuxdoc.org/LDP/nag2/index.html"
+TARGET="_top"
+>Linux Network Administrators Guide</A
+>
+and <A
+HREF="http://www.linuxdoc.org/HOWTO/Adv-Routing-HOWTO.html"
+TARGET="_top"
+>http://www.linuxdoc.org/HOWTO/Adv-Routing-HOWTO.html</A
+> for more.</P
+></LI
+></UL
+><DIV
+CLASS="SECT3"
+><HR><H4
+CLASS="SECT3"
+><A
+NAME="AEN344"
+>6.1.1. sendto: Operation not permitted</A
+></H4
+><P
+>When you try to ping the VPN interfaces, if you get a
+"sendto: Operation not permitted" error, you are probably running
+into a firewall on the local machine that is denying packets before they
+even reach the VPN network interface.  Your firewall must allow
+SSH traffic over your regular network <EM
+>and</EM
+>
+it must allow all traffic over your VPN interfacess.</P
+><P
+>The ipchains commands to smash a hole in your firewall for your
+PPP interface will something like this:</P
+><TABLE
+BORDER="1"
+BGCOLOR="#E0E0E0"
+WIDTH="100%"
+><TR
+><TD
+><FONT
+COLOR="#000000"
+><PRE
+CLASS="SCREEN"
+>ipchains -I input  1 -i ppp1 -s 192.168.3.0/24 -j ACCEPT
+ipchains -I output 1 -i ppp1 -d 192.168.3.0/24 -j ACCEPT</PRE
+></FONT
+></TD
+></TR
+></TABLE
+><P
+>ppp1 must, of course, be the network interface of your PPP-SSH
+VPN, and the IP addresses must match the address of the local
+interface.  Make sure that packets are allowed on both the
+client and server.</P
+><P
+>See the <A
+HREF="http://www.linuxdoc.org/HOWTO/Firewall-HOWTO.html"
+TARGET="_top"
+>Linux Firewall HOWTO</A
+>, the <A
+HREF="http://www.linuxdoc.org/HOWTO/IPCHAINS-HOWTO.html"
+TARGET="_top"
+>IPChains HOWTO</A
+> for kernel 2.2, or
+documentation on iptables for kernel 2.4.</P
+></DIV
+></DIV
+></DIV
+><DIV
+CLASS="SECT1"
+><HR><H2
+CLASS="SECT1"
+><A
+NAME="INTEGRATION"
+>7. Integrating the VPN into your system</A
+></H2
+><P
+>Bringing up the link by hand gets tiring after a while.  You probably
+want your VPN to come up either at boot time or when your
+dial-up connection comes up.</P
+><DIV
+CLASS="SECT2"
+><HR><H3
+CLASS="SECT2"
+><A
+NAME="AEN357"
+>7.1. Connecting at Boot Time</A
+></H3
+><P
+>It's quite easy to get this script to run at boot time.
+I assume you're using the very common System V initscript setup.
+If not, you'll have to figure out how to integrate this with your
+system on your own.</P
+><P
+></P
+><OL
+TYPE="1"
+><LI
+><P
+>Either copy or symlink the vpn-pppssh script to /etc/init.d.
+    </P
+><TABLE
+BORDER="1"
+BGCOLOR="#E0E0E0"
+WIDTH="90%"
+><TR
+><TD
+><FONT
+COLOR="#000000"
+><PRE
+CLASS="SCREEN"
+>cp /usr/local/bin/vpn-pppssh /etc/init.d/vpn-pppssh</PRE
+></FONT
+></TD
+></TR
+></TABLE
+></LI
+><LI
+><P
+>Uncomment the echo lines in the start and stop
+clauses in the vpn-pppssh script
+to enable the boot-time "Starting" and
+"done." messages.
+    </P
+></LI
+><LI
+><P
+>Put "&#62; /dev/null 2&#62;&#38;1" after the line beginning
+"${PPPD}" in the start section of the script.  This just prevents
+pppd's verbose messages from mucking up your boot screen.
+You could also redirect pppd's messages (which may include
+a very informative error) to a log file or, if you're not aesthetically
+inclined, leave it alone and let your screen get all mucked up.
+    </P
+></LI
+><LI
+><P
+>Now, you simply link your script in to each of the six runlevels.
+    </P
+><TABLE
+BORDER="1"
+BGCOLOR="#E0E0E0"
+WIDTH="90%"
+><TR
+><TD
+><FONT
+COLOR="#000000"
+><PRE
+CLASS="SCREEN"
+>client$ ln -s /etc/init.d/vpn-pppssh /etc/rc0.d/K10vpn-pppssh
+client$ ln -s /etc/init.d/vpn-pppssh /etc/rc1.d/K10vpn-pppssh
+client$ ln -s /etc/init.d/vpn-pppssh /etc/rc2.d/S99vpn-pppssh
+client$ ln -s /etc/init.d/vpn-pppssh /etc/rc3.d/S99vpn-pppssh
+client$ ln -s /etc/init.d/vpn-pppssh /etc/rc4.d/S99vpn-pppssh
+client$ ln -s /etc/init.d/vpn-pppssh /etc/rc5.d/S99vpn-pppssh
+client$ ln -s /etc/init.d/vpn-pppssh /etc/rc6.d/K10vpn-pppssh</PRE
+></FONT
+></TD
+></TR
+></TABLE
+></LI
+></OL
+><P
+>Now, when you reboot your machine, the vpn should come up
+near the end of the boot process.
+When it hits this script, your machine will wait
+until the VPN is up before it continues booting.  If this is an
+issue, you can write your own /etc/init.d/vpn-pppssh
+script that calls the /usr/local/bin/vpn-pppssh script in the
+background.  The link will come up as your machine finishes
+booting.</P
+><P
+>To manually bring the link down or up, just run the vpn-pppssh
+script directly from /etc/init.d:</P
+><TABLE
+BORDER="1"
+BGCOLOR="#E0E0E0"
+WIDTH="100%"
+><TR
+><TD
+><FONT
+COLOR="#000000"
+><PRE
+CLASS="SCREEN"
+>client$ /etc/init.d/vpn-pppssh stop
+client$ /etc/init.d/vpn-pppssh start</PRE
+></FONT
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><HR><H3
+CLASS="SECT2"
+><A
+NAME="CONNDIALUP"
+>7.2. Connecting via Dial-Up</A
+></H3
+><P
+>If you're dialing into the internet with PPP, you can bring the VPN 
+up every time you bring up the dial-up connection.
+This is not difficult, but it does require a fairly recent
+version of pppd, one that supports both the ipparam option,
+and the ip-up.d and ip-down.d directories.</P
+><P
+></P
+><OL
+TYPE="1"
+><LI
+><P
+>Create the "vpn-up" file in /etc/ppp/ip-up.d:
+    </P
+><TABLE
+BORDER="0"
+BGCOLOR="#E0E0E0"
+WIDTH="90%"
+><TR
+><TD
+><FONT
+COLOR="#000000"
+><PRE
+CLASS="PROGRAMLISTING"
+>#!/bin/sh
+
+if [ "$PPP_IPPARAM" = "vpn" ]; then
+        # Don't bring up the vpn if we're bringing up the vpn.
+        exit 0
+fi
+
+/usr/local/bin/vpn start</PRE
+></FONT
+></TD
+></TR
+></TABLE
+><P
+>There's a re-entrancy here that the if statement takes care of.  If we're
+bringing up the regular PPP link, we want to bring up the VPN.
+But, the VPN is a PPP link itself!  If we didn't do anything
+about this, PPP would recursively spawn itself until it ground
+your machine to a halt.
+    </P
+><P
+>The secret is the "ipparam vpn" parameter in the vpn-pppssh script.
+This sets the IPPARAM variable for this
+invocation to "vpn", which we then check in the startup script.
+If it's set to vpn, then we know we're in the middle of bringing
+up the vpn, so we just exit without error.  Otherwise, we fire it up.
+    </P
+></LI
+><LI
+><P
+>If you want to punch a hole in your firewall for your VPN 
+when you bring it up,
+you can simply create an /etc/ppp/ip-up.d/vpn-fw file with the
+following contents.  All the shell variables below are supplied
+by pppd, so you should be able to use this script unmodified.</P
+><TABLE
+BORDER="0"
+BGCOLOR="#E0E0E0"
+WIDTH="90%"
+><TR
+><TD
+><FONT
+COLOR="#000000"
+><PRE
+CLASS="PROGRAMLISTING"
+>#!/bin/sh
+
+# Punch a hole in the firewall for the VPN
+
+if [ "$PPP_IPPARAM" = "vpn" ]; then
+        ipchains -I input 1 -i $PPP_IFACE -s $PPP_REMOTE -d $PPP_LOCAL -j ACCEPT
+        ipchains -I output 1 -i $PPP_IFACE -s $PPP_LOCAL -d $PPP_REMOTE -j ACCEPT
+fi</PRE
+></FONT
+></TD
+></TR
+></TABLE
+></LI
+><LI
+><P
+>Create the "vpn-down" file in /etc/ppp/ip-down.d/vpn-pppssh:
+    </P
+><TABLE
+BORDER="0"
+BGCOLOR="#E0E0E0"
+WIDTH="90%"
+><TR
+><TD
+><FONT
+COLOR="#000000"
+><PRE
+CLASS="PROGRAMLISTING"
+>#!/bin/sh
+
+if [ "$PPP_IPPARAM" = "vpn" ]; then
+        # Don't bring down the VPN if we're bringing down the vpn.
+        exit 0
+fi
+
+/usr/local/bin/vpn stop</PRE
+></FONT
+></TD
+></TR
+></TABLE
+></LI
+></OL
+><P
+>Make sure to make all the scripts above executable
+(chmod a+x /etc/ppp/ip-up.d/vpn-pppssh).
+Now, when you bring up your PPP link, the VPN should come up with it.
+And, when you shut it down, the VPN will disappear.  Easy as pie.</P
+></DIV
+></DIV
+><DIV
+CLASS="SECT1"
+><HR><H2
+CLASS="SECT1"
+><A
+NAME="FORWARDING"
+>8. Forwarding Between Subnets</A
+></H2
+><P
+>You only need to read this section if you're trying to connect
+networks, not just hosts.  I assume your host-to
+host tunnel works so now your client and
+server computers can exchange pings flawlessly.  Now, it's time
+to allow networks connected to the client and server machines to
+use the tunnel as well.</P
+><DIV
+CLASS="SECT2"
+><HR><H3
+CLASS="SECT2"
+><A
+NAME="AEN393"
+>8.1. Forwarding</A
+></H3
+><P
+>First of all, you need to be sure that you're allowing packets
+to be forwarded across your interfaces.  You turn this on through
+the proc configuration interface.  It's best to do this once at
+boot time, but you can also put it in the vpn-pppssh script or even
+create a script in the /etc/init.d/ip-up.d directory (see
+<A
+HREF="#CONNDIALUP"
+>Section 7.2</A
+>) if you want.</P
+><TABLE
+BORDER="1"
+BGCOLOR="#E0E0E0"
+WIDTH="100%"
+><TR
+><TD
+><FONT
+COLOR="#000000"
+><PRE
+CLASS="SCREEN"
+>echo 1 &#62; /proc/sys/net/ipv4/ip_forward
+echo 1 &#62; /proc/sys/net/ipv4/conf/ppp1<A
+NAME="FWDIF"
+><IMG
+SRC="images/callouts/1.png"
+HSPACE="0"
+VSPACE="0"
+BORDER="0"
+ALT="(1)"></A
+>/forwarding</PRE
+></FONT
+></TD
+></TR
+></TABLE
+><DIV
+CLASS="CALLOUTLIST"
+><DL
+COMPACT="COMPACT"
+><DT
+><A
+HREF="#FWDIF"
+><IMG
+SRC="images/callouts/1.png"
+HSPACE="0"
+VSPACE="0"
+BORDER="0"
+ALT="(1)"></A
+></DT
+><DD
+>Of course, you need to replace ppp1 with the appropriate VPN interface
+(the interface associated with SERVER_IFIPADDR or CLIENT_IFIPADDR
+depending on if you're doing this on the server or the client).</DD
+></DL
+></DIV
+></DIV
+><DIV
+CLASS="SECT2"
+><HR><H3
+CLASS="SECT2"
+><A
+NAME="AEN402"
+>8.2. Gatewaying</A
+></H3
+><P
+>On all computers in the subnet, you need to set up the local VPN host as the
+gateway to all the networks on the other side of the tunnel.
+This just tells the
+computers "if you have any packets destined for the opposite side of
+the VPN, send them to the local VPN host".
+Note that if the VPN host
+is already the default gateway for all the computers, then you don't need
+to worry about this step -- the packets will be forwarded automatically.</P
+><P
+>In the example below, my VPN host has IP address 192.168.1.1 on the local network.
+and IP address 192.168.3.2 on the VPN network.  The VPN network, containing both
+the client and server VPN interfaces and all computers on the opposite side of the
+link, is 192.168.3.0/24.
+Therefore, on every local computer that I want to be able to send packets through
+the VPN, I need to run the following command:</P
+><TABLE
+BORDER="1"
+BGCOLOR="#E0E0E0"
+WIDTH="100%"
+><TR
+><TD
+><FONT
+COLOR="#000000"
+><PRE
+CLASS="SCREEN"
+># route add -net 192.168.3.0 netmask 255.255.255.0 gw 192.168.1.1</PRE
+></FONT
+></TD
+></TR
+></TABLE
+><P
+>Now, any packet destined for the 192.168.3.0/24 network on the local machine
+will be relayed to host 192.168.1.1 on the local network to be forwarded through
+the VPN.</P
+></DIV
+><DIV
+CLASS="SECT2"
+><HR><H3
+CLASS="SECT2"
+><A
+NAME="AEN408"
+>8.3. Routing</A
+></H3
+><P
+>There should be no need to set up custom routing -- pppd 
+tries to do it all for you.  However, if you find that pppd
+doesn't cover your needs, the place for your routing commands is in
+the vpn-pppssh script itself.  To change the routing on the client,
+simply run route.  To change the route on the server, use
+ssh to send those commands to the server.
+Here's an example:</P
+><TABLE
+BORDER="1"
+BGCOLOR="#E0E0E0"
+WIDTH="100%"
+><TR
+><TD
+><FONT
+COLOR="#000000"
+><PRE
+CLASS="SCREEN"
+>route add -net $NET1 gw $SERVER_IFIPADDR
+ssh -o Batchmode=yes $SERVER_HOSTNAME -l$SERVER_USERNAME route add -net $NET2 gw $CLIENT_IFIPADDR</PRE
+></FONT
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><HR><H3
+CLASS="SECT2"
+><A
+NAME="AEN412"
+>8.4. Masquerading</A
+></H3
+><P
+>You can even set up one or both hosts to masquerade all
+connections through the VPN tunnel.
+See the <A
+HREF="http://www.linuxdoc.org/HOWTO/IP-Masquerade-HOWTO.html"
+TARGET="_top"
+>IP Masquerade HOWTO</A
+> for more.</P
+><TABLE
+BORDER="1"
+BGCOLOR="#E0E0E0"
+WIDTH="100%"
+><TR
+><TD
+><FONT
+COLOR="#000000"
+><PRE
+CLASS="SCREEN"
+># ipchains -A forward -i ppp1 -s 192.168.0.0/24 -j MASQ</PRE
+></FONT
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><HR><H3
+CLASS="SECT2"
+><A
+NAME="AEN417"
+>8.5. Now try it</A
+></H3
+><P
+>That should be all you need to forward packets from subnets
+connected to the client or server to the opposite machine.
+May your PPP-SSH VPNs serve you quietly and reliably for many
+years to come.</P
+></DIV
+></DIV
+></DIV
+></BODY
+></HTML
+>

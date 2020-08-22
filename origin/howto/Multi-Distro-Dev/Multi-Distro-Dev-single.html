@@ -1,0 +1,476 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN""http://www.w3.org/TR/html4/loose.dtd">
+<HTML
+><HEAD
+><TITLE
+>Development for Multiple Linux Distributions mini-HOWTO</TITLE
+><META
+NAME="GENERATOR"
+CONTENT="Modular DocBook HTML Stylesheet Version 1.79"></HEAD
+><BODY
+CLASS="ARTICLE"
+BGCOLOR="#FFFFFF"
+TEXT="#000000"
+LINK="#0000FF"
+VLINK="#840084"
+ALINK="#0000FF"
+><DIV
+CLASS="ARTICLE"
+><DIV
+CLASS="TITLEPAGE"
+><H1
+CLASS="TITLE"
+><A
+NAME="AEN2"
+>Development for Multiple Linux Distributions mini-HOWTO</A
+></H1
+><H3
+CLASS="AUTHOR"
+><A
+NAME="AEN4"
+>Ed Hill</A
+></H3
+><DIV
+CLASS="AFFILIATION"
+><DIV
+CLASS="ADDRESS"
+><P
+CLASS="ADDRESS"
+><CODE
+CLASS="EMAIL"
+>&#60;<A
+HREF="mailto:<ed@eh3.com>"
+>&#60;ed@eh3.com&#62;</A
+>&#62;</CODE
+></P
+></DIV
+></DIV
+><P
+CLASS="PUBDATE"
+>2001-03-01<BR></P
+><DIV
+CLASS="REVHISTORY"
+><TABLE
+WIDTH="100%"
+BORDER="0"
+><TR
+><TH
+ALIGN="LEFT"
+VALIGN="TOP"
+COLSPAN="3"
+><B
+>Revision History</B
+></TH
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+>Revision 0.9.1</TD
+><TD
+ALIGN="LEFT"
+>2002-08-14</TD
+><TD
+ALIGN="LEFT"
+>Revised by: EH3</TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+COLSPAN="3"
+>Small update for using X11 (sockets).</TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+>Revision 0.9</TD
+><TD
+ALIGN="LEFT"
+>2001-12-03</TD
+><TD
+ALIGN="LEFT"
+>Revised by: EH3</TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+COLSPAN="3"
+>Initial version.</TD
+></TR
+></TABLE
+></DIV
+><DIV
+><DIV
+CLASS="ABSTRACT"
+><P
+></P
+><A
+NAME="AEN10"
+></A
+><P
+>This document outlines a quick hack to aid in developing
+      and testing user-space programs for multiple Linux
+      distributions.</P
+><P
+></P
+></DIV
+></DIV
+><HR></DIV
+><DIV
+CLASS="TOC"
+><DL
+><DT
+><B
+>Table of Contents</B
+></DT
+><DT
+>1. <A
+HREF="#INTRODUCTION"
+>Introduction</A
+></DT
+><DD
+><DL
+><DT
+>1.1. <A
+HREF="#COPYRIGHT"
+>Copyright and License</A
+></DT
+></DL
+></DD
+><DT
+>2. <A
+HREF="#SETUP"
+>Setup</A
+></DT
+><DT
+>3. <A
+HREF="#USE"
+>Using the Secondary Distributions</A
+></DT
+><DT
+>4. <A
+HREF="#CREDITS"
+>Credits</A
+></DT
+></DL
+></DIV
+><DIV
+CLASS="SECT1"
+><H2
+CLASS="SECT1"
+><A
+NAME="INTRODUCTION"
+>1. Introduction</A
+></H2
+><P
+>As a developer, there is occasionally a need to code and/or
+    test programs on multiple Linux distributions.  This mini-howto
+    outlines a neat <SPAN
+CLASS="APPLICATION"
+>chroot</SPAN
+> trick that can,
+    in many cases, obviate the need to reboot into different Linux
+    distributions to do testing or development. </P
+><P
+>In a nutshell, the "trick" is to place all the files from a
+    particular linux distribution into a single directory and then
+    <SPAN
+CLASS="APPLICATION"
+>chroot</SPAN
+> into that directory to
+    develop/test/debug your program.  This approach will work provided
+    that:
+    </P
+><P
+></P
+><OL
+TYPE="1"
+><LI
+><P
+>The kernel version of the "main" or "primary" distribution that you
+are running is (at least somewhat) compatible with the "secondary" or
+<SPAN
+CLASS="APPLICATION"
+>chroot</SPAN
+>'ed distributions, and
+	</P
+></LI
+><LI
+><P
+>Your application is primarily user-space (ie. no kernel modules) and
+does not depend intimately on any particular kernel features
+(ie. <TT
+CLASS="FILENAME"
+>/proc</TT
+> behavior).
+	</P
+></LI
+></OL
+><DIV
+CLASS="SECT2"
+><HR><H3
+CLASS="SECT2"
+><A
+NAME="COPYRIGHT"
+>1.1. Copyright and License</A
+></H3
+><P
+>This document is copyright 2001 by Ed Hill III.  Permission is granted
+to copy, distribute and/or modify this document under the terms of the
+GNU Free Documentation License, Version 1.1 or any later version
+published by the Free Software Foundation; with no Invariant Sections,
+with no Front-Cover Texts, and with no Back-Cover Texts. A copy of the
+license is available at <A
+HREF="http://www.gnu.org/copyleft/fdl.html"
+TARGET="_top"
+>http://www.gnu.org/copyleft/fdl.html</A
+>.
+      </P
+></DIV
+></DIV
+><DIV
+CLASS="SECT1"
+><HR><H2
+CLASS="SECT1"
+><A
+NAME="SETUP"
+>2. Setup</A
+></H2
+><P
+>We assume that you already have:</P
+><P
+></P
+><OL
+TYPE="1"
+><LI
+><P
+>One "main" or "primary" Linux distribution installed that is running a
+2.4-series or newer kernel,
+	</P
+></LI
+><LI
+><P
+>a free partition with 2--4Gigs available, and
+	</P
+></LI
+><LI
+><P
+>sufficient disk 
+    space for the secondary installs (and any subsequent
+    development/testing work).
+	</P
+></LI
+></OL
+><P
+>Given those assumptions, the following outline is one way to
+    setup the multiple secondary Linux distributions that will be used
+    for development, testing, or other purposes:
+    </P
+><P
+></P
+><OL
+TYPE="1"
+><LI
+><P
+>First, create or locate an unused partition on one of your hard drives
+that is large enough (usually 2--4Gb is sufficient) to do a basic
+install of one of the secondary Linux distributions.
+	</P
+></LI
+><LI
+><P
+>Install the secondary distro into this partition but do not add it to
+your boot configuration.  Note that this install need only include the
+packages that your target application (or tests) require.  For
+instance, you may be able to ignore applications such as the X server
+or other space-hogs.
+	</P
+></LI
+><LI
+><P
+>Reboot your primary Linux distribution and mount the partition
+containing the freshly-installed "secondary" distro.  Copy (preferably
+using <TT
+CLASS="FILENAME"
+>tar -cp</TT
+> or some other method that preserves
+permissions) all the files from the secondary distro to a location
+such as <TT
+CLASS="FILENAME"
+>/opt/distros/DISTRO_NAME</TT
+>.
+	</P
+></LI
+><LI
+><P
+>Repeat steps 2--3 for any additional distributions that you wish to
+install.  The result should be a directory structure resembling:
+	</P
+><TABLE
+BORDER="0"
+BGCOLOR="#E0E0E0"
+WIDTH="90%"
+><TR
+><TD
+><FONT
+COLOR="#000000"
+><PRE
+CLASS="PROGRAMLISTING"
+>/opt/distros/redhat_6.2/
+             suse_7.2/
+             mandrake_8.1/
+             debian-potato/
+             slackware_8.0/</PRE
+></FONT
+></TD
+></TR
+></TABLE
+><P
+>where each directory contains the complete set of files resulting from
+each distribution install.  </P
+></LI
+></OL
+></DIV
+><DIV
+CLASS="SECT1"
+><HR><H2
+CLASS="SECT1"
+><A
+NAME="USE"
+>3. Using the Secondary Distributions</A
+></H2
+><P
+>With the secondary distributions installed, the steps to use
+    them are: </P
+><P
+></P
+><OL
+TYPE="1"
+><LI
+><P
+>It is important to use a 2.4-series or newer Linux kernel in the
+"primary" Linux distribution in order to take advantage of the
+multiple mount points feature that the 2.4-series permits.  For many
+tasks, the <TT
+CLASS="FILENAME"
+>/proc</TT
+> and <TT
+CLASS="FILENAME"
+>/tmp</TT
+>
+filesystems will have to be remounted in the secondary distribution
+using:
+<TABLE
+BORDER="0"
+BGCOLOR="#E0E0E0"
+WIDTH="90%"
+><TR
+><TD
+><FONT
+COLOR="#000000"
+><PRE
+CLASS="PROGRAMLISTING"
+>mount --bind /proc /opt/distros/redhat_6.2/proc
+mount --bind /tmp /opt/distros/redhat_6.2/tmp</PRE
+></FONT
+></TD
+></TR
+></TABLE
+>
+	</P
+></LI
+><LI
+><P
+>Also, it can be helpful to remount (rather than copy) the source tree
+from the primary to the secondary distro:
+<TABLE
+BORDER="0"
+BGCOLOR="#E0E0E0"
+WIDTH="90%"
+><TR
+><TD
+><FONT
+COLOR="#000000"
+><PRE
+CLASS="PROGRAMLISTING"
+>mount --bind /home/USER/src/PROJECT /opt/distros/redhat_6.2/USER/src/PROJECT</PRE
+></FONT
+></TD
+></TR
+></TABLE
+>
+	</P
+></LI
+><LI
+><P
+>Become root and use:
+<TABLE
+BORDER="0"
+BGCOLOR="#E0E0E0"
+WIDTH="90%"
+><TR
+><TD
+><FONT
+COLOR="#000000"
+><PRE
+CLASS="PROGRAMLISTING"
+>xhost +localhost chroot /opt/distros/redhat_6.2
+/bin/bash</PRE
+></FONT
+></TD
+></TR
+></TABLE
+> to obtain a shell with one of the secondary
+distros.  Note that the <TT
+CLASS="FILENAME"
+>xhost</TT
+> command is only
+necessary if you intend to use X-windows applications.
+	</P
+></LI
+><LI
+><P
+>Finally, create a user (if necessary) within the
+<TT
+CLASS="FILENAME"
+>chroot</TT
+>-ed shell and develop, build, and/or test
+your application within this "separate" Linux distribution!  Not that
+you may also have to specify your <TT
+CLASS="FILENAME"
+>DISPLAY</TT
+>
+environment variable if you'd like to use X applications.
+	</P
+></LI
+></OL
+><P
+>Done!  You now have a shell that is, for all practical
+    purposes, running within the secondary Linux distribution of your
+    choice. </P
+></DIV
+><DIV
+CLASS="SECT1"
+><HR><H2
+CLASS="SECT1"
+><A
+NAME="CREDITS"
+>4. Credits</A
+></H2
+><P
+>The ideas contained in this mini-HOWTO are not originally
+    mine.  They are culled from posts by Ben Reed (of <A
+HREF="http://www.opennms.org/"
+TARGET="_top"
+> OpenNMS </A
+>) to one of the
+    <A
+HREF="http://www.trilug.org/"
+TARGET="_top"
+> TriLUG </A
+> mailing
+    lists.  I found the information to be so useful that I wanted to
+    document the idea for others. </P
+></DIV
+></DIV
+></BODY
+></HTML
+>

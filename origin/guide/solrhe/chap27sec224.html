@@ -1,0 +1,122 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1"><title>5. Configure the /etc/rc.d/init.d/postgresql script file</title><link rel="stylesheet" type="text/css" href="style.css"><meta name="generator" content="DocBook XSL Stylesheets V1.79.1"><meta name="keywords" content="RedHat, redhat, maddy, linus, linux, Linux, Securing, Optimising, security, secure, openna, gerhard"><link rel="home" href="index.html" title="Securing and Optimizing Linux"><link rel="up" href="datab-pSQL.html" title="Chapter 27. Linux PostgreSQL Database Server"><link rel="prev" href="chap27sec223.html" title="4. Configuration files"><link rel="next" href="chap27sec225.html" title="6. Commands often used"></head><body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF"><div class="navheader"><table width="100%" summary="Navigation header"><tr><th colspan="3" align="center">5. Configure the <code class="filename">/etc/rc.d/init.d/postgresql</code> script file</th></tr><tr><td width="20%" align="left"><a accesskey="p" href="chap27sec223.html">Prev</a> </td><th width="60%" align="center">Chapter 27. Linux PostgreSQL Database Server</th><td width="20%" align="right"> <a accesskey="n" href="chap27sec225.html">Next</a></td></tr></table><hr></div><div class="section"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="idm17352"></a>5. Configure the <code class="filename">/etc/rc.d/init.d/postgresql</code> script file</h2></div></div></div><p>
+               To start and stop PostgreSQL Server, create the <code class="filename">postgresql</code> script file, <span class="command"><strong>touch</strong></span> <code class="filename">/etc/rc.d/init.d/postgresql</code> and add:
+             </p><pre class="programlisting">
+               #! /bin/sh
+               # postgresql    This is the init script for starting up the PostgreSQL
+               #               server
+
+               # chkconfig: 345 85 15
+               # description: Starts and stops the PostgreSQL backend daemon that handles \
+               #              all database requests.
+               # processname: postmaster
+               # pidfile: /var/run/postmaster.pid
+               #
+
+               # Source function library.
+               . /etc/rc.d/init.d/functions
+
+               # Get config.
+               . /etc/sysconfig/network
+
+               # Check that networking is up.
+               # Pretty much need it for postmaster.
+               [ ${NETWORKING} = "no" ] &amp;&amp; exit 0
+
+               [ -f /usr/bin/postmaster ] || exit 0
+
+               # This script is slightly unusual in that the name of the daemon (postmaster)
+               # is not the same as the name of the subsystem (postgresql)
+
+               # See how we were called.
+               case "$1" in
+               start)
+               echo -n "Checking postgresql installation: "
+               # Check for the PGDATA structure
+               if [ -f /var/lib/pgsql/PG_VERSION ] &amp;&amp; [ -d /var/lib/pgsql/base/template1 ]
+               then
+               # Check version of existing PGDATA
+
+               if [ `cat /var/lib/pgsql/PG_VERSION` != '6.5' ]
+               then
+               echo "old version. Need to Upgrade."
+               echo "See /usr/doc/postgresql-6.5.2/README.rpm for more information."
+               exit 1
+               else
+               echo "looks good!"
+               fi
+
+               # No existing PGDATA! Initdb it.
+
+               else
+               echo "no database files found."
+               if [ ! -d /var/lib/pgsql ]
+               then
+               mkdir -p /var/lib/pgsql
+               chown postgres.postgres /var/lib/pgsql
+               fi
+               su -l postgres -c '/usr/bin/initdb --pglib=/usr/lib/pgsql --pgdata=/var/lib/pgsql'
+               fi
+
+               # Check for postmaster already running...
+               pid=`pidof postmaster`
+               if [ $pid ]
+               then
+               echo "Postmaster already running."
+               else
+               #all systems go -- remove any stale lock files
+               rm -f /tmp/.s.PGSQL.* &gt; /dev/null
+               echo -n "Starting postgresql service: "
+               su -l postgres -c '/usr/bin/postmaster -i -S -D/var/lib/pgsql'
+               sleep 1
+               pid=`pidof postmaster`
+               if [ $pid ]
+               then
+               echo -n "postmaster [$pid]"
+               touch /var/lock/subsys/postgresql
+               echo $pid &gt; /var/run/postmaster.pid
+               echo
+               else
+               echo "failed."
+               fi
+               fi
+               ;;
+               stop)
+               echo -n "Stopping postgresql service: "
+               killproc postmaster
+               sleep 2
+               rm -f /var/run/postmaster.pid
+               rm -f /var/lock/subsys/postgresql
+               echo
+               ;;
+               status)
+               status postmaster
+               ;;
+               restart)
+               $0 stop
+               $0 start
+               ;;
+               *)
+               echo "Usage: postgresql {start|stop|status|restart}"
+               exit 1
+               esac
+
+               exit 0
+             </pre><p>
+               Now, make this script executable and change its default permissions:
+               </p><pre class="screen">
+                 [root@deep] /# <span class="command"><strong>chmod</strong></span> 700  /etc/rc.d/init.d/postgresql
+               </pre><p>
+               Create the symbolic rc.d links for PostgreSQL with the command:
+               </p><pre class="screen">
+                 [root@deep] /# <span class="command"><strong>chkconfig</strong></span> --add postgresql
+               </pre><p>
+               </p><p>
+                   Start your new PostgreSQL server manually with the following command:
+                   </p><pre class="screen">
+                     [root@deep] /# /etc/rc.d/init.d/postgresql <span class="command"><strong>start</strong></span>
+                   </pre><p>
+                   </p><pre class="literallayout"><code class="computeroutput">
+                     Checking postgresql installation: looks good!
+                     Starting postgresql service: postmaster [22401]
+                   </code></pre><p>
+                 </p></div><div class="navfooter"><hr><table width="100%" summary="Navigation footer"><tr><td width="40%" align="left"><a accesskey="p" href="chap27sec223.html">Prev</a> </td><td width="20%" align="center"><a accesskey="u" href="datab-pSQL.html">Up</a></td><td width="40%" align="right"> <a accesskey="n" href="chap27sec225.html">Next</a></td></tr><tr><td width="40%" align="left" valign="top">4. Configuration files </td><td width="20%" align="center"><a accesskey="h" href="index.html">Home</a></td><td width="40%" align="right" valign="top"> 6. Commands often used</td></tr></table></div></body></html>

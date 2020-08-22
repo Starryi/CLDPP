@@ -1,0 +1,95 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1"><title>4. Sharing Printers With Windows PCs</title><link rel="stylesheet" type="text/css" href="style.css"><meta name="generator" content="DocBook XSL Stylesheets V1.79.1"><link rel="home" href="index.html" title="Debian and Windows Shared Printing mini-HOWTO"><link rel="up" href="index.html" title="Debian and Windows Shared Printing mini-HOWTO"><link rel="prev" href="ar01s03.html" title="3. Printing To Windows PCs"><link rel="next" href="ar01s05.html" title="5. Troubleshooting"></head><body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF"><div class="navheader"><table width="100%" summary="Navigation header"><tr><th colspan="3" align="center">4. Sharing Printers With Windows PCs</th></tr><tr><td width="20%" align="left"><a accesskey="p" href="ar01s03.html">Prev</a> </td><th width="60%" align="center"> </th><td width="20%" align="right"> <a accesskey="n" href="ar01s05.html">Next</a></td></tr></table><hr></div><div class="sect1"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="sharing_with_windows"></a>4. Sharing Printers With Windows PCs</h2></div></div></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="sharing_basics"></a>4.1. Sharing Basics</h3></div></div></div><div class="figure"><a name="printshare"></a><p class="title"><b>Figure 3. Printer Sharing</b></p><div class="figure-contents"><div><img src="from_windows.png" alt="Printer Sharing"></div></div></div><br class="figure-break"><p>
+Samba uses <span class="emphasis"><em>nmbd</em></span> and <span class="emphasis"><em>smbd</em></span> 
+daemons to share files and printers with Windows PCs. 
+<span class="emphasis"><em>nmbd</em></span> acts as a Windows naming service,
+broadcasting your computer's name to Windows PCs on the LAN. 
+<span class="emphasis"><em>smbd</em></span> accepts file and printer requests from 
+Windows PCs <a class="xref" href="ar01s04.html#printshare" title="Figure 3. Printer Sharing">Figure 3, &#8220;Printer Sharing&#8221;</a>. 
+</p><p>
+You will need to download and install Windows printer drivers for
+each Linux printer you are sharing. Windows printer drivers can be
+found by searching the web site of your printer manufacturer. 
+</p></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="share_samba_config"></a>4.2. Samba Configuration</h3></div></div></div><p>
+If you are allowing anonymous access to your printer you will need
+to create a user account for remote print jobs:
+
+</p><pre class="programlisting">/usr/sbin/adduser --system --disabled-password smbprint
+</pre><p>
+</p><p>
+This command adds a user called <span class="quote">&#8220;<span class="quote">smbprint</span>&#8221;</span> to your system. Make
+sure there is enough disk space in <code class="filename">/home/smbprint</code>, the 
+<span class="quote">&#8220;<span class="quote">smbprint</span>&#8221;</span> user's home directory, to spool files. Check 
+that the <span class="quote">&#8220;<span class="quote">smbprint</span>&#8221;</span> user does not have permission on your 
+system to read or modify sensitive files and directories. If you have 
+configured CUPS to restrict printing to certain users on your system,
+you must allow the <span class="quote">&#8220;<span class="quote">smbprint</span>&#8221;</span> user to access printers you
+want to share.
+</p><p>
+The Samba configuration file is <code class="filename">/etc/samba/smb.conf</code>. 
+The following is an example configuration file set up to use CUPS with 
+the <span class="quote">&#8220;<span class="quote">smbprint</span>&#8221;</span> user:
+
+</p><pre class="programlisting">[global]
+  printcap name = cups  
+  printing = cups   
+  security = share   
+[printers]   
+  browseable = yes   
+  printable = yes   
+  public = yes   
+  create mode = 0700   
+  guest only = yes   
+  use client driver = yes
+  guest account = smbprint   
+  path = /home/smbprint   
+</pre><p>
+</p><p>
+Please note that this configuration will allow printing by anyone
+that can make a network connection to your computer and is
+not recommended for computers on untrusted networks, such as
+computers with direct Internet connections.  If you need to
+implement access control, set <span class="emphasis"><em>security = user</em></span> or 
+<span class="emphasis"><em>security = domain</em></span>
+and read the Samba man pages for further information.
+</p><p>
+Once you have added the above settings to your Samba configuration
+file you must restart Samba with the command:
+
+</p><pre class="programlisting">/etc/init.d/samba restart
+</pre><p>
+</p></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="share_cups_config"></a>4.3. CUPS Configuration</h3></div></div></div><p>
+Windows printer drivers format their output for the printer before
+sending it across the network.  You must configure CUPS to accept
+the pre-formatted output by uncommenting the following line from
+<code class="filename">/etc/cups/mime.convs</code>:
+</p><pre class="programlisting">application/octet-stream   application/vnd.cups-raw   0   -
+</pre><p>
+</p><p>
+Also uncomment the following line from 
+<code class="filename">/etc/cups/mime.types</code>:
+</p><pre class="programlisting">application/octet-stream
+</pre><p>
+</p><p>
+Now CUPS must be told to allow connections from other machines on
+the network.  Add these lines to <code class="filename">/etc/cups/cupsd.conf</code>:
+</p><pre class="programlisting">&lt;Location /printers&gt;
+ AuthType None
+ Order Deny,Allow
+ Deny From None
+ Allow From All
+&lt;/Location&gt;
+</pre><p>
+As in the Samba configuration, this configuration allows any computer
+to connect to your printers and is not recommended for computers on
+untrusted networks.  For information about tightening access control
+to your printers, see the <code class="filename">cupsd.conf</code> man page
+and the CUPS documentation.
+</p><p>
+Finally, restart cups with the following command:
+</p><pre class="programlisting">/etc/init.d/cupsys restart
+</pre><p>
+</p><p>
+Your Linux printers should now be shared to Windows PCs on the LAN.
+Follow the usual steps for adding a network printer to your Windows
+PCs, and remember to print a test page.
+</p></div></div><div class="navfooter"><hr><table width="100%" summary="Navigation footer"><tr><td width="40%" align="left"><a accesskey="p" href="ar01s03.html">Prev</a> </td><td width="20%" align="center"> </td><td width="40%" align="right"> <a accesskey="n" href="ar01s05.html">Next</a></td></tr><tr><td width="40%" align="left" valign="top">3. Printing To Windows PCs </td><td width="20%" align="center"><a accesskey="h" href="index.html">Home</a></td><td width="40%" align="right" valign="top"> 5. Troubleshooting</td></tr></table></div></body></html>

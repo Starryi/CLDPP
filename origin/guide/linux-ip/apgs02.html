@@ -1,0 +1,72 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1"><title>2. traceroute</title><link rel="stylesheet" type="text/css" href="style.css"><meta name="generator" content="DocBook XSL Stylesheets V1.79.1"><meta name="keywords" content="linux, ip, iproute2, ifconfig, firewall, ARP, NAT, route, routing, route selection, routing selection, network administration"><link rel="home" href="index.html" title="Guide to IP Layer Network Administration with Linux"><link rel="up" href="apg.html" title="Appendix G. Diagnostic Tools"><link rel="prev" href="apgs01.html" title="1. ping"><link rel="next" href="apgs03.html" title="3. mtr"></head><body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF"><div class="navheader"><table width="100%" summary="Navigation header"><tr><th colspan="3" align="center">2. <span class="command"><strong>traceroute</strong></span></th></tr><tr><td width="20%" align="left"><a accesskey="p" href="apgs01.html">Prev</a> </td><th width="60%" align="center">Appendix G. Diagnostic Tools</th><td width="20%" align="right"> <a accesskey="n" href="apgs03.html">Next</a></td></tr></table><hr></div><div class="section"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="tools-traceroute"></a>2. <span class="command"><strong>traceroute</strong></span></h2></div></div></div><a class="indexterm" name="idm6005"></a><p>
+        <span class="command"><strong>traceroute</strong></span> is a utility for identifying the network
+        path a packet will take to a destination.  Like ping, it can be called
+        a number of ways.  <span class="command"><strong>traceroute</strong></span> takes advantage of a
+        the TTL in an IP packet to determine hop by hop the reachability and
+        addressing of routers between the <span class="command"><strong>traceroute</strong></span> host
+        and the intended destination.
+      </p><p>
+        The tool <span class="command"><strong>traceroute</strong></span> is available on most Unix-like
+        platforms and even under Windows as <span class="command"><strong>tracert</strong></span>.  Here,
+        we will only consider the common <span class="command"><strong>traceroute</strong></span>
+        installed on linux systems.
+      </p><p>
+      </p><p>
+      </p><p>
+      </p><div class="section"><div class="titlepage"><div><div><h3 class="title"><a name="tools-traceroute-basic"></a>2.1. Using <span class="command"><strong>traceroute</strong></span></h3></div></div></div><a class="indexterm" name="idm6022"></a><p>
+          The default packet type created by <span class="command"><strong>traceroute</strong></span>
+          is a UDP packet.  The first packet will be addressed to udp/33435
+          and each subsequent packet will be addressed to an incremented port
+          number.  This allows <span class="command"><strong>traceroute</strong></span> to keep track of
+          which return ICMP packets correspond to which outbound packets.
+        </p><div class="example"><a name="ex-tools-traceroute-basic"></a><p class="title"><b>Example G.10. Simple usage of <span class="command">traceroute</span></b></p><div class="example-contents"><a class="indexterm" name="idm6031"></a><pre class="programlisting">
+<code class="prompt">[root@isolde]# </code><strong class="userinput"><code>traceroute -n 192.168.99.35</code></strong>
+<code class="prompt">[root@isolde]# </code><strong class="userinput"><code>tcpdump -nn -i eth0 not tcp</code></strong>
+tcpdump: listening on eth0
+20:13:36.905537 192.168.100.17.32978 &gt; 192.168.99.35.33435:  udp 10 [ttl 1]
+20:13:36.905668 192.168.100.254 &gt; 192.168.100.17. icmp: time exceeded in-transit [tos 0xc0] 
+20:13:36.906005 192.168.100.17.32978 &gt; 192.168.99.35.33436:  udp 10 [ttl 1]
+20:13:36.906112 192.168.100.254 &gt; 192.168.100.17. icmp: time exceeded in-transit [tos 0xc0] 
+20:13:36.906357 192.168.100.17.32978 &gt; 192.168.99.35.33437:  udp 10 [ttl 1]
+20:13:36.906457 192.168.100.254 &gt; 192.168.100.17. icmp: time exceeded in-transit [tos 0xc0] 
+20:13:36.906759 192.168.100.17.32978 &gt; 192.168.99.35.33438:  udp 10
+20:13:36.907061 192.168.99.35 &gt; 192.168.100.17. icmp: 192.168.99.35 udp port 33438 unreachable [tos 0xc0] 
+20:13:36.907293 192.168.100.17.32978 &gt; 192.168.99.35.33439:  udp 10
+20:13:36.907543 192.168.99.35 &gt; 192.168.100.17. icmp: 192.168.99.35 udp port 33439 unreachable [tos 0xc0] 
+20:13:36.907753 192.168.100.17.32978 &gt; 192.168.99.35.33440:  udp 10
+20:13:36.907990 192.168.99.35 &gt; 192.168.100.17. icmp: 192.168.99.35 udp port 33440 unreachable [tos 0xc0] 
+
+13 packets received by filter
+0 packets dropped by kernel
+          </pre></div></div><br class="example-break"><p>
+          Note in
+          <a class="xref" href="apgs02.html#ex-tools-traceroute-basic" title="Example G.10. Simple usage of traceroute">Example G.10, &#8220;Simple usage of <span class="command">traceroute</span>&#8221;</a> that
+          <span class="command"><strong>tcpdump</strong></span> conveniently reports the low TTL on the
+          first packets.  Packets transmitted from a router with a TTL of 1
+          will expire at the next router they hit.  This is the concept and
+          mechanism by which <span class="command"><strong>traceroute</strong></span> is able to detect
+          the path by which packets arrive at their destination.
+        </p><p>
+          Each of the first three packets transmitted in the above example
+          receive ICMP time exceeded replies from the upstream router
+          (<code class="systemitem">masq-gw</code>).  The second set of packets have their TTL set to 2,
+          which is not reported by <span class="command"><strong>tcpdump</strong></span>.  This allows
+          these packets to reach the intended destination, <code class="systemitem">tristan</code>.
+        </p><p>
+          There is a liability of using UDP traceroute on the Internet.
+          Many screening routers, firewalls, and even hosts will silently drop
+          UDP packets, effectively destroying the usability of
+          <span class="command"><strong>traceroute</strong></span>.  On internal networks, or networks
+          known to have no firewalls, conventional
+          <span class="command"><strong>traceroute</strong></span> can continue to provide diagnostic
+          value.  In the case that the network is known to have a firewall,
+          <a class="link" href="apgs02.html#tools-traceroute-icmp" title="2.2. Telling traceroute to use ICMP echo request instead of UDP"><span class="command"><strong>traceroute</strong></span>
+          can use ICMP</a>, and
+          <a class="link" href="apgs03.html" title="3. mtr"><span class="command"><strong>mtr</strong></span></a> is a good
+          example of a network diagnostic tool which uses ICMP only.
+        </p></div><div class="section"><div class="titlepage"><div><div><h3 class="title"><a name="tools-traceroute-icmp"></a>2.2. Telling <span class="command"><strong>traceroute</strong></span> to use ICMP echo request
+          instead of UDP</h3></div></div></div><a class="indexterm" name="idm6058"></a><p>
+        </p><p>
+        </p></div><div class="section"><div class="titlepage"><div><div><h3 class="title"><a name="tools-traceroute-tos"></a>2.3. Setting ToS with <span class="command"><strong>traceroute</strong></span></h3></div></div></div><a class="indexterm" name="idm6068"></a><p>
+        </p></div><div class="section"><div class="titlepage"><div><div><h3 class="title"><a name="tools-traceroute-summary"></a>2.4. Summary on the use of <span class="command"><strong>traceroute</strong></span></h3></div></div></div><p>
+        </p></div></div><div class="navfooter"><hr><table width="100%" summary="Navigation footer"><tr><td width="40%" align="left"><a accesskey="p" href="apgs01.html">Prev</a> </td><td width="20%" align="center"><a accesskey="u" href="apg.html">Up</a></td><td width="40%" align="right"> <a accesskey="n" href="apgs03.html">Next</a></td></tr><tr><td width="40%" align="left" valign="top">1. <span class="command"><strong>ping</strong></span> </td><td width="20%" align="center"><a accesskey="h" href="index.html">Home</a></td><td width="40%" align="right" valign="top"> 3. <span class="command"><strong>mtr</strong></span></td></tr></table></div></body></html>

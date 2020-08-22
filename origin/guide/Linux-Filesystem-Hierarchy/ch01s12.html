@@ -1,0 +1,170 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1"><title>12. /mnt</title><link rel="stylesheet" type="text/css" href="style.css"><meta name="generator" content="DocBook XSL Stylesheets V1.79.1"><link rel="home" href="index.html" title="Linux Filesystem Hierarchy"><link rel="up" href="ch01.html" title="Chapter 1. Linux Filesystem Hierarchy"><link rel="prev" href="ch01s11.html" title="11. /media"><link rel="next" href="ch01s13.html" title="13. /opt"></head><body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF"><div class="navheader"><table width="100%" summary="Navigation header"><tr><th colspan="3" align="center">12. /mnt</th></tr><tr><td width="20%" align="left"><a accesskey="p" href="ch01s11.html">Prev</a> </td><th width="60%" align="center">Chapter 1. Linux Filesystem Hierarchy</th><td width="20%" align="right"> <a accesskey="n" href="ch01s13.html">Next</a></td></tr></table><hr></div><div class="sect1"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="mnt"></a>12. /mnt</h2></div></div></div><p>This is a generic mount point under which you mount your filesystems
+  or devices. Mounting is the process by which you make a filesystem available
+  to the system. After mounting your files will be accessible under the
+  mount-point. This directory usually contains mount points or sub-directories
+  where you mount your floppy and your CD. You can also create additional
+  mount-points here if you wish. Standard mount points would include
+  /mnt/cdrom and /mnt/floppy. There is no limitation to creating a mount-point
+  anywhere on your system but by convention and for sheer practicality do not
+  litter your file system with mount-points. It should be noted that some
+  distributions like Debian allocate /floppy and /cdrom as mount points while
+  Redhat and Mandrake puts them in /mnt/floppy and /mnt/cdrom respectively.</p><p>
+  However, it should be noted that as of FSSTND version 2.3 the purpose of this 
+  directory has changed.
+  </p><p>
+  </p><pre class="screen">
+  This directory is provided so that the system administrator may temporarily
+  mount a filesystem as needed. The content of this directory is a local issue
+  and should not affect the manner in which any program is run.
+
+  This directory must not be used by installation programs: a suitable temporary
+  directory not in use by the system must be used instead.
+  </pre><p>
+  </p><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="mount-and-umount"></a>12.1. Mounting and unmounting</h3></div></div></div><p>Before one can use a filesystem, it has to be <em class="glossterm">mounted</em>.
+  The operating system then does various bookkeeping things to make sure that
+  everything works. Since all files in UNIX are in a single directory tree,
+  the mount operation will make it look like the contents of the new
+  filesystem are the contents of an existing subdirectory in some already
+  mounted filesystem.</p><p>The mounts could be done as in the
+  following example: 
+  </p><pre class="screen"> 
+  <code class="prompt">$</code> <strong class="userinput"><code>mount /dev/hda2 /home</code></strong> 
+  <code class="prompt">$</code> <strong class="userinput"><code>mount /dev/hda3 /usr</code></strong>
+  <code class="prompt">$</code> 
+  </pre><p>
+  The <span class="command"><strong>mount</strong></span> command takes two
+  arguments. The first one is the device file corresponding to the disk or
+  partition containing the filesystem. The second one is the directory below
+  which it will be mounted. After these commands the contents of the two
+  filesystems look just like the contents of the <code class="filename">/home</code>
+  and <code class="filename">/usr</code> directories, respectively. One would then say
+  that ``<code class="filename">/dev/hda2</code> <em class="glossterm">is mounted on</em>
+  <code class="filename">/home</code>'', and similarly for
+  <code class="filename">/usr</code>. To look at either filesystem, one would look at
+  the contents of the directory on which it has been mounted, just as if it
+  were any other directory. Note the difference between the device file,
+  <code class="filename">/dev/hda2</code>, and the mounted-on directory,
+  <code class="filename">/home</code>. The device file gives access to the raw contents
+  of the disk, the mounted-on directory gives access to the files on the disk.
+  The mounted-on directory is called the <em class="glossterm">mount point</em>.</p><p>Linux supports many filesystem types. <span class="command"><strong>mount</strong></span> tries
+  to guess the type of the filesystem. You can also use the <code class="option">-t fstype</code>
+  option to specify the type directly; this is sometimes necessary, since the
+  heuristics <span class="command"><strong>mount</strong></span> uses do not always work. For example, to
+  mount an MS-DOS floppy, you could use the following command: </p><pre class="screen">
+  <code class="prompt">$</code> <strong class="userinput"><code>mount -t msdos /dev/fd0 /floppy</code></strong>
+  <code class="prompt"> $</code>
+  </pre><p>The mounted-on directory need not be empty,
+  although it must exist. Any files in it, however, will be inaccessible by
+  name while the filesystem is mounted. (Any files that have already been
+  opened will still be accessible. Files that have hard links from other
+  directories can be accessed using those names.) There is no harm done with
+  this, and it can even be useful. For instance, some people like to have
+  <code class="filename">/tmp</code> and <code class="filename">/var/tmp</code> synonymous, and
+  make <code class="filename">/tmp</code> be a symbolic link to <code class="filename">/var/tmp</code>.
+  When the system is booted, before the <code class="filename">/var</code> filesystem
+  is mounted, a <code class="filename">/var/tmp</code> directory residing on the root
+  filesystem is used instead. When <code class="filename">/var</code> is mounted, it
+  will make the <code class="filename">/var/tmp</code> directory on the root filesystem
+  inaccessible. If <code class="filename">/var/tmp</code> didn't exist on the root
+  filesystem, it would be impossible to use temporary files before mounting
+  <code class="filename">/var</code>.</p><p>If you don't intend to write
+  anything to the filesystem, use the <code class="option">-r</code> switch for
+  <span class="command"><strong>mount</strong></span> to do a <em class="glossterm">read-only mount</em>.
+  This will make the kernel stop any attempts at writing to the filesystem,
+  and will also stop the kernel from updating file access times in the inodes.
+  Read-only mounts are necessary for unwritable media, e.g., CD-ROMs.</p><p>The alert reader has already noticed a slight logistical problem. How
+  is the first filesystem (called the <em class="glossterm">root filesystem</em>,
+  because it contains the root directory) mounted, since it obviously
+  can't be mounted on another filesystem? Well, the answer is that it is
+  done by magic.</p><p>For more information, see the kernel source or
+  the Kernel Hackers' Guide. </p><p>The root filesystem is
+  magically mounted at boot time, and one can rely on it to always be mounted.
+  If the root filesystem can't be mounted, the system does not boot. The
+  name of the filesystem that is magically mounted as root is either compiled
+  into the kernel, or set using LILO or <span class="command"><strong>rdev</strong></span>.</p><p>The root filesystem is usually first mounted read-only. The startup
+  scripts will then run <span class="command"><strong>fsck</strong></span> to verify its validity, and if
+  there are no problems, they will <em class="glossterm">re-mount</em> it so that
+  writes will also be allowed. <span class="command"><strong>fsck</strong></span> must not be run on a
+  mounted filesystem, since any changes to the filesystem while
+  <span class="command"><strong>fsck</strong></span> is running <span class="emphasis"><em>will</em></span> cause trouble.
+  Since the root filesystem is mounted read-only while it is being checked,
+  <span class="command"><strong>fsck</strong></span> can fix any problems without worry, since the
+  remount operation will flush any metadata that the filesystem keeps in
+  memory.</p><p>On many systems there are other filesystems that should
+  also be mounted automatically at boot time. These are specified in the
+  <code class="filename">/etc/fstab</code> file; see the fstab man page for details on
+  the format. The details of exactly when the extra filesystems are mounted
+  depend on many factors, and can be configured by each administrator if need
+  be.</p><p>When a filesystem no longer needs to be mounted, it can be
+  unmounted with <span class="command"><strong>umount</strong></span>.</p><p>It should of course
+  be <span class="command"><strong>unmount</strong></span>, but the n mysteriously disappeared in the
+  70s, and hasn't been seen since. Please return it to Bell Labs, NJ, if
+  you find it.</p><p><span class="command"><strong>umount</strong></span> takes one argument:
+  either the device file or the mount point. For example, to unmount the
+  directories of the previous example, one could use the commands</p><pre class="screen">
+  <code class="prompt">$</code> <strong class="userinput"><code>umount /dev/hda2</code></strong>
+  <code class="prompt">$</code> <strong class="userinput"><code>umount /usr</code></strong>
+  <code class="prompt">$</code>
+  </pre><p>See the man page for further instructions on how to use the command.
+  It is imperative that you always unmount a mounted floppy.
+  <span class="emphasis"><em>Don't just pop the floppy out of the drive!</em></span> Because
+  of disk caching, the data is not necessarily written to the floppy until you
+  unmount it, so removing the floppy from the drive too early might cause the
+  contents to become garbled. If you only read from the floppy, this is not
+  very likely, but if you write, even accidentally, the result may be
+  catastrophic.</p><p>Mounting and unmounting requires super user
+  privileges, i.e., only root can do it. The reason for this is that if any
+  user can mount a floppy on any directory, then it is rather easy to create a
+  floppy with, say, a Trojan horse disguised as <code class="filename">/bin/sh</code>,
+  or any other often used program. However, it is often necessary to allow
+  users to use floppies, and there are several ways to do this:
+  </p><div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem"><p>Give the users the root password. This is
+  obviously bad security, but is the easiest solution. It works well if there
+  is no need for security anyway, which is the case on many non-networked,
+  personal systems.</p></li><li class="listitem"><p>Use a program such as
+  <span class="command"><strong>sudo</strong></span> to allow users to use mount. This is still bad
+  security, but doesn't directly give super user privileges to everyone.
+  <a href="#ftn.idm1136" class="footnote" name="idm1136"><sup class="footnote">[1]</sup></a> </p></li><li class="listitem"><p>Make the users use <span class="command"><strong>mtools</strong></span>, a package for
+  manipulating MS-DOS filesystems, without mounting them. This works well if
+  MS-DOS floppies are all that is needed, but is rather awkward otherwise.
+  </p></li><li class="listitem"><p>List the floppy devices and their
+  allowable mount points together with the suitable options in
+  <code class="filename">/etc/fstab</code>.</p></li></ul></div><p>The last
+  alternative can be implemented by adding a line like the following to the
+  <code class="filename">/etc/fstab</code> file: </p><pre class="screen">
+  /dev/fd0 /floppy
+  msdos user,noauto 0 0
+  </pre><p>The columns are: device file to
+  mount, directory to mount on, filesystem type, options, backup frequency
+  (used by <span class="command"><strong>dump</strong></span>), and <span class="command"><strong>fsck</strong></span> pass number
+  (to specify the order in which filesystems should be checked upon boot; 0
+  means no check).</p><p>The <code class="option">noauto</code> option stops this
+  mount to be done automatically when the system is started (i.e., it stops
+  <span class="command"><strong>mount -a</strong></span> from mounting it). The <code class="option">user</code>
+  option allows any user to mount the filesystem, and, because of security
+  reasons, disallows execution of programs (normal or setuid) and
+  interpretation of device files from the mounted filesystem. After this, any
+  user can mount a floppy with an msdos filesystem with the following command:
+  </p><p>
+  </p><pre class="screen"> 
+  <code class="prompt">$</code> <strong class="userinput"><code>mount /floppy</code></strong>
+  <code class="prompt">$</code>
+  </pre><p>
+  </p><p>The floppy can (and needs to, of course) be
+  unmounted with the corresponding <span class="command"><strong>umount</strong></span> command.</p><p>If you want to provide access to several types of floppies, you need
+  to give several mount points. The settings can be different for each mount
+  point. For example, to give access to both MS-DOS and ext2 floppies, you
+  could have the following to lines in <code class="filename">/etc/fstab</code>:
+  </p><pre class="screen">
+  /dev/fd0 /dosfloppy msdos user,noauto 0 0 /dev/fd0
+  /ext2floppy ext2 user,noauto 0 0
+  </pre><p>For MS-DOS
+  filesystems (not just floppies), you probably want to restrict access to it
+  by using the <code class="option">uid</code>, <code class="option">gid</code>, and
+  <code class="option">umask</code> filesystem options, described in detail on the
+  <span class="command"><strong>mount</strong></span> manual page. If you aren't careful, mounting an
+  MS-DOS filesystem gives everyone at least read access to the files in it,
+  which is not a good idea.</p></div><div class="footnotes"><br><hr style="width:100; text-align:left;margin-left: 0"><div id="ftn.idm1136" class="footnote"><p><a href="#idm1136" class="para"><sup class="para">[1] </sup></a>It requires several seconds of hard thinking on the
+  users' behalf. Furthermore <span class="command"><strong>sudo</strong></span> can be configured to
+  only allow users to execute certain commands. See the sudo(8), sudoers(5),
+  and visudo(8) manual pages. </p></div></div></div><div class="navfooter"><hr><table width="100%" summary="Navigation footer"><tr><td width="40%" align="left"><a accesskey="p" href="ch01s11.html">Prev</a> </td><td width="20%" align="center"><a accesskey="u" href="ch01.html">Up</a></td><td width="40%" align="right"> <a accesskey="n" href="ch01s13.html">Next</a></td></tr><tr><td width="40%" align="left" valign="top">11. /media </td><td width="20%" align="center"><a accesskey="h" href="index.html">Home</a></td><td width="40%" align="right" valign="top"> 13. /opt</td></tr></table></div></body></html>

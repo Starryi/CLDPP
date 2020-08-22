@@ -1,0 +1,92 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1"><title>5. Build and Tweak Sendmail</title><link rel="stylesheet" type="text/css" href="style.css"><meta name="generator" content="DocBook XSL Stylesheets V1.79.1"><meta name="keywords" content="RedHat, redhat, maddy, linus, linux, Linux, Securing, Optimising, security, secure, openna, gerhard"><link rel="home" href="index.html" title="Securing and Optimizing Linux"><link rel="up" href="soser-mailn.html" title="Chapter 22. Software -Server/Mail Network"><link rel="prev" href="chap22sec176.html" title="4. The /etc/sendmail.mc file /Central Mail Hub"><link rel="next" href="chap22sec178.html" title="6. The /etc/mail/access and access.db files"></head><body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF"><div class="navheader"><table width="100%" summary="Navigation header"><tr><th colspan="3" align="center">5. Build and Tweak Sendmail</th></tr><tr><td width="20%" align="left"><a accesskey="p" href="chap22sec176.html">Prev</a> </td><th width="60%" align="center">Chapter 22. Software -Server/Mail Network</th><td width="20%" align="right"> <a accesskey="n" href="chap22sec178.html">Next</a></td></tr></table><hr></div><div class="section"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="idm12145"></a>5. Build and Tweak Sendmail</h2></div></div></div><p>
+           Now that our macro configuration file <code class="filename">sendmail.mc</code> is created, we can build the sendmail configuration file <code class="filename">sendmail.cf</code> from these statements with the following commands:
+           </p><pre class="screen">
+           [root@deep] /# <span class="command"><strong>cd</strong></span> /var/tmp/sendmail-version/cf/cf/
+           [root@deep ]/cf# <span class="command"><strong>m4</strong></span> ../m4/cf.m4 sendmail.mc &gt; /etc/mail/sendmail.cf
+           </pre><p>
+           </p><div class="note" style="margin-left: 0.5in; margin-right: 0.5in;"><h3 class="title"><span class="inlinemediaobject"><img src="./images/Note.gif" alt="Note"></span></h3><p>
+           Here, the <code class="filename">../m4/cf.m4</code> tells m4 program where to look for its default configuration file information.
+           </p></div><div class="section"><div class="titlepage"><div><div><h3 class="title"><a name="idm12162"></a>5.1. The <code class="filename">null.mc</code> file</h3></div></div></div><p>
+           Since our local clients machines never receive mail directly from the outside world, and relay, <span class="emphasis"><em>send</em></span> all their mail through the Mail Hub server, we will create a special file 
+           called <code class="filename">null.mc</code> which, when later processed, will create a customized <code class="filename">sendmail.cf</code> configuration file that responds to this special setup for our neighbour 
+           or local server client machines. This m4 macro file is simple to create and configure because it doesn't need a lot of features, as the configuration file <code class="filename">-sendmail.mc,</code> for 
+           the Central Mail Hub server did.</p><div class="caution" style="margin-left: 0.5in; margin-right: 0.5in;"><h3 class="title">
+<span class="inlinemediaobject"><img src="./images/Caution.gif" alt="Caution"></span>
+</h3><p>
+           The <code class="filename">null.mc</code> file is for the local or neighbour client and server machines only
+           </p></div><div class="procedure"><ol class="procedure" type="1"><li class="step"><p>
+           Create the <code class="filename">null.mc</code> file, <span class="command"><strong>touch</strong></span> <code class="filename">/var/tmp/sendmail-version/cf/cf/null.mc</code> and add the following lines:
+           
+           </p><pre class="programlisting">
+             OSTYPE(`linux')dnl                        <a name="ostln"></a><span><img src="images/callouts/1.png" alt="1" border="0"></span>
+           DOMAIN(`generic')dnl                        <a name="dmgen"></a><span><img src="images/callouts/2.png" alt="2" border="0"></span>
+           FEATURE(`nullclient',`mail.openna.com')dnl  <a name="fnlclt"></a><span><img src="images/callouts/3.png" alt="3" border="0"></span>
+           undefine(`ALIAS_FILE')dnl                   <a name="undalf"></a><span><img src="images/callouts/4.png" alt="4" border="0"></span>
+           </pre><p>
+           </p><div class="calloutlist"><table border="0" summary="Callout list"><tr><td width="5%" valign="top" align="left"><p><a href="#ostln"><span><img src="images/callouts/1.png" alt="1" border="0"></span></a> </p></td><td valign="top" align="left"><p>
+           This configuration option specifies the default operating system Sendmail will be running on, in our case, the <code class="literal">linux</code> system. This item is one of the minimal pieces of  information 
+           required by the <code class="filename">mc</code> file.
+           </p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#dmgen"><span><img src="images/callouts/2.png" alt="2" border="0"></span></a> </p></td><td valign="top" align="left"><p>
+           This configuration option will specify and describe a particular domain appropriated for your environment.
+           </p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#fnlclt"><span><img src="images/callouts/3.png" alt="3" border="0"></span></a> </p></td><td valign="top" align="left"><p>
+           This m4 macro sets your clients machines to never receive mail directly, to send their mail to a Central Mail Hub, and relay all mail through that server rather than sending directly. This feature creates a 
+           stripped down configuration file containing nothing but support for forwarding all mail to a Mail Hub via a local SMTP-based network. The argument <code class="envar">`mail.openna.com'</code> included in this feature is the canonical 
+           name of that Mail Hub. You should, of course, change this canonical name to reflect your Mail Hub Server for example: <code class="envar">FEATURE(`nullclient',` my.mailhub.com')</code>.
+           </p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#undalf"><span><img src="images/callouts/4.png" alt="4" border="0"></span></a> </p></td><td valign="top" align="left"><p>
+           This configuration option prevents the nullclient version of Sendmail from trying to access <code class="filename">/etc/mail/aliases</code> and <code class="filename">/etc/mail/aliases.db</code> files. With the adding of this 
+           line in the <code class="filename">.mc</code> file, you don't need to have an <code class="filename">aliases</code> file on all your internal neighbor client Sendmail machines. Aliases files are required only on the Mail Hub Server 
+           for all server and client aliases on the network.</p></td></tr></table></div><p>
+           
+           </p><div class="tip" style="margin-left: 0.5in; margin-right: 0.5in;"><h3 class="title">
+<span class="inlinemediaobject"><img src="./images/Tip.gif" alt="Tip"></span>
+</h3><p>
+           We advice that with this kind of configuration, no mailers should be defined, and no aliasing or forwarding is done.
+           </p></div><p>
+           </p></li><li class="step"><p>
+           Now that our macro configuration file <code class="filename">null.mc</code> is created, we can build the Sendmail configuration file <code class="filename">sendmail.cf</code> from these statements in all our neighbor servers, and client 
+           machines with the following commands:
+           </p><pre class="screen">
+           [root@deep] /# <span class="command"><strong>cd</strong></span> /var/tmp/sendmail-version/cf/cf/
+           [root@deep ]/cf# <span class="command"><strong>m4</strong></span> ../m4/cf.m4 null.mc &gt; /etc/mail/sendmail.cf
+           </pre><p>
+           </p></li><li class="step"><p>
+           No mail should ever again be delivered to your local machine. Since there will be no incoming mail connections, you no longer needed to run a Sendmail daemon on your neighbor or local server, client machines.
+           To stop the Sendmail daemon from running on your neighbor or local server, or client machines, edit or create the <code class="filename">/etc/sysconfig/sendmail</code> file and change/add the lines that read:
+           </p><pre class="programlisting">
+           DAEMON=yes
+           To read:
+           DAEMON=no
+           And:
+           QUEUE=1h
+           </pre><p>
+           </p><div class="note" style="margin-left: 0.5in; margin-right: 0.5in;"><h3 class="title"><span class="inlinemediaobject"><img src="./images/Note.gif" alt="Note"></span></h3><p>
+           The <code class="envar">QUEUE=1h</code> under <code class="filename">/etc/sysconfig/sendmail</code> file causes Sendmail to process the queue once every 1 hour. We leave that line in place because Sendmail still needs to process 
+           the queue periodically in case the Mail Hub is down.
+           </p></div><p>
+           </p></li><li class="step"><p>           
+
+           Remove the following files from your system, use the following command:
+           </p><pre class="screen">
+           [root@client /]# <span class="command"><strong>rm</strong></span>  -f  /usr/bin/newaliases
+           [root@client /]# <span class="command"><strong>rm</strong></span>  -f  /usr/man/man1/newaliases.1
+           [root@client /]# <span class="command"><strong>rm</strong></span>  -f  /usr/man/man5/aliases.5
+           </pre><p>
+           </p><div class="note" style="margin-left: 0.5in; margin-right: 0.5in;"><h3 class="title"><span class="inlinemediaobject"><img src="./images/Note.gif" alt="Note"></span></h3><p>
+           Local machines never use aliases, access, or other maps database. Since all map file databases are located and used on the Central Mail Hub Server for all local machines we may have on the network, we can safety remove the following commands and man pages from all our local machines.
+           </p><div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem"><p>
+           /usr/bin/newaliases
+           </p></li><li class="listitem"><p>
+           /usr/man/man1/newaliases.1
+           </p></li><li class="listitem"><p>
+           /usr/man/man5/aliases.5
+           </p></li></ul></div><p>
+           </p></div><p>
+           </p></li><li class="step"><p>
+           Remove the unnecessary Procmail program from your entire local Sendmail server or client. Since local machines send all internal and outgoing mail to the mail Hub Server for future delivery, we don't need to use a complex local delivery agent program like Procmail to do the job. Instead we 
+           can use the default <code class="filename">/bin/mail</code> program.
+
+           To remove Procmail from your system, use the following command:
+           </p><pre class="screen">
+           [root@client ]# <span class="command"><strong>rpm</strong></span> -e procmail
+           </pre><p>
+           </p></li></ol></div></div></div><div class="navfooter"><hr><table width="100%" summary="Navigation footer"><tr><td width="40%" align="left"><a accesskey="p" href="chap22sec176.html">Prev</a> </td><td width="20%" align="center"><a accesskey="u" href="soser-mailn.html">Up</a></td><td width="40%" align="right"> <a accesskey="n" href="chap22sec178.html">Next</a></td></tr><tr><td width="40%" align="left" valign="top">4. The <code class="filename">/etc/sendmail.mc</code> file /Central Mail Hub </td><td width="20%" align="center"><a accesskey="h" href="index.html">Home</a></td><td width="40%" align="right" valign="top"> 6. The <code class="filename">/etc/mail/access</code> and <code class="filename">access.db</code> files </td></tr></table></div></body></html>

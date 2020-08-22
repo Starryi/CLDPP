@@ -1,0 +1,147 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 3.2 Final//EN">
+<HTML>
+<HEAD>
+ <META NAME="GENERATOR" CONTENT="LinuxDoc-Tools 0.9.72">
+ <TITLE>RPM-for-Unix HOW-TO: Create gcc RPM Package</TITLE>
+ <LINK HREF="RPM-for-Unix-HOWTO-8.html" REL=next>
+ <LINK HREF="RPM-for-Unix-HOWTO-6.html" REL=previous>
+ <LINK HREF="RPM-for-Unix-HOWTO.html#toc7" REL=contents>
+</HEAD>
+<BODY>
+<A HREF="RPM-for-Unix-HOWTO-8.html">Next</A>
+<A HREF="RPM-for-Unix-HOWTO-6.html">Previous</A>
+<A HREF="RPM-for-Unix-HOWTO.html#toc7">Contents</A>
+<HR>
+<H2><A NAME="s7">7.</A> <A HREF="RPM-for-Unix-HOWTO.html#toc7">Create gcc RPM Package</A></H2>
+
+<P>The GNU gcc rpm is the most important rpm package which you should create after
+successfully creating rpm of RPM package.
+In order to create GNU gcc rpm package, you need to install rpms, unix pkgs or
+manual configure and install the following (given in order of dependency) :
+<UL>
+<LI> texinfo</LI>
+<LI> patch</LI>
+<LI> zlib and zlib-devel</LI>
+<LI> fileutils >= 4.0.41</LI>
+<LI> m4 >= 1.1 (autoconf needs this) </LI>
+<LI> autoconf </LI>
+<LI> bison </LI>
+<LI> binutils >= 2.9.1.0.25 </LI>
+<LI> gas, as, ld which are in binutils</LI>
+<LI> cpp - manual install gcc </LI>
+<LI> gawk </LI>
+<LI> shutils - for 'id' command </LI>
+<LI> pthreads - Posix threads library </LI>
+</UL>
+
+You should download the tar.gz files or 
+<A HREF="RPM-for-Unix-HOWTO-3.html#Unix packages">Unix packages</A>
+. I downloaded solaris packages for texinfo.pkd, fileutils.pkg,
+patch.pkg, libtool.pkg, gcc and others.
+If you download tar.gz source file then you should install them in a temporary 
+location like $HOME/localtmp
+<HR>
+<PRE>
+bash# mkdir $HOME/localtmp
+bash# cd $HOME/localtmp
+bash# gzip -d libtool*.tar.gz
+bash# tar -xvf libtool*.tar
+bash# ./configure --with-prefix=$HOME/localtmp
+bash# make; make install
+</PRE>
+<HR>
+
+You should include the temporary location of autoconf by:
+<HR>
+<PRE>
+bash# PATH=$HOME/localtmp/bin:$PATH
+bash# export PATH
+</PRE>
+<HR>
+</P>
+<P>Now you are ready to build gcc rpm:
+<HR>
+<PRE>
+bash# rpm -i gcc*.src.rpm
+bash# cd /usr/local/src/redhat/SPECS
+bash# rpm -ba gcc*.spec
+</PRE>
+<HR>
+
+On Solaris 2.8 I had to make few changes to gcc*.spec file:
+<OL>
+<LI> In %build section :  
+Insert <B><I>--enable-hacker-mode</I></B> option for configure command.
+This is to correct error 
+- "This configuration not supported in solaris 2.8".
+If <B><I>--enable-hacker-mode</I></B> option does not work then you may have to
+comment out gcc_targetplatform within the code  %ifarch sparc .... %endif, 
+just before the configure command.
+
+</LI>
+<LI> In %build section :  
+For the configure command comment out %{_target_platform}, if configure fails.
+
+</LI>
+<LI> In %install section: Comment out numprocs = $(getconf _NPROCESSORS)
+and put numprocs=1. Since my box had 2 cpus I put numprocs=2. The solaris has /usr/bin/getconf
+which is different from GNU getconf in glibc.</LI>
+</OL>
+
+Setup shared lib in solaris:
+<HR>
+<PRE>
+ 
+solaris# cd /var/ld
+solaris# man ld.so.1
+solaris# man crle
+solaris# crle  &lt; hit return to see config info>
+solaris# crle /usr/lib:/usr/local/lib:/usr/local/pgsql/lib:/usr/local/BerkeleyDB.3.1/lib
+</PRE>
+<HR>
+</P>
+<H2><A NAME="sparcgcc"></A> <A NAME="ss7.1">7.1</A> <A HREF="RPM-for-Unix-HOWTO.html#toc7.1">Solaris Sparc gcc, glibc, kernel-headers and binutils </A>
+</H2>
+
+<P>You can download the source code rpm for sparc from
+<A HREF="http://www.rpmfind.net/linux/rpm2html/search.php?query=sparc">sparc-gcc</A>
+or go to 
+<A HREF="http://www.rpmfind.net">http://www.rpmfind.net</A> and type <B>sparc</B> in the search field.
+You can also download sparc-glibc, sparc-kernel-headers and sparc-binutils source rpms.
+<HR>
+<PRE>
+solaris# rpm -i sparc-gcc*.src.rpm
+solaris# cd /usr/local/src/redhat/SPECS
+solaris# rpm -ba sparc-gcc.spec
+</PRE>
+<HR>
+
+You may want to edit sparc-binutils.spec and
+in %install section: Comment out numprocs = $(getconf _NPROCESSORS)
+and put numprocs=1. Since my box had 2 cpus I put numprocs=2. The solaris has /usr/bin/getconf
+which is different from GNU getconf in glibc. Also change %files section change 
+%doc /usr/man/man1/sparc-linux-ld.1.gz  to
+%doc /usr/man/man1/sparc-linux-ld.1.</P>
+<H2><A NAME="powerpc"></A> <A NAME="ss7.2">7.2</A> <A HREF="RPM-for-Unix-HOWTO.html#toc7.2">PowerPC gcc, glibc, kernel-headers and binutils </A>
+</H2>
+
+<P>The PowerPC arch rpms are at 
+<A HREF="http://penguinppc.org">http://penguinppc.org</A>.</P>
+<H2><A NAME="glibc"></A> <A NAME="ss7.3">7.3</A> <A HREF="RPM-for-Unix-HOWTO.html#toc7.3">Create glibc RPM </A>
+</H2>
+
+<P>If configure complains that your platform is not supported, then
+you may want to edit glibc.spec file and in %configure section 
+put <I>--enable-hacker-mode</I>, </P>
+<P>For Solaris there is ready-made sparc-glibc*.src.rpm from
+<A HREF="http://www.rpmfind.net/linux/rpm2html/search.php?query=sparc">sparc-gcc</A>
+or go to 
+<A HREF="http://www.rpmfind.net">http://www.rpmfind.net</A> and type <B>sparc</B> in the search field.</P>
+<P>The glibc needs the sparc-kernel-headers*.rpm which you can get from
+<A HREF="http://www.rpmfind.net/linux/rpm2html/search.php?query=sparc">sparc-gcc</A>.</P>
+<HR>
+<A HREF="RPM-for-Unix-HOWTO-8.html">Next</A>
+<A HREF="RPM-for-Unix-HOWTO-6.html">Previous</A>
+<A HREF="RPM-for-Unix-HOWTO.html#toc7">Contents</A>
+</BODY>
+</HTML>

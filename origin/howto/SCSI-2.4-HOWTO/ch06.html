@@ -1,0 +1,87 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1"><title>Chapter 6. Modules and their Parameters</title><link rel="stylesheet" type="text/css" href="style.css"><meta name="generator" content="DocBook XSL Stylesheets V1.79.1"><link rel="home" href="index.html" title="The Linux 2.4 SCSI subsystem HOWTO"><link rel="up" href="index.html" title="The Linux 2.4 SCSI subsystem HOWTO"><link rel="prev" href="ch05.html" title="Chapter 5. Boot Parameters"><link rel="next" href="ch07.html" title="Chapter 7. Proc pseudo file system"></head><body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF"><div class="navheader"><table width="100%" summary="Navigation header"><tr><th colspan="3" align="center">Chapter 6. Modules and their Parameters</th></tr><tr><td width="20%" align="left"><a accesskey="p" href="ch05.html">Prev</a> </td><th width="60%" align="center"> </th><td width="20%" align="right"> <a accesskey="n" href="ch07.html">Next</a></td></tr></table><hr></div><div class="chapter"><div class="titlepage"><div><div><h1 class="title"><a name="modparams"></a>Chapter 6. Modules and their Parameters</h1></div></div></div><p>
+There are many SCSI related modules. The mid and upper level modules
+are listed below:
+</p><div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem"><p> scsi_mod.o </p></li><li class="listitem"><p> sd_mod.o </p></li><li class="listitem"><p> sr_mod.o </p></li><li class="listitem"><p> st.o [osst.o] </p></li><li class="listitem"><p> sg.o </p></li></ul></div><p>
+</p><p>
+Notice that the first 3 have "_mod" appended to their normal driver names.
+Lower level drivers tend to use the name (or an abbreviation) of the
+HBA's manufacturer (e.g. advansys)
+plus optionally the chip number of the major controller chip (e.g.
+sym53c8xx for symbios controllers based on the NCR 53c8?? family of chips).
+</p><p>
+All SCSI modules depend on the mid level. This means if the SCSI mid
+level is not built into the kernel and if <code class="filename">scsi_mod.o</code>
+has not already been loaded then a command like <span class="command"><strong>modprobe st</strong></span>
+will cause the <code class="filename">scsi_mod.o</code> module to be loaded. There
+could well be other dependencies, for example <span class="command"><strong>modprobe sr_mod
+</strong></span> will also cause the cdrom module to be loaded if it hasn't been
+already. Also if the SCSI mid level is a module, then all other SCSI
+subsystem drivers must be modules (this is enforced by the kernel build
+configuration tools).
+</p><p>
+Modules can be loaded with the <span class="command"><strong>modprobe &lt;module_name&gt;
+</strong></span> command which will try to load any modules that the
+nominated &lt;module_name&gt; depends on.
+Also &lt;module_name&gt; does not need the trailing ".o" extension which
+is assumed if not given. The <span class="command"><strong>insmod &lt;module_name&gt;</strong></span>
+command will also try
+and load &lt;module_name&gt; but without first loading modules it depends on.
+Rules for how modules can cause other modules to be loaded (with
+appropriate parameters appended) are usually placed in the file
+<code class="filename">/etc/modules.conf</code>. [Note that in earlier Linux kernels
+this file was often called <code class="filename">/etc/conf.modules</code>.]
+For further information about the format of this file try
+<span class="command"><strong>man modules.conf</strong></span>.
+</p><p>
+Any module can have its allowable command line parameters queried with
+this command: <span class="command"><strong>modinfo -p &lt;module_name&gt;</strong></span>.
+</p><p>
+When upper level drivers are initialized and if there are no hosts active
+then the mid level will attempt to load a module called "scsi_hostadapter".
+An "alias" can then be used to associate "scsi_hostadapter" with the actual
+name of the lower level (adapter) driver.
+For example, a line like "alias scsi_hostadapter aic7xxx" in the
+<code class="filename">/etc/modules.conf</code> file would cause the aic7xxx module
+to be loaded (if there were no lower level drivers already active).
+<a href="#ftn.idm322" class="footnote" name="idm322"><sup class="footnote">[4]</sup></a>
+</p><p>
+There is a special relationship between the module parameter
+"scsi_hostadapter" and the initrd file system. For more information see
+<span class="command"><strong>man initrd</strong></span> and <span class="command"><strong>man mkinitrd</strong></span>.
+<a href="#ftn.idm328" class="footnote" name="idm328"><sup class="footnote">[5]</sup></a>
+</p><div class="footnotes"><br><hr style="width:100; text-align:left;margin-left: 0"><div id="ftn.idm322" class="footnote"><p><a href="#idm322" class="para"><sup class="para">[4] </sup></a>
+There is a sequencing issue here if the root file system is on the SCSI
+device controlled by the lower level (adapter) driver to be loaded since
+it contains the <code class="filename">/etc/modules.conf</code> file. Also there
+is the issue of how the boot loader obtains the initial kernel image from 
+a SCSI device (often from the (master) boot record). The latter is usually
+taken care of by the system's or adapter card's BIOS.
+</p></div><div id="ftn.idm328" class="footnote"><p><a href="#idm328" class="para"><sup class="para">[5] </sup></a>
+An example of using <span class="command"><strong>mkinitrd</strong></span>: assume the root
+partition is on a SCSI disk connected to a controller from 
+Adaptec that requires the aic7xxx driver. After
+building a kernel with the aic7xxx driver specified as a module then 
+load the image into the normal place (probably in the
+<code class="filename">/boot</code> directory). Next make sure a line like
+"alias scsi_hostadapter aic7xxx" is in the <code class="filename">/etc/modules.conf
+</code> file. Then from the <code class="filename">/boot</code> directory
+execute a line like <span class="command"><strong>mkinitrd /boot/initrd-2.4.5.img 2.4.5</strong></span>
+(this assumes lk 2.4.5 is being build). This should result in the
+file <code class="filename">initrd-2.4.5.img</code> being created. The
+<code class="filename">/etc/lilo.conf</code> should then have a section added
+looking something like this:
+</p><pre class="programlisting">
+image=/boot/vmlinuz-2.4.5
+    label=linux
+    initrd=/boot/initrd-2.4.5.img
+    read-only
+    root=/dev/sda7
+</pre><p>
+The following should also be selected in the kernel configuration:
+</p><pre class="programlisting">
+CONFIG_BLK_DEV_RAM=y
+CONFIG_BLK_DEV_RAM_SIZE=4096
+CONFIG_BLK_DEV_INITRD=y
+</pre><p>
+See also <code class="filename">Documentation/initrd.txt</code>.
+</p></div></div></div><div class="navfooter"><hr><table width="100%" summary="Navigation footer"><tr><td width="40%" align="left"><a accesskey="p" href="ch05.html">Prev</a> </td><td width="20%" align="center"> </td><td width="40%" align="right"> <a accesskey="n" href="ch07.html">Next</a></td></tr><tr><td width="40%" align="left" valign="top">Chapter 5. Boot Parameters </td><td width="20%" align="center"><a accesskey="h" href="index.html">Home</a></td><td width="40%" align="right" valign="top"> Chapter 7. Proc pseudo file system</td></tr></table></div></body></html>

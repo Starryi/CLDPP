@@ -1,0 +1,62 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1"><title>16. users authentication with .dbmpasswd password file</title><link rel="stylesheet" type="text/css" href="style.css"><meta name="generator" content="DocBook XSL Stylesheets V1.79.1"><meta name="keywords" content="RedHat, redhat, maddy, linus, linux, Linux, Securing, Optimising, security, secure, openna, gerhard"><link rel="home" href="index.html" title="Securing and Optimizing Linux"><link rel="up" href="netweb-Apache.html" title="Chapter 29. Software -Network Server, web/Apache"><link rel="prev" href="chap29sec251.html" title="15. Securing Apache"><link rel="next" href="chap29sec254.html" title="17. Apache in a chroot jail"></head><body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF"><div class="navheader"><table width="100%" summary="Navigation header"><tr><th colspan="3" align="center">16. users authentication with <code class="filename">.dbmpasswd</code> password file</th></tr><tr><td width="20%" align="left"><a accesskey="p" href="chap29sec251.html">Prev</a> </td><th width="60%" align="center">Chapter 29. Software -Network Server, web/Apache</th><td width="20%" align="right"> <a accesskey="n" href="chap29sec254.html">Next</a></td></tr></table><hr></div><div class="section"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="idm19622"></a>16. users authentication with <code class="filename">.dbmpasswd</code> password file</h2></div></div></div><p>
+      This step is necessary only if you think that you'll use an access file authentication system for your web site. Access file authentication is used when you have the need to protect some part of your web site with a user password. With 
+      Apache, a lot of options exist to protect your site with usernames and passwords.
+    </p><div class="procedure"><ol class="procedure" type="1"><li class="step"><p>
+        The <span class="command"><strong>dbmmanage</strong></span> program utility of Apache can be used to create and update usernames and passwords of <acronym class="acronym">HTTP</acronym> users. This method use a <acronym class="acronym">DBM</acronym> format files that is the fastest mechanism when you have 
+        thousands users to manage in your password file. First of all, it's important to change the permission of this program to be <code class="literal">0750/-rwxr-x---</code>, writable only by the super-user <code class="literal">root</code>, readable and executable by group 
+        and nothing for the others.</p><ol type="a" class="substeps"><li class="step"><p>
+            To change the permissions on the <span class="command"><strong>dbmmanage</strong></span> program, use the following command:
+            </p><pre class="screen">
+              [root@deep ]/# <span class="command"><strong>chmod</strong></span> 750 /usr/bin/dbmmanage
+            </pre><p>
+          </p></li><li class="step"><p>
+            To create a username and password, use the following command:
+            </p><pre class="screen">
+              [root@deep ]/# /usr/bin/dbmmanage  /etc/httpd/.dbmpasswd adduser username
+            </pre><p>
+            </p><pre class="literallayout"><code class="computeroutput">
+              New password:
+              Re-type new password:
+              User username added with password encrypted to l4jrdAL9MH0K.
+            </code></pre><p>
+            Where &lt;/etc/httpd&gt; is the location of the password file, &lt;.dbmpasswd&gt; is the name of the password file, and &lt;username&gt; is the name of the user you want to add in your <code class="filename">.dbmpasswd</code> file.
+          </p></li></ol></li><li class="step"><p>
+        If you use the <span class="command"><strong>dbmmanage</strong></span> utility with your Apache web server to create passwords and usernames, don't forget to include in your <code class="filename">/etc/httpd/conf/httpd.conf</code> configuration file the part of your web site 
+        you need to protect with user password authentication:
+        Edit the <code class="filename">httpd.conf</code> file <span class="command"><strong>vi</strong></span> <code class="filename">/etc/httpd/conf/httpd.conf</code> and add the following lines to protect the <code class="literal">private</code> directory of your web site <code class="literal">ona</code> with 
+        user password authentication:
+        </p><pre class="programlisting">
+          &lt;Directory "/home/httpd/ona/private"&gt;
+          Options None
+          AllowOverride AuthConfig
+          AuthName "restricted stuff"
+          AuthType Basic
+          AuthDBUserFile /etc/httpd/.dbmpasswd
+          require valid-user
+          &lt;/Directory&gt;
+        </pre><p>
+        The path &lt;/home/httpd/ona/private&gt; specifies the directory we want to protect with a password and username, the &lt;/etc/httpd/.dbmpasswd&gt; specifies the location of the password file.
+
+        To add the DB password authentication module to your Apache Web Server, you must be sure to include it during the configuration time of Apache with the following parameter <code class="envar">--add-module=src/modules/standard/mod_auth_db.c</code>. See 
+        your Apache documentation for more information.
+      </p></li><li class="step"><p>
+        You must restart Apache web server for the changes to take effect:
+        To restart Apache, use the following commands:
+        </p><pre class="screen">
+          [root@deep ]/# /etc/rc.d/init.d/httpd <span class="command"><strong>restart</strong></span>
+        </pre><p>
+        </p><pre class="literallayout"><code class="computeroutput">
+          Shutting down http:                                        	[  OK  ]
+          Starting httpd:                                            	[  OK  ]
+        </code></pre><p>
+      </p></li><li class="step"><p>
+        Finally, we must test the new protected directory named <code class="literal">private</code>.
+        To verify that it works, point your web browser to the following address: <code class="literal">http://my-web-server/private/</code>. The &lt;my-web-server&gt; is the address where your Apache web server lives. The &lt;/private/&gt; is the directory 
+        we want to protect with user password authentication.
+      </p></li></ol></div><div class="mediaobject"><img src="./images/Apache-Passwd.gif" alt="Apache password"></div><div class="section"><div class="titlepage"><div><div><h3 class="title"><a name="idm19672"></a>16.1. Immunize configuration files like <code class="filename">httpd.conf</code></h3></div></div></div><p>
+        As we already know, the immutable bit can be used to prevent deletion, overwriting or creation of a symbolic link to a file. Once your <code class="filename">httpd.conf</code> file has been configured, it's a good idea to immunize it with 
+        the following command:
+        </p><pre class="screen">
+          [root@deep ]/# <span class="command"><strong>chattr</strong></span>  +i /etc/httpd/conf/httpd.conf
+        </pre><p>
+          </p></div></div><div class="navfooter"><hr><table width="100%" summary="Navigation footer"><tr><td width="40%" align="left"><a accesskey="p" href="chap29sec251.html">Prev</a> </td><td width="20%" align="center"><a accesskey="u" href="netweb-Apache.html">Up</a></td><td width="40%" align="right"> <a accesskey="n" href="chap29sec254.html">Next</a></td></tr><tr><td width="40%" align="left" valign="top">15. Securing Apache </td><td width="20%" align="center"><a accesskey="h" href="index.html">Home</a></td><td width="40%" align="right" valign="top"> 17. Apache in a chroot jail</td></tr></table></div></body></html>

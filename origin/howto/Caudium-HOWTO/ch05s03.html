@@ -1,0 +1,144 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1"><title>3. How to tune your system for best Caudium performances</title><link rel="stylesheet" type="text/css" href="style.css"><meta name="generator" content="DocBook XSL Stylesheets V1.79.1"><link rel="home" href="index.html" title="Caudium HOWTO"><link rel="up" href="ch05.html" title="Chapter 5. Customizing your server"><link rel="prev" href="ch05s02.html" title="2. How to benchmark a web server"><link rel="next" href="ch05s04.html" title="4. How to use your own fonts"></head><body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF"><div class="navheader"><table width="100%" summary="Navigation header"><tr><th colspan="3" align="center">3. How to tune your system for best Caudium performances</th></tr><tr><td width="20%" align="left"><a accesskey="p" href="ch05s02.html">Prev</a> </td><th width="60%" align="center">Chapter 5. Customizing your server</th><td width="20%" align="right"> <a accesskey="n" href="ch05s04.html">Next</a></td></tr></table><hr></div><div class="sect1"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="tune"></a>3. How to tune your system for best Caudium performances</h2></div></div></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="linuxtune"></a>3.1. Linux</h3></div></div></div><p>
+	Until a Linux guru has time to make some nice documentation, here is 
+	something that came from PureFtpd software :
+      </p><p>
+        </p><pre class="programlisting"><code class="computeroutput">
+ o Increase your system max descriptors numbers :
+ 
+ # echo 60000 &gt; /proc/sys/fs/file-max
+ # echo 180000 &gt; /proc/sys/fs/inode-max
+ # ulimit -n 60000
+ o mount your filesystems with the "noatime" option
+ o make sure your disks holding the logs are "fast enough"
+
+ o You can tweak a bit your TCP/IP stack :
+ # echo 0 &gt; /proc/sys/net/ipv4/tcp_syncookies
+ # echo 0 &gt; /proc/sys/net/ipv4/tcp_ecn
+ # echo 0 &gt; /proc/sys/net/ipv4/tcp_timestamps
+ # echo 0 &gt; /proc/sys/net/ipv4/tcp_window_scaling
+	</code></pre><p>
+      </p><p>
+        Finally don't forget to compile Pike with <code class="option">--with-max-fd=60000</code> (already done in Debian packages).
+      </p><div class="warning" style="margin-left: 0.5in; margin-right: 0.5in;"><h3 class="title">Warning from Caudium people</h3><div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem"><p>Personally deactivate window scaling seems to be a bad idea.</p></li><li class="listitem"><p>This needs some touches. 2.2 and 2.4 options are mixed above very badly. Also, turning off ECN might do you more harm than gain.</p></li></ul></div></div><p>
+	 Also see <a class="ulink" href="http://linuxperf.nl.linux.org/" target="_top">LinuxPerf</a>, and <a class="ulink" href="http://linuxperf.nl.linux.org/general/kerneltuning.html" target="_top">LinuxPerf kernel tuning section</a>.
+      </p></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="freebsdtune"></a>3.2. FreeBSD</h3></div></div></div><p>
+	Here are the optimizations you can try on your servers. They are provided without any warranty.
+      </p><div class="note" style="margin-left: 0.5in; margin-right: 0.5in;"><h3 class="title">Note</h3><p>All this is for FreeBSD 4.2 or more recent.</p></div><p>
+	First, check to see if your filesystems use <code class="option">Soft Updates</code>:
+	</p><pre class="programlisting"><code class="computeroutput">
+# tunefs -p /dev/da0s1a
+tunefs: soft updates:  (-n)                                disabled
+tunefs: maximum contiguous block count: (-a)               15
+tunefs: rotational delay between contiguous blocks: (-d)   0 ms
+tunefs: maximum blocks per file in a cylinder group: (-e)  2048
+tunefs: average file size: (-f)                            16384
+tunefs: average number of files in a directory: (-s)       64
+tunefs: minimum percentage of free space: (-m)             8%
+tunefs: optimization preference: (-o)                      time
+	</code></pre><p>
+	If <code class="option">soft updates</code> are set to <code class="option">disabled</code> it may be a good idea to enable them. 
+	We do not recommend you enable them on "/" filesystem on servers machines, there are issues and in general this is not recommended by the FreeBSD team.
+	If you can unmount the others filesystems do this and remount them later:
+	</p><pre class="programlisting"><code class="computeroutput">
+# tunefs -n enable /dev/"whatever"
+	</code></pre><p>
+        If you cannot unmount the others filesystem, drop into single mode (do a <span class="command"><strong>shutdown now</strong></span> or a <span class="command"><strong>boot -s</strong></span>) and then type:
+	</p><pre class="programlisting"><code class="computeroutput">
+# tunefs -n enable "filesystem"
+	</code></pre><p>
+	I suggest /usr or /var.
+	In the fstab you can add <strong class="userinput"><code>,async</code></strong> to the options of all filesystems. As for soft updates we do not recommend that on server machines for the root (/) filesystem.
+      </p><p>
+	In <code class="filename">/boot/loader.conf</code> add the following:
+	</p><pre class="programlisting"><code class="computeroutput">
+kern.ipc.maxsockets="5000"
+kern.ipc.nmbclusters="65536"
+	</code></pre><p>
+        If you have ATA (IDE / UltraDMA) disks you can add also in <code class="filename">/boot/loader.conf</code>:
+	</p><pre class="programlisting"><code class="computeroutput">
+hw.ata.wc="1"
+	</code></pre><p>
+	Then in <code class="filename">/etc/sysctl.conf</code> you can add:
+	</p><pre class="programlisting"><code class="computeroutput">
+vfs.vmiodirenable=1
+kern.ipc.maxsockbuf=2097152
+kern.ipc.somaxconn=8192
+kern.ipc.maxsockets=16424
+kern.maxfiles=65536
+kern.maxfilesperproc=32768
+net.inet.tcp.rfc1323=1
+net.inet.tcp.delayed_ack=0
+net.inet.tcp.sendspace=65535
+net.inet.tcp.recvspace=65535
+net.inet.udp.recvspace=65535
+net.inet.udp.maxdgram=57344
+net.local.stream.recvspace=65535
+net.local.stream.sendspace=65535
+	</code></pre><p>
+	  And then reboot (or for <code class="filename">/etc/sysctl.conf</code> use the sysctl(8) tool to setup this by hand.
+      </p><p>
+        Another way to have good performance is to make a custom kernel, with the minimum of drivers and processor support. A maxuser size = size of memory (for example you have 512M of RAM, then set the maxusers value in your kernel configuration variable to 512). 
+        Add Posix 1003.1b real time extensions to the kernel with:
+        </p><pre class="programlisting"><code class="computeroutput">
+options         P1003_1B                #Posix P1003_1B real-time extensions
+options         _KPOSIX_PRIORITY_SCHEDULING
+        </code></pre><p>
+	Enable the SMP options (only for FreeBSD 4.x, the FreeBSD 5.0 is now automatic).
+      </p><p>
+	For French users, check these URLs :
+      </p><div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem"><p>
+	    <a class="ulink" href="http://gcu-squad.org/?viewtip+&amp;tip_id=59" target="_top">http://gcu-squad.org/?viewtip+&amp;tip_id=59</a>.
+	  </p></li><li class="listitem"><p>
+	    <a class="ulink" href="http://gcu-squad.org/?viewtip+&amp;tip_id=54" target="_top">http://gcu-squad.org/?viewtip+&amp;tip_id=54</a>.
+	  </p></li></ul></div></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="suntune"></a>3.3. Solaris 2.x</h3></div></div></div><p>
+	Most of the optimization values are in <code class="filename">/etc/system</code> file. This file is read by
+	the kernel when it is loading. Please notice that the following optimization is focused on Solaris 8 machines
+	with at least 256M of RAM.
+	</p><pre class="programlisting"><code class="computeroutput">
+* A comment is started by a star '*'
+* 
+* 1 maxusers per mega of ram. This machine has 512M then maxusers = 512
+set maxusers=512
+set hires_tick=1
+set rlim_fd_max=10000
+set rlim_fd_cur=4096
+*set tcp:tcp_conn_hash_size=8192
+* Don't setup this if you don't have more than 256M of RAM
+set bufhwm=48000
+
+* Folling are used to delay page reaping with databases.
+set fastscan = 32000
+set slowscan = 200
+set maxpgio =  280
+set lotsfree = 1024
+set desfree = 512
+set minfree = 128
+set autoup = 280
+
+*  Hash buffer sizes during Specweb testing
+set tcp:tcp_conn_hash_size = 2097152
+
+* Nic Interface
+set hme:hme_adv_100fdx_cap=1
+set hme:hme_adv_100hdx_cap=0
+set hme:hme_adv_10fdx_cap=0
+set hme:hme_adv_10hdx_cap=0
+set hme:hme_adv_autoneg_cap=0
+
+* To prevent buffer overflow
+set noexec_user_stack=1
+set noexec_user_stack_log=1
+	</code></pre><p>
+
+	  Please notice that Solaris needs fast disks. If you have IDE / UDMA disks, 
+	  double check they are recent. For example the disks in Ultra 5 / 10 
+	  machines are snail slow, and slow down the whole machine when you make read 
+	  write operation. Please consider getting faster disks.
+      </p><p>
+	Also, if you use software raid (Solaris Disk Suite) you will have optimal
+	performance if you have more than one SCSI controller in the machine.
+      </p><p>
+	Another good read is the well known <a class="ulink" href="http://sunsite.uakom.sk/sunworldonline/common/cockcroft.letters.html" target="_top">document</a> from Adrian Cockroft about tuning Solaris.
+	Sunhelp.org has also a good <a class="ulink" href="http://sunhelp.org/info-faq.ph" target="_top">section</a> about tuning.
+	Finally, you can read a network guide at <a class="ulink" href="http://www.sean.de/Solaris/tune.html" target="_top">http://www.sean.de/Solaris/tune.html</a>.
+      </p></div></div><div class="navfooter"><hr><table width="100%" summary="Navigation footer"><tr><td width="40%" align="left"><a accesskey="p" href="ch05s02.html">Prev</a> </td><td width="20%" align="center"><a accesskey="u" href="ch05.html">Up</a></td><td width="40%" align="right"> <a accesskey="n" href="ch05s04.html">Next</a></td></tr><tr><td width="40%" align="left" valign="top">2. How to benchmark a web server </td><td width="20%" align="center"><a accesskey="h" href="index.html">Home</a></td><td width="40%" align="right" valign="top"> 4. How to use your own fonts</td></tr></table></div></body></html>

@@ -1,0 +1,233 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1"><title>9.  Installing MMBase additional applications</title><link rel="stylesheet" type="text/css" href="style.css"><meta name="generator" content="DocBook XSL Stylesheets V1.79.1"><link rel="home" href="index.html" title="MMBase Installation HOWTO"><link rel="up" href="index.html" title="MMBase Installation HOWTO"><link rel="prev" href="ar01s08.html" title="8.  Connecting MMBase to MySQL using MySQL Connector/J"><link rel="next" href="ar01s10.html" title="10.  Configuring initial MMBase settings"></head><body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF"><div class="navheader"><table width="100%" summary="Navigation header"><tr><th colspan="3" align="center">9. 
+Installing <span class="application">MMBase</span>
+additional applications
+</th></tr><tr><td width="20%" align="left"><a accesskey="p" href="ar01s08.html">Prev</a> </td><th width="60%" align="center"> </th><td width="20%" align="right"> <a accesskey="n" href="ar01s10.html">Next</a></td></tr></table><hr></div><div class="sect1"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="idm634"></a>9. 
+Installing <span class="application">MMBase</span>
+additional applications
+</h2></div></div></div><p>
+With the release of version 1.7
+<span class="application">MMBase</span>
+was reworked into a more modular structure.
+The developers decided to take several modules
+(i.e. <span class="application">CloudContext Security</span>,
+<span class="application">Media</span>,
+<span class="application">Email</span>)
+from the <span class="application">MMBase</span> tree,
+and make these available as separate entities.
+However, at this moment
+<span class="application">MMBase</span>
+doesn't have a module interface at all.
+So, to use these additional applications,
+the library and other files need to be placed into the installation tree
+and the configuration needs to be added into the existing configuration files
+by hand.
+</p><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="idm644"></a>9.1. 
+Installing
+the <span class="application">CloudContext Security</span> module
+</h3></div></div></div><p>
+&gt;From the <span class="application">MMBase</span> website
+(<a class="ulink" href="http://www.mmbase.org" target="_top">www.mmbase.org</a>):
+</p><div class="blockquote"><blockquote class="blockquote"><p>
+<span class="quote">&#8220;<span class="quote"><span class="application">Cloud security</span>
+uses the object <code class="systemitem">mmbaseuser</code>
+to store information used for authorisation and authentication of users.
+The two main advantages of this security implementation are
+that the user administration can be carried out by using a webbrowser
+(instead of editing a file on the filesystem) and
+that the users of your
+<span class="application">MMBase</span> installation
+are available as objects in the cloud.
+For instance, it is possible to create groups of users,
+which are allowed to carry out certain tasks.</span>&#8221;</span>
+</p><p>
+<span class="quote">&#8220;<span class="quote">A context exists of a set of rights
+which describe what you can do within this context
+with an object of
+<span class="application">MMBase</span>.
+For example you define read access to a the context
+which is used by anonymous visitors of your site and
+you can define a context with edit rights for registered users of your site.
+</span>&#8221;</span>
+</p></blockquote></div><p>
+</p><p>
+Move the library and other files of
+the <span class="application">CloudContext Security</span> module
+into the <span class="application">MMBase</span> installation tree:
+</p><pre class="programlisting">
+  
+  mv -i web-app/WEB-INF/lib/* \
+      /usr/local/tomcat/webapps/mmbase-webapp/WEB-INF/lib/
+  mv -i web-app/WEB-INF/config/applications/* \
+      /usr/local/tomcat/webapps/mmbase-webapp/WEB-INF/config/applications/
+  mv -i web-app/WEB-INF/config/builders/* \
+      /usr/local/tomcat/webapps/mmbase-webapp/WEB-INF/config/builders/
+  
+  </pre><p>
+</p><p>
+Save the documentation files for later reference:
+</p><pre class="programlisting">
+  
+  mv -i web-app/README.txt web-app/README-PACKAGE.txt web-app/documentation web-app/src \
+      /usr/local/tomcat/webapps/mmbase-webapp/mmdocs/security/
+  
+  </pre><p>
+</p><p>
+Make sure all these new files are owned by
+your <code class="systemitem">tomcat</code> user as well:
+</p><pre class="programlisting">
+  
+  chown -R tomcat:tomcat /usr/local/tomcat/webapps/mmbase-webapp
+  
+  </pre><p>
+</p><p>
+Disable the existing configuration
+in the security configuration file
+<code class="filename">/usr/local/tomcat/webapps/mmbase-webapp/WEB-INF/config/security/security.xml</code>:
+</p><pre class="programlisting">
+  
+  &lt;!--
+  &lt;authentication class="org.mmbase.security.implementation.context.ContextAuthentication" url="context/config.xml" /&gt;
+  --&gt;
+  ...
+  &lt;!--
+  &lt;authorization class="org.mmbase.security.implementation.context.ContextAuthorization" url="context/config.xml" /&gt;
+  --&gt;
+  
+  </pre><p>
+</p><p>
+And add
+(from <code class="filename">web-app/WEB-INF/config/security/security.xml</code>):
+</p><pre class="programlisting">
+  
+  &lt;!--
+  Example security.xml to switch on Cloud Context Security.
+  No other configuration needed
+  (Cloud Context Security is configured in the cloud)
+  @version $Id$
+  --&gt;
+  &lt;authentication class="org.mmbase.security.implementation.cloudcontext.Authenticate" url="" /&gt;
+  &lt;authorization  class="org.mmbase.security.implementation.cloudcontext.Verify"       url="" /&gt;
+  
+  </pre><p>
+</p><p>
+</p><div class="note" style="margin-left: 0.5in; margin-right: 0.5in;"><h3 class="title">Note</h3><p>
+Make sure to include the configuration above before
+the <code class="classname">&lt;sharedsecret&gt;</code> statement,
+or you will get an error like this:
+</p><pre class="programlisting">
+  
+  ERROR org.mmbase.util.XMLErrorHandler - security.xml line:71 column:12:
+      The content of element type "security" must match "(authentication,authorization,sharedsecret)".
+  
+  </pre><p>
+</p></div><p>
+</p></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="idm679"></a>9.2. 
+Installing
+the <span class="application">Media</span> module
+</h3></div></div></div><p>
+&lt;TODO&gt;
+</p></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="idm683"></a>9.3. 
+Installing
+the <span class="application">Email</span> module
+</h3></div></div></div><p>
+The <span class="application">Email</span> module
+makes it possible to send email
+with <span class="application">MMBase</span>,
+using either <code class="systemitem">SendMail</code>
+or <code class="systemitem">JMSendMail</code>.
+</p><p>
+Move the library and other files of
+the <span class="application">Email</span> module
+into the <span class="application">MMBase</span> installation tree:
+</p><pre class="programlisting">
+  
+  mv -i web-app/WEB-INF/lib/* \
+      /usr/local/tomcat/webapps/mmbase-webapp/WEB-INF/lib/
+  mv -i web-app/WEB-INF/config/builders/* \
+      /usr/local/tomcat/webapps/mmbase-webapp/WEB-INF/config/builders/
+  mkdir /usr/local/tomcat/webapps/mmbase-webapp/email-examples/
+  cp -iR web-app/examples/* \
+      /usr/local/tomcat/webapps/mmbase-webapp/email-examples/
+  
+  </pre><p>
+</p><p>
+Save the documentation files for later reference:
+</p><pre class="programlisting">
+  
+  mkdir /usr/local/tomcat/webapps/mmbase-webapp/mmdocs/email/
+  mv -i web-app/README.txt web-app/README-PACKAGE.txt web-app/documentation web-app/src \
+      /usr/local/tomcat/webapps/mmbase-webapp/mmdocs/email/
+  
+  </pre><p>
+</p><p>
+Make sure all these new files are owned by
+your <code class="systemitem">tomcat</code> user as well:
+</p><pre class="programlisting">
+  
+  chown -R tomcat:tomcat /usr/local/tomcat/webapps/mmbase-webapp
+  
+  </pre><p>
+</p><p>
+Edit the email configuration file
+<code class="filename">/usr/local/tomcat/webapps/mmbase-webapp/WEB-INF/config/modules/sendmail.xml</code>
+(from <code class="filename">web-app/WEB-INF/config/modules/sendmail.xml</code>):
+</p><pre class="programlisting">
+  
+  ...
+  &lt;status&gt;active&lt;/status&gt;
+  ...
+  &lt;classfile&gt;org.mmbase.applications.email.SendMail&lt;/classfile&gt;
+  ...
+  
+  </pre><p>
+</p><p>
+Add to <span class="application">Tomcat</span>'s
+root <code class="classname">Context</code>
+(in /usr/local/tomcat/conf/context.xml for Tomcat version 5,
+in /usr/local/tomcat/conf/server.xml for Tomcat version 4)
+(replace &lt;smtp.domain.tld&gt; with the adres of your
+<code class="systemitem"><acronym class="acronym">SMTP</acronym> server</code>):
+</p><pre class="programlisting">
+  
+  Resource name="mail/Session" auth="Container"
+           type="javax.mail.Session"/&gt;
+    &lt;ResourceParams name="mail/Session"&gt;
+      &lt;parameter&gt;
+        &lt;name&gt;mail.smtp.host&lt;/name&gt;
+        &lt;value&gt;smtp.domain.tld&lt;/value&gt;
+      &lt;/parameter&gt;
+    &lt;/ResourceParams&gt;
+    &lt;ResourceLink name="linkToGlobalResource"
+                  global="simpleValue"
+                  type="java.lang.Integer"/&gt;
+  
+  </pre><p>
+</p><p>
+Failing to do this, results in a fatal error:
+</p><pre class="programlisting">
+  
+  FATAL org.mmbase.module.JMSendMail -
+      JMSendMail failure: Name mail is not bound in this Context
+  
+  </pre><p>
+</p><p>
+</p><div class="warning" style="margin-left: 0.5in; margin-right: 0.5in;"><h3 class="title">Warning</h3><p>
+Installing the <span class="application">Email</span> module
+in <span class="application">MMBase</span> version 1.7
+running on <span class="application">Tomcat</span> version 5
+resulted in a fatal error:
+</p><pre class="programlisting">
+  
+  FATAL org.mmbase.servlet.MMBaseStartThread -
+  Could not find the MMBase module!javax/mail/Session
+  
+  </pre><p>
+</p></div><p>
+</p></div></div><div class="navfooter"><hr><table width="100%" summary="Navigation footer"><tr><td width="40%" align="left"><a accesskey="p" href="ar01s08.html">Prev</a> </td><td width="20%" align="center"> </td><td width="40%" align="right"> <a accesskey="n" href="ar01s10.html">Next</a></td></tr><tr><td width="40%" align="left" valign="top">8. 
+Connecting <span class="application">MMBase</span>
+to <span class="application">MySQL</span>
+using <code class="systemitem">MySQL Connector/J</code>
+ </td><td width="20%" align="center"><a accesskey="h" href="index.html">Home</a></td><td width="40%" align="right" valign="top"> 10. 
+Configuring initial
+<span class="application">MMBase</span> settings
+</td></tr></table></div></body></html>

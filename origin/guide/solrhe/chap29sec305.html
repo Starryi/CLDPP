@@ -1,0 +1,132 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1"><title>2. The tar backup program</title><link rel="stylesheet" type="text/css" href="style.css"><meta name="generator" content="DocBook XSL Stylesheets V1.79.1"><meta name="keywords" content="RedHat, redhat, maddy, linus, linux, Linux, Securing, Optimising, security, secure, openna, gerhard"><link rel="home" href="index.html" title="Securing and Optimizing Linux"><link rel="up" href="whywhen.html" title="Chapter 33. Why's and When's of Backup and Restore"><link rel="prev" href="whatoback.html" title="1. What to backup"><link rel="next" href="chap29sec306.html" title="3. Automating backups with tar"></head><body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF"><div class="navheader"><table width="100%" summary="Navigation header"><tr><th colspan="3" align="center">2. The tar backup program</th></tr><tr><td width="20%" align="left"><a accesskey="p" href="whatoback.html">Prev</a> </td><th width="60%" align="center">Chapter 33. Why's and When's of Backup and Restore</th><td width="20%" align="right"> <a accesskey="n" href="chap29sec306.html">Next</a></td></tr></table><hr></div><div class="section"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="idm23462"></a>2. The tar backup program</h2></div></div></div><p>
+The tar backup program is an archiving program designed to store and extract files from an archive file known as a tarfile. A tarfile may be made on a tape drive; however, it is also common to write a tarfile to a normal file.
+</p><p>
+A simple backup is when you decide to make a backup of files on your system you must choose a backup scheme before the beginning of your backup procedure. A lot of strategic backup schemes exist, and depend on the backup policies you 
+want to use. In the following, We have shown you one backup scheme that you may use which takes advantage of the tar program's capabilities. This scheme is to first back up everything once, then back up everything that has been modified 
+since the previous backup. 
+</p><div class="orderedlist"><ol class="orderedlist" type="i"><li class="listitem"><p>
+The first backup is called a full backup
+</p></li><li class="listitem"><p>
+The subsequent ones are incremental backups.
+</p></li></ol></div><p>
+</p><p>
+With six tapes you can make backups every day; The procedure is to use tape 1 for the first full backup <span class="emphasis"><em>Friday 1</em></span>, and tapes 2 to 5 for the incremental backups <span class="emphasis"><em>Monday through Thursday</em></span>. Then, you make a new full backup 
+on tape 6 <span class="emphasis"><em>second Friday</em></span>, and start doing incremental ones with tapes 2 to 5 again. It's important to keep tape 1 at its state until you've got a new full backup with tape 6. 
+</p><p>
+In the following example below, we assume that we write the backup to a <acronym class="acronym">SCSI</acronym> tape drive named <code class="filename">/dev/st0,</code> and we backup the home directory <code class="filename">/home</code> of 
+our system. First of all, we must to move to the file system <code class="filename">/</code> partition. When creating an archive file, tar will strip leading <code class="literal">/</code> <span class="emphasis"><em>slash</em></span> characters from file path names. This 
+means that restored files may not end up in the same locations they were backed up from. Therefore, to solve the problem, the solution is to change to the <code class="filename">/</code> root directory before making all backups and 
+restorations.
+</p><p>
+To move to the <code class="filename">/</code> root directory, use the command:
+</p><pre class="screen">
+[root@deep]# <span class="command"><strong>cd</strong></span> /
+</pre><p>
+
+It is important to always start with a full backup; <span class="emphasis"><em>say on a Friday</em></span>, for example:
+</p><p><b>Friday 1. </b>
+use tape 1 for the first full backup.
+</p><pre class="screen">
+[root@deep] /# <span class="command"><strong>cd</strong></span> /
+[root@deep] /# <span class="command"><strong>tar</strong></span> cpf /dev/st0 --label=" full-backup created on `date '+%d-%B-%Y'`." \
+     	 --directory / home
+</pre><p>
+</p><p><b>Monday. </b>
+use tapes 2 for the incremental backups.
+</p><pre class="screen">
+[root@deep] /# <span class="command"><strong>cd</strong></span> /
+[root@deep] /# <span class="command"><strong>tar</strong></span> cpNf /dev/st0 --label=" full-backup created on `date '+%d-%B-%Y'`." \
+     	 --directory / home
+</pre><p>
+</p><p><b>Tuesday. </b>
+use tapes 3 for the incremental backups.
+</p><pre class="screen">
+[root@deep] /# <span class="command"><strong>cd</strong></span> /
+[root@deep] /# <span class="command"><strong>tar</strong></span> cpNf /dev/st0 --label=" full-backup created on `date '+%d-%B-%Y'`." \
+     	 --directory / home
+</pre><p>
+</p><p><b>Wednesday. </b>
+use tapes 4 for the incremental backups.
+</p><pre class="screen">
+[root@deep] /# <span class="command"><strong>cd</strong></span> /
+[root@deep] /# <span class="command"><strong>tar</strong></span> cpNf /dev/st0 --label=" full-backup created on `date '+%d-%B-%Y'`." \
+     	 --directory / home
+</pre><p>
+</p><p><b>Thursday. </b>
+use tapes 5 for the incremental backups.
+</p><pre class="screen">
+[root@deep] /# <span class="command"><strong>cd</strong></span> /
+[root@deep] /# <span class="command"><strong>tar</strong></span> cpNf /dev/st0 --label=" full-backup created on `date '+%d-%B-%Y'`." \
+     	 --directory / home
+</pre><p>
+</p><p><b>Friday 2. </b>
+use tape 6 for the new full backups.
+</p><pre class="screen">
+[root@deep] /# <span class="command"><strong>cd</strong></span> /
+[root@deep] /# <span class="command"><strong>tar</strong></span>  cpf /dev/st0 --label=" full-backup created on `date '+%d-%B-%Y'`." \
+     	 --directory / home
+</pre><p>
+</p><p>
+Now, start doing incremental ones with tapes 2 to 5 again and so on.
+
+</p><div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem"><p>
+      The <code class="literal">c</code> option specifies that an archive file is begin created.
+</p></li><li class="listitem"><p>
+The <code class="literal">p</code> option preserves permissions; file protection information will be <span class="emphasis"><em>remembered</em></span>.
+</p></li><li class="listitem"><p>
+The <code class="literal">N</code> option does an incremental backup and only stores files newer than DATE.
+</p></li><li class="listitem"><p>
+The <code class="literal">f</code> option states that the very next argument will be the name of the archive file or device being written.
+</p></li></ul></div><p>
+</p><p>
+Notice how a filename, which contains the current date, is derived, simply by enclosing the <code class="literal">date</code> command between two back-quote characters. A common naming convention is to add a <code class="literal">tar</code> suffix for non-compressed 
+archives, and a <code class="literal">tar.gz</code> suffix for compressed ones. Since we aren't able to specify a filename for the backup set, the  <code class="literal">--label</code> option can be used to write some information about the backup set into the 
+archive file itself. Finally, only the files contained in the <code class="filename">/home</code> are written to the tape.
+</p><p>
+Because the tape drive is a character device, it is not possible to specify an actual file name. Therefore, the file name used as an argument to <code class="literal">tar</code> is simply the name of the 
+device, <code class="filename">/dev/st0</code>, the first tape device. The <code class="filename">/dev/st0</code> device does not rewind after the backup set is written. Therefore it is possible to write multiple 
+sets on one tape. You may also refer to the device as <code class="filename">/dev/st0</code>, in which case the tape is automatically rewound after the backup set is written. When working with tapes you 
+can use the following commands to rewind and eject your tape:
+</p><pre class="screen">
+[root@deep] /# <span class="command"><strong>mt</strong></span> -f  /dev/st0 rewind
+[root@deep] /# <span class="command"><strong>mt</strong></span> -f  /dev/st0 offline
+</pre><p>
+</p><div class="caution" style="margin-left: 0.5in; margin-right: 0.5in;"><h3 class="title">
+<span class="inlinemediaobject"><img src="./images/Caution.gif" alt="Caution"></span>
+</h3><p>
+To reduce the space needed on a <code class="literal">tar</code> archive, the backups can be compressed with the <code class="literal">z</code> option of <span class="command"><strong>tar</strong></span> program. Unfortunately, using this option to compress backups can cause trouble. Due to 
+the nature of how compression works, if a single bit in the compressed backup is wrong, all the rest of the compressed data will be lost. It's recommended to NOT using compression, the <code class="literal">z</code> option to make backups with the <span class="command"><strong>tar</strong></span> command.
+</p></div><p>
+If your backup doesn't fit on one tape, you'll need to use the  <code class="literal">--multi-volume</code>  <code class="literal">-M</code> option:
+</p><pre class="screen">
+[root@deep] /# <span class="command"><strong>cd</strong></span> /
+[root@deep] /# <span class="command"><strong>tar</strong></span> cMpf /dev/st0 /home
+</pre><p>
+Prepare volume #2 for <code class="filename">/dev/st0</code> and hit return:
+</p><p>
+After you have made a backup, you should check that it is OK, using the <code class="literal">--compare</code> <code class="literal">-d</code> option as shown below:
+</p><pre class="screen">
+[root@deep] /# <span class="command"><strong>cd</strong></span> /
+[root@deep] /# <span class="command"><strong>tar</strong></span> dvf /dev/st0
+</pre><p>
+</p><p>
+To perform a backup of your entire system, use the following command:
+</p><pre class="screen">
+[root@deep] /# <span class="command"><strong>cd</strong></span> /
+[root@deep] /# <span class="command"><strong>tar</strong></span>  cpf /archive/full-backup-`date '+%d-%B-%Y'`.<span class="command"><strong>tar</strong></span> \
+ --directory / --exclude=proc --exclude=mnt --exclude=archive \
+ --exclude=cache --exclude=*/lost+found .
+</pre><p>
+</p><div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem"><p>
+The  <code class="literal">--directory</code> option tells <span class="command"><strong>tar</strong></span> to first switch to the following directory path, the <code class="filename">/</code> directory in this example, prior to starting the backup. 
+</p></li><li class="listitem"><p>
+The  <code class="literal">--exclude</code> options tells <span class="command"><strong>tar</strong></span> not to bother backing up the specified directories or files. 
+</p></li><li class="listitem"><p>
+The <code class="literal">.</code> character at the end of the command tells <span class="command"><strong>tar</strong></span> that it should back up everything in the current directory.
+</p></li></ul></div><p>
+</p><div class="caution" style="margin-left: 0.5in; margin-right: 0.5in;"><h3 class="title">
+<span class="inlinemediaobject"><img src="./images/Caution.gif" alt="Caution"></span>
+</h3><p>
+When backing up your file systems, do not include the <code class="filename">/proc</code> pseudo-file-system! The files in <code class="filename">/proc</code> are not actually files but are simply file-like links which describe 
+and point to kernel data structures. Also, do not include the <code class="filename">/mnt</code>, <code class="filename">/archive</code>, and all <code class="filename">lost+found</code> directories.
+</p></div></div><div class="navfooter"><hr><table width="100%" summary="Navigation footer"><tr><td width="40%" align="left"><a accesskey="p" href="whatoback.html">Prev</a> </td><td width="20%" align="center"><a accesskey="u" href="whywhen.html">Up</a></td><td width="40%" align="right"> <a accesskey="n" href="chap29sec306.html">Next</a></td></tr><tr><td width="40%" align="left" valign="top">1. What to backup </td><td width="20%" align="center"><a accesskey="h" href="index.html">Home</a></td><td width="40%" align="right" valign="top"> 3. Automating backups with <span class="command"><strong>tar</strong></span></td></tr></table></div></body></html>

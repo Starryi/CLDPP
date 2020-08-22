@@ -1,0 +1,64 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1"><title>7. Good distribution-making practice</title><link rel="stylesheet" type="text/css" href="style.css"><meta name="generator" content="DocBook XSL Stylesheets V1.79.1"><link rel="home" href="index.html" title="Software Release Practice HOWTO"><link rel="up" href="index.html" title="Software Release Practice HOWTO"><link rel="prev" href="ar01s06.html" title="6. Good development practice"><link rel="next" href="ar01s08.html" title="8. Good documentation practice"></head><body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF"><div class="navheader"><table width="100%" summary="Navigation header"><tr><th colspan="3" align="center">7. Good distribution-making practice</th></tr><tr><td width="20%" align="left"><a accesskey="p" href="ar01s06.html">Prev</a> </td><th width="60%" align="center"> </th><td width="20%" align="right"> <a accesskey="n" href="ar01s08.html">Next</a></td></tr></table><hr></div><div class="sect1"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="distpractice"></a>7. Good distribution-making practice</h2></div></div></div><p>These guidelines describe how your distribution should look when
+someone downloads, retrieves and unpacks it.</p><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="tarballs"></a>7.1. Make sure tarballs always unpack into a single new directory</h3></div></div></div><p>The single most annoying mistake newbie developers make is to build
+tarballs that unpack the files and directories in the distribution into
+the current directory, potentially stepping on files already located there.
+<span class="emphasis"><em>Never do this!</em></span></p><p>Instead, make sure your archive files all have a common directory part
+named after the project, so they will unpack into a single top-level 
+directory directly <span class="emphasis"><em>beneath</em></span> the current one.</p><p>Here's a makefile trick that, assuming your distribution directory is
+named `foobar' and SRC contains a list of your distribution files,
+accomplishes this. SRC may also contain names of subdirectories to 
+be included whole.</p><pre class="programlisting">
+foobar-$(VERS).tar.gz:
+	@find $(SRC) -type f | sed s:^:foobar-$(VERS)/: &gt;MANIFEST
+	@(cd ..; ln -s foobar foobar-$(VERS))
+	(cd ..; tar -czvf foobar/foobar-$(VERS).tar.gz `cat foobar/MANIFEST`)
+	@(cd ..; rm foobar-$(VERS))
+</pre></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="readme"></a>7.2. Have a README</h3></div></div></div><p>Have a file called <code class="filename">README</code> or
+<code class="filename">READ.ME</code> that is a roadmap of your source
+distribution.  By ancient convention, this is the first file intrepid
+explorers will read after unpacking the source.</p><p>Good things to have in the README include:</p><div class="orderedlist"><ol class="orderedlist" type="1"><li class="listitem"><p>A brief description of the project.</p></li><li class="listitem"><p>A pointer to the project website (if it has 
+one)</p></li><li class="listitem"><p>Notes on the developer's build environment and
+potential portability problems.</p></li><li class="listitem"><p>A roadmap describing important files and subdirectories.</p></li><li class="listitem"><p>Either build/installation instructions or a pointer to a file
+containing same (usually <code class="filename">INSTALL</code>).</p></li><li class="listitem"><p>Either a maintainers/credits list or a pointer to a
+file containing same (usually
+<code class="filename">CREDITS</code>).</p></li><li class="listitem"><p>Either recent project news or a pointer to a file
+containing same (usually <code class="filename">NEWS</code>).</p></li></ol></div></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="filenames"></a>7.3. Respect and follow standard file naming practices</h3></div></div></div><p>Before even looking at the README, your intrepid explorer will
+have scanned the filenames in the top-level directory of your unpacked
+distribution.  Those names can themselves convey information.  By
+adhering to certain standard naming practices, you can give the
+explorer valuable clues about what to look in next.</p><p>Here are some standard top-level file names and what they mean.  Not
+every distribution needs all of these.</p><div class="variablelist"><dl class="variablelist"><dt><span class="term">README or READ.ME</span></dt><dd><p>the roadmap file, to be read first</p></dd><dt><span class="term">INSTALL</span></dt><dd><p> configuration, build, and installation instructions</p></dd><dt><span class="term">AUTHORS</span></dt><dd><p> list of project contributers.</p><p>An older, still-acceptable convention for this is to name it CREDITS</p></dd><dt><span class="term">NEWS</span></dt><dd><p> recent project news</p></dd><dt><span class="term">HISTORY</span></dt><dd><p> project history</p></dd><dt><span class="term">COPYING</span></dt><dd><p> project license terms (GNU convention)</p></dd><dt><span class="term">LICENSE</span></dt><dd><p> project license terms</p></dd><dt><span class="term">MANIFEST</span></dt><dd><p> list of files in the distribution</p></dd><dt><span class="term">FAQ</span></dt><dd><p> plain-text Frequently-Asked-Questions document for
+the project</p></dd><dt><span class="term">TAGS</span></dt><dd><p> generated tag file for use by Emacs or vi</p></dd></dl></div><p>Note the overall convention that filenames with all-caps names are
+human-readable metainformation about the package, rather than build
+components (TAGS is an exception to the first, but not to the second).</p><p>Having a FAQ can save you a lot of grief.  When a question about the
+project comes up often, put it in the FAQ; then direct users to read the
+FAQ before sending questions or bug reports.  A well-nurtured FAQ can
+decrease the support burden on the project maintainers by an order of
+magnitude or more.</p><p>Having a HISTORY or NEWS file with timestamps in it for each release
+is valuable.  Among other things, it may help establish prior art if
+you are ever hit with a patent-infringement lawsuit (this hasn't
+happened to anyone yet, but best to be prepared).</p></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="upgradeability"></a>7.4. Design for Upgradability</h3></div></div></div><p>Your software will change over time as you put out new releases.  Some
+of these changes will not be backward-compatible.  Accordingly, you
+should give serious thought to designing your installation layouts so
+that multiple installed versions of your code can coexist on the same
+system.  This is especially important for libraries &#8212; you can't 
+count on all your client programs to upgrade in lockstep with your
+API changes.</p><p>The Emacs, Python, and Qt projects have a good convention for handling
+this; version-numbered directories.  Here's how an installed Qt
+library hierarchy looks (${ver} is the version number):</p><pre class="screen">
+/usr/lib/qt
+/usr/lib/qt-${ver}
+/usr/lib/qt-${ver}/bin          # Where you find moc
+/usr/lib/qt-${ver}/lib          # Where you find .so
+/usr/lib/qt-${ver}/include      # Where you find header files
+</pre><p>With this organization, you can have multiple versions
+coexisting.  Client programs have to specify the library version they
+want, but that's a small price to pay for not having the interfaces
+break on them.</p></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="checksums"></a>7.5. Provide checksums</h3></div></div></div><p>Provide checksums with your binaries (tarballs, RPMs, etc.).  This
+will allow people to verify that they haven't been corrupted or had
+Trojan-horse code inserted in them.</p><p>While there are several commands you can use for this purpose (such
+as <span class="command"><strong>sum</strong></span> and <span class="command"><strong>cksum</strong></span>) it is best to use a
+cryptographically-secure hash function.  The GPG package provides this
+capability via the <code class="option">&#8212;detach-sign</code> option; so does the GNU
+command <span class="command"><strong>md5sum</strong></span>.</p><p>For each binary you ship, your project web page should list
+the checksum and the command you used to generate it.</p></div></div><div class="navfooter"><hr><table width="100%" summary="Navigation footer"><tr><td width="40%" align="left"><a accesskey="p" href="ar01s06.html">Prev</a> </td><td width="20%" align="center"> </td><td width="40%" align="right"> <a accesskey="n" href="ar01s08.html">Next</a></td></tr><tr><td width="40%" align="left" valign="top">6. Good development practice </td><td width="20%" align="center"><a accesskey="h" href="index.html">Home</a></td><td width="40%" align="right" valign="top"> 8. Good documentation practice</td></tr></table></div></body></html>

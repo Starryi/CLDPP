@@ -1,0 +1,117 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1"><title>5. Link Aggregation and High Availability with Bonding</title><link rel="stylesheet" type="text/css" href="style.css"><meta name="generator" content="DocBook XSL Stylesheets V1.79.1"><meta name="keywords" content="linux, ip, iproute2, ifconfig, firewall, ARP, NAT, route, routing, route selection, routing selection, network administration"><link rel="home" href="index.html" title="Guide to IP Layer Network Administration with Linux"><link rel="up" href="ch02.html" title="Chapter 2. Ethernet"><link rel="prev" href="ch02s04.html" title="4. Connecting to an Ethernet 802.1q VLAN"><link rel="next" href="ch03.html" title="Chapter 3. Bridging"></head><body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF"><div class="navheader"><table width="100%" summary="Navigation header"><tr><th colspan="3" align="center">5. Link Aggregation and High Availability with Bonding</th></tr><tr><td width="20%" align="left"><a accesskey="p" href="ch02s04.html">Prev</a> </td><th width="60%" align="center">Chapter 2. Ethernet</th><td width="20%" align="right"> <a accesskey="n" href="ch03.html">Next</a></td></tr></table><hr></div><div class="section"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="ether-bonding"></a>5. Link Aggregation and High Availability with Bonding</h2></div></div></div><a class="indexterm" name="idm1287"></a><p>
+      Networking vendors have long offered a functionality for aggregating
+      bandwidth across multiple physical links to a switch.  
+      This allows a machine (frequently a server) to treat multiple
+      physical connections to switch units as a single logical link.
+      The standard moniker for this technology is IEEE 802.3ad, although
+      it is known by the common names of trunking, port trunking
+      and link aggregation.  The conventional use of bonding under linux is
+      an implementation of this
+      <a class="link" href="ch02s05.html#ether-bonding-aggregation" title="5.1. Link Aggregation">link aggregation</a>.
+    </p><p>
+      A separate use of the same driver allows the kernel to present a single
+      logical interface for two physical links to two separate
+      switches.  Only one link is used at any given time.  By using media
+      independent interface signal failure to detect when a switch or link
+      becomes unusable, the kernel can, transparently to userspace and
+      application layer services, fail to the backup physical connection.
+      Though not common, the failure of switches, network interfaces, and
+      cables can cause outages.  As a component of high availability planning,
+      <a class="link" href="ch02s05.html#ether-bonding-ha" title="5.2. High Availability">these bonding techniques</a>
+      can help reduce the number of single points of failure.
+    </p><p>
+      For more information on bonding, see the
+      <code class="filename">Documentation/networking/bonding.txt</code> from the linux
+      source code tree.
+    </p><p>
+    </p><div class="section"><div class="titlepage"><div><div><h3 class="title"><a name="ether-bonding-aggregation"></a>5.1. Link Aggregation</h3></div></div></div><a class="indexterm" name="idm1298"></a><a class="indexterm" name="idm1301"></a><p>
+        Bonding for link aggregation must be supported by both endpoints.
+        Two linux machines connected via crossover cables can take advantage
+        of link aggregation.  A single machine connected with two physical
+        cables to a switch which supports port trunking can use link
+        aggregation to the switch.
+        Any conventional switch
+        will become ineffably confused by a hardware address appearing on
+        multiple ports simultaneously.
+      </p><div class="example"><a name="ex-ether-bonding-aggregation"></a><p class="title"><b>Example 2.12. Link aggregation bonding</b></p><div class="example-contents"><pre class="programlisting">
+<code class="prompt">[root@real-server root]# </code><strong class="userinput"><code>modprobe  bonding</code></strong>
+<code class="prompt">[root@real-server root]# </code><strong class="userinput"><code>ip addr add 192.168.100.33/24 brd + dev bond0</code></strong>
+<code class="prompt">[root@real-server root]# </code><strong class="userinput"><code>ip link set dev bond0 up</code></strong>
+<code class="prompt">[root@real-server root]# </code><strong class="userinput"><code>ifenslave  bond0 eth2 eth3</code></strong>
+<code class="computeroutput">master has no hw address assigned; getting one from slave!
+The interface eth2 is up, shutting it down it to enslave it.
+The interface eth3 is up, shutting it down it to enslave it.</code>
+<code class="prompt">[root@real-server root]# </code><strong class="userinput"><code>ifenslave  bond0 eth2 eth3</code></strong>
+<code class="prompt">[root@real-server root]# </code><strong class="userinput"><code>cat /proc/net/bond0/info</code></strong>
+<code class="computeroutput">Bonding Mode: load balancing (round-robin)
+MII Status: up
+MII Polling Interval (ms): 0
+Up Delay (ms): 0
+Down Delay (ms): 0
+
+Slave Interface: eth2
+MII Status: up
+Link Failure Count: 0
+
+Slave Interface: eth3
+MII Status: up
+Link Failure Count: 0</code>
+        </pre></div></div><br class="example-break"><p>
+        FIXME;  Need an experiment here....maybe a tcpdump to show how the
+        management frames appear on the wire.
+      </p><p>
+        This
+        <a class="ulink" href="http://www.beowulf.org/software/bonding.html" target="_top">Beowulf
+        software page</a> describes in a bit more detail the rationale and
+        a practical application of linux channel bonding (for link
+        aggregation).
+      </p><p>
+      </p><p>
+      </p></div><div class="section"><div class="titlepage"><div><div><h3 class="title"><a name="ether-bonding-ha"></a>5.2. High Availability</h3></div></div></div><a class="indexterm" name="idm1328"></a><p>
+        Bonding support under linux is part of a high availability solution.
+        For an entry point into the complexity of high availability in
+        conjunction with linux, see the
+        <a class="ulink" href="http://linux-ha.org/" target="_top">linux-ha.org</a> site.  To guard
+        against layer two (switch) and layer one (cable) failure, a machine
+        can be configured with multiple physical connections to separate
+        switch devices while presenting a single logical interface to
+        userspace.
+      </p><p>
+        The name of the interface can be specified by the user.  It is
+        commonly <code class="constant">bond0</code> or something similar.  As a
+        logical interface, it can be used in routing tables and by
+        <a class="link" href="apgs05.html" title="5. tcpdump"><span class="command"><strong>tcpdump</strong></span></a>.
+      </p><p>
+        The bond interface, when created, has no link layer address.  In the
+        example below, an address is manually added to the interface.  See
+        <a class="xref" href="ch02s05.html#ex-ether-bonding-aggregation" title="Example 2.12. Link aggregation bonding">Example 2.12, &#8220;Link aggregation bonding&#8221;</a> for an example of the
+        bonding driver reporting setting the link layer address when the first
+        device is enslaved to the bond (doesn't that sound cruel!).
+      </p><div class="example"><a name="ex-ether-bonding-ha"></a><p class="title"><b>Example 2.13. High availability bonding</b></p><div class="example-contents"><pre class="programlisting">
+<code class="prompt">[root@real-server root]# </code><strong class="userinput"><code>modprobe bonding mode=1 miimon=100 downdelay=200 updelay=200</code></strong>
+<code class="prompt">[root@real-server root]# </code><strong class="userinput"><code>ip link set dev bond0 addr 00:80:c8:e7:ab:5c</code></strong>
+<code class="prompt">[root@real-server root]# </code><strong class="userinput"><code>ip addr add 192.168.100.33/24 brd + dev bond0</code></strong>
+<code class="prompt">[root@real-server root]# </code><strong class="userinput"><code>ip link set dev bond0 up</code></strong>
+<code class="prompt">[root@real-server root]# </code><strong class="userinput"><code>ifenslave  bond0 eth2 eth3</code></strong>
+<code class="computeroutput">The interface eth2 is up, shutting it down it to enslave it.
+The interface eth3 is up, shutting it down it to enslave it.</code>
+<code class="prompt">[root@real-server root]# </code><strong class="userinput"><code>ip link show eth2 ; ip link show eth3 ; ip link show bond0</code></strong>
+<code class="computeroutput">4: eth2: &lt;BROADCAST,MULTICAST,SLAVE,UP&gt; mtu 1500 qdisc pfifo_fast master bond0 qlen 100
+  link/ether 00:80:c8:e7:ab:5c brd ff:ff:ff:ff:ff:ff
+5: eth3: &lt;BROADCAST,MULTICAST,NOARP,SLAVE,DEBUG,AUTOMEDIA,PORTSEL,NOTRAILERS,UP&gt; mtu 1500 qdisc pfifo_fast master bond0 qlen 100
+  link/ether 00:80:c8:e7:ab:5c brd ff:ff:ff:ff:ff:ff
+58: bond0: &lt;BROADCAST,MULTICAST,MASTER,UP&gt; mtu 1500 qdisc noqueue
+  link/ether 00:80:c8:e7:ab:5c brd ff:ff:ff:ff:ff:ff</code>
+        </pre></div></div><br class="example-break"><p>
+        Immediately noticeable, there is a new flag in the <span class="command"><strong>ip link
+        show</strong></span> output.  The <code class="constant">MASTER</code> and
+        <code class="constant">SLAVE</code> flags clearly report the nature of the
+        relationship between the interfaces.  Also, the Ethernet interfaces
+        indicate the master interface via the keywords <code class="constant">master
+        bond0</code>.
+      </p><p>
+        Note also, that all three of the interfaces share the same link layer
+        address, <code class="constant">00:80:c8:e7:ab:5c</code>.
+      </p><p>
+        FIXME; What doe DEBUG,AUTOMEDIA,PORTSEL,NOTRAILERS mean?
+      </p></div></div><div class="navfooter"><hr><table width="100%" summary="Navigation footer"><tr><td width="40%" align="left"><a accesskey="p" href="ch02s04.html">Prev</a> </td><td width="20%" align="center"><a accesskey="u" href="ch02.html">Up</a></td><td width="40%" align="right"> <a accesskey="n" href="ch03.html">Next</a></td></tr><tr><td width="40%" align="left" valign="top">4. Connecting to an Ethernet 802.1q VLAN </td><td width="20%" align="center"><a accesskey="h" href="index.html">Home</a></td><td width="40%" align="right" valign="top"> Chapter 3. Bridging</td></tr></table></div></body></html>

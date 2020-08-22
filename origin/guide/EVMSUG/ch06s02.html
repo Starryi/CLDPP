@@ -1,0 +1,79 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1"><title>2. Types of segment managers</title><link rel="stylesheet" type="text/css" href="style.css"><meta name="generator" content="DocBook XSL Stylesheets V1.79.1"><link rel="home" href="index.html" title="EVMS User Guide"><link rel="up" href="ch06.html" title="Chapter 6. Adding and removing a segment manager"><link rel="prev" href="ch06s01.html" title="1. When to add a segment manager"><link rel="next" href="ch06s03.html" title="3. Adding a segment manager to an existing disk"></head><body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF"><div class="navheader"><table width="100%" summary="Navigation header"><tr><th colspan="3" align="center">2. Types of segment managers</th></tr><tr><td width="20%" align="left"><a accesskey="p" href="ch06s01.html">Prev</a> </td><th width="60%" align="center">Chapter 6. Adding and removing a segment manager</th><td width="20%" align="right"> <a accesskey="n" href="ch06s03.html">Next</a></td></tr></table><hr></div><div class="sect1"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="smtypes"></a>2. Types of segment managers</h2></div></div></div><p>There are seven types of segment managers in EVMS: DOS, GPT, S/390, Cluster,  BSD, MAC, and BBR. </p><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="defaultseg"></a>2.1. DOS Segment Manager</h3></div></div></div><p>The most
+		commonly used segment manager is the DOS Segment Manager. This plug-in
+		provides support for traditional DOS disk partitioning. The 
+		DOS Segment Manager also recognizes and supports the following variations 
+		of the DOS partitioning scheme:
+		</p><div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem"><p>OS/2:  an OS/2 disk has additional metadata 
+		sectors that contain information needed to reconstruct disk segments.</p></li><li class="listitem"><p>Embedded partitions: support for BSD, SolarisX86, and UnixWare  
+			is sometimes found embedded in primary DOS partitions. 
+			The DOS Segment Manager  recognizes and supports these 
+			slices as disk segments.</p></li></ul></div></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="gptseg"></a>2.2. GUID Partitioning Table (GPT) Segment Manager</h3></div></div></div><p>The GUID Partitioning Table (GPT) Segment Manager handles the 
+		new GPT partitioning scheme 
+		on IA-64 machines. The Intel 
+		<em class="citetitle">Extensible Firmware Interface Specification</em>
+ 		requires that firmware be able to discover partitions and produce logical devices that 
+		correspond to disk partitions.  The partitioning scheme described in 
+		the specification is called GPT due to the extensive use of 
+		Globally Unique Identifier (GUID) tagging. GUID is a 128 bit long 
+		identifier, also referred to as a Universally Unique Identifier (UUID).   
+		As described in the Intel <em class="citetitle">Wired For Management Baseline Specification</em>,  
+		a GUID is a combination of  time and space fields that produce an 
+		identifier that is unique across an entire UUID space.  
+		These identifiers are used extensively on GPT partitioned disks 
+		for tagging entire disks and individual partitions. 
+		GPT partitioned disks serve several functions, such as:</p><div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem"><p>keeping a primary and backup copy of metadata</p></li><li class="listitem"><p>replacing msdos partition nesting by allowing many partitions</p></li><li class="listitem"><p>using 64 bit logical block addressing</p></li><li class="listitem"><p>tagging partitions and disks with GUID descriptors</p></li></ul></div><p>The GPT Segment Manager scales better to large disks. It provides more redundancy with added reliability and uses unique names. However, the GPT Segment Manager is not compatible with DOS, OS/2, or Windows®. </p></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="s390sm"></a>2.3. S/390 Segment Manager</h3></div></div></div><p>The S/390 Segment Manager is used exclusively on System/390 
+		mainframes.  The S/390 Segment Manager has the ability to recognize 
+		various disk layouts found on an S/390 machine, and provide 
+		disk segment support for this architecture. The two most common disk 
+		layouts are Linux Disk Layout (LDL) and Common Disk Layout (CDL). </p><p>The principle difference between LDL and CDL is that an LDL disk 
+		cannot be further subdivided. An LDL disk will produce a single metadata 
+		disk segment and a single data disk segment. There is no freespace on an 
+		LDL disk, and you cannot delete or re-size the data segment. A CDL disk can 
+		be subdivided into multiple data disk segments 
+		because it contains metadata that is missing from an LDL disk, specifically 
+		the Volume Table of Contents (vtoc) information.</p><p>The S/390 Segment  Manager is the only segment manager plug-in 
+		capable of understanding the unique S/390 disk layouts. The S/390 Segment Manager 
+		cannot be added or removed from a disk. </p></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="idm884"></a>2.4. Cluster segment manager</h3></div></div></div><p>The cluster segment manager (CSM) supports high availability clusters.  When the
+CSM is added to a shared storage disk, it writes metadata on the disk that:</p><div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem"><p>provides a unique disk ID (guid)</p></li><li class="listitem"><p>names the EVMS container the disk will reside within</p></li><li class="listitem"><p>specifies the cluster node (nodeid) that owns the disk</p></li><li class="listitem"><p>specifies the cluster (clusterid)</p></li></ul></div><p>This metadata allows the CSM to build containers for supporting failover situations.
+It does so by constructing an EVMS container object that consumes all shared disks
+discovered by the CSM and belonging to the same container.  These shared storage
+disks are consumed by the container and a single data segment is produced by the
+container for each consumed disk.  A failover of the EVMS resource is
+accomplished by simply reassigning the CSM container to the standby cluster node and
+having that node re-run its discovery process.</p><p>Adding disks to CSM containers implies that only disk storage objects are
+acceptable to the CSM.  This is an important aspect of the CSM.  Other segment
+managers can be embedded within storage objects and used to further subdivide them. 
+However, the CSM cannot add any other kind of storage object to a CSM container
+because the container is meant to be a disk group and the entire disk group is
+reassigned during a failover.  So, the CSM only accepts disks when constructing
+containers.  This is important to remember when adding the CSM to a disk.  If you
+choose <span class="command"><strong>Add</strong></span> and the CSM does not appear in the list of selectable plug-ins when you know you have a disk, you should look at the Volume list and see if the disk has
+already been listed as a compatibility volume.  If you simply delete the volume, the disk will
+become an available object and the CSM will then appear in the list of plug-ins
+because it now has an available disk that it can add to a container.</p></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="idm899"></a>2.5. BSD segment manager</h3></div></div></div><p>BSD refers to the Berkeley Software Distribution UNIX® operating system.  The EVMS
+BSD segment manager is responsible for recognizing and producing EVMS segment
+storage objects that map BSD partitions.  A BSD disk may have a slice table in the
+very first sector on the disk for compatibility purposes with other operating systems.
+For example, a DOS slice table might be found in the usual MBR sector.  The BSD disk
+would then be found within a disk slice that is located using the compatibility slice table.
+However, BSD has no need for the slice table and can fully dedicate the disk to
+itself by placing the disk label in the very first sector.  This is called a "fully dedicated
+disk" because BSD uses the entire disk and does not provide a compatibility slice table.
+The BSD segment manager recognizes such "fully dedicated disks" and provides mappings for
+the BSD partitions.</p></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="idm902"></a>2.6. MAC segment manager</h3></div></div></div><p>Apple-partitioned disks use a disk label that is recognized by the MAC segment
+manager.  The MAC segment manager recognizes the disk label during discovery and 
+creates EVMS
+segments to map the MacOS disk partitions.</p></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="idm905"></a>2.7. BBR segment manager</h3></div></div></div><p>The bad block replacement (BBR) segment manager enhances the reliability of
+a disk by remapping bad storage blocks.  When BBR is added to a disk, it writes
+metadata on the disk that:</p><div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem"><p>reserves replacement blocks</p></li><li class="listitem"><p>maps bad blocks to reserved blocks</p></li></ul></div><p>Bad blocks occur when an I/O error is detected for a write operation.
+When this happens, I/O normally fails and the failure code is returned to the
+calling program code.  BBR detects failed write operations and remaps the I/O to a
+reserved block on the disk.  Afterward, BBR restarts the I/O using the reserve block.</p><p>Every block of storage has an address, called a logical block address, or LBA.
+When BBR is added to a disk, it provides two critical functions: remap and recovery.
+When an I/O operation is sent to disk, BBR inspects the LBA in the I/O command to see
+if the LBA has been remapped to a reserve block due to some earlier I/O error.
+If BBR finds a mapping between the LBA and a reserve block, it updates the I/O
+command with the LBA of the reserve block before sending it on to the disk.
+Recovery occurs when BBR detects an I/O error and remaps the bad block to a 
+reserve block.  The new LBA mapping is saved in BBR metadata so that subsequent
+I/O to the LBA can be remapped.</p></div></div><div class="navfooter"><hr><table width="100%" summary="Navigation footer"><tr><td width="40%" align="left"><a accesskey="p" href="ch06s01.html">Prev</a> </td><td width="20%" align="center"><a accesskey="u" href="ch06.html">Up</a></td><td width="40%" align="right"> <a accesskey="n" href="ch06s03.html">Next</a></td></tr><tr><td width="40%" align="left" valign="top">1. When to add a segment manager </td><td width="20%" align="center"><a accesskey="h" href="index.html">Home</a></td><td width="40%" align="right" valign="top"> 3. Adding a segment manager to an existing disk</td></tr></table></div></body></html>

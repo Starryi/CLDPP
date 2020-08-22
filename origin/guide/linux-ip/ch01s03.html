@@ -1,0 +1,257 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1"><title>3. Changing IP Addresses and Routes</title><link rel="stylesheet" type="text/css" href="style.css"><meta name="generator" content="DocBook XSL Stylesheets V1.79.1"><meta name="keywords" content="linux, ip, iproute2, ifconfig, firewall, ARP, NAT, route, routing, route selection, routing selection, network administration"><link rel="home" href="index.html" title="Guide to IP Layer Network Administration with Linux"><link rel="up" href="ch01.html" title="Chapter 1. Basic IP Connectivity"><link rel="prev" href="ch01s02.html" title="2. Reading Routes and IP Information"><link rel="next" href="ch01s04.html" title="4. Conclusion"></head><body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF"><div class="navheader"><table width="100%" summary="Navigation header"><tr><th colspan="3" align="center">3. Changing IP Addresses and Routes</th></tr><tr><td width="20%" align="left"><a accesskey="p" href="ch01s02.html">Prev</a> </td><th width="60%" align="center">Chapter 1. Basic IP Connectivity</th><td width="20%" align="right"> <a accesskey="n" href="ch01s04.html">Next</a></td></tr></table><hr></div><div class="section"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="basic-changing"></a>3. Changing IP Addresses and Routes</h2></div></div></div><p>
+        This section introduces
+        <a class="link" href="ch01s03.html#basic-changing-ip" title="3.1. Changing the IP on a machine">changing the IP address
+        on an interface</a>,
+        <a class="link" href="ch01s03.html#basic-changing-default" title="3.2. Setting the Default Route">changing the default
+        gateway</a>, and 
+        <a class="link" href="ch01s03.html#basic-changing-static" title="3.3. Adding and removing a static route">adding and removing a
+        static route</a>.  With the knowledge of
+        <span class="command"><strong>ifconfig</strong></span> and <span class="command"><strong>route</strong></span> output
+        it's a small step to
+        learn how to change IP configuration with these same tools.
+      </p><div class="section"><div class="titlepage"><div><div><h3 class="title"><a name="basic-changing-ip"></a>3.1. Changing the IP on a machine</h3></div></div></div><p>
+        For a practical example, let's say that the branch office server,
+        <code class="systemitem">morgan</code>, needs to visit the main office for some hardware maintenance.
+        Since the services on the machine are not in use, it's a convenient
+        time to fetch some software updates, after configuring the machine to
+        join the LAN.
+      </p><p>
+        Once the machine is booted and connected to the Ethernet, it's 
+        ready for IP reconfiguration.  In order to join an 
+        IP network, the following information is required.  Refer to the 
+        <a class="link" href="apas01.html" title="1. Example Network Map and General Notes">network map and
+        appendix</a> to gather the required information below.
+      </p><div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem"><p>
+            An unused IP address (<span class="emphasis"><em>Use 192.168.99.14.</em></span>)
+          </p></li><li class="listitem"><p>
+            netmask (<span class="emphasis"><em>What's your guess?</em></span>)
+          </p></li><li class="listitem"><p>
+            IP address of the default gateway (<span class="emphasis"><em>What's your
+            guess?</em></span>)
+          </p></li><li class="listitem"><p>
+            network address
+            <a href="#ftn.idm543" class="footnote" name="idm543"><sup class="footnote">[5]</sup></a>
+            (<span class="emphasis"><em>What's your guess?</em></span>)
+          </p></li><li class="listitem"><p>
+            The IP address of a name resolver. (<span class="emphasis"><em>Use the IP
+            of the default gateway here</em></span>
+            <a href="#ftn.idm551" class="footnote" name="idm551"><sup class="footnote">[6]</sup></a>.
+            )
+          </p></li></ul></div><div class="example"><a name="ex-basic-before-change"></a><p class="title"><b>Example 1.5. <span class="command">ifconfig</span> and <span class="command">route</span>
+          output before the change</b></p><div class="example-contents"><pre class="programlisting">
+<code class="prompt">[root@morgan]# </code><strong class="userinput"><code>ifconfig eth0</code></strong>
+<code class="computeroutput">eth0      Link encap:Ethernet  HWaddr 00:80:C8:F8:4A:53  
+          inet addr:192.168.98.82  Bcast:192.168.98.255  Mask:255.255.255.0
+          UP BROADCAST RUNNING MULTICAST  MTU:1500  Metric:1
+          RX packets:0 errors:0 dropped:0 overruns:0 frame:0
+          TX packets:0 errors:0 dropped:0 overruns:0 carrier:0
+          collisions:0 txqueuelen:100 
+          RX bytes:0 (0.0 b)  TX bytes:0 (0.0 b)
+          Interrupt:9 Base address:0x5000 
+</code>
+<code class="prompt">[root@morgan]# </code><strong class="userinput"><code>route -n</code></strong>
+<code class="computeroutput">Kernel IP routing table
+Destination     Gateway         Genmask         Flags Metric Ref    Use Iface
+192.168.98.0    0.0.0.0         255.255.255.0   U     0      0        0 eth0
+127.0.0.0       0.0.0.0         255.0.0.0       U     0      0        0 lo
+0.0.0.0         192.168.98.254  0.0.0.0         UG    0      0        0 eth0</code>
+        </pre></div></div><br class="example-break"><p>
+        The process of readdressing for the new network involves three steps.
+        It is clear in
+        <a class="xref" href="ch01s03.html#ex-basic-before-change" title="Example 1.5. ifconfig and route output before the change">Example 1.5, &#8220;<span class="command">ifconfig</span> and <span class="command">route</span>
+          output before the change&#8221;</a>, that <code class="systemitem">morgan</code> is configured
+        for a different network than the main office desktop network.
+        First, the 
+        <a class="link" href="ch01s03.html#ex-basic-ifconfig-down" title="Example 1.6. Bringing down a network interface with ifconfig">active interface must be
+        brought down</a>, then a
+        <a class="link" href="ch01s03.html#ex-basic-ifconfig-up" title="Example 1.7. Bringing up an Ethernet interface with ifconfig">new address must be configured
+        on the interface and brought up</a>, and finally
+        <a class="link" href="ch01s03.html#ex-basic-set-default" title="Example 1.8. Adding a default route with route">a new default route must be
+        added</a>.  If the networking configuration is correct and the
+        process is successful, the machine should be able to connect to local
+        and non-local destinations.
+      </p><div class="example"><a name="ex-basic-ifconfig-down"></a><p class="title"><b>Example 1.6. Bringing down a network interface with
+          <span class="command">ifconfig</span></b></p><div class="example-contents"><pre class="programlisting">
+<code class="prompt">[root@morgan]# </code><strong class="userinput"><code>ifconfig eth0 down</code></strong>
+        </pre></div></div><br class="example-break"><p>
+        This is a fast way to stop networking on a single-homed machine such
+        as a server or workstation.  On multi-homed hosts, other
+        interfaces on the machine would
+        be unaffected by this command.  This method of bringing down an
+        interface has some serious side effects, which should be understood.
+        Here is a summary of the side effects of bringing down an interface.
+      </p><a name="list-basic-ifconfig-side-effects-down"></a><div class="itemizedlist"><p class="title"><b>Side effects of bringing down an interface with
+          <span class="command"><strong>ifconfig</strong></span></b></p><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem"><p>
+            all IP addresses on the specified interface are deactivated
+            and removed
+          </p></li><li class="listitem"><p>
+            any connections established to or from IPs on the specified
+            interface are broken
+            <a href="#ftn.idm586" class="footnote" name="idm586"><sup class="footnote">[7]</sup></a>
+          </p></li><li class="listitem"><p>
+            all routes to any destinations through the specified interface
+            are removed from the routing tables
+          </p></li><li class="listitem"><p>
+            the link layer device is deactivated
+          </p></li></ul></div><p>
+        The next step, bringing up the interface, requires the new
+        networking configuration information.  It's a good habit to check the
+        interface after configuration to verify settings.
+      </p><div class="example"><a name="ex-basic-ifconfig-up"></a><p class="title"><b>Example 1.7. Bringing up an Ethernet interface with <span class="command">ifconfig</span></b></p><div class="example-contents"><pre class="programlisting">
+<code class="prompt">[root@morgan]# </code><strong class="userinput"><code>ifconfig eth0 192.168.99.14 netmask 255.255.255.0 up</code></strong>
+<code class="prompt">[root@morgan]# </code><strong class="userinput"><code>ifconfig eth0</code></strong>
+<code class="computeroutput">eth0      Link encap:Ethernet  HWaddr 00:80:C8:F8:4A:53  
+          inet addr:192.168.99.14  Bcast:192.168.99.255  Mask:255.255.255.0
+          UP BROADCAST RUNNING MULTICAST  MTU:1500  Metric:1
+          RX packets:0 errors:0 dropped:0 overruns:0 frame:0
+          TX packets:0 errors:0 dropped:0 overruns:0 carrier:0
+          collisions:0 txqueuelen:100 
+          RX bytes:0 (0.0 b)  TX bytes:0 (0.0 b)
+          Interrupt:9 Base address:0x5000 
+</code>
+        </pre></div></div><br class="example-break"><p>
+        The second call to <span class="command"><strong>ifconfig</strong></span> allows verification of
+        the IP addressing information.  The currently configured IP address on
+        eth0 is 192.168.99.14.  Bringing up an interface also has a small set
+        of side effects.
+      </p><a name="list-basic-ifconfig-side-effects-up"></a><div class="itemizedlist"><p class="title"><b>Side effects of bringing up an interface</b></p><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem"><p>
+            the link layer device is activated
+          </p></li><li class="listitem"><p>
+            the requested IP address is assigned to the specified interface
+          </p></li><li class="listitem"><p>
+            all local, network, and broadcast routes implied by the
+            IP configuration are added to the routing tables
+          </p></li></ul></div><p>
+        Use
+        <a class="link" href="apgs01.html" title="1. ping"><span class="command"><strong>ping</strong></span></a> to
+        verify the reachability of other locally connected hosts or skip
+        directly to setting the default gateway.
+      </p></div><div class="section"><div class="titlepage"><div><div><h3 class="title"><a name="basic-changing-default"></a>3.2. Setting the Default Route</h3></div></div></div><p>
+        It should come as no surprise to a close reader
+        (<a class="link" href="ch01s03.html#list-basic-ifconfig-side-effects-down">hint</a>),
+        that the default route was removed at the execution of
+        <strong class="userinput"><code>ifconfig eth0 down</code></strong>.  The crucial final step is
+        configuring the default route.
+      </p><div class="example"><a name="ex-basic-set-default"></a><p class="title"><b>Example 1.8. Adding a default route with <span class="command">route</span></b></p><div class="example-contents"><pre class="programlisting">
+<code class="prompt">[root@morgan]# </code><strong class="userinput"><code>route -n</code></strong>
+<code class="computeroutput">Kernel IP routing table
+Destination     Gateway         Genmask         Flags Metric Ref    Use Iface
+192.168.99.0    0.0.0.0         255.255.255.0   U     0      0        0 eth0
+127.0.0.0       0.0.0.0         255.0.0.0       U     0      0        0 lo</code>
+<code class="prompt">[root@morgan]# </code><strong class="userinput"><code>route add default gw 192.168.99.254</code></strong>
+<code class="prompt">[root@morgan]# </code><strong class="userinput"><code>route -n</code></strong>
+<code class="computeroutput">Kernel IP routing table
+Destination     Gateway         Genmask         Flags Metric Ref    Use Iface
+192.168.99.0    0.0.0.0         255.255.255.0   U     0      0        0 eth0
+127.0.0.0       0.0.0.0         255.0.0.0       U     0      0        0 lo
+0.0.0.0         192.168.99.254  0.0.0.0         UG    0      0        0 eth0</code>
+        </pre></div></div><br class="example-break"><p>
+        The routing table on <code class="systemitem">morgan</code> should look exactly like the initial
+        routing table on <code class="systemitem">tristan</code>.  Compare the routing tables in
+        <a class="xref" href="ch01s02.html#ex-basic-ifconfig" title="Example 1.1. Sample ifconfig output">Example 1.1, &#8220;Sample <span class="command">ifconfig</span> output&#8221;</a> and
+        <a class="xref" href="ch01s03.html#ex-basic-set-default" title="Example 1.8. Adding a default route with route">Example 1.8, &#8220;Adding a default route with <span class="command">route</span>&#8221;</a>.
+      </p><p>
+        These changes to the routing table on <code class="systemitem">morgan</code> will stay in effect
+        until they are manually changed, the network is restarted, or the
+        machine reboots.  With knowledge of the addressing scheme of a
+        network, and the use of
+        <a class="link" href="apcs01.html" title="1. ifconfig"><span class="command"><strong>ifconfig</strong></span></a> and
+        <a class="link" href="apds01.html" title="1. route"><span class="command"><strong>route</strong></span></a> it's
+        simple to readdress a machine on just about any Ethernet you can
+        attach to.  The benefits of familiarity with these commands extend to
+        non-Ethernet IP networks as well, because these commands operate on the
+        IP layer, independent of the link layer.
+      </p></div><div class="section"><div class="titlepage"><div><div><h3 class="title"><a name="basic-changing-static"></a>3.3. Adding and removing a static route</h3></div></div></div><p>
+        Now that <code class="systemitem">morgan</code> has joined the LAN at the main office and can
+        reach the Internet, a static route to the branch office would be
+        convenient for accessing resources on that network.
+      </p><p>
+        A static route is any route entered into a routing table
+        which specifies at least a destination address and a gateway or device.
+        Static routes are special instructions regarding the
+        path a packet should take to reach a destination and  are
+        usually used to specify reachability of a destination through a router
+        other than the default gateway.
+      </p><p>
+        As we saw above, in <a class="xref" href="ch01s02.html#basic-static" title="2.3. Static Routes to Networks">Section 2.3, &#8220;Static Routes to Networks&#8221;</a>, a static route
+        provides a specific route to a known destination.  There are several
+        pieces of information we need to know in order to be able to add a
+        static route.
+      </p><div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem"><p>
+            the address of the destination (<span class="emphasis"><em>192.168.98.0</em></span>)
+          </p></li><li class="listitem"><p>
+            the netmask of the destination (<span class="emphasis"><em>255.255.255.0</em></span>)
+              </p><div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: circle; "><li class="listitem"><p>
+                  EITHER the IP address of the router through which the
+                  destination (<span class="emphasis"><em>192.168.99.1</em></span>) is reachable
+                </p></li><li class="listitem"><p>
+                  OR the name of the link layer device to which the
+                  destination is directly connected
+                </p></li></ul></div><p>
+          </p></li></ul></div><div class="example"><a name="ex-basic-add-static"></a><p class="title"><b>Example 1.9. Adding a static route with <span class="command">route</span></b></p><div class="example-contents"><pre class="programlisting">
+<code class="prompt">[root@morgan]# </code><strong class="userinput"><code>route -n</code></strong>
+<code class="computeroutput">Kernel IP routing table
+Destination     Gateway         Genmask         Flags Metric Ref    Use Iface
+192.168.99.0    0.0.0.0         255.255.255.0   U     0      0        0 eth0
+127.0.0.0       0.0.0.0         255.0.0.0       U     0      0        0 lo
+0.0.0.0         192.168.99.254  0.0.0.0         UG    0      0        0 eth0</code>
+<code class="prompt">[root@morgan]# </code><strong class="userinput"><code>route add -net 192.168.98.0 netmask 255.255.255.0 gw 192.168.99.1</code></strong>
+<code class="prompt">[root@morgan]# </code><strong class="userinput"><code>route -n</code></strong>
+<code class="computeroutput">Kernel IP routing table
+Destination     Gateway         Genmask         Flags Metric Ref    Use Iface
+192.168.99.0    0.0.0.0         255.255.255.0   U     0      0        0 eth0
+192.168.98.0    192.168.99.1    255.255.255.0   UG    0      0        0 eth0
+127.0.0.0       0.0.0.0         255.0.0.0       U     0      0        0 lo
+0.0.0.0         192.168.99.254  0.0.0.0         UG    0      0        0 eth0</code>
+        </pre></div></div><br class="example-break"><p>
+        <a class="xref" href="ch01s03.html#ex-basic-add-static" title="Example 1.9. Adding a static route with route">Example 1.9, &#8220;Adding a static route with <span class="command">route</span>&#8221;</a> shows how to add a static
+        route to the 192.168.98.0/24 network.
+        In order to test the reachability of the remote network,
+        ping any machine on the 192.168.98.0/24 network.  Routers are
+        usually a good choice, since they rarely have packet
+        filters and are usually alive.
+      </p><p>
+        Because a more specific route is always chosen over a less specific
+        route, it is even possible to support host routes.  These are routes
+        for destinations which are single IP addresses.  This can be
+        accomplished with a manually added static route as below.
+      </p><div class="example"><a name="ex-basic-del-static"></a><p class="title"><b>Example 1.10. Removing a static network route and adding a static host
+          route</b></p><div class="example-contents"><pre class="programlisting">
+<code class="prompt">[root@morgan]# </code><strong class="userinput"><code>route del -net 192.168.98.0 netmask 255.255.255.0 gw 192.168.99.1</code></strong>
+<code class="prompt">[root@morgan]# </code><strong class="userinput"><code>route add -net 192.168.98.42 netmask 255.255.255.255 gw 192.168.99.1</code></strong>
+<code class="prompt">[root@morgan]# </code><strong class="userinput"><code>route add -host 192.168.98.42 gw 192.168.99.1</code></strong>
+<code class="computeroutput">SIOCADDRT: File exists</code>
+<code class="prompt">[root@morgan]# </code><strong class="userinput"><code>route -n</code></strong>
+<code class="computeroutput">Kernel IP routing table
+Destination     Gateway         Genmask         Flags Metric Ref    Use Iface
+192.168.99.0    0.0.0.0         255.255.255.0   U     0      0        0 eth0
+192.168.98.42   192.168.99.1    255.255.255.255 UGH   0      0        0 eth0
+127.0.0.0       0.0.0.0         255.0.0.0       U     0      0        0 lo
+0.0.0.0         192.168.99.254  0.0.0.0         UG    0      0        0 eth0</code>
+        </pre></div></div><br class="example-break"><p>
+        This should serve as an illustration that there is no difference to
+        the kernel in selecting a route between a host route and a network
+        route with a host netmask.  If this is a surprise or is at all
+        confusing, review the use of netmasks in IP networking.
+        Some collected links on general IP networking are available in
+        <a class="xref" href="apis01.html#links-general-ip" title="1.3. General IP Networking Resources">Section 1.3, &#8220;General IP Networking Resources&#8221;</a>.
+      </p></div><div class="footnotes"><br><hr style="width:100; text-align:left;margin-left: 0"><div id="ftn.idm543" class="footnote"><p><a href="#idm543" class="para"><sup class="para">[5] </sup></a>
+                The network address can be calculated from the IP address and
+                netmask.  Refer to
+                <a class="xref" href="aphs01.html" title="1. ipcalc and other IP addressing calculators">Section 1, &#8220;<span class="command"><strong>ipcalc</strong></span> and other IP addressing calculators&#8221;</a>.  Especially handy is the
+                variable length subnet mask RFC,
+                <a class="ulink" href="http://www.isi.edu/in-notes/rfc1878.txt" target="_top">RFC
+                1878</a>.
+              </p></div><div id="ftn.idm551" class="footnote"><p><a href="#idm551" class="para"><sup class="para">[6] </sup></a>
+                Many networks are configured with
+                the name resolution services on a publicly connected host.
+                See <a class="xref" href="ch12s06.html" title="6. DNS Troubleshooting">Section 6, &#8220;DNS Troubleshooting&#8221;</a>.
+              </p></div><div id="ftn.idm586" class="footnote"><p><a href="#idm586" class="para"><sup class="para">[7] </sup></a>
+                It is possible for a linux box which meets the following three
+                criteria to maintain connections and provide services without
+                having the service IP configured on an interface.  It must be
+                functioning as a router, be configured to support non-local
+                binding and be in the route path of the client machine.  This
+                is an uncommon need, frequently accomplished by the use of
+                transparent proxying software.
+              </p></div></div></div><div class="navfooter"><hr><table width="100%" summary="Navigation footer"><tr><td width="40%" align="left"><a accesskey="p" href="ch01s02.html">Prev</a> </td><td width="20%" align="center"><a accesskey="u" href="ch01.html">Up</a></td><td width="40%" align="right"> <a accesskey="n" href="ch01s04.html">Next</a></td></tr><tr><td width="40%" align="left" valign="top">2. Reading Routes and IP Information </td><td width="20%" align="center"><a accesskey="h" href="index.html">Home</a></td><td width="40%" align="right" valign="top"> 4. Conclusion</td></tr></table></div></body></html>

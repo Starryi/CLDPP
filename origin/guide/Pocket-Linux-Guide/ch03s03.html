@@ -1,0 +1,40 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1"><title>3. Construction</title><link rel="stylesheet" type="text/css" href="style.css"><meta name="generator" content="DocBook XSL Stylesheets V1.79.1"><link rel="home" href="index.html" title="Pocket Linux Guide"><link rel="up" href="ch03.html" title="Chapter 3. Saving Space"><link rel="prev" href="ch03s02.html" title="2. Design"><link rel="next" href="ch03s04.html" title="4. Implementation"></head><body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF"><div class="navheader"><table width="100%" summary="Navigation header"><tr><th colspan="3" align="center">3. Construction</th></tr><tr><td width="20%" align="left"><a accesskey="p" href="ch03s02.html">Prev</a> </td><th width="60%" align="center">Chapter 3. Saving Space</th><td width="20%" align="right"> <a accesskey="n" href="ch03s04.html">Next</a></td></tr></table><hr></div><div class="sect1"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="idm388"></a>3. Construction</h2></div></div></div><p>This section is written using ramdisk seven
+    (<code class="filename">/dev/ram7</code>) to build the root image. There is nothing
+    particularly special about ramdisk seven and it is possible to use any of
+    the other available ramdisks provided they are not already in use.</p><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="idm392"></a>3.1. Create a ramdisk</h3></div></div></div><pre class="programlisting"><code class="prompt">bash#</code> dd if=/dev/zero of=/dev/ram7 bs=1k count=4096
+<code class="prompt">bash#</code> mke2fs -m0 /dev/ram7 4096
+<code class="prompt">bash#</code> mount /dev/ram7 /mnt</pre></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="idm399"></a>3.2. Rebuild the BASH shell</h3></div></div></div><pre class="programlisting"><code class="prompt">bash#</code> cd /usr/src/bash-3.0
+<code class="prompt">bash#</code> make distclean
+<code class="prompt">bash#</code> export CC="gcc -mcpu=i386"
+<code class="prompt">bash#</code> ./configure --enable-minimal-config --host=i386-pc-linux-gnu
+<code class="prompt">bash#</code> make
+<code class="prompt">bash#</code> strip bash</pre></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="idm409"></a>3.3. Determine which libraries are required</h3></div></div></div><pre class="programlisting"><code class="prompt">bash#</code> ldd bash</pre><p>View the output from the <span class="command"><strong>ldd</strong></span> command. It should
+      look similar to the example below.</p><pre class="screen">bash# ldd bash
+  libdl.so.2 =&gt; /lib/libdl.so.2 (0x4001d000)
+  libc.so.6 =&gt; /lib/libc.so.6 (0x40020000)
+  /lib/ld-linux.so.2 =&gt; /lib/ld-linux.so.2 (0x40000000)</pre><div class="note" style="margin-left: 0.5in; margin-right: 0.5in;"><h3 class="title">Note</h3><p>Some systems may have a slightly different library set up. For
+        example, you may see <code class="computeroutput">libc.so.6 =&gt;
+        /lib/tls/libc.so.6</code> rather than
+        <code class="computeroutput">libc.so.6 =&gt; /lib/libc.so.6</code> as
+        shown in the example. If your <span class="command"><strong>ldd</strong></span> output does not
+        match the example then use the path given by your
+        <span class="command"><strong>ldd</strong></span> command when completing the next step.</p></div></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="idm423"></a>3.4. Copy BASH and its libraries to the ramdisk</h3></div></div></div><pre class="programlisting"><code class="prompt">bash#</code> mkdir /mnt/bin
+<code class="prompt">bash#</code> cp bash /mnt/bin
+<code class="prompt">bash#</code> ln -s bash /mnt/bin/sh
+<code class="prompt">bash#</code> mkdir /mnt/lib
+<code class="prompt">bash#</code> strip --strip-unneeded -o /mnt/lib/libdl.so.2 /lib/libdl.so.2
+<code class="prompt">bash#</code> strip --strip-unneeded -o /mnt/lib/libc.so.6 /lib/libc.so.6
+<code class="prompt">bash#</code> strip --strip-unneeded -o /mnt/lib/ld-linux.so.2 /lib/ld-linux.so.2
+<code class="prompt">bash#</code> chmod +x /mnt/lib/ld-linux.so.2</pre><div class="note" style="margin-left: 0.5in; margin-right: 0.5in;"><h3 class="title">Note</h3><p>Using <span class="command"><strong>strip -o</strong></span> might seem an odd way to
+          copy library files from the development system to the ramdisk. What
+          it does is strip the symbols while the file is in transit from the
+          source location to the destination. This has the effect of stripping
+          symbols from the library on the ramdisk without altering the
+          libraries on the development system. Unfortunately file permissions
+          are lost when copying libraries this way which is why the
+          <span class="command"><strong>chmod +x</strong></span> command is then used to set the execute
+          flag for the rootdisk's dynamic loader.</p></div></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="idm439"></a>3.5. Create a console device</h3></div></div></div><pre class="programlisting"><code class="prompt">bash#</code> mkdir /mnt/dev
+<code class="prompt">bash#</code> mknod /mnt/dev/console c 5 1</pre></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="idm445"></a>3.6. Compress the ramdisk image</h3></div></div></div><pre class="programlisting"><code class="prompt">bash#</code> cd /
+<code class="prompt">bash#</code> umount /dev/ram7
+<code class="prompt">bash#</code> dd if=/dev/ram7 of=~/phase2-image bs=1k count=4096
+<code class="prompt">bash#</code> gzip -9 ~/phase2-image</pre></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="idm453"></a>3.7. Copy the compressed image to diskette</h3></div></div></div><p>Insert the floppy labeled "root disk" into drive fd0.</p><pre class="programlisting"><code class="prompt">bash#</code> dd if=~/phase2-image.gz of=/dev/fd0 bs=1k</pre></div></div><div class="navfooter"><hr><table width="100%" summary="Navigation footer"><tr><td width="40%" align="left"><a accesskey="p" href="ch03s02.html">Prev</a> </td><td width="20%" align="center"><a accesskey="u" href="ch03.html">Up</a></td><td width="40%" align="right"> <a accesskey="n" href="ch03s04.html">Next</a></td></tr><tr><td width="40%" align="left" valign="top">2. Design </td><td width="20%" align="center"><a accesskey="h" href="index.html">Home</a></td><td width="40%" align="right" valign="top"> 4. Implementation</td></tr></table></div></body></html>

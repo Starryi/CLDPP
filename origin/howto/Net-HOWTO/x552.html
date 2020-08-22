@@ -1,0 +1,616 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN""http://www.w3.org/TR/html4/loose.dtd">
+<HTML
+><HEAD
+><TITLE
+>Routing.</TITLE
+><META
+NAME="GENERATOR"
+CONTENT="Modular DocBook HTML Stylesheet Version 1.79"><LINK
+REL="HOME"
+TITLE="Linux Networking HOWTO"
+HREF="index.html"><LINK
+REL="UP"
+TITLE="Generic Network Configuration Information."
+HREF="c147.html"><LINK
+REL="PREVIOUS"
+TITLE="Configuring your loopback interface."
+HREF="x540.html"><LINK
+REL="NEXT"
+TITLE="Configuring your network servers and services."
+HREF="x635.html"></HEAD
+><BODY
+CLASS="SECT1"
+BGCOLOR="#FFFFFF"
+TEXT="#000000"
+LINK="#0000FF"
+VLINK="#840084"
+ALINK="#0000FF"
+><DIV
+CLASS="NAVHEADER"
+><TABLE
+SUMMARY="Header navigation table"
+WIDTH="100%"
+BORDER="0"
+CELLPADDING="0"
+CELLSPACING="0"
+><TR
+><TH
+COLSPAN="3"
+ALIGN="center"
+><A
+HREF="http://www.linuxports.com/"
+TARGET="_top"
+>Linux Networking HOWTO</A
+></TH
+></TR
+><TR
+><TD
+WIDTH="10%"
+ALIGN="left"
+VALIGN="bottom"
+><A
+HREF="x540.html"
+ACCESSKEY="P"
+>Prev</A
+></TD
+><TD
+WIDTH="80%"
+ALIGN="center"
+VALIGN="bottom"
+>Chapter 5. Generic Network Configuration Information.</TD
+><TD
+WIDTH="10%"
+ALIGN="right"
+VALIGN="bottom"
+><A
+HREF="x635.html"
+ACCESSKEY="N"
+>Next</A
+></TD
+></TR
+></TABLE
+><HR
+ALIGN="LEFT"
+WIDTH="100%"></DIV
+><DIV
+CLASS="SECT1"
+><H1
+CLASS="SECT1"
+><A
+NAME="AEN552"
+>5.7. Routing.</A
+></H1
+><P
+>Routing is a big topic. It is easily possible to write large
+volumes of text about the subject. Most of you will have fairly simple routing
+requirements; some of you will not. I will cover some basic
+fundamentals of routing only.  If you are interested in more detailed
+information, then I suggest you refer to the references provided at the
+start of this document.</P
+><P
+>Let's start with a definition. What is IP routing? Here is one
+that I'm using:</P
+><P
+><SPAN
+CLASS="QUOTE"
+>"IP Routing is the process by which a host with
+multiple network connections decides where to deliver the IP
+datagrams that it has received."</SPAN
+></P
+><P
+>It might be useful to illustrate this with an example. Imagine a typical
+office router. It might have a PPP link off the Internet, a number of
+Ethernet segments feeding the workstations, and another PPP link off to
+another office. When the router receives a datagram on any of its network
+connections, it uses the routing mechanism to determine which interface
+it should send the datagram to next. Simple hosts also need to route. All
+Internet hosts have two network devices, one is the loopback interface
+described above, and the other is the one it uses to talk to the rest of
+the network (perhaps an Ethernet, perhaps a PPP, or an SLIP serial interface).</P
+><P
+>Ok, so how does routing work ? Each host keeps a special list of routing
+rules called a "routing table". This table contains rows which typically
+contain at least three fields: the first is a destination address,
+the second is the name of the interface where the datagram is to be routed,
+and the third is optionally the IP address of another machine that
+carries the datagram on its next step through the network. You can see this table
+in linux by using the following command:</P
+><P
+><TABLE
+BORDER="1"
+BGCOLOR="#E0E0E0"
+WIDTH="100%"
+><TR
+><TD
+><FONT
+COLOR="#000000"
+><PRE
+CLASS="SCREEN"
+>	user% cat /proc/net/route</PRE
+></FONT
+></TD
+></TR
+></TABLE
+></P
+><P
+>or by using either of the following commands:</P
+><P
+><TABLE
+BORDER="1"
+BGCOLOR="#E0E0E0"
+WIDTH="100%"
+><TR
+><TD
+><FONT
+COLOR="#000000"
+><PRE
+CLASS="SCREEN"
+>	user% /sbin/route -n
+	user% netstat -r</PRE
+></FONT
+></TD
+></TR
+></TABLE
+></P
+><P
+>The routing process is fairly simple. The incoming datagram is received,
+the destination address (who it is for) is examined, and then it is compared with
+each entry in the table. The entry that best matches that address is
+selected, and the datagram is forwarded to the specified interface. If the
+gateway field is filled, then the datagram is forwarded to that host via
+the specified interface. The destination address is otherwise assumed to
+be on the network supported by the interface.</P
+><P
+>To manipulate this table, a special command is used. This command takes
+command line arguments and converts them into kernel system calls. These
+calls request the kernel to add, delete, or modify entries in the routing table.
+The command is called `<EM
+>route</EM
+>'.</P
+><P
+>Here is a simple example. Imagine you have an Ethernet network. You've been told
+it is a class-C network with an address of <TT
+CLASS="LITERAL"
+>192.168.1.0</TT
+>. You've been
+supplied with an IP address of <TT
+CLASS="LITERAL"
+>192.168.1.10</TT
+> for your use, and you have
+been told that <TT
+CLASS="LITERAL"
+>192.168.1.1</TT
+> is a router connected to the Internet.</P
+><P
+>The first step is to configure the interface as described earlier. You would
+use a command similar to the following:</P
+><P
+><TABLE
+BORDER="1"
+BGCOLOR="#E0E0E0"
+WIDTH="100%"
+><TR
+><TD
+><FONT
+COLOR="#000000"
+><PRE
+CLASS="SCREEN"
+>	root# ifconfig eth0 192.168.1.10 netmask 255.255.255.0 up</PRE
+></FONT
+></TD
+></TR
+></TABLE
+></P
+><P
+>You now need to add an entry into the routing table to tell the kernel that
+datagrams for all hosts with addresses that match <TT
+CLASS="LITERAL"
+>192.168.1.*</TT
+> should
+be sent to the ethernet device. You would use a command similar to:</P
+><P
+><TABLE
+BORDER="1"
+BGCOLOR="#E0E0E0"
+WIDTH="100%"
+><TR
+><TD
+><FONT
+COLOR="#000000"
+><PRE
+CLASS="SCREEN"
+>	root# route add -net 192.1Ethernetetmask 255.255.255.0 eth0</PRE
+></FONT
+></TD
+></TR
+></TABLE
+></P
+><P
+>Note the use of the `<TT
+CLASS="LITERAL"
+>-net</TT
+>' argument to tell the route program that this
+entry is a network route. Your other choice here is a `<TT
+CLASS="LITERAL"
+>-host</TT
+>' route, which
+is a route that is specific to one IP address.</P
+><P
+>This route will enable you to establish IP connections with all of the hosts
+on your ethernet segment. But what about all of the IP hosts that aren't on
+your ethernet segment?</P
+><P
+>It would be a very difficult job to have to add routes to every possible
+destination network. There is a special trick that is used to simplify this
+task. The trick is called the `<TT
+CLASS="LITERAL"
+>default</TT
+>' route. The <TT
+CLASS="LITERAL"
+>default</TT
+> route
+matches every possible destination (but poorly).  If any other entry
+exists that matches the required address, it will be used instead of the
+<TT
+CLASS="LITERAL"
+>default</TT
+> route. The idea of the <TT
+CLASS="LITERAL"
+>default</TT
+> route is simply to enable
+you to say in effect: "and everything else should go here". In this example
+you would use an entry like:</P
+><P
+><TABLE
+BORDER="1"
+BGCOLOR="#E0E0E0"
+WIDTH="100%"
+><TR
+><TD
+><FONT
+COLOR="#000000"
+><PRE
+CLASS="SCREEN"
+>	root# route add default gw 192.168.1.1 eth0                              on them</PRE
+></FONT
+></TD
+></TR
+></TABLE
+></P
+><P
+>The `<TT
+CLASS="LITERAL"
+>gw</TT
+>' argument tells the route command that the next argument is
+the IP address, or name, of a gateway or router machine. This machine is where all datagrams
+matching the entry should be directed to for further routing.                      on them</P
+><P
+>So, your complete configuration would look like:</P
+><P
+><TABLE
+BORDER="1"
+BGCOLOR="#E0E0E0"
+WIDTH="100%"
+><TR
+><TD
+><FONT
+COLOR="#000000"
+><PRE
+CLASS="SCREEN"
+>	root# ifconfig eth0 192.168.1.10 netmask 255.255.255.0 up
+	root# route add -net 192.168.1.0 netmask 255.255.255.0 eth0
+	root# route add default gw 192.168.1.1 eth0                              on them</PRE
+></FONT
+></TD
+></TR
+></TABLE
+>                                    is</P
+><P
+>If you take a close look at your network `<TT
+CLASS="LITERAL"
+>rc</TT
+>' files, you will find
+that at least one of them looks very similar to this configuration (a very common
+one).</P
+><P
+>Let's now look at a slightly more complicated routing configuration. Let's
+imagine we are configuring the router we looked at earlier (the one supporting
+the PPP link to the Internet, and the lan segments feeding the workstations in
+the office). Lets imagine the router has three ethernet segments, and it also has
+one PPP link. Our routing configuration would look something like the fEthernet:</P
+><P
+><TABLE
+BORDER="1"
+BGCOLOR="#E0E0E0"
+WIDTH="100%"
+><TR
+><TD
+><FONT
+COLOR="#000000"
+><PRE
+CLASS="SCREEN"
+>	root# route add -net 192.168.1.0 netmask 255.255.255.0 eth0
+	root# route add -net 192.168.2.0 netmask 255.255.255.0 eth1
+	root# route add -net 192.168.3.0 netmask 255.255.255.0 eth2
+	root# route add default ppp0</PRE
+></FONT
+></TD
+></TR
+></TABLE
+></P
+><P
+>Each of the workstations would use the simpler form presented
+above. Only the router needs to specify each of the network routes
+separately.  The <TT
+CLASS="LITERAL"
+>default</TT
+> route for the workstations
+mechanism will capture all of them, letting the router worry about
+splitting them up appropriately. You may be wondering why the default
+route presented doesn't specify a `<TT
+CLASS="LITERAL"
+>gw</TT
+>'.  The reason for this is
+simple: serial link protocols such as PPP and SLIP only have two
+hosts on  their network (one at each end). To specify the host at the
+other end of the link as the gateway is both pointless and redundant.
+You do not need to specify a gateway for these types of network connections as there is
+no other choice. Other network types, such as
+ethernet, arcnet, or token ring, do actually require the gateway to be specified
+(as these networks support Ethernetmbers of hosts ).
+ </P
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN603"
+>5.7.1. So what does the <EM
+>routed</EM
+> program do ?</A
+></H2
+><P
+>The routing configuration described above is best suited for simple network
+arrangements where there are only single possible paths to destinations.
+When you have a more complex network arrangement, things get a little more
+complicated. Fortunately for most of you this won't be an issue.</P
+><P
+>The big problem with `manual routing' or `static routing' is
+that if a machine or link fails in your network, the only way to
+re-direct your datagrams (if another way in fact exists) is by manually
+intervening and executing the appropriate commands. Naturally this is
+clumsy, slow, impractical, and hazard prone. Various techniques have been
+developed to automatically adjust routing tables in the event of network
+failures (where there are alternate routes). All of these techniques are
+loosely grouped by the term `dynamic routing protocols'.</P
+><P
+>You may have heard of some of the more common dynamic routing protocols. The
+most common are probably RIP (Routing Information Protocol) and OSPF (Open
+Shortest Path First Protocol). The Routing Information Protocol is very common
+on small networks (such as small-medium sized corporate networks or building
+networks). OSPF is more modern. It is more capable at handling large network
+configurations, and it is better suited to environments where there is a large number
+of possible paths through the network. Common implementations of these
+protocols are: `<EM
+>routed</EM
+>' - RIP and `<EM
+>gated</EM
+>' - RIP, OSPF and others.
+The `<EM
+>routed</EM
+>' program is normally supplied with your Linux distribution,
+or it is included in the `NetKit' package detailed above.</P
+><P
+>An example of where and how you might use a dynamic routing protocol might
+look something like the following:</P
+><P
+><TABLE
+BORDER="1"
+BGCOLOR="#E0E0E0"
+WIDTH="100%"
+><TR
+><TD
+><FONT
+COLOR="#000000"
+><PRE
+CLASS="SCREEN"
+>    192.168.1.0 /                         192.168.2.0 /
+       255.255.255.0                         255.255.255.0
+     -                                     -
+     |                                     |
+     |   /-----\                 /-----\   |
+     |   |     |ppp0   //    ppp0|     |   |
+eth0 |---|  A  |------//---------|  B  |---| eth0
+     |   |     |     //          |     |   |
+     |   \-----/                 \-----/   |
+     |      \ ppp1             ppp1 /      |
+     -       \                     /       -
+              \                   /
+               \                 /
+                \               /
+                 \             /
+                  \           /
+                   \         /
+                    \       /
+                     \     /
+                  ppp0\   /ppp1
+                     /-----\
+                     |     |
+                     |  C  |
+                     |     |
+                     \-----/
+                        |eth0
+                        |
+                   |---------|
+                   192.168.3.0 /
+                      255.255.255.0</PRE
+></FONT
+></TD
+></TR
+></TABLE
+></P
+><P
+>We have three routers A, B and C. Each router supports one ethernet segment with
+a Class C IP network (netmask 255.255.255.0). Each one also has a PPP link
+to each of tEthernet routers. The network ultimately forms a triangle.</P
+><P
+>It should be clear that the routing table at router A could look like the following:</P
+><P
+><TABLE
+BORDER="1"
+BGCOLOR="#E0E0E0"
+WIDTH="100%"
+><TR
+><TD
+><FONT
+COLOR="#000000"
+><PRE
+CLASS="SCREEN"
+>	root# route add -net 192.168.1.0 netmask 255.255.255.0 eandth0
+	root# route add -net 192.168.2.0 netmask 255.255.255.0 ppp0
+	root# route add -net 192.168.3.0 netmask 255.255.255.0 ppp1</PRE
+></FONT
+></TD
+></TR
+></TABLE
+></P
+><P
+>This would work just fine until the link between router A and B fails.
+Hosts on the ethernet segment of A (see above diagram) could not reach hosts on the
+ethernet segment on B:  their datagramEthernete directed to router As ppp0 link
+(which in this example is broEthernetey could still continue to talk to hosts on the ethernet segment
+of C. And hosts on CCsethernet segment could still talk to hosts on
+BBsethernet segment. TheEthernetnications can still occur because the link between B
+and C is still intact.</P
+><P
+>If A can talk to C, and C can still talk to B, why shouldn't A
+route its datagrams for B via C (and let C send them to B) ? This is exactly
+the sort of problem that dynamic routing protocols like RIP were designed
+to solve. If each of the routers A, B and C were running a routing daemon,
+then their routing tables would be automatically adjusted to reflect the
+new state of the network (should any one of the links in the network fail).
+To configure such a network is simple: at each router you need only do
+two things. In this case for Router A:</P
+><P
+><TABLE
+BORDER="1"
+BGCOLOR="#E0E0E0"
+WIDTH="100%"
+><TR
+><TD
+><FONT
+COLOR="#000000"
+><PRE
+CLASS="SCREEN"
+>	root# route add -net 192.168.1.0 netmask 255.255.255.0 eth0
+	root# /usr/sbin/routed</PRE
+></FONT
+></TD
+></TR
+></TABLE
+></P
+><P
+>The `<EM
+>routed</EM
+>' routing daemon automatically finds all active network
+ports (when it sends and listens for messages on each of the
+network devices) to allow it to both determine and update the routing table
+on the host.</P
+><P
+>This has been a very brief explanation of dynamic routing.
+If you would like more information, please refer to the suggested
+references listed at the top of this document.</P
+><P
+>The important points relating to dynamic routing are:</P
+><P
+><P
+></P
+><OL
+TYPE="1"
+><LI
+><P
+>You only need to run a dynamic routing protocol daemon
+when your Linux machine has the possibility of
+selecting multiple route alternatives to a destination.
+An example of this would be if you plan to use
+IP Masquerading.</P
+></LI
+><LI
+><P
+>The dynamic routing daemon will automatically modify
+your routing table to adjust to changes in your
+network.</P
+></LI
+><LI
+><P
+>RIP is suitable for small to medium sized networks.</P
+></LI
+></OL
+></P
+></DIV
+></DIV
+><DIV
+CLASS="NAVFOOTER"
+><HR
+ALIGN="LEFT"
+WIDTH="100%"><TABLE
+SUMMARY="Footer navigation table"
+WIDTH="100%"
+BORDER="0"
+CELLPADDING="0"
+CELLSPACING="0"
+><TR
+><TD
+WIDTH="33%"
+ALIGN="left"
+VALIGN="top"
+><A
+HREF="x540.html"
+ACCESSKEY="P"
+>Prev</A
+></TD
+><TD
+WIDTH="34%"
+ALIGN="center"
+VALIGN="top"
+><A
+HREF="index.html"
+ACCESSKEY="H"
+>Home</A
+></TD
+><TD
+WIDTH="33%"
+ALIGN="right"
+VALIGN="top"
+><A
+HREF="x635.html"
+ACCESSKEY="N"
+>Next</A
+></TD
+></TR
+><TR
+><TD
+WIDTH="33%"
+ALIGN="left"
+VALIGN="top"
+>Configuring your loopback interface.</TD
+><TD
+WIDTH="34%"
+ALIGN="center"
+VALIGN="top"
+><A
+HREF="c147.html"
+ACCESSKEY="U"
+>Up</A
+></TD
+><TD
+WIDTH="33%"
+ALIGN="right"
+VALIGN="top"
+>Configuring your network servers and services.</TD
+></TR
+></TABLE
+></DIV
+></BODY
+></HTML
+>

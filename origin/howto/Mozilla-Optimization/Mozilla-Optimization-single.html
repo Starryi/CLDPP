@@ -1,0 +1,76 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1"><title>Mozilla Optimization Mini-HOWTO</title><link rel="stylesheet" type="text/css" href="style.css"><meta name="generator" content="DocBook XSL Stylesheets V1.79.1"><meta name="description" content="This document discusses how to make configuration and source level customizations of Mozilla to make it more suitable as a primary browser for Linux and X Windows. It is not intended as a guide for programming Mozilla, nor is it a guide to XUL. The techniques described in this document have been implemented and tested in a kiosk-like public computing environment using thin client workstations running on Redhat Linux, utilizing XFree86."></head><body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF"><div lang="en" class="article"><div class="titlepage"><div><div><h2 class="title"><a name="idm1"></a>Mozilla Optimization Mini-HOWTO</h2></div><div><div class="author"><h3 class="author"><span class="firstname">Salvador</span> <span class="othername">J.</span> <span class="surname">Peralta</span></h3><div class="affiliation"><div class="address"><p><br>
+<code class="email">&lt;<a class="email" href="mailto:speralta%20at%20willamette%20dot%20edu">speralta at willamette dot edu</a>&gt;</code><br>
+	</p></div></div></div></div><div><p class="pubdate">January 2003</p></div><div><div class="revhistory"><table style="border-style:solid; width:100%;" summary="Revision History"><tr><th align="left" valign="top" colspan="3"><b>Revision History</b></th></tr><tr><td align="left">Revision 1.0</td><td align="left">2003-01-03</td><td align="left">SJP</td></tr><tr><td align="left" colspan="3">Initial release, reviewed by LDP</td></tr></table></div></div><div><div class="abstract"><p class="title"><b>Abstract</b></p><p>This document discusses how to make configuration and source level customizations of Mozilla to make it more suitable as a primary browser for Linux and X Windows.  It is not intended as a guide for programming Mozilla, nor is it a guide to XUL.</p><p>The techniques described in this document have been implemented and tested in a kiosk-like public computing environment using thin client workstations running on Redhat Linux, utilizing XFree86.</p></div></div></div><hr></div><div class="toc"><p><b>Table of Contents</b></p><dl class="toc"><dt><span class="sect1"><a href="#copyleft">1. Copyright</a></span></dt><dt><span class="sect1"><a href="#Introduction">2. Introduction</a></span></dt><dt><span class="sect1"><a href="#UsetheSource">3. Get the Source</a></span></dt><dt><span class="sect1"><a href="#patch">4. Patch the Source</a></span></dt><dt><span class="sect1"><a href="#configure">5. Configure the Source</a></span></dt><dt><span class="sect1"><a href="#compile">6. Compile the Source</a></span></dt><dt><span class="sect1"><a href="#postinstall">7. Post-Install Configuration</a></span></dt></dl></div><div class="sect1"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="copyleft"></a>1. Copyright</h2></div></div></div><p>
+Copyright © 2002  Salvador Peralta
+</p><p>
+      Permission is granted to copy, distribute and/or modify this document under the terms of the GNU Free Documentation License, Version 1.2 or any later version published by the Free Software Foundation; with no Invariant Sections, no Front-Cover Texts, and no Back-Cover Texts.  A copy of the license can be found at the <a class="ulink" href="http://www.gnu.org/copyleft/fdl.html" target="_top">GNU web site</a>.
+</p></div><div class="sect1"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="Introduction"></a>2. Introduction</h2></div></div></div><p>
+Mozilla is an Open Source, cross-platform, browser and graphical application environment.  It is rapidly becoming a significant component on many Linux-based desktops due to its stability, robust feature-set, large developer-base, and ease of configuration.  This Mini HOWTO addresses how to patch and configure Mozilla's source to better optimize it for Linux desktop environments, and is intended to serve as a general set of instructions for the Linux community on how to compile and configure Mozilla.
+</p><p>
+The most current version of this Mini HOWTO can be obtained in HTML format from <a class="ulink" href="http://www.willamette.edu/~speralta/tldp/mozilla" target="_top">www.willamette.edu/~speralta/tldp/mozilla</a>.
+</p></div><div class="sect1"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="UsetheSource"></a>3. Get the Source</h2></div></div></div><p>There are pros and cons to building Mozilla yourself.  The biggest drawback is that the source version, compressed, is a 30+ MB file in most releases which is about three times larger than the binary distribution.  A second negative is that on a reasonably new machine such as my 1.6 ghz Pentium 4 with 256 MB of memory, compiling Mozilla can take anywhere between one and a half to four hours depending on any other jobs the system might be running.  On an older machine, Mozilla can take twenty-four hours or more to compile.  The biggest benefit is that there are a large number of compile-time options and patches that can be applied which will dramatically improve the performance and featureset of the browser.  These patches are generally necessary if you intend to run Mozilla in a production environment.
+</p><p>
+If you are not interested in source level modifications of the Mozilla browser, please skip the next few sections and have a look at <a class="xref" href="#postinstall" title="7. Post-Install Configuration">Section 7, &#8220;Post-Install Configuration&#8221;</a>, Post-Install Configuartion.
+</p><p>
+At the time this document was written, the latest version of the Mozilla source code is 1.2.1, which can be obtained via ftp at <a class="ulink" href="ftp://ftp.mozilla.org/pub/mozilla/releases/mozilla1.2.1" target="_top">ftp.mozilla.org/pub/mozilla/releases/mozilla1.2.1</a>.  The other stable release, 1.0.1, can be obtained via ftp at <a class="ulink" href="ftp://ftp.mozilla.org/pub/mozilla/releases/mozilla1.0.1" target="_top">ftp.mozilla.org/pub/mozilla/releases/mozilla1.0.1</a>.  
+</p><p>
+For CVS checkout, please review the documentation on the <a class="ulink" href="http://mozilla.org" target="_top">Mozilla</a> website.
+</p></div><div class="sect1"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="patch"></a>4. Patch the Source</h2></div></div></div><p>
+Unpatched Mozilla is not a very good X citizen.  For example, it does not allow one to specify X and Y geometry position as a command-line option.  This is not a big problem on a typical end-user desktop, but in a corporate or public computing environment, it is a killer.  In order to fix this, we need to apply a patch to the C++ source code at <code class="filename">embedding/components/windowwatcher/src/nsWindowWatcher.cpp</code>.  The first step is to obtain and apply the <a class="ulink" href="http://www.willamette.edu/~speralta/mozilla.kludge.txt" target="_top">patch</a> written by Robert Riches.  This patch has been tested in Mozilla versions 1.0 through 1.2.1.
+</p><p>
+To apply the patch, simply paste it into <code class="filename">embedding/components/windowwatcher/src/nsWindowWatcher.cpp</code>, in your Mozilla source tree.  The notation uses <span class="quote">&#8220;<span class="quote">+</span>&#8221;</span> symbols to denote the code that needs insertion.  Those symbols need to be removed before saving the <code class="filename">nsWindowWatcher.cpp</code> text file.
+</p><p>
+To use the patch, set an environment variable called <code class="envar">MOZILLA_SCREEN_POS</code> with the proper coordinates.   For example, in Bash, type <span class="command"><strong>export MOZILLA_SCREEN_POS='screenx=1,screeny=1'</strong></span> will set the top left corner of your browser to the top left corner of your screen.
+</p></div><div class="sect1"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="configure"></a>5. Configure the Source</h2></div></div></div><p>Another problem with using Mozilla in a personal or production environment is that it contains code which will override any home page that you set on a timed basis, or whenever a new release of the product is distributed.
+</p><p>Since this information is stored in a configuration file, the easiest thing to do without breaking the browser is to change the configuration file to point default homepage settings to one that is more consistent with the environment that you are using.
+</p><p>
+Mozilla conveniently stores most of its compile-time configuration files with a <span class="emphasis"><em>.properties</em></span> extension.  You can use these files to specify text in message dialogues, fonts, and other options.  In this case, assuming that your locale and language settings are <code class="envar">en-US</code>, the <span class="emphasis"><em>.property</em></span> file that you will need is <code class="filename">region.properties</code> which is located in the <code class="filename">xpfe/browser/resources/locale/en-US/</code> directory.
+</p><p>
+The changes that you need to make to this file are fairly straight forward.  As a general rule, I replace the value portion of the name/value pair to one of my own choosing in every instance where the word <span class="quote">&#8220;<span class="quote">homepage</span>&#8221;</span> is mentioned in the configuration.
+</p><pre class="screen">
+# navigator.properties
+homePageDefault=http://yoururl.com
+shopKeyword=keyword:shop [Product]
+quoteKeyword=keyword:quote [Enter symbol here]
+localKeyword=keyword:zip [Your zip code]
+keywordList=http://home.netscape.com/escapes/keywords
+webmailKeyword=http://webmail.netscape.com
+careerKeyword=keyword:[Your city] careers
+fallbackDefaultSearchURL=http://search.netscape.com/cgi-bin/search?charset=UTF-8&amp;search=
+otherSearchURL=http://home.netscape.com/bookmark/6_0/tsearch.html
+#
+# all.js
+#
+browser.startup.homepage=http://yoururl.com
+browser.throbber.url=http://yoururl.com
+browser.search.defaulturl=http://search.netscape.com/cgi-bin/search?search=
+
+wallet.Server=http://www.mozilla.org/wallet/tables/
+wallet.Samples=http://www.mozilla.org/wallet/samples/
+
+#config.js
+#
+startup.homepage_override_url=http://yoururl.com
+</pre></div><div class="sect1"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="compile"></a>6. Compile the Source</h2></div></div></div><p>To configure Mozilla's compile-time options, type <span class="command"><strong>./configure</strong></span> from the root directory of the Mozilla source tree.  To get a full list of compile-time options, type <span class="command"><strong>./configure --help</strong></span>.  Some things to verify before doing a production compilation include verifying that environment preferences (mail vs. no mail, calendar, ldap, etc.) are set and making sure that the crypto package is enabled.  
+</p><p>
+For simplicity's sake, I generally use a simple build script like the following to configure Mozilla. 
+</p><pre class="screen">
+#!/bin/sh
+
+MOZILLA_OFFICIAL=1
+export MOZILLA_OFFICIAL
+BUILD_OFFICIAL=1
+export BUILD_OFFICIAL
+
+./configure --with-x --disable-calendar --enable-crypto --with-system-nspr 
+--disable-debug --enable-extensions --enable-optimize
+--without-system-zlib --without-system-jpeg --without-system-png 
+--without-system-mng
+</pre><p>Once you have your patches applied, config files modified, and options set, simply build Mozilla with <span class="emphasis"><em>gmake</em></span> by typing <span class="command"><strong>./gmake</strong></span> in the root directory of your source tree, and then create your tarball by typing <span class="command"><strong>gmake</strong></span> in the <code class="filename">xpinstall/packager</code> directory.  This will drop the tarball in the dist subdirectory just beneath the root directory of your Mozilla source tree.  Just move that package to <code class="filename">/usr/local</code>, unpack it, run it once from the command-line as the user who built the package (the command is <span class="command"><strong>/usr/local/mozilla/mozilla</strong></span>), and you are nearly ready to browse.
+</p></div><div class="sect1"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="postinstall"></a>7. Post-Install Configuration</h2></div></div></div><p>
+There are several configuration choices that you can make after you have installed your browser.  You can add plugins for common web technologies such as Java (<a class="ulink" href="http://java.sun.com" target="_top">java.sun.com</a>), PDF printing (<a class="ulink" href="www.adobe.com" target="_top">www.adobe.com</a>), and Flash animations (<a class="ulink" href="http://www.macromedia.com/software/flash" target="_top">www.macromedia.com/software/flash</a>) and slightly less well-known, but very cool plug-ins, such as Enigmail (<a class="ulink" href="http://enigmail.mozdev.org" target="_top">enigmail.mozdev.org</a>).
+</p><p>
+To install any plug-in, either copy the plug-in from the source application (e.g. Acrobat5 ) to the <code class="filename">/plugins</code> directory in Mozilla, or create a symbolic link from the plug-in to the plug-ins directory in the Mozilla binary tree.  For example, to create a Mozilla plug-in for Adobe Acrobat 5 using a symbolic link, simply type <span class="command"><strong>ln -s  /path/to/Acrobat5/Browsers/intellinux/nppdf.so /usr/local/mozilla/plugins/</strong></span>.  Similarly, to create a plug-in from your Java runtime environment, type <span class="command"><strong>ln -s /path/to/j2re1.4.0_02/plugin/i386/ns610/libjavaplugin_oji.so /usr/local/mozilla/plugins/</strong></span>.  Please note, it is recommended that you use Sun's JDK 1.4.1 with Mozilla 1.0.1 and above.  There are known incompatibilities with Mozilla and earlier versions of Java.
+</p><p>
+To obtain Mozilla project plug-ins such as Enigmail, which provides an interface for encrypting and decrytping mail, or for Protozilla, which provides full parameterization (including support for multiple multiple protocol and programming languages), visit <a class="ulink" href="http://mozdev.org" target="_top">mozdev.org</a>.
+</p></div></div></body></html>

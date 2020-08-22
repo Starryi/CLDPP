@@ -1,0 +1,273 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1"><title>2. Procedure</title><link rel="stylesheet" type="text/css" href="style.css"><meta name="generator" content="DocBook XSL Stylesheets V1.79.1"><link rel="home" href="index.html" title="Disk Encryption HOWTO"><link rel="up" href="index.html" title="Disk Encryption HOWTO"><link rel="prev" href="ar01s01.html" title="1. Introduction"><link rel="next" href="ar01s03.html" title="3. More Information"></head><body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF"><div class="navheader"><table width="100%" summary="Navigation header"><tr><th colspan="3" align="center">2. Procedure</th></tr><tr><td width="20%" align="left"><a accesskey="p" href="ar01s01.html">Prev</a> </td><th width="60%" align="center"> </th><td width="20%" align="right"> <a accesskey="n" href="ar01s03.html">Next</a></td></tr></table><hr></div><div class="sect1"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="Procedure"></a>2. Procedure</h2></div></div></div><p>This method is designed to erase the contents of the asset before
+    encrypting it. If you already have data on the disk you intend to encrypt,
+    you should copy it somewhere else temporarily and then move it back once
+    the encryption is set up. It is possible to encrypt data in place, but for
+    now I consider such magic too advanced for this HOWTO. See <a class="ulink" href="http://sourceforge.net/projects/loop-aes/" target="_top">loop-AES</a>'s
+    <a class="ulink" href="http://loop-aes.sourceforge.net/loop-AES.README" target="_top">README</a>
+    for more details if you're interested in that method.</p><p>To do the following operations you will need to be running a system
+    which has a <a class="ulink" href="http://sourceforge.net/projects/loop-aes/" target="_top">loop-AES</a>
+    capable kernel. If you don't have one already, I recommend using
+    <a class="ulink" href="http://www.knoppix.com/" target="_top">KNOPPIX</a>. It boots off a
+    CD-ROM and doesn't need to be installed, so it's very little
+    hassle.</p><p>For simplicity these instructions assume you'll be preparing the
+    keychain and the asset on the same computer, but this needn't be the
+    case. Adapt the instructions to whatever's convenient for you.</p><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="PrepareTheKeychain"></a>2.1. Prepare the Keychain</h3></div></div></div><p>If you're taking the approach of encrypting only a file
+      instead of a disk or a partition, you may skip this section and proceed
+      directly to <a class="xref" href="ar01s02.html#PrepareTheAsset" title="2.2. Prepare the Asset">Section 2.2, &#8220;Prepare the Asset&#8221;</a>.</p><p>In the ideal setup you will use a bootable keychain device, such
+      as a <em class="glossterm">USB flash drive</em> or a business card size
+      CD-ROM. This is because we want to expose as little of your disk as
+      possible, but we're going to have to expose a minimal boot process
+      or the computer will never start. Since the boot process will be
+      necessarily unencrypted, it's better to have it away from your
+      computer (on your keychain). If you can't or don't want to use a
+      bootable keychain for some reason, then follow these instructions anyway
+      but instead apply them to a small boot partition on your disk instead of
+      the keychain.</p><p>In the following example the keychain shows up as the first SCSI
+	drive <code class="literal">/dev/sda</code>.  Replace <code class="literal">/dev/sda</code>
+	with the device for your drive as appropriate.</p><p>The first step&#8212;zeroing out the keychain&#8212;is technically
+	unnecessary, but it will make the keychain backup smaller if you back
+	it up as an image as I suggest in <a class="xref" href="ar01s02.html#TestingAndBackup" title="2.4. Testing and Backup">Section 2.4, &#8220;Testing and Backup&#8221;</a>.</p><div class="blockquote"><blockquote class="blockquote"><pre class="screen"><code class="prompt">bash# </code><strong class="userinput"><code>dd if=/dev/zero of=/dev/sda</code></strong></pre></blockquote></div><p>Next, partition the keychain as you would any bootable
+      disk. See the <a class="ulink" href="http://www.tldp.org/HOWTO/Partition/index.html" target="_top">Linux Partition
+      HOWTO</a> if you need help with partitioning.</p><div class="blockquote"><blockquote class="blockquote"><pre class="screen"><code class="prompt">bash# </code><strong class="userinput"><code>cfdisk /dev/sda</code></strong></pre></blockquote></div><p>Put a file system on the first partition.</p><div class="blockquote"><blockquote class="blockquote"><pre class="screen"><code class="prompt">bash# </code><strong class="userinput"><code>mkfs /dev/sda1</code></strong></pre></blockquote></div><p>Mount the keychain.</p><div class="blockquote"><blockquote class="blockquote"><pre class="screen"><code class="prompt">bash# </code><strong class="userinput"><code>mkdir /tmp/keychain</code></strong>
+<code class="prompt">bash# </code><strong class="userinput"><code>mount /dev/sda1 /tmp/keychain</code></strong>
+<code class="prompt">bash# </code><strong class="userinput"><code>cd /tmp/keychain</code></strong></pre></blockquote></div><div class="sect3"><div class="titlepage"><div><div><h4 class="title"><a name="idm337"></a>2.1.1. Build the Kernel</h4></div></div></div><p>If you use the keychain with multiple computers you may
+        want to build a different kernel for each one.</p><p>You probably need to build a custom kernel for your keychain so
+        you can ensure two things:</p><div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem"><p>It has been patched correctly with <a class="ulink" href="http://sourceforge.net/projects/loop-aes/" target="_top">loop-AES</a>
+            and encryption support is turned on.</p></li><li class="listitem"><p>All the device drivers necessary to boot your computer and
+            make the asset accessible have been compiled in instead of loaded
+            as modules.</p></li></ul></div><p>You can load device drivers as modules, since we're using an
+        initrd, but I chose to compile them into the kernel in order to keep
+        the boot disk as simple as possible. Feel free to do differently.</p><p>For help building a custom kernel read <a class="ulink" href="http://www.tldp.org/HOWTO/Kernel-HOWTO/index.html" target="_top">The Linux
+        Kernel HOWTO</a>. Be sure to set <code class="literal">CONFIG_BLK_DEV_RAM</code>
+    in the kernel configuration so it can boot using an initrd.</p><p>Follow the directions that come with <a class="ulink" href="http://sourceforge.net/projects/loop-aes/" target="_top">loop-AES</a> to
+        build the new loop driver.  Also follow the directions to rebuild
+        the <a class="ulink" href="http://www.kernel.org/pub/linux/utils/util-linux/" target="_top">util-linux</a>
+        tools, some of which we'll copy to the keychain later.  Your distribution may have
+    already built them for you (e.g., see the <code class="literal">loop-aes-utils</code> and <code class="literal">loop-aes-source</code> packages in Debian).</p><p>Once you've built the kernel, copy it to the keychain.</p><div class="blockquote"><blockquote class="blockquote"><pre class="screen"><code class="prompt">bash# </code><strong class="userinput"><code>mkdir boot</code></strong>
+<code class="prompt">bash# </code><strong class="userinput"><code>cp arch/i386/boot/bzImage boot/vmlinuz-laptop</code></strong></pre></blockquote></div><p>Install <a class="ulink" href="http://www.gnu.org/software/grub/grub.html" target="_top">GRUB</a>
+        or your favorite boot loader.</p><div class="blockquote"><blockquote class="blockquote"><pre class="screen"><code class="prompt">bash# </code><strong class="userinput"><code>grub-install --root-directory=. /dev/sda</code></strong></pre></blockquote></div><p>Here is a sample <code class="filename">menu.lst</code> for GRUB. It has
+        entries for two computers named <code class="systemitem">laptop</code>
+        and <code class="systemitem">desktop</code>.</p><div class="important" style="margin-left: 0.5in; margin-right: 0.5in;"><h3 class="title">Important</h3><p>It is required to pass the name of the key (I suggest you name
+          it after the computer) as the first parameter to <a class="xref" href="ar01s02.html#linuxrc" title="Figure 2. /tmp/initrd/linuxrc">linuxrc</a>.</p></div><div class="example"><a name="idm376"></a><p class="title"><b>Example 1. <code class="filename">/tmp/keychain/boot/grub/menu.lst</code></b></p><div class="example-contents"><pre class="programlisting">title  laptop
+root (hd0,0)
+kernel /boot/vmlinuz-laptop root=/dev/ram0 init=/linuxrc laptop
+initrd /boot/initrd
+ 
+title  desktop
+root (hd0,0)
+kernel /boot/vmlinuz-desktop root=/dev/ram0 init=/linuxrc desktop
+initrd /boot/initrd.old</pre></div></div><br class="example-break"></div><div class="sect3"><div class="titlepage"><div><div><h4 class="title"><a name="idm380"></a>2.1.2. Make the initrd</h4></div></div></div><p>We boot the keychain using an initrd so we can remove it after
+the boot process starts (who wants a USB flash drive hanging out of
+their laptop while trying to look cool in a café?). To gain access to
+the asset we create a loopback device attached to the initrd's
+<code class="filename">/dev/loop0</code>.  Putting the device file on the initrd
+means the initrd will have to stay mounted while the asset is mounted (not a big deal).</p><p>To learn all about making initial RAM disks you're welcome
+        to read <a class="ulink" href="http://www.tldp.org/HOWTO/Bootdisk-HOWTO/index.html" target="_top">The Linux
+        Bootdisk HOWTO</a> and Linux's <a class="ulink" href="http://linux.bkbits.net:8080/linux-2.4/anno/Documentation/initrd.txt@1.2?nav=index.html%7Csrc/%7Csrc/Documentation" target="_top"><code class="filename">Documentation/initrd.txt,</code></a>
+        or don't bother and just follow along.</p><p>We start by choosing 4MB for the size of the initial RAM disk,
+        all of which we won't need, but it's the conventional maximum
+        size (and it won't hurt) so that's one less decision to make.</p><div class="blockquote"><blockquote class="blockquote"><pre class="screen"><code class="prompt">bash# </code><strong class="userinput"><code>head -c 4m /dev/zero &gt; boot/initrd</code></strong>
+<code class="prompt">bash# </code><strong class="userinput"><code>mke2fs -F -m0 -b 1024 boot/initrd</code></strong></pre></blockquote></div><p>Mount the initrd so we can work on it.</p><div class="blockquote"><blockquote class="blockquote"><pre class="screen"><code class="prompt">bash# </code><strong class="userinput"><code>mkdir /tmp/initrd</code></strong>
+<code class="prompt">bash# </code><strong class="userinput"><code>mount -o loop=/dev/loop3 boot/initrd /tmp/initrd</code></strong>
+<code class="prompt">bash# </code><strong class="userinput"><code>cd /tmp/initrd</code></strong></pre></blockquote></div><p>Create the minimal directory structure we'll need.</p><div class="blockquote"><blockquote class="blockquote"><pre class="screen"><code class="prompt">bash# </code><strong class="userinput"><code>mkdir -p {bin,dev,lib,mnt/{keys,new-root},usr/sbin,sbin}</code></strong></pre></blockquote></div><p>Create the minimal set of devices we'll need. Note that
+        <code class="filename">tty</code> is necessary for the password prompt. This
+        command assumes your asset is the drive <code class="filename">/dev/hda</code>.
+        Change it as appropriate.</p><div class="blockquote"><blockquote class="blockquote"><pre class="screen"><code class="prompt">bash# </code><strong class="userinput"><code>cp -a /dev/{console,hda,loop0,loop1,tty} dev</code></strong></pre></blockquote></div><p>We'll copy the six programs we'll need.</p><div class="tip" style="margin-left: 0.5in; margin-right: 0.5in;"><h3 class="title">Tip</h3><p>You can use <code class="literal">which</code> to find a program's
+          full pathname, e.g.:</p><pre class="screen"><code class="prompt">bash# </code><strong class="userinput"><code>which mount</code></strong>
+<code class="computeroutput">/bin/mount</code></pre></div><p>Copy the programs:</p><div class="blockquote"><blockquote class="blockquote"><pre class="screen"><code class="prompt">bash# </code><strong class="userinput"><code>cp /bin/{mount,sh,umount} bin</code></strong>
+<code class="prompt">bash# </code><strong class="userinput"><code>cp /sbin/{losetup,pivot_root} sbin</code></strong>
+<code class="prompt">bash# </code><strong class="userinput"><code>cp /usr/sbin/chroot usr/sbin</code></strong></pre></blockquote></div><p>Use <code class="literal">ldd</code> to find out which shared libraries are
+          used by each program:</p><div class="blockquote"><blockquote class="blockquote"><pre class="screen"><code class="prompt">bash# </code><strong class="userinput"><code>ldd /bin/{mount,sh,umount} /sbin/{losetup,pivot_root} /usr/sbin/chroot</code></strong>
+<code class="computeroutput">/bin/mount:
+        libc.so.6 =&gt; /lib/libc.so.6 (0x40023000)
+        /lib/ld-linux.so.2 =&gt; /lib/ld-linux.so.2 (0x40000000)
+/bin/sh:
+        libncurses.so.5 =&gt; /lib/libncurses.so.5 (0x40020000)
+        libdl.so.2 =&gt; /lib/libdl.so.2 (0x4005c000)
+        libc.so.6 =&gt; /lib/libc.so.6 (0x4005f000)
+        /lib/ld-linux.so.2 =&gt; /lib/ld-linux.so.2 (0x40000000)
+/bin/umount:
+        libc.so.6 =&gt; /lib/libc.so.6 (0x40023000)
+        /lib/ld-linux.so.2 =&gt; /lib/ld-linux.so.2 (0x40000000)
+/sbin/losetup:
+        libc.so.6 =&gt; /lib/libc.so.6 (0x40023000)
+        /lib/ld-linux.so.2 =&gt; /lib/ld-linux.so.2 (0x40000000)
+/sbin/pivot_root:
+        libc.so.6 =&gt; /lib/libc.so.6 (0x40023000)
+        /lib/ld-linux.so.2 =&gt; /lib/ld-linux.so.2 (0x40000000)
+/usr/sbin/chroot:
+        libc.so.6 =&gt; /lib/libc.so.6 (0x40023000)
+        /lib/ld-linux.so.2 =&gt; /lib/ld-linux.so.2 (0x40000000)</code>
+</pre></blockquote></div><p>Copy the libraries.  On my system I copied these libraries (yours may be different):</p><div class="blockquote"><blockquote class="blockquote"><pre class="screen"><code class="prompt">bash# </code><strong class="userinput"><code>cp /lib/{ld-linux.so.2,libc.so.6,libdl.so.2,libncurses.so.5} lib</code></strong></pre></blockquote></div></div></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="PrepareTheAsset"></a>2.2. Prepare the Asset</h3></div></div></div><p>It's possible to repeat these steps as many times as you want
+      to handle multiple computers using the same keychain. Each computer will
+      have its own key and probably its own kernel. The instructions here
+      assume the computer's name is <code class="systemitem">laptop</code>;
+      substitute the name of the computer you're working with each time
+      you repeat the steps.</p><p>First, back up your data. See the <a class="ulink" href="http://www.tldp.org/HOWTO/Linux-Complete-Backup-and-Recovery-HOWTO/index.html" target="_top">Linux
+      Complete Backup and Recovery HOWTO</a>.</p><p>No, stop, listen to me. Back up your data. Really. It's no fun
+      to have an encrypted hard disk if you can't decrypt it because of
+      some mistake you made. These tools are powerful magic; if you blow it
+      you can't just call up <span class="emphasis"><em>Computer Gurus Are Us</em></span>
+      and expect them to get your data back for you. That's the whole
+      point of this exercise.</p><p>If you are encrypting your whole disk (recommended), replace
+      <code class="filename">/dev/hda</code> with the device for your disk.</p><div class="blockquote"><blockquote class="blockquote"><pre class="screen"><code class="prompt">bash# </code><strong class="userinput"><code>ln -s /dev/hda /tmp/asset</code></strong></pre></blockquote></div><p>If you are encrypting a partition (multiboot case), replace
+      <code class="filename">/dev/hda3</code> with the device for your partition.</p><div class="blockquote"><blockquote class="blockquote"><pre class="screen"><code class="prompt">bash# </code><strong class="userinput"><code>ln -s /dev/hda3 /tmp/asset</code></strong></pre></blockquote></div><p>If you are encrypting a file only, replace <code class="filename">~/encrypted</code>
+      with the name of the file and create a link named <code class="filename">/tmp/keychain</code>
+      that points to where you decide to store your key file (an already
+      prepared removable medium, e.g., <code class="filename">/mnt/cf</code>).</p><div class="blockquote"><blockquote class="blockquote"><pre class="screen"><code class="prompt">bash# </code><strong class="userinput"><code>ln -s ~/encrypted /tmp/asset</code></strong>
+<code class="prompt">bash# </code><strong class="userinput"><code>ln -s /mnt/cf /tmp/keychain</code></strong></pre></blockquote></div><p>Initialize the asset with random data. This will make it less
+      obvious to the attacker which parts are free space.</p><div class="blockquote"><blockquote class="blockquote"><pre class="screen"><code class="prompt">bash# </code><strong class="userinput"><code>shred -n 1 -v /tmp/asset</code></strong></pre></blockquote></div><p>Here we create an encrypted file system to hold the keys. More
+      encryption, you say? Yes, in case your keychain is stolen (see <a class="xref" href="ar01s01.html#Attack_Tree" title="Table 1. Attack Tree">Table 1, &#8220;Attack Tree&#8221;</a>), you don't want your keys to be exposed. I
+      chose one megabyte as the size of the file system because it's a
+      round number. There's no way we're going to need that much space
+      for keys so feel free to chose a smaller size if you like (each key file
+      will be 61 bytes long).</p><p>Again, initialize with random data.</p><div class="blockquote"><blockquote class="blockquote"><pre class="screen"><code class="prompt">bash# </code><strong class="userinput"><code>cd /tmp/initrd</code></strong>
+<code class="prompt">bash# </code><strong class="userinput"><code>head -c 1m /dev/urandom &gt; keys</code></strong></pre></blockquote></div><p>To make the passphrase resistant to dictionary attacks we'll
+      generate a seed. Whenever you see the symbol <em class="replaceable"><code>&lt;seed&gt;</code></em>
+      be sure to replace it with the one you generated. The following command
+      will display a random seed on the screen.</p><div class="blockquote"><blockquote class="blockquote"><pre class="screen"><code class="prompt">bash# </code><strong class="userinput"><code>head -c 15 /dev/random | uuencode -m - | head -2 | tail -1</code></strong></pre></blockquote></div><p>Set up the loopback device using the seed. This is where you
+      choose your passphrase, which must be at least 20 characters in length. Choose one with care that you know you won't forget.  You may want to use the <a class="ulink" href="http://world.std.com/~reinhold/diceware.html" target="_top">Diceware method</a> for choosing a secure passphrase.</p><div class="blockquote"><blockquote class="blockquote"><pre class="screen"><code class="prompt">bash# </code><strong class="userinput"><code>losetup -e AES128 -C 100 -S <em class="replaceable"><code>&lt;seed&gt;</code></em> -T /dev/loop1 keys</code></strong></pre></blockquote></div><p>Format and mount the keys file system (the <a class="xref" href="ar01s02.html#decrypt.sh" title="Figure 1. /tmp/initrd/decrypt.sh">decrypt.sh</a> script assumes you use the <code class="literal">ext2</code>
+      file system here).</p><div class="blockquote"><blockquote class="blockquote"><pre class="screen"><code class="prompt">bash# </code><strong class="userinput"><code>mke2fs /dev/loop1</code></strong>
+<code class="prompt">bash# </code><strong class="userinput"><code>mkdir /tmp/keys</code></strong>
+<code class="prompt">bash# </code><strong class="userinput"><code>mount /dev/loop1 /tmp/keys</code></strong></pre></blockquote></div><p>Now for the actual asset key, 45 bytes as random as your computer
+      can make them. Try a dictionary attack against that, attacker! Ha! We
+      name the key after the computer with which it will be used (<code class="systemitem">laptop</code>). Substitute the name of your
+      computer instead.</p><div class="blockquote"><blockquote class="blockquote"><pre class="screen"><code class="prompt">bash# </code><strong class="userinput"><code>head -c 45 /dev/random | uuencode -m - | head -2 | tail -1 &gt; /tmp/keys/laptop</code></strong></pre></blockquote></div><p>Set up a loopback device with the key for encrypted access to the
+      asset.</p><div class="blockquote"><blockquote class="blockquote"><pre class="screen"><code class="prompt">bash# </code><strong class="userinput"><code>losetup -e AES128 -p 0 /dev/loop0 /tmp/asset &lt; /tmp/keys/laptop</code></strong></pre></blockquote></div><p>Unmount the keys file system.</p><div class="blockquote"><blockquote class="blockquote"><pre class="screen"><code class="prompt">bash# </code><strong class="userinput"><code>umount /tmp/keys</code></strong>
+<code class="prompt">bash# </code><strong class="userinput"><code>losetup -d /dev/loop1</code></strong></pre></blockquote></div><div class="sect3"><div class="titlepage"><div><div><h4 class="title"><a name="idm531"></a>2.2.1. Swap Partition</h4></div></div></div><p>Skip this section if you're encrypting only a file.</p><p>It's critical to give <code class="literal">mkswap</code> a size
+        parameter here because we're not handing it a dedicated partition.
+        Choose whatever size you want; I chose 2GB.</p><div class="blockquote"><blockquote class="blockquote"><pre class="screen"><code class="prompt">bash# </code><strong class="userinput"><code>mkswap /dev/loop0 $((2*1024*1024))</code></strong>
+<code class="computeroutput">mkswap: warning: truncating swap area to 2097144kB
+Setting up swapspace version 1, size = 2147471360 bytes</code></pre></blockquote></div></div><div class="sect3"><div class="titlepage"><div><div><h4 class="title"><a name="idm541"></a>2.2.2. Root File System</h4></div></div></div><p>If you're encrypting only a file, format it with a file
+        system like this and skip to <a class="xref" href="ar01s02.html#Scripts" title="2.3. Scripts">Section 2.3, &#8220;Scripts&#8221;</a>.</p><div class="blockquote"><blockquote class="blockquote"><pre class="screen"><code class="prompt">bash# </code><strong class="userinput"><code>mkfs /dev/loop0</code></strong></pre></blockquote></div><p>We'll create the root "partition" after the swap
+        space. I put the word 'partition' in quotes because it's
+        not a real partition. We're faking it using the offset argument of
+        <code class="literal">losetup</code>.</p><p>Notice how <code class="literal">mkswap</code> told us the actual size of
+        the swapspace, which is not necessarily the size requested. Use the
+        actual size (which was 2147471360 in the above example) when
+        specifying the offset to begin the root file system.</p><div class="blockquote"><blockquote class="blockquote"><pre class="screen"><code class="prompt">bash# </code><strong class="userinput"><code>losetup -o <em class="replaceable"><code>&lt;root offset&gt;</code></em> /dev/loop1 /dev/loop0</code></strong></pre></blockquote></div><p>If the asset is the whole disk or the last partition on the
+        disk, then we needn't worry about specifying a size for the file
+        system. If this applies to you, do the following and skip to <a class="xref" href="ar01s02.html#initrd_Mount_Point" title="2.2.2.1. initrd Mount Point">Section 2.2.2.1, &#8220;initrd Mount Point&#8221;</a>.</p><div class="blockquote"><blockquote class="blockquote"><pre class="screen"><code class="prompt">bash# </code><strong class="userinput"><code>mkfs /dev/loop1</code></strong></pre></blockquote></div><p>Since the asset isn't the last partition on the disk, we
+        must give <code class="literal">mkfs</code> a size limitation or it will write
+        all over whatever partitions are between this one and the end of the
+        disk. I repeat, <span class="emphasis"><em>if you don't give <code class="literal">mkfs</code>
+        the correct size parameter here, you may lose data</em></span>.
+        <code class="literal">mkfs</code> is actually just a front end, so to be as
+        careful as possible we'll choose an actual file system maker, in
+        this case <code class="literal">mke2fs</code>.</p><p>It's possible to limit the size of the file system by
+        specifying its size in blocks, but <code class="literal">mke2fs</code> chooses
+        the block size based on the size of the file system. A classic
+        Catch-22! We can ask it to do a dry run on the rest of the disk (more
+        than we want) to see what block size it would chose.</p><div class="blockquote"><blockquote class="blockquote"><pre class="screen"><code class="prompt">bash# </code><strong class="userinput"><code>mke2fs -n -j /dev/loop1</code></strong>
+<code class="computeroutput">mke2fs 1.34-WIP (21-May-2003)
+Filesystem label=
+OS type: Linux
+Block size=4096 (log=2)
+Fragment size=4096 (log=2)
+9781248 inodes, 19544448 blocks
+977222 blocks (5.00%) reserved for the super user
+First data block=0
+597 block groups
+32768 blocks per group, 32768 fragments per group
+16384 inodes per group
+Superblock backups stored on blocks:
+        32768, 98304, 163840, 229376, 294912, 819200, 884736, 1605632, 2654208,
+        4096000, 7962624, 11239424</code></pre></blockquote></div><p>In this case it chose 4096. Whatever it chooses is probably
+        close enough for our file system. Calculate the correct size in
+        blocks.</p><div class="blockquote"><blockquote class="blockquote"><p>file system size = (size of partition &#8722; size of swap space) ÷
+          block size</p></blockquote></div><p>Suppose the size of the partition is 10GB and the size of the
+        swap is 2GB. The correct size for <code class="literal">mke2fs</code> is (10 &#8722;
+        2) × 2<sup>30</sup> ÷ 4096 = 2097152. Don't get this wrong! Make backups!
+        Measure twice, cut once!</p><div class="blockquote"><blockquote class="blockquote"><pre class="screen"><code class="prompt">bash# </code><strong class="userinput"><code>mke2fs -j /dev/loop1 2097152</code></strong></pre></blockquote></div><div class="sect4"><div class="titlepage"><div><div><h5 class="title"><a name="initrd_Mount_Point"></a>2.2.2.1. initrd Mount Point</h5></div></div></div><p>Mount the new root file system and create the
+          <code class="filename">initrd</code> mount point. This is necessary for the
+          <a class="xref" href="ar01s02.html#linuxrc" title="Figure 2. /tmp/initrd/linuxrc">linuxrc</a> script's call to <code class="literal">pivot_root</code>.</p><div class="blockquote"><blockquote class="blockquote"><pre class="screen"><code class="prompt">bash# </code><strong class="userinput"><code>mount /dev/loop1 mnt/new-root</code></strong>
+<code class="prompt">bash# </code><strong class="userinput"><code>mkdir mnt/new-root/initrd</code></strong>
+<code class="prompt">bash# </code><strong class="userinput"><code>umount mnt/new-root</code></strong></pre></blockquote></div></div></div></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="Scripts"></a>2.3. Scripts</h3></div></div></div><p>We have enough information to create the decryption script. Change
+      the variables at the beginning to reflect your setup (including the seed
+      you generated earlier).</p><p>If you're encrypting the whole disk or a partition, set
+      <code class="varname">ROOT_OFFSET</code> to the size you got from
+      <code class="literal">mkswap</code>. Put the script in <code class="filename">/tmp/initrd</code>
+      and name it <code class="filename">decrypt.sh</code>.</p><p>If you're encrypting only a file then this script can live
+      anywhere. In this case be sure to set <code class="varname">ROOT_OFFSET</code> to
+      zero and set <code class="varname">MOUNT</code> to a convenient mount point
+      (probably not <code class="filename">/mnt/new-root</code>).</p><div class="figure"><a name="decrypt.sh"></a><p class="title"><b>Figure 1. <code class="filename">/tmp/initrd/decrypt.sh</code></b></p><div class="figure-contents"><pre class="programlisting">#!/bin/sh
+
+SEED=<em class="replaceable"><code>&lt;seed&gt;</code></em>
+ASSET=/dev/hda
+ROOT_OFFSET=<em class="replaceable"><code>&lt;root offset&gt;</code></em>
+ROOT_TYPE=ext3
+MOUNT=/mnt/new-root
+KEY="$1"
+
+# Ask for a passphrase to open the keys (this prevents exposure of the keys in
+# case the owner loses the keychain).  Give the user three tries to get the
+# passphrase right.
+for ((FAILED=1, TRY=1; ($FAILED != 0) &amp;&amp; (TRY &lt;= 3); TRY++))
+do
+        mount -n -t ext2 -o loop=/dev/loop1,encryption=AES128,itercountk=100,pseed=$SEED keys /mnt/keys
+        FAILED=$?
+done
+                                                                                
+if [ $FAILED -ne 0 ]; then
+        echo "Sorry, you get only three attempts to guess the password."
+        exit 1
+fi
+
+# Use the key to decrypt the asset.
+losetup -e AES128 -p 0 /dev/loop0 $ASSET &lt; "/mnt/keys/$KEY"
+ 
+# Close the keys.
+umount -n /mnt/keys
+losetup -d /dev/loop1
+ 
+# Set up the root "partition" device.
+losetup -o $ROOT_OFFSET /dev/loop1 /dev/loop0
+ 
+# Mount the root file system (read-only, so it can be checked with fsck).
+mount -n -r -t $ROOT_TYPE /dev/loop1 $MOUNT</pre></div></div><br class="figure-break"><p>Make the script executable.</p><div class="blockquote"><blockquote class="blockquote"><pre class="screen"><code class="prompt">bash# </code><strong class="userinput"><code>chmod +x decrypt.sh</code></strong></pre></blockquote></div><p>If you're encrypting only a file, skip to <a class="xref" href="ar01s02.html#TestingAndBackup" title="2.4. Testing and Backup">Section 2.4, &#8220;Testing and Backup&#8221;</a>. Otherwise, save the following boot
+      script as <code class="filename">linuxrc</code> and place it in
+      <code class="filename">/tmp/initrd</code>.</p><div class="figure"><a name="linuxrc"></a><p class="title"><b>Figure 2. <code class="filename">/tmp/initrd/linuxrc</code></b></p><div class="figure-contents"><pre class="programlisting">#!/bin/sh
+
+# Decrypt the asset
+source decrypt.sh "$1"
+
+# Pivot to the asset's root file system.
+cd $MOUNT
+/sbin/pivot_root . initrd
+
+# Pass control to init.
+shift 1
+exec chroot . /sbin/init $* &lt;dev/console &gt;dev/console 2&gt;&amp;1</pre></div></div><br class="figure-break"><p>Make the script executable.</p><div class="blockquote"><blockquote class="blockquote"><pre class="screen"><code class="prompt">bash# </code><strong class="userinput"><code>chmod +x linuxrc</code></strong></pre></blockquote></div><p>Okay, the keychain and asset are now ready. Unmount everything.</p><div class="blockquote"><blockquote class="blockquote"><pre class="screen"><code class="prompt">bash# </code><strong class="userinput"><code>umount /tmp/{initrd,keychain}</code></strong></pre></blockquote></div><p>You now have an empty, encrypted file system. Hurray!</p></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="TestingAndBackup"></a>2.4. Testing and Backup</h3></div></div></div><p>Test your system by booting the keychain or executing the <a class="xref" href="ar01s02.html#decrypt.sh" title="Figure 1. /tmp/initrd/decrypt.sh">decrypt.sh</a> script as appropriate (give it the name of the
+      key you want to use as a parameter). After booting there may be a
+      complaint about a nonexistent <code class="filename">/sbin/init</code> but
+      that's okay for now.</p><p>Check to make sure your root file system mounted successfully.
+      When you're confident everything is working, back up your keychain.
+      In fact, make lots of backups. You might ask, "But isn't it
+      insecure to have a copy of my keychain somewhere?" The answer is
+      yes, it is, but not as insecure as losing your only keychain, if you
+      define security as also meaning "securing access to my data".</p><p>Because my keychain is small I decided to back up the whole image
+      so it's easy to restore:</p><div class="blockquote"><blockquote class="blockquote"><pre class="screen"><code class="prompt">bash# </code><strong class="userinput"><code>bzip2 -c /dev/sda &gt; keychain.img.bz2</code></strong></pre></blockquote></div><p>If you're encrypting only a file, you can pat yourself on your
+      back at this point because you've finished.</p></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="RescueDisk"></a>2.5. Rescue Disk</h3></div></div></div><p>Rescue disks are useful when a system isn't behaving properly
+      and/or refuses to boot. Check to make sure your rescue disk has <a class="ulink" href="http://sourceforge.net/projects/loop-aes/" target="_top">loop-AES</a> support
+      in its kernel and has the correctly patched <span class="application"><a class="ulink" href="http://www.kernel.org/pub/linux/utils/util-linux/" target="_top">util-linux</a></span>
+      tools such as <code class="literal">losetup</code> and <code class="literal">mount</code>,
+      otherwise it will be worthless with your newly encrypted asset. In the
+      future, all rescue disks will include this support because it will come
+      standard with the 2.6 kernel. In the meantime, <a class="ulink" href="http://www.knoppix.com/" target="_top">KNOPPIX</a> (for example) already has
+      all the necessary support and can be used as a rescue disk.</p><p>After booting an appropriate rescue disk, mount your keychain and
+      execute the <a class="xref" href="ar01s02.html#decrypt.sh" title="Figure 1. /tmp/initrd/decrypt.sh">decrypt.sh</a> script.</p><div class="blockquote"><blockquote class="blockquote"><pre class="screen"><code class="prompt">bash# </code><strong class="userinput"><code>mkdir /tmp/{keychain,initrd}</code></strong>
+<code class="prompt">bash# </code><strong class="userinput"><code>mount /dev/sda1 /tmp/keychain</code></strong>
+<code class="prompt">bash# </code><strong class="userinput"><code>mount -o loop=/dev/loop3 /tmp/keychain/boot/initrd /tmp/initrd</code></strong>
+<code class="prompt">bash# </code><strong class="userinput"><code>pushd /tmp/initrd</code></strong>
+<code class="prompt">bash# </code><strong class="userinput"><code>./decrypt.sh laptop</code></strong>
+<code class="prompt">bash# </code><strong class="userinput"><code>popd</code></strong>
+<code class="prompt">bash# </code><strong class="userinput"><code>umount /tmp/{initrd,keychain}</code></strong></pre></blockquote></div><p>You can now access your asset through the mount point you
+      specified in <a class="xref" href="ar01s02.html#decrypt.sh" title="Figure 1. /tmp/initrd/decrypt.sh">decrypt.sh</a>.</p></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="InstallingLinux"></a>2.6. Installing Linux</h3></div></div></div><p>Your final task is to install Linux to your new encrypted file system.  As you do this make sure the entries in your <code class="filename">/etc/fstab</code> for the root and swap look like those below:</p><div class="informalexample"><pre class="programlisting"># /etc/fstab: static file system information.
+#
+# &lt;file system&gt; &lt;mount point&gt;   &lt;type&gt;  &lt;options&gt;               &lt;dump&gt;  &lt;pass&gt;
+/dev/loop0      none            swap    sw                      0       0
+/dev/loop1      /               ext3    errors=remount-ro       0       1</pre></div><p>If you already have an installation elsewhere, read the <a class="ulink" href="http://www.tldp.org/HOWTO/Hard-Disk-Upgrade/" target="_top">Hard Disk Upgrade
+      Mini How-To</a> to learn how to copy it over.</p><p>The procedure for a fresh installation of Linux is different for
+      each distribution.  Please send me
+      instructions for distributions not listed below and I will include them here.</p><div class="sect3"><div class="titlepage"><div><div><h4 class="title"><a name="idm693"></a>2.6.1. <a class="ulink" href="http://www.debian.org" target="_top">Debian</a></h4></div></div></div><div class="orderedlist"><ol class="orderedlist" type="1"><li class="listitem"><p>Boot from a rescue disk by following the instructions in <a class="xref" href="ar01s02.html#RescueDisk" title="2.5. Rescue Disk">Section 2.5, &#8220;Rescue Disk&#8221;</a>.</p></li><li class="listitem"><p>Install using the method <a class="ulink" href="http://www.debian.org/releases/stable/i386/ch-preparing.en.html#s-linux-upgrade" target="_top">3.7
+            Installing Debian GNU/Linux from a Unix/Linux System</a>.</p></li></ol></div></div><div class="sect3"><div class="titlepage"><div><div><h4 class="title"><a name="idm703"></a>2.6.2. <a class="ulink" href="http://www.gentoo.org/" target="_top">Gentoo</a></h4></div></div></div><div class="orderedlist"><ol class="orderedlist" type="1"><li class="listitem"><p>Boot from a rescue disk (Gentoo's Live CD 1.4 won't work) by following the instructions in <a class="xref" href="ar01s02.html#RescueDisk" title="2.5. Rescue Disk">Section 2.5, &#8220;Rescue Disk&#8221;</a>.</p></li><li class="listitem"><p>Activate the swap partition if you created one.</p><div class="blockquote"><blockquote class="blockquote"><pre class="screen"><code class="prompt">bash# </code><strong class="userinput"><code>swapon /dev/loop0</code></strong></pre></blockquote></div></li><li class="listitem"><p>Point <code class="filename">/mnt/gentoo</code> to the root file system.</p><div class="blockquote"><blockquote class="blockquote"><pre class="screen"><code class="prompt">bash# </code><strong class="userinput"><code>ln -s new-root /mnt/gentoo</code></strong></pre></blockquote></div></li><li class="listitem"><p>Skip to <a class="ulink" href="http://www.gentoo.org/doc/en/gentoo-x86-install.xml#doc_chap8" target="_top">Chapter 8. Stage tarballs and chroot</a> in the <a class="ulink" href="http://www.gentoo.org/doc/en/gentoo-x86-install.xml" target="_top">Gentoo Linux 1.4 Installation Instructions</a>.</p></li></ol></div></div><div class="sect3"><div class="titlepage"><div><div><h4 class="title"><a name="Idle_Logout"></a>2.6.3. Idle Logout</h4></div></div></div><p>Once your system is up and running, consider configuring it to log out automatically after a period of inactivity.  This will lessen (but not eliminate) the risk of exposing your asset if the laptop is stolen while on (see <a class="xref" href="ar01s01.html#Attack_Tree" title="Table 1. Attack Tree">Table 1, &#8220;Attack Tree&#8221;</a>).</p></div></div></div><div class="navfooter"><hr><table width="100%" summary="Navigation footer"><tr><td width="40%" align="left"><a accesskey="p" href="ar01s01.html">Prev</a> </td><td width="20%" align="center"> </td><td width="40%" align="right"> <a accesskey="n" href="ar01s03.html">Next</a></td></tr><tr><td width="40%" align="left" valign="top">1. Introduction </td><td width="20%" align="center"><a accesskey="h" href="index.html">Home</a></td><td width="40%" align="right" valign="top"> 3. More Information</td></tr></table></div></body></html>

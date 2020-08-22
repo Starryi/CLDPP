@@ -1,0 +1,345 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1"><title>3. Booting from network</title><link rel="stylesheet" type="text/css" href="style.css"><meta name="generator" content="DocBook XSL Stylesheets V1.79.1"><meta name="keywords" content="PA-RISC, Linux, boot"><link rel="home" href="index.html" title="PA-RISC/Linux Boot HOWTO"><link rel="up" href="ch04.html" title="Chapter 4. Available boot solutions"><link rel="prev" href="ch04s02.html" title="2. Booting from hard drive"><link rel="next" href="ch05.html" title="Chapter 5. Building and installing a custom kernel"></head><body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF"><div class="navheader"><table width="100%" summary="Navigation header"><tr><th colspan="3" align="center">3. Booting from network</th></tr><tr><td width="20%" align="left"><a accesskey="p" href="ch04s02.html">Prev</a> </td><th width="60%" align="center">Chapter 4. Available boot solutions</th><td width="20%" align="right"> <a accesskey="n" href="ch05.html">Next</a></td></tr></table><hr></div><div class="sect1"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="bootnetwork"></a>3. Booting from network</h2></div></div></div><div class="highlights"><p>
+				Booting from the network is only required in certain cases. Booting from the network is very
+				usefull when you have unsupported I/O devices, diskless systems, or systems with broken hardware.
+				Network booting is detailed below.
+			</p></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="preparingnetboot"></a>3.1. Preparing to boot from network</h3></div></div></div><div class="highlights"><p>
+					Booting from the network involves two machines: the <span class="emphasis"><em>boot server</em></span>
+					and the <span class="emphasis"><em>boot client</em></span>, the latter being the PA-RISC system you are
+					trying to start up, and the former, the machine that will serve over the network
+					the files which the client needs.
+					The rest of this section will extensively deal with setting up the <span class="emphasis"><em>boot
+					server</em></span> since this is probably the trickiest part.
+				</p></div><div class="important" style="margin-left: 0.5in; margin-right: 0.5in;"><h3 class="title">Important</h3><p>
+					You will need a <span class="emphasis"><em>lifimage</em></span> to perform a network boot.
+					See <a class="xref" href="ch03s02.html" title="2. What does PALO?">Section 2, &#8220;What does <span class="command"><strong>PALO</strong></span>?&#8221;</a> to learn how to create one.
+					You can also use the one from
+					<a class="ulink" href="http://ftp.debian.org/debian/dists/sarge/main/installer-hppa/current/images/netboot/2.6/boot.img" target="_top">
+					Debian Installer</a>.
+				</p></div><div class="note" style="margin-left: 0.5in; margin-right: 0.5in;"><h3 class="title">Note</h3><p>
+					Needless to say, all server-side setup is meant to be performed by the
+					<span class="emphasis"><em>super-user</em></span>, also known as <code class="literal">root</code>.
+				</p></div></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="rbootorbootp"></a>3.2. rboot or bootp?</h3></div></div></div><div class="highlights"><p>
+					All 'recent' machines can boot using
+					<code class="literal">BOOTP</code>, starting from 715/100,
+					715/120, and 712s. Older ones, mostly early 715s,
+					710s and 725s need <code class="literal">RBOOT</code>.
+				</p></div><div class="note" style="margin-left: 0.5in; margin-right: 0.5in;"><h3 class="title">Note</h3><p>
+					To use <code class="literal">BOOTP</code> you have to enable
+					the
+					<span class="guimenu">IP: Kernel level autoconfiguration</span> &#8594; <span class="guimenuitem">IP: BOOTP support</span>
+					within the '<code class="literal">Networking options</code>'
+					section of the kernel configuration, if you want to use a
+					<span class="emphasis"><em>home-made</em></span> kernel. See <a class="xref" href="ch05.html" title="Chapter 5. Building and installing a custom kernel">Chapter 5, <i>Building and installing a custom kernel</i></a>
+					for details.
+				</p></div><p>
+					Please note that though <a class="xref" href="ch04s03.html#usingrbootd" title="3.3. Using rboot">Section 3.3, &#8220;Using rboot&#8221;</a> deals with
+					<code class="literal">RBOOT</code> only, two different implementations of the
+					<code class="literal">BOOTP</code> protocol are detailed in <a class="xref" href="ch04s03.html#usingdhcp" title="3.4. Using dhcp/tftp">Section 3.4, &#8220;Using dhcp/tftp&#8221;</a>
+					and <a class="xref" href="ch04s03.html#usingbootp" title="3.5. Using bootp/tftp">Section 3.5, &#8220;Using bootp/tftp&#8221;</a>. We detail these two <span class="emphasis"><em>because
+					we can</em></span>, but if you need to use the <code class="literal">BOOTP</code>
+					protocol, you will have to choose one.
+				</p><div class="tip" style="margin-left: 0.5in; margin-right: 0.5in;"><h3 class="title">Tip</h3><p>
+					If you don't know which <code class="literal">BOOTP</code> implementation to use,
+					go for the <span class="command"><strong>dhcp</strong></span> one, it is much easier to deal with.
+				</p></div></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="usingrbootd"></a>3.3. Using rboot</h3></div></div></div><div class="sect3"><div class="titlepage"><div><div><h4 class="title"><a name="idm1053"></a>3.3.1. Obtaining rbootd</h4></div></div></div><p>
+						If you have an old machine that requires <span class="command"><strong>rboot</strong></span>
+						to boot over network, use the following procedure to set up and
+						configure a boot server, and boot using the PA-RISC/Linux kernel.
+					</p><p>
+						Old machines, including the Scorpio 715s, use the
+						<code class="literal">RBOOT</code> protocol. You need <span class="command"><strong>rbootd</strong></span>
+						to handle their boot requests. Look for it in your favorite distribution
+						archive (assuming you will be servicing boot requests from a Linux box).
+						Here are two ways of getting the <span class="command"><strong>rboot</strong></span> daemon:
+					</p><div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem"><p>
+								If you are using a Debian-powered server (which you really should be doing ;o),
+								you're almost done. Run from a command shell:
+							</p><pre class="programlisting">
+<code class="prompt">[user@machine ~/dir]&gt;</code> <span class="command"><strong>apt-get</strong></span> <strong class="userinput"><code>install rbootd</code></strong>
+							</pre></li><li class="listitem"><p>
+								If you can't find any <span class="command"><strong>rbootd</strong></span> package for your system
+								(which is very possible since it is a very old netboot protocol), you can find
+								its source in the Debian archive:
+								<a class="ulink" href="http://packages.debian.org/stable/net/rbootd.html" target="_top">rbootd</a>.
+								You will have to build it from source.
+							</p></li></ul></div></div><div class="sect3"><div class="titlepage"><div><div><h4 class="title"><a name="rbootd"></a>3.3.2. Configuring rbootd</h4></div></div></div><p>
+						As we already said, to boot a <code class="literal">RBOOT</code>-aware system, you need
+						a separate machine with <span class="command"><strong>rbootd</strong></span>
+						installed (this is the 'boot server') on which you will store the
+						PA-RISC/Linux kernel <span class="emphasis"><em>lifimage</em></span> that you want to use to boot
+						your PA-RISC system with.
+					</p><p>
+						Once the <span class="command"><strong>rbootd</strong></span> server software is installed,
+						read the following to configure it to work with your PA-RISC system:
+					</p><p>
+						In <code class="filename">/etc/rbootd.conf</code> you will have to add a line like:
+					</p><pre class="programlisting">ethernet_addr            bootfile</pre><div class="orderedlist"><ol class="orderedlist" type="1"><li class="listitem"><p>
+								Replace <em class="replaceable"><code>bootfile</code></em> with the name of your
+								PA-RISC/Linux kernel image, usually '<code class="filename">lifimage</code>'.
+							</p></li><li class="listitem"><p><a name="getmac"></a>
+								Now get the Ethernet address of your PA-RISC system by typing
+								<span class="command"><strong>lanaddress</strong></span> at the
+								'<code class="computeroutput">BOOT_ADMIN&gt;</code>' prompt
+								(see <a class="xref" href="ch02s01.html#bootadminfo" title="1.2.3. The information commands">Section 1.2.3, &#8220;The <code class="literal">information</code> commands&#8221;</a>).
+							</p><p>
+								It will return a number like
+								<code class="computeroutput">080009-7004b6</code>. Take note of this number.
+							</p></li><li class="listitem"><p>
+								In <code class="filename">/etc/rbootd.conf</code> on your boot server, the
+								Ethernet address has to be colon-delimited.  That means you will have to modify
+								the number you just obtained so that every set of two characters (after removing the
+								'-') is separated by a colon.  For example:
+								<code class="computeroutput">080009-7004b6</code> becomes
+							  <code class="computeroutput">08:00:09:70:04:b6</code>.
+								Add the colon delimited Ethernet address to
+								<code class="filename">/etc/rbootd.conf</code> on your boot server. The
+								resulting file will look something like this:
+							</p><pre class="programlisting">
+# ethernet addr        boot file           comments
+
+08:00:09:87:e4:8f      lifimage_715        # PA/Linux kernel for 715/33
+08:00:09:70:04:b6      lifimage_720        # PA/Linux kernel for 720
+							</pre><p>
+								This <code class="filename">rbootd.conf</code> example contains the Ethernet
+								addresses and boot file names for two different machines.
+							</p><p>
+								Once you have changed the configuration file, restart
+								<span class="command"><strong>rbootd</strong></span>.
+							</p></li></ol></div><p>
+						By default, <span class="command"><strong>rbootd</strong></span> assumes that bootfiles are located
+						in <code class="filename">/var/lib/rbootd/</code>. Therefore,
+						you will have to put your bootable kernel image in that directory, or,
+						if you really hate that directory for some reason, you can rebuild
+						<span class="command"><strong>rbootd</strong></span> to use a different directory.
+					</p><p>
+						The easiest thing, of course, is just to drop your kernel images in
+						the default directory!
+					</p></div></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="usingdhcp"></a>3.4. Using dhcp/tftp</h3></div></div></div><p>
+					We will see here how to setup a <code class="literal">DHCP</code> server
+					to handle <code class="literal">BOOTP</code> requests (since PA-RISC box use
+					<code class="literal">BOOTP</code>, unless they need <code class="literal">RBOOT</code>,
+					as mentioned above).
+				</p><div class="note" style="margin-left: 0.5in; margin-right: 0.5in;"><h3 class="title">Note</h3><p>
+					<span class="trademark">Windows</span>&#8482; users might want to look at <a class="xref" href="apa.html" title="Appendix A. Windows&#8482; 2003 boot server howto">Appendix A, <i><span class="trademark">Windows</span>&#8482; 2003 boot server howto</i></a>.
+				</p></div><div class="sect3"><div class="titlepage"><div><div><h4 class="title"><a name="idm1122"></a>3.4.1. Obtaining dhcp/tftp</h4></div></div></div><p>
+						Debian users will just have to install the packages using the
+						following commands, executed as <code class="literal">root</code>:
+					</p><pre class="programlisting">
+<code class="prompt">[user@machine ~/dir]&gt;</code> <span class="command"><strong>apt-get</strong></span> <strong class="userinput"><code>install dhcp tftpd</code></strong>
+					</pre><p>
+						If you need rpm packages (for the ISC dhcp server), the best
+						way is to go to <a class="ulink" href="http://rpmfind.net/" target="_top">http://rpmfind.net/</a>.
+					</p><div class="note" style="margin-left: 0.5in; margin-right: 0.5in;"><h3 class="title">Note</h3><p>
+						The dhcp package can do much more than a simple bootp daemon.
+						Nevertheless, it is also known to be much easier to configure.
+						If you really want to try regular <span class="command"><strong>bootp</strong></span>, skip
+						this and go to <a class="xref" href="ch04s03.html#usingbootp" title="3.5. Using bootp/tftp">Section 3.5, &#8220;Using bootp/tftp&#8221;</a>.
+					</p></div></div><div class="sect3"><div class="titlepage"><div><div><h4 class="title"><a name="idm1136"></a>3.4.2. Configuring dhcp/tftp</h4></div></div></div><p>
+						Here are the instructions to set up <span class="command"><strong>dhcp</strong></span> on your
+						boot server. To keep this explanation simple, we will assume that
+						you want to assign a fixed IP to your box, without DNS update. Your
+						subnet will be <code class="literal">192.168.1.0/24</code>, with optional:
+						gateway at <code class="literal">192.168.1.1</code>, domain name
+						<code class="literal">foo.com</code> and DNS at <code class="literal">192.168.1.4</code>.
+						Feel free to replace these values with those which would suit your
+						needs in the next sections.
+					</p><div class="note" style="margin-left: 0.5in; margin-right: 0.5in;"><h3 class="title">Note</h3><p>
+						This section is dedicated to Debian users.
+						For others distributions, it should be similar though
+						there may be some differences like default directories.
+					</p></div><div class="orderedlist"><ol class="orderedlist" type="1"><li class="listitem"><p>
+								Edit <code class="filename">/etc/inetd.conf</code> on your boot
+								server to add the following line, if it doesn't already exist:
+								</p><pre class="programlisting">
+tftp           dgram   udp     wait    nobody  /usr/sbin/tcpd \
+														/usr/sbin/in.tftpd /tftpboot
+								</pre><p>
+								Here, <code class="filename">/tftpboot/</code>
+								is being used as tftpd server's root (this is where you will put the
+								<span class="emphasis"><em>lifimage</em></span> file). You can choose another
+								directory if you want. According to <span class="command"><strong>man tftpd</strong></span>,
+								this is the usual default directory.
+							</p><p>
+								When this is done, reload <span class="command"><strong>inetd</strong></span> with:
+								<span class="command"><strong>/etc/init.d/inetd reload</strong></span>. Non-Debian users can also
+								issue a <span class="command"><strong>killall -HUP inetd</strong></span>.
+							</p></li><li class="listitem"><p>
+								According to <span class="command"><strong>man 5 dhcpd.conf</strong></span>, edit the
+								<code class="filename">/etc/dhcpd.conf</code> file to contain something like:
+								</p><pre class="programlisting">
+allow bootp;
+default-lease-time 600;
+max-lease-time 7200;
+# This will tell the box its hostname while booting:
+use-host-decl-names on;
+
+subnet <em class="replaceable"><code>192.168.1.0</code></em> netmask 255.255.255.0 {
+		option routers <em class="replaceable"><code>192.168.1.1</code></em>;
+		option domain-name "<em class="replaceable"><code>foo.com</code></em>";
+		option domain-name-server <em class="replaceable"><code>192.168.1.4</code></em>;
+}
+
+host <em class="replaceable"><code>[hostname]</code></em> {
+		hardware ethernet <em class="replaceable"><code>[mac address]</code></em>;
+		fixed-address <em class="replaceable"><code>[ip address]</code></em>;
+		filename "<em class="replaceable"><code>[boot filename]</code></em>";
+		option root-path "<em class="replaceable"><code>[root path]</code></em>";
+}
+								</pre><p>
+								You have to fill in the <em class="replaceable"><code>[hostname]</code></em>,
+								<em class="replaceable"><code>[mac address]</code></em>,
+								<em class="replaceable"><code>[ip address]</code></em>,
+								<em class="replaceable"><code>[boot filename]</code></em> and
+								<em class="replaceable"><code>[root path]</code></em> fields with the
+								appropriate information, where:
+							</p><div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem"><p>
+								  	<em class="replaceable"><code>[hostname]</code></em>
+										is the name of the PA-RISC system.
+									</p></li><li class="listitem"><p>
+								  	<em class="replaceable"><code>[mac address]</code></em>
+										is the colon-delimited ethernet address of the PA-RISC system, which
+										can be obtained by typing <span class="command"><strong>lanaddress</strong></span> at the
+										'<code class="computeroutput">BOOT_ADMIN&gt;</code>' prompt
+										(see <a class="xref" href="ch02s01.html#bootadminfo" title="1.2.3. The information commands">Section 1.2.3, &#8220;The <code class="literal">information</code> commands&#8221;</a>).
+									</p></li><li class="listitem"><p>
+								  	<em class="replaceable"><code>[ip address]</code></em>
+										is the IP address you wish to assign to the PA-RISC system.
+									</p></li><li class="listitem"><p>
+								  	<em class="replaceable"><code>[boot filename]</code></em>
+										is the name of the bootable kernel image you want to boot your system with.
+									</p></li><li class="listitem"><p>
+								  	<em class="replaceable"><code>[root path]</code></em>
+										is the path to the NFS root filesystem exported by the server.
+									</p></li><li class="listitem"><p>
+										Additionally, if the tftp server you want to use is not the same as the one
+										running the dhcp server, you can add <code class="computeroutput">next-server
+										<em class="replaceable"><code>[ip address]</code></em>;</code>, replacing
+										<em class="replaceable"><code>[ip address]</code></em> with the actual IP of the tftp
+										server, to the dhcp configuration.
+									</p></li></ul></div><p>
+								You'll end up with something like this for each box
+								you want to <span class="emphasis"><em>netboot</em></span>:
+							  </p><pre class="programlisting">
+host tatooine {
+		hardware ethernet 00:40:05:18:0c:dd;
+		fixed-address 192.168.1.22;
+		filename "lifimage-tatooine";
+		option root-path "/exports/tatooineroot";
+}
+								</pre><p>
+				      </p></li></ol></div></div></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="usingbootp"></a>3.5. Using bootp/tftp</h3></div></div></div><div class="sect3"><div class="titlepage"><div><div><h4 class="title"><a name="idm1206"></a>3.5.1. Obtaining bootp/tftp</h4></div></div></div><p>
+						For Debian users, you just have to install the packages by typing
+						these commands as user <code class="literal">root</code>:
+						</p><pre class="programlisting">
+<code class="prompt">[user@machine ~/dir]&gt;</code> <span class="command"><strong>apt-get</strong></span> <strong class="userinput"><code>install bootp tftpd</code></strong>
+						</pre><p>
+						If you need rpm packages, the best way is to go to
+						<a class="ulink" href="http://rpmfind.net/" target="_top">http://rpmfind.net/</a>.
+					</p><div class="warning" style="margin-left: 0.5in; margin-right: 0.5in;"><h3 class="title">Warning</h3><p>
+						You'll have been warned! This daemon is far more obfuscated
+						in its configuration.
+					</p></div></div><div class="sect3"><div class="titlepage"><div><div><h4 class="title"><a name="idm1217"></a>3.5.2. Configuring bootp/tftp</h4></div></div></div><p>
+						Follow these instructions to use the <span class="command"><strong>bootp</strong></span>
+						daemon on your boot server:
+					</p><div class="note" style="margin-left: 0.5in; margin-right: 0.5in;"><h3 class="title">Note</h3><p>
+						This section is dedicated to Debian users.
+						For others distributions, it should be similar though
+						there may be some differences like default directories.
+					</p></div><div class="orderedlist"><ol class="orderedlist" type="1"><li class="listitem"><p>
+								Edit <code class="filename">/etc/inetd.conf</code> on your boot server
+								to add the following lines, if they don't already exist:
+							  </p><pre class="programlisting">
+tftp            dgram   udp     wait    nobody  /usr/sbin/tcpd       \
+											/usr/sbin/in.tftpd /tftpboot
+bootps          dgram   udp     wait    root    /usr/sbin/bootpd     \
+														bootpd -i -t 120
+								</pre><p>
+								Here, <code class="filename">/tftpboot/</code> is being
+								used as tftpd server's root (this is where you will put the
+								<span class="emphasis"><em>lifimage</em></span> file). You can choose another directory
+								if you want. According to <span class="command"><strong>man tftpd</strong></span>, this
+								is the usual default directory.
+							</p><p>
+								When this is done, reload <span class="command"><strong>inetd</strong></span> with:
+								<span class="command"><strong>/etc/init.d/inetd reload</strong></span>. Non-Debian users can also issue
+								a <span class="command"><strong>killall -HUP inetd</strong></span>.
+							</p></li><li class="listitem"><p>
+								According to <span class="command"><strong>man 5 bootptab</strong></span>, edit the
+								<code class="filename">/etc/bootptab</code> file to contain:
+								</p><pre class="programlisting">
+<em class="replaceable"><code>[hostname]</code></em>:hd=/tftpboot:\
+			:rp=<em class="replaceable"><code>[root path]</code></em>:\
+			:ht=ethernet:\
+			:ha=<em class="replaceable"><code>[mac address]</code></em>:\
+			:ip=<em class="replaceable"><code>[ip address]</code></em>:\
+			:bf=<em class="replaceable"><code>[boot filename]</code></em>:\
+			:sm=255.255.255.0:\
+			:to=7200:
+								</pre><p>
+								You have to fill in the <em class="replaceable"><code>[hostname]</code></em>,
+								<em class="replaceable"><code>[mac address]</code></em>,
+								<em class="replaceable"><code>[ip address]</code></em> and
+								<em class="replaceable"><code>[root path]</code></em>
+								fields with the appropriate information, where:
+							</p><div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem"><p>
+								  	<em class="replaceable"><code>[hostname]</code></em> is the name
+										of the PA-RISC system.
+									</p></li><li class="listitem"><p>
+								  	<em class="replaceable"><code>[mac address]</code></em> is the
+										NOT-delimited ethernet address of the PA-RISC system, which can be obtained
+										by typing <span class="command"><strong>lanaddress</strong></span> at the
+										'<code class="computeroutput">BOOT_ADMIN&gt;</code>' prompt
+										(see <a class="xref" href="ch02s01.html#bootadminfo" title="1.2.3. The information commands">Section 1.2.3, &#8220;The <code class="literal">information</code> commands&#8221;</a>).
+									</p></li><li class="listitem"><p>
+								  	<em class="replaceable"><code>[ip address]</code></em> is the
+										IP address you wish to assign to the PA-RISC system.
+									</p></li><li class="listitem"><p>
+								  	<em class="replaceable"><code>[boot filename]</code></em> is the
+										name of the bootable kernel image you want to boot your system with.
+									</p></li><li class="listitem"><p>
+								  	<em class="replaceable"><code>[root path]</code></em> is the
+										path to the NFS root filesystem exported by the server.
+									</p></li></ul></div><p>You'll end up with something like this:</p><pre class="programlisting">
+vodka:hd=/tftpboot:\
+	 :rp=/usr/src/parisc/:\
+	 :ht=ethernet:\
+	 :ha=080069088717:\
+	 :ip=140.244.9.208:\
+	 :bf=lifimage:\
+	 :sm=255.255.255.0:\
+	 :to=7200:
+							</pre></li></ol></div></div></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="realnetboot"></a>3.6. Effectively booting from network</h3></div></div></div><div class="highlights"><p>
+					To conclude with the developers' way to boot the
+					kernel, this section will tell you how to actually boot your
+					system from a network server. But it tends to be less and less used.
+					Most users will prefer to stick to <a class="xref" href="ch04s02.html" title="2. Booting from hard drive">Section 2, &#8220;Booting from hard drive&#8221;</a> once
+					their system is properly setup.
+				</p></div><p>
+					Here we are. We assume that you've done everything outlined
+					above, your network boot server is on the same physical subnet as
+					your PA-RISC machine, you've got a bootable PA/Linux kernel lifimage
+					on your boot server, and you're willing to give it a try.
+					If everything is ready (including you!), the following procedure
+					will introduce you to the joy of network booting your PA box into Linux.
+				</p><div class="orderedlist"><ol class="orderedlist" type="1"><li class="listitem"><p>Fire up your PA-RISC system.</p></li><li class="listitem"><p>
+							Watch your PA-RISC box starting up. When the following message
+							appears during the PA-RISC machine's boot process, press
+							and hold the <span class="keycap"><strong>Esc</strong></span> key:
+
+					  	</p><pre class="programlisting">
+Searching for Potential Boot Devices.
+To terminate search, press and hold the ESCAPE key.
+							</pre><p>
+						</p></li><li class="listitem"><p>
+							If needed, select '<code class="computeroutput">a)  Enter Boot Administration
+							mode</code>' from the menu.  This brings up the
+							'<code class="computeroutput">BOOT_ADMIN&gt;</code>' prompt.
+						</p></li><li class="listitem"><p>
+							Type the following at the prompt: <span class="command"><strong>boot lan</strong></span>.
+						</p></li><li class="listitem"><p>
+							Watch your PA-RISC system magically becoming a PA/Linux system.
+							Ta dah!
+						</p></li></ol></div><div class="note" style="margin-left: 0.5in; margin-right: 0.5in;"><h3 class="title">Note</h3><p>
+					Of course your are supposed to run only one boot server
+					at a time on your network, in order to avoid conflicts...
+				</p></div></div></div><div class="navfooter"><hr><table width="100%" summary="Navigation footer"><tr><td width="40%" align="left"><a accesskey="p" href="ch04s02.html">Prev</a> </td><td width="20%" align="center"><a accesskey="u" href="ch04.html">Up</a></td><td width="40%" align="right"> <a accesskey="n" href="ch05.html">Next</a></td></tr><tr><td width="40%" align="left" valign="top">2. Booting from hard drive </td><td width="20%" align="center"><a accesskey="h" href="index.html">Home</a></td><td width="40%" align="right" valign="top"> Chapter 5. Building and installing a custom kernel</td></tr></table></div></body></html>

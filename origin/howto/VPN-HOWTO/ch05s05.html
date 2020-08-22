@@ -1,0 +1,54 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1"><title>5. Server: Configure pppd</title><link rel="stylesheet" type="text/css" href="style.css"><meta name="generator" content="DocBook XSL Stylesheets V1.79.1"><link rel="home" href="index.html" title="VPN HOWTO"><link rel="up" href="ch05.html" title="Chapter 5. Implementation"><link rel="prev" href="ch05s04.html" title="4. Server: Configure Networking"><link rel="next" href="ch05s06.html" title="6. Server: Configure sshd"></head><body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF"><div class="navheader"><table width="100%" summary="Navigation header"><tr><th colspan="3" align="center">5. Server: Configure <span class="command"><strong>pppd</strong></span>
+			</th></tr><tr><td width="20%" align="left"><a accesskey="p" href="ch05s04.html">Prev</a> </td><th width="60%" align="center">Chapter 5. Implementation</th><td width="20%" align="right"> <a accesskey="n" href="ch05s06.html">Next</a></td></tr></table><hr></div><div class="sect1"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="idm459"></a>5. Server: Configure <span class="command"><strong>pppd</strong></span>
+			</h2></div></div></div><p>
+Now we will configure pppd on the server to handle VPN connections.  If
+you are already using this server to handle dialup users or even dialing
+out yourself, then you should note that these changes may affect those
+services.  I go over how to avoid conflicts at the end of this section.
+</p><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="idm463"></a>5.1. <code class="filename">/etc/ppp/</code>
+ 				</h3></div></div></div><p>
+This directory may contain a number of files.  You probably already
+have a file called <code class="filename">options</code>.  This file holds all of the global
+options for <span class="command"><strong>pppd</strong></span>.  These options cannot be overridden by <span class="command"><strong>pppd</strong></span> on the
+command line.
+</p></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="idm470"></a>5.2. <code class="filename">/etc/ppp/options</code>
+ 				</h3></div></div></div><p>
+Your <code class="filename">options</code> file should contain at least the following:
+</p><pre class="screen">
+ipcp-accept-local
+ipcp-accept-remote
+proxyarp
+noauth
+</pre><p>
+The first two lines tell <span class="command"><strong>pppd</strong></span> to accept what the other end specifies
+for IP addresses.  This is necessary when hooking up remote offices, but can
+be disabled if you are only connecting home users.  It's okay to leave it on, as
+it does not prevent the server from assigning addresses, it only says it that
+it's okay to accept what the client asks for.
+</p><p>
+The third line is very important.  From the <span class="command"><strong>pppd</strong></span> man page:
+</p><pre class="screen">
+proxyarp
+       Add an entry to this system's ARP [Address  Resolu-
+       tion  Protocol]  table  with  the IP address of the
+       peer and the Ethernet address of this system.  This
+       will  have  the effect of making the peer appear to
+       other systems to be on the local ethernet.		
+</pre><p>
+This is important because if it is not done, local traffic will not be able
+to get back through the tunnel.
+</p><p>
+The last line is just as important.  This tells <span class="command"><strong>pppd</strong></span> to allow
+connections without username and password.  This is safe since authentication
+is already handled by <span class="command"><strong>sshd</strong></span>.
+</p></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="idm485"></a>5.3. Avoiding conflicts</h3></div></div></div><p>
+If you are handling other services with <span class="command"><strong>pppd</strong></span>, you should
+consider that the configurations for these other services may not be the
+same as what the VPN system needs.  <span class="command"><strong>pppd</strong></span> is designed such that
+the options in the main options file <code class="filename">/etc/ppp/options</code> cannot be
+overridden by options specified at runtime.  This is done for security
+reasons. In order to avoid conflict, determine which options cause the
+conflict, and move them from the main file into a separate options file
+that is loaded when the appropriate application of <code class="filename">pppd</code> is run.
+</p></div></div><div class="navfooter"><hr><table width="100%" summary="Navigation footer"><tr><td width="40%" align="left"><a accesskey="p" href="ch05s04.html">Prev</a> </td><td width="20%" align="center"><a accesskey="u" href="ch05.html">Up</a></td><td width="40%" align="right"> <a accesskey="n" href="ch05s06.html">Next</a></td></tr><tr><td width="40%" align="left" valign="top">4. Server: Configure Networking </td><td width="20%" align="center"><a accesskey="h" href="index.html">Home</a></td><td width="40%" align="right" valign="top"> 6. Server: Configure <span class="command"><strong>sshd</strong></span>
+			</td></tr></table></div></body></html>

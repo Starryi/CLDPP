@@ -1,0 +1,125 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1"><title>9. Starting Your Software Automatically on Boot</title><link rel="stylesheet" type="text/css" href="style.css"><meta name="generator" content="DocBook XSL Stylesheets V1.79.1"><link rel="home" href="index.html" title="Designing Integrated High Quality Linux Applications"><link rel="up" href="index.html" title="Designing Integrated High Quality Linux Applications"><link rel="prev" href="ar01s08.html" title="8. Graphical User Interface"><link rel="next" href="apa.html" title="A. Red Hat, About the Filesystem Structure"></head><body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF"><div class="navheader"><table width="100%" summary="Navigation header"><tr><th colspan="3" align="center">9. Starting Your Software Automatically on Boot</th></tr><tr><td width="20%" align="left"><a accesskey="p" href="ar01s08.html">Prev</a> </td><th width="60%" align="center"> </th><td width="20%" align="right"> <a accesskey="n" href="apa.html">Next</a></td></tr></table><hr></div><div class="section"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="boot"></a>9. Starting Your Software Automatically on Boot</h2></div></div></div><p>The way Linux starts (and stops) all its subsystems is very simple and modular. Lets you define initialization order, <a class="link" href="ar01s09.html#boot.runlevel" title="9.2. Runlevels">runlevels</a> etc</p><div class="section"><div class="titlepage"><div><div><h3 class="title"><a name="boot.init"></a>9.1. From <acronym class="acronym">BIOS</acronym> to Subsystems</h3></div></div></div><p>Lets review what happens when we boot Linux:</p><div class="orderedlist"><ol class="orderedlist" type="1"><li class="listitem"><p>The <acronym class="acronym">BIOS</acronym> or a bootloader (<span class="application">lilo</span>, <span class="application">zlilo</span>, <span class="application">grub</span>, etc) loads Linux Kernel from disk to memory, with some parameters defined in the bootloader configuration. We can see this process watching the dots that appear in the screen. Kernel file stays in the <code class="filename">/boot</code> directory, and is accessed only at this moment.</p></li><li class="listitem"><p>In memory, Kernel code starts to run, detecting a series of vital devices, disk partitions etc.</p></li><li class="listitem"><p>On of the last things Kernel does is to mount the <code class="filename">/</code> (root) filesystem, that obrigatoriamente must contain the <code class="filename">/etc</code>, <code class="filename">/sbin</code>, <code class="filename">/bin</code> and <code class="filename">/lib</code> directories.</p></li><li class="listitem"><p>Immediately behind, calls the program called <span class="command"><strong>init</strong></span> (<code class="filename">/sbin/init</code>) and passes the control to him.</p></li><li class="listitem"><p>The <span class="command"><strong>init</strong></span> command will read his configuration file (<code class="filename">/etc/inittab</code>) which defines the system <span class="strong"><strong>runlevel</strong></span>, and some Shell scripts to be run.</p></li><li class="listitem"><p>These scripts will continue the setup of system's minimal infrastructure, mounting other filesystems (according to <code class="filename">/etc/fstab</code>), activating swap space (virtual memory), etc.</p></li><li class="listitem"><p>The last step, and most interesting for you, is the execution of the special script called <code class="filename">/etc/rc.d/rc</code>, which initializes the subsystems according to a directory structure under <code class="filename">/etc/rc.d</code>. The name <span class="emphasis"><em>rc</em></span> comes from <span class="emphasis"><em>run commands</em></span>.</p></li></ol></div></div><div class="section"><div class="titlepage"><div><div><h3 class="title"><a name="boot.runlevel"></a>9.2. Runlevels</h3></div></div></div><p>The runlevels mechanism lets Linux initialize itself in different ways. And also lets us change from one profile (runlevel) to another without rebooting.</p><p>The default runlevel is defined in <code class="filename">/etc/inittab</code> with a line like this:</p><div class="example"><a name="idm842"></a><p class="title"><b>Example 3. Default runlevel (3, in this case) line in <code class="filename">/etc/inittab</code></b></p><div class="example-contents"><pre class="programlisting">id:3:initdefault:</pre></div></div><br class="example-break"><p>Runlevels are numbers from 0 to 6 and each one of them is used following this standard:</p><div class="variablelist"><dl class="variablelist"><dt><span class="term">0</span></dt><dd><p>Halts the system. Turning to this runlevel, all subsystems are softly deactivated before the shutdown. Don't use it in the <span class="command"><strong>initdefault</strong></span> line of <code class="filename">/etc/inittab</code>.</p></dd><dt><span class="term">1</span></dt><dd><p>Mono-user mode. Only vital subsystems are initialized because it is used for system maintenance. No user authentication (login) is required in this runlevel. A command line is directly returned to the user.</p></dd><dt><span class="term">3, </span><span class="term">2</span></dt><dd><p>3 is used when a system is in full production. Take it as the runlevel your software will run. 2 is historical and is like 3, but without NFS.</p></dd><dt><span class="term">4</span></dt><dd><p>Not used. You can define it as you want, but is uncommon.</p></dd><dt><span class="term">5</span></dt><dd><p>Like 3 plus a graphical login. It is ideal for a desktop workstation. Use 3 if the machine will be used as a server, for security and performance reasons.</p></dd><dt><span class="term">6</span></dt><dd><p>Like runlevel 0, but after complete stop, the machine is rebooted. Don't use it in the <span class="command"><strong>initdefault</strong></span> line of <code class="filename">/etc/inittab</code>.</p></dd></dl></div><p>You can switch from one runlevel to another using the <span class="command"><strong>telinit</strong></span> command. And you can see the current runlevel and the last one with the <span class="command"><strong>runlevel</strong></span> command. See bellow how we switched from runlevel 3 to 5.</p><pre class="screen">
+<code class="prompt">bash# </code><span class="command"><strong>runlevel</strong></span>
+N 3
+<code class="prompt">bash# </code><span class="command"><strong>telinit 5</strong></span>
+<code class="prompt">bash# </code><span class="command"><strong>runlevel</strong></span>
+3 5
+<code class="prompt">bash# </code></pre></div><div class="section"><div class="titlepage"><div><div><h3 class="title"><a name="boot.subs"></a>9.3. The Subsystems</h3></div></div></div><p>Subsystems examples are a web-server, data base server, OS network layer etc. We'll not consider a user oriented application (like a text editor) as a subsystem.</p><p>Linux provides an elegant and modular way to organize the subsystems initialization. An important fact to think is about subsystems interdependencies. For instance, it makes no sense to start a web-server before basic networking subsystem is active.</p><p>Subsystems are organized under the <code class="filename">/etc/init.d</code> and <code class="filename">/etc/rc.d/rc<em class="replaceable"><code>N</code></em>.d</code> directories: </p><div class="variablelist"><dl class="variablelist"><dt><span class="term"><code class="filename">/etc/init.d</code></span></dt><dd><p>All installed Subsystems put in this directory a control program, which is a script that follows a <a class="link" href="ar01s09.html#boot.script" title="9.4. Turning Your Software Into a Subsystem">simple standard described bellow</a>. This is a simplified listing of this directory:</p><div class="example"><a name="idm903"></a><p class="title"><b>Example 4. Subsystems installed in <code class="filename">/etc/init.d</code></b></p><div class="example-contents"><pre class="screen">
+<code class="prompt">bash:/etc/init.d# </code><span class="command"><strong>ls -l</strong></span>
+-rwxr-xr-x  1 root  root   9284 Aug 13  2001 functions
+-rwxr-xr-x  1 root  root   4984 Sep  5 00:18 halt
+-rwxr-xr-x  1 root  root   5528 Nov  5 09:44 firewall
+-rwxr-xr-x  1 root  root   1277 Sep  5 21:09 keytable
+-rwxr-xr-x  1 root  root    487 Jan 30  2001 killall
+-rwxr-xr-x  1 root  root   7958 Aug 15 17:20 network
+-rwxr-xr-x  1 root  root   1490 Sep  5 07:54 ntpd
+-rwxr-xr-x  1 root  root   2295 Jan 30  2001 rawdevices
+-rwxr-xr-x  1 root  root   1830 Aug 31 09:29 httpd
+-rwxr-xr-x  1 root  root   1311 Aug 15 14:18 syslog</pre></div></div><br class="example-break"></dd><dt><span class="term"><code class="filename">/etc/rc.d/rc<em class="replaceable"><code>N</code></em>.d</code> (<em class="replaceable"><code>N</code></em> is the runlevel indicator)</span></dt><dd><p>These directories must contain only special symbolic links to the scripts in <code class="filename">/etc/init.d</code>. This is how it looks:</p><div class="example"><a name="idm917"></a><p class="title"><b>Example 5. <code class="filename">/etc/rc3.d</code> listing</b></p><div class="example-contents"><pre class="screen">
+<code class="prompt">bash:/etc/rc3.d# </code><span class="command"><strong>ls -l</strong></span>
+lrwxrwxrwx  1 root  root     18 Jan 14 11:59 K92firewall -&gt; ../init.d/firewall
+lrwxrwxrwx  1 root  root     17 Jan 14 11:59 <span class="strong"><strong>S10network -&gt; ../init.d/network</strong></span>
+lrwxrwxrwx  1 root  root     16 Jan 14 11:59 S12syslog -&gt; ../init.d/syslog
+lrwxrwxrwx  1 root  root     18 Jan 14 11:59 S17keytable -&gt; ../init.d/keytable
+lrwxrwxrwx  1 root  root     20 Jan 14 11:59 S56rawdevices -&gt; ../init.d/rawdevices
+lrwxrwxrwx  1 root  root     16 Jan 14 11:59 S56xinetd -&gt; ../init.d/xinetd
+lrwxrwxrwx  1 root  root     18 Jan 14 11:59 <span class="strong"><strong>S75httpd -&gt; ../init.d/httpd</strong></span>
+lrwxrwxrwx  1 root  root     11 Jan 13 21:45 S99local -&gt; ../rc.local</pre></div></div><br class="example-break"><p>Pay attention that all link names has a prefix starting with letter <span class="strong"><strong>K</strong></span> (from Kill, to deactivate) or <span class="strong"><strong>S</strong></span> (from Start, to activate), and a 2 digit number that defines the boot activation priority. In our example we have HTTPd (priority 75) starting after the Network (priority 10) subsystem. And the Firewalling subsystem will be deactivated (<span class="strong"><strong>K</strong></span>) in this runlevel.</p></dd></dl></div><p>So <span class="strong"><strong>to make your Software start automatically in the boot process, it must be a subsystem</strong></span>, and we'll see how to do it in the following section.</p></div><div class="section"><div class="titlepage"><div><div><h3 class="title"><a name="boot.script"></a>9.4. Turning Your Software Into a Subsystem</h3></div></div></div><p>Your Software's files will spread across the filesystems, but you'll want to provide a simple and consistent interface to let the user at least start and stop it. Subsystems architecture promotes this ease-of-use, also providing a way (non obrigatoria) to be automatically started on system initialization. You just have to create your <code class="filename">/etc/init.d</code> script following a standard to make it functional.</p><div class="example"><a name="idm935"></a><p class="title"><b>Example 6. Skeleton of a Subsystem control program in <code class="filename">/etc/init.d</code></b></p><div class="example-contents"><pre class="programlisting">
+#!/bin/sh
+#
+# /etc/init.d/mysystem
+# Subsystem file for "MySystem" server
+#
+# chkconfig: 2345 95 05	<a name="ex.init.chkconfig"></a><span><img src="images/callouts/1.png" alt="1" border="0"></span>
+# description: MySystem server daemon
+#
+# processname: MySystem
+# config: /etc/MySystem/mySystem.conf
+# config: /etc/sysconfig/mySystem
+# pidfile: /var/run/MySystem.pid
+
+# source function library
+. /etc/rc.d/init.d/functions
+
+# pull in sysconfig settings
+[ -f /etc/sysconfig/mySystem ] &amp;&amp; . /etc/sysconfig/mySystem	<a name="ex.init.sysconfig"></a><span><img src="images/callouts/2.png" alt="2" border="0"></span>
+
+RETVAL=0
+prog="MySystem"
+.
+.	<a name="ex.init.any.begin"></a><span><img src="images/callouts/3.png" alt="3" border="0"></span>
+.
+
+start() {	<a name="ex.init.start"></a><span><img src="images/callouts/4.png" alt="4" border="0"></span>
+	echo -n $"Starting $prog:"
+	.
+	.	<a name="ex.init.any.start"></a><span><img src="images/callouts/5.png" alt="5" border="0"></span>
+	.
+	RETVAL=$?
+	[ "$RETVAL" = 0 ] &amp;&amp; touch /var/lock/subsys/$prog
+	echo
+}
+
+stop() {	<a name="ex.init.stop"></a><span><img src="images/callouts/6.png" alt="6" border="0"></span>
+	echo -n $"Stopping $prog:"
+	.
+	.	<a name="ex.init.any.stop"></a><span><img src="images/callouts/7.png" alt="7" border="0"></span>
+	.
+	killproc $prog -TERM
+	RETVAL=$?
+	[ "$RETVAL" = 0 ] &amp;&amp; rm -f /var/lock/subsys/$prog
+	echo
+}
+
+reload() {	<a name="ex.init.reload"></a><span><img src="images/callouts/8.png" alt="8" border="0"></span>
+	echo -n $"Reloading $prog:"
+	killproc $prog -HUP
+	RETVAL=$?
+	echo
+}
+
+case "$1" in	<a name="ex.init.call"></a><span><img src="images/callouts/9.png" alt="9" border="0"></span>
+	start)
+		start
+		;;
+	stop)
+		stop
+		;;
+	restart)
+		stop
+		start
+		;;
+	reload)
+		reload
+		;;
+	condrestart)
+		if [ -f /var/lock/subsys/$prog ] ; then
+			stop
+			# avoid race
+			sleep 3
+			start
+		fi
+		;;
+	status)
+		status $prog
+		RETVAL=$?
+		;;
+	*)	<a name="ex.init.default"></a><span><img src="images/callouts/10.png" alt="10" border="0"></span>
+		echo $"Usage: $0 {start|stop|restart|reload|condrestart|status}"
+		RETVAL=1
+esac
+exit $RETVAL
+</pre><div class="calloutlist"><table border="0" summary="Callout list"><tr><td width="5%" valign="top" align="left"><p><a href="#ex.init.chkconfig"><span><img src="images/callouts/1.png" alt="1" border="0"></span></a> </p></td><td valign="top" align="left"><p>Although these are comments, they are used by <span class="command"><strong>chkconfig</strong></span> command and must be present. This particular line defines that on runlevels 2,3,4 and 5, this subsystem will be activated with priority 95 (one of the lasts), and deactivated with priority 05 (one of the firsts).</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#ex.init.sysconfig"><span><img src="images/callouts/2.png" alt="2" border="0"></span></a> </p></td><td valign="top" align="left"><p>Besides your <a class="link" href="ar01s03.html#software.soul">Software's own configuration</a>, this script can also have a configuration file. The standard place for it is under <code class="filename">/etc/sysconfig</code> directory, and in our case we call it <code class="filename">mySystem</code>. This code line reads this configuration file.</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#ex.init.start"><span><img src="images/callouts/4.png" alt="4" border="0"></span></a> <a href="#ex.init.stop"><span><img src="images/callouts/6.png" alt="6" border="0"></span></a> <a href="#ex.init.reload"><span><img src="images/callouts/8.png" alt="8" border="0"></span></a> </p></td><td valign="top" align="left"><p>Your script can have many functions, but it is obrigatorios the implementation of <span class="command"><strong>start</strong></span> and <span class="command"><strong>stop</strong></span> methods, because they are responsible for (de)activation of your Subsystem on boot. Other methods can be called from the command line, and you can define as much as you want.</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#ex.init.call"><span><img src="images/callouts/9.png" alt="9" border="0"></span></a> </p></td><td valign="top" align="left"><p>After defining the script actions, the command line is analyzed and the requested method (action) is called.</p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#ex.init.default"><span><img src="images/callouts/10.png" alt="10" border="0"></span></a> </p></td><td valign="top" align="left"><p>If this script is executed without any parameter, it will return a help message like this:</p><pre class="screen">
+<code class="prompt">bash# </code><span class="command"><strong>/etc/init.d/mysystem</strong></span>
+Usage: mysystem {start|stop|restart|reload|condrestart|status}</pre></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#ex.init.any.begin"><span><img src="images/callouts/3.png" alt="3" border="0"></span></a> <a href="#ex.init.any.start"><span><img src="images/callouts/5.png" alt="5" border="0"></span></a> <a href="#ex.init.any.stop"><span><img src="images/callouts/7.png" alt="7" border="0"></span></a> </p></td><td valign="top" align="left"><p>Here you put your Software's specific command.</p></td></tr></table></div></div></div><br class="example-break"><p>The <span class="command"><strong>mysystem</strong></span> subsystem methods you implemented will be called by users with the <span class="command"><strong>service</strong></span> command like this example:</p><div class="example"><a name="idm974"></a><p class="title"><b>Example 7. <span class="command">service</span> command usage</b></p><div class="example-contents"><pre class="screen">
+<code class="prompt">bash# </code><span class="command"><strong>service mysystem start</strong></span>
+Starting MySystem:			[ OK ]
+<code class="prompt">bash# </code><span class="command"><strong>service mysystem status</strong></span>
+Subsysten MySystem is active with pid 1234
+<code class="prompt">bash# </code><span class="command"><strong>service mysystem reload</strong></span>
+Reloading MySystem:			[ OK ]
+<code class="prompt">bash# </code><span class="command"><strong>service mysystem stop</strong></span>
+Stopping MySystem:			[ OK ]
+<code class="prompt">bash# </code></pre></div></div><br class="example-break"><p>You don't have to worry about managing the symbolic links in <code class="filename">/etc/rc.d/rc<em class="replaceable"><code>N</code></em>.d</code>. The <span class="command"><strong>chkconfig</strong></span> command makes it for you, based on the control comments defined in the beginning of your script.</p><div class="example"><a name="idm991"></a><p class="title"><b>Example 8. Using the <span class="command">chkconfig</span> command</b></p><div class="example-contents"><pre class="screen">
+<code class="prompt">bash# </code><span class="command"><strong>chkconfig --add mysystem</strong></span>
+<code class="prompt">bash# </code><span class="command"><strong>chkconfig --del mysystem</strong></span></pre></div></div><br class="example-break"><p>Read the <span class="command"><strong>chkconfig</strong></span> manual page to see what more it can do for you.</p></div><div class="section"><div class="titlepage"><div><div><h3 class="title"><a name="boot.install"></a>9.5. Packaging Your Boot Script</h3></div></div></div><p>When you'll create the RPM, put your Subsystem script in <code class="filename">/etc/init.d</code> and <span class="strong"><strong>do not include</strong></span> any <code class="filename">/etc/rc.d/rc<em class="replaceable"><code>N</code></em>.d</code> link, because it is a user decision to make your subsystem automatic or not. If you include them and the user makes any change, the RPM file inventory will become inconsistent.</p><p>The symbolic links must be created and removed dynamically by the post-installation and pre-uninstallation process of your package, using the <span class="command"><strong>chkconfig</strong></span> command. This approach guarantees 100% package and filesystem consistency.</p></div></div><div class="navfooter"><hr><table width="100%" summary="Navigation footer"><tr><td width="40%" align="left"><a accesskey="p" href="ar01s08.html">Prev</a> </td><td width="20%" align="center"> </td><td width="40%" align="right"> <a accesskey="n" href="apa.html">Next</a></td></tr><tr><td width="40%" align="left" valign="top">8. Graphical User Interface </td><td width="20%" align="center"><a accesskey="h" href="index.html">Home</a></td><td width="40%" align="right" valign="top"> A. Red Hat, About the Filesystem Structure</td></tr></table></div></body></html>

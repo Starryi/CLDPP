@@ -1,0 +1,30 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1"><title>9. Recover physical volume metadata</title><link rel="stylesheet" type="text/css" href="style.css"><meta name="generator" content="DocBook XSL Stylesheets V1.79.1"><link rel="home" href="index.html" title="LVM HOWTO"><link rel="up" href="ch13.html" title="Chapter 13. Recipes"><link rel="prev" href="ch13s08.html" title="8. Converting a root filesystem to LVM 1"><link rel="next" href="apa.html" title="Appendix A. Dangerous Operations"></head><body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF"><div class="navheader"><table width="100%" summary="Navigation header"><tr><th colspan="3" align="center">9. Recover physical volume metadata</th></tr><tr><td width="20%" align="left"><a accesskey="p" href="ch13s08.html">Prev</a> </td><th width="60%" align="center">Chapter 13. Recipes</th><td width="20%" align="right"> <a accesskey="n" href="apa.html">Next</a></td></tr></table><hr></div><div class="sect1"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="recovermetadata"></a>9. Recover physical volume metadata</h2></div></div></div><p>
+        If you get the warning "incorrect metadata area header checksum"
+	or something about not being able to find PV with UUID foo,
+	you probably toasted the volume group descriptor area and lvm
+	startup can't occur. 
+      </p><div class="warning" style="margin-left: 0.5in; margin-right: 0.5in;"><h3 class="title">Only run on non-functional VG</h3><p>
+        Don't do this on a properly working lvm.
+        You need to specify the correct physical volume to 
+	<span class="command"><strong>pvcreate</strong></span> or you may lose your data.
+      </p></div><p>
+	Extract the exact uuid for the PV that was overwritten from the file 
+	<code class="filename">/etc/lvm/archive/VolumeGroupName_XXXXX.vg</code>.
+	(Where XXXXX represents the number of the last known good archived lvm
+	metadata).
+      </p><p>
+	 Use <span class="command"><strong>pvcreate</strong></span> to restore the metadata:
+	 <span class="command"><strong>pvcreate --uuid "&lt;some_long_string&gt;" --restorefile /etc/lvm/archive/VolumeGroupName_XXXXX.vg &lt;PhysicalVolume&gt;</strong></span>
+      </p><p>
+	If you are lucky you'll find that the on-disk lvm metadata takes 
+	at least so much space as what it was overwritten with. The above
+	command has been know to recover a PV overwritten with mkswap.  If
+	whatever overwrote the VGDA writes past that area, LVs may be affected.
+	In this case, fsck might be able to fix the filesystem on the LV, or
+	you may need more drastic measures to pull data off of it.  Contact
+	your local friendly filesystem expert for help in that case.
+      </p><div class="note" style="margin-left: 0.5in; margin-right: 0.5in;"><h3 class="title">Note</h3><p><span class="command"><strong>pvcreate</strong></span> only overwrites the lvm metadata
+	areas on disk and doesn't touch the data areas (the logical
+        volumes).
+        </p></div></div><div class="navfooter"><hr><table width="100%" summary="Navigation footer"><tr><td width="40%" align="left"><a accesskey="p" href="ch13s08.html">Prev</a> </td><td width="20%" align="center"><a accesskey="u" href="ch13.html">Up</a></td><td width="40%" align="right"> <a accesskey="n" href="apa.html">Next</a></td></tr><tr><td width="40%" align="left" valign="top">8. Converting a root filesystem to
+        LVM 1 </td><td width="20%" align="center"><a accesskey="h" href="index.html">Home</a></td><td width="40%" align="right" valign="top"> Appendix A. Dangerous Operations</td></tr></table></div></body></html>

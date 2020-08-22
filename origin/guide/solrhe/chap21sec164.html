@@ -1,0 +1,83 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1"><title>3. Caching-only name Server</title><link rel="stylesheet" type="text/css" href="style.css"><meta name="generator" content="DocBook XSL Stylesheets V1.79.1"><meta name="keywords" content="RedHat, redhat, maddy, linus, linux, Linux, Securing, Optimising, security, secure, openna, gerhard"><link rel="home" href="index.html" title="Securing and Optimizing Linux"><link rel="up" href="soft-netwrkng.html" title="Chapter 21. Software -Networking"><link rel="prev" href="chap21sec163.html" title="2. Configure"><link rel="next" href="chap21sec165.html" title="4. Primary master name Server"></head><body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF"><div class="navheader"><table width="100%" summary="Navigation header"><tr><th colspan="3" align="center">3. <code class="literal">Caching-only</code> name Server</th></tr><tr><td width="20%" align="left"><a accesskey="p" href="chap21sec163.html">Prev</a> </td><th width="60%" align="center">Chapter 21. Software -Networking</th><td width="20%" align="right"> <a accesskey="n" href="chap21sec165.html">Next</a></td></tr></table><hr></div><div class="section"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="idm10707"></a>3. <code class="literal">Caching-only</code> name Server</h2></div></div></div><p>
+ Caching-only name servers are servers not authoritative for any domains except <code class="literal">0.0.127.in-addr.arpa</code>, the localhost. A <code class="literal">caching-only</code> name server can look up names inside and outside 
+ your zone, as can <span class="token">primary</span> and <span class="token">slave</span> name servers. The difference is that when a <code class="literal">caching-only</code> name server initially looks up a name within your zone, it ends up asking one 
+ of the <span class="token">primary</span> or <span class="token">slave</span> names servers for your zone for the answer.
+ </p><p>
+ The necessary files to setup a simple caching name server are:
+ </p><div class="orderedlist"><ol class="orderedlist" type="1"><li class="listitem"><p>
+ <code class="filename">named.conf</code>
+ </p></li><li class="listitem"><p>
+ <code class="filename">db.127.0.0</code>
+ </p></li><li class="listitem"><p>
+ <code class="filename">db.cache</code>
+ </p></li><li class="listitem"><p>
+ <code class="filename">named script</code>
+ </p></li></ol></div><p>
+ </p><p>
+ To configure the <code class="filename">/etc/named.conf</code> file for a simple caching name server, use this for all servers that dont act as a <code class="literal">master</code> or <code class="literal">slave</code> name server. Setting up 
+ a simple caching server for local client machines will reduce the load on the network's primary server. Many users on dialup connections may use this configuration along with bind for such a purpose.
+
+ Create the <code class="filename">named.conf</code> file, <span class="command"><strong>touch</strong></span> <code class="filename">/etc/named.conf</code> and add the following lines to the file:
+ 
+ </p><pre class="programlisting">
+ options {
+ directory "/var/named";
+ forwarders { 208.164.186.1; 208.164.186.2; };<a name="frwdrs1"></a><span><img src="images/callouts/1.png" alt="1" border="0"></span>
+ forward only;
+ };
+
+ //
+ // a caching only nameserver config
+ zone "." in {
+ type hint;
+ file "db.cache";
+ };
+
+ zone "0.0.127.in-addr.arpa" in {
+ type master;
+ file "db.127.0.0";
+ };
+ </pre><p>
+ </p><div class="calloutlist"><table border="0" summary="Callout list"><tr><td width="5%" valign="top" align="left"><p><a href="#frwdrs1"><span><img src="images/callouts/1.png" alt="1" border="0"></span></a> </p></td><td valign="top" align="left"><p>
+ In the forwarders line, <code class="literal">208.164.186.1</code> and <code class="literal">208.164.186.2</code> are the <acronym class="acronym">IP</acronym> addresses of your <code class="literal">Primary</code> <span class="emphasis"><em>Master</em></span> and <code class="literal">Secondary</code> <span class="emphasis"><em>Slave</em></span> 
+ <acronym class="acronym"><acronym class="acronym">DNS</acronym></acronym> server. They can also be the <acronym class="acronym">IP</acronym> addresses of your <acronym class="acronym">ISP</acronym>s <acronym class="acronym">DNS</acronym> server and another <acronym class="acronym">DNS</acronym> server, respectively. 
+ </p></td></tr></table></div><p>
+ 
+ </p><div class="tip" style="margin-left: 0.5in; margin-right: 0.5in;"><h3 class="title">
+<span class="inlinemediaobject"><img src="./images/Tip.gif" alt="Tip"></span>
+</h3><p>
+To improve the security of your BIND/<acronym class="acronym">DNS</acronym> server you can stop it from even trying to contact an off-site server if their forwarder is down or doesn't respond. With the 
+ <code class="envar">forward only</code> option set in your <code class="filename">named.conf</code> file, the name server doesn't try to contact other servers to find out information if the forwarder doesn't give 
+ it an answer.
+ </p></div><p>
+ To configure the <code class="filename">/var/named/db.127.0.0</code> file for a simple caching name server,you can use this configuration for all machines on your network that don't act as a <span class="token">master</span> or <span class="token">slave</span> name server. 
+ The <code class="filename">db.127.0.0</code> file covers the loopback network. Create the following files in <code class="filename">/var/named/</code>, <span class="command"><strong>touch</strong></span> <code class="filename">/var/named/db.127.0.0</code> and 
+ add the following lines in the file:
+ </p><pre class="programlisting">
+ $TTL 345600
+ @       IN      SOA     localhost. root.localhost.  (
+ 00	; Serial
+ 86400	; Refresh
+ 7200	; Retry
+ 2592000	; Expire
+ 345600 )	; Minimum
+ IN      NS      localhost.
+
+ 1        IN      PTR     localhost.
+ </pre><p>
+ </p><p>
+ Configure the <code class="filename">/var/named/db.cache</code> file for a simple caching name server before starting your <acronym class="acronym">DNS</acronym> server. You must take a copy of <code class="filename">db.cache</code> file 
+ and copy this file to the <code class="filename">/var/named/</code> directory. The <code class="filename">db.cache</code> tells your server where the servers for the <span class="token">root</span> zone are.
+ </p><p>
+ Use the following commands on another Unix computer in your organization to query a new <code class="filename">db.cache</code> file for your <acronym class="acronym">DNS</acronym> Server or pick one from your 
+ Red Hat Linux <span class="hardware">CD-ROM</span> source distribution: 
+ </p><pre class="screen">
+ [root@deep]# <span class="command"><strong>dig</strong></span> @.aroot-servers.net . ns &gt; db.cache
+ </pre><p>
+ Don't forget to copy the <code class="filename">db.cache</code> file to the <code class="filename">/var/named/</code> directory on your server where you're installing <acronym class="acronym">DNS</acronym> server 
+ after retrieving it over the Internet.
+ </p><div class="tip" style="margin-left: 0.5in; margin-right: 0.5in;"><h3 class="title">
+<span class="inlinemediaobject"><img src="./images/Tip.gif" alt="Tip"></span>
+</h3><p>
+ Internal addresses like <code class="literal">192.168.1/24</code> are not included in the <acronym class="acronym">DNS</acronym> configuration files for security reasons. It is very important that <acronym class="acronym">DNS</acronym> doesn't exist between hosts on the corporate network and external hosts.
+ </p></div></div><div class="navfooter"><hr><table width="100%" summary="Navigation footer"><tr><td width="40%" align="left"><a accesskey="p" href="chap21sec163.html">Prev</a> </td><td width="20%" align="center"><a accesskey="u" href="soft-netwrkng.html">Up</a></td><td width="40%" align="right"> <a accesskey="n" href="chap21sec165.html">Next</a></td></tr><tr><td width="40%" align="left" valign="top">2. Configure </td><td width="20%" align="center"><a accesskey="h" href="index.html">Home</a></td><td width="40%" align="right" valign="top"> 4. Primary <code class="literal">master</code> name Server</td></tr></table></div></body></html>

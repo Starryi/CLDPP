@@ -1,0 +1,240 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN""http://www.w3.org/TR/html4/loose.dtd">
+<HTML
+><HEAD
+><TITLE
+>SMTP and Mail Delivery</TITLE
+><META
+NAME="GENERATOR"
+CONTENT="Modular DocBook HTML Stylesheet Version 1.79"><LINK
+REL="HOME"
+TITLE="Tuning Linux"
+HREF="index.html"><LINK
+REL="UP"
+TITLE="Application Tuning"
+HREF="apps.html"><LINK
+REL="PREVIOUS"
+TITLE="Squid Proxy Server"
+HREF="appssquid.html"><LINK
+REL="NEXT"
+TITLE="MySQL, PostgresSQL, other databases"
+HREF="appsdatabase.html"></HEAD
+><BODY
+CLASS="SECTION"
+BGCOLOR="#FFFFFF"
+TEXT="#000000"
+LINK="#0000FF"
+VLINK="#840084"
+ALINK="#0000FF"
+><DIV
+CLASS="NAVHEADER"
+><TABLE
+SUMMARY="Header navigation table"
+WIDTH="100%"
+BORDER="0"
+CELLPADDING="0"
+CELLSPACING="0"
+><TR
+><TH
+COLSPAN="3"
+ALIGN="center"
+>Tuning Linux</TH
+></TR
+><TR
+><TD
+WIDTH="10%"
+ALIGN="left"
+VALIGN="bottom"
+><A
+HREF="appssquid.html"
+ACCESSKEY="P"
+>Prev</A
+></TD
+><TD
+WIDTH="80%"
+ALIGN="center"
+VALIGN="bottom"
+>Chapter 7. Application Tuning</TD
+><TD
+WIDTH="10%"
+ALIGN="right"
+VALIGN="bottom"
+><A
+HREF="appsdatabase.html"
+ACCESSKEY="N"
+>Next</A
+></TD
+></TR
+></TABLE
+><HR
+ALIGN="LEFT"
+WIDTH="100%"></DIV
+><DIV
+CLASS="SECTION"
+><H1
+CLASS="SECTION"
+><A
+NAME="APPSMAIL"
+>7.2. SMTP and Mail Delivery</A
+></H1
+><P
+>      While this section addresses sendmail directly, most of the
+      concepts should apply to any mail delivery system.
+    </P
+><DIV
+CLASS="SECTION"
+><H2
+CLASS="SECTION"
+><A
+NAME="APPSMAILSENDMAIL"
+>7.2.1. Sendmail</A
+></H2
+><P
+>        
+        A sendmail system will probably be the most likely to be
+	network bottlenecked, but that bottleneck will also
+	most likely be outside the system itself.  There are no
+	special tricks since a typical sendmail system will be
+	fairly balanced against typical hardware.  Depending
+	on the size of the mail store, some type of RAID
+	system may be implemented, but the mail store data
+	is very valuable so use a RAID 5 or other fault-tolerant
+	option.  If the store does get very large, you might
+	also investigate the benefits of multiple caching
+	layers down to the card.
+      </P
+><P
+>        Sendmail itself is very dependent on DNS lookups for its
+	operation, and may be doing ident lookups as well.  As such,
+	some tricks on the network can really help.  Linux 2.4 kernels
+	offer a lot of QoS features, these can be used to prioritize
+	DNS and ident lookups over bulk traffic, preventing blocking
+	of POP, IMAP, and SMTP waiting on a DNS lookup.  I would
+	also strongly suggest implementing a DNS cache locally,
+	maybe even on the sendmail server itself.
+      </P
+></DIV
+><DIV
+CLASS="SECTION"
+><H2
+CLASS="SECTION"
+><A
+NAME="APPSMAILDELIVERY"
+>7.2.2. Mail Delivery (POP and IMAP)</A
+></H2
+><P
+>	  
+	  
+	  Memory and processor requirements will depend on the number
+	  of usersand whether you are providing POP or IMAP services,
+	  or only SMTP.  POP and IMAP require logins, and each login
+	  will spawn another POP or IMAP process.  If concurrent usage
+	  of these services is high, watch for OS paging.
+	</P
+><P
+>	  Using POP for delivery has a very low memory and hard drive
+	  footprint.  In POP, e-mail is typically downloaded from the
+	  server to the client.  The POP server merely handles authentication
+	  and moving the data to the client.  When a mail message is sent
+	  to the client, it is typically removed from the server.
+	</P
+><P
+>	  Using IMAP puts much more stress on the system.  IMAP will copy
+	  an entire mailbox into memory, and perform sorting and other
+	  functions on the mailbox.  When a client requests a message, the
+	  message is sent to the client, but is not removed from the server.
+	  So all mail messages remain on the server until the client explicitly
+	  deletes it.  The advantage to this is a user can have IMAP clients
+	  on multiple machines and still be able to access all the messages.
+	  Since most of the processing is offloaded to the server, this makes
+	  IMAP a great mechanism for light clients or wireless devices
+	  that do not have much memory or processing power.
+	</P
+><P
+>	  Since the data on a POP or IMAP server are critical, you should
+	  be using RAID-5 or RAID-1 to protect the data and keep
+	  the server running.  POP has low memory requirements, while
+	  IMAP has very high memory and disk requirements, and both
+	  will likely increase as more users are introduced to the system
+	  and they start working with mailboxes in the thousands of messages.
+	</P
+><P
+>	  In either case, using SSL on top of POP or IMAP will also
+	  increase the CPU load of the protocols, but will have minimal
+	  affect on disk or memory usage.
+	</P
+><P
+>	  It is not advisable
+	  to put a shell account on the same machine as one running IMAP
+	  or POP, due to the CPU and memory used by these protocols.
+	  Nor is it advisable to use NFS to export a mailbox to a shell
+	  machine, as NFS locks can cause corruption of a mailbox
+	  if sendmail tries to deliver a message and the user is deleting
+	  another message from the same mailbox.
+	</P
+></DIV
+></DIV
+><DIV
+CLASS="NAVFOOTER"
+><HR
+ALIGN="LEFT"
+WIDTH="100%"><TABLE
+SUMMARY="Footer navigation table"
+WIDTH="100%"
+BORDER="0"
+CELLPADDING="0"
+CELLSPACING="0"
+><TR
+><TD
+WIDTH="33%"
+ALIGN="left"
+VALIGN="top"
+><A
+HREF="appssquid.html"
+ACCESSKEY="P"
+>Prev</A
+></TD
+><TD
+WIDTH="34%"
+ALIGN="center"
+VALIGN="top"
+><A
+HREF="index.html"
+ACCESSKEY="H"
+>Home</A
+></TD
+><TD
+WIDTH="33%"
+ALIGN="right"
+VALIGN="top"
+><A
+HREF="appsdatabase.html"
+ACCESSKEY="N"
+>Next</A
+></TD
+></TR
+><TR
+><TD
+WIDTH="33%"
+ALIGN="left"
+VALIGN="top"
+>Squid Proxy Server</TD
+><TD
+WIDTH="34%"
+ALIGN="center"
+VALIGN="top"
+><A
+HREF="apps.html"
+ACCESSKEY="U"
+>Up</A
+></TD
+><TD
+WIDTH="33%"
+ALIGN="right"
+VALIGN="top"
+>MySQL, PostgresSQL, other databases</TD
+></TR
+></TABLE
+></DIV
+></BODY
+></HTML
+>

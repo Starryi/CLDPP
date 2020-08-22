@@ -1,0 +1,45 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1"><title>5. The dump backup program</title><link rel="stylesheet" type="text/css" href="style.css"><meta name="generator" content="DocBook XSL Stylesheets V1.79.1"><meta name="keywords" content="RedHat, redhat, maddy, linus, linux, Linux, Securing, Optimising, security, secure, openna, gerhard"><link rel="home" href="index.html" title="Securing and Optimizing Linux"><link rel="up" href="whywhen.html" title="Chapter 33. Why's and When's of Backup and Restore"><link rel="prev" href="chap29sec307.html" title="4. Restore files with tar"><link rel="next" href="chap29sec309.html" title="6. Making backups with dump"></head><body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF"><div class="navheader"><table width="100%" summary="Navigation header"><tr><th colspan="3" align="center">5. The dump backup program</th></tr><tr><td width="20%" align="left"><a accesskey="p" href="chap29sec307.html">Prev</a> </td><th width="60%" align="center">Chapter 33. Why's and When's of Backup and Restore</th><td width="20%" align="right"> <a accesskey="n" href="chap29sec309.html">Next</a></td></tr></table><hr></div><div class="section"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="idm23747"></a>5. The dump backup program</h2></div></div></div><p>
+Dump is completely different from <span class="command"><strong>tar</strong></span>, it is a program for backing up and restoring file system. It backups up the entire file system - not the files. Dump does not care what file system is on the hard drive, or 
+even if there are files in the file system. It examines files on an ext2 file system, determines which ones need to be backed up, and copies those files to a specified disk, tape, file or other storage medium. It dumps one file 
+system at a time quickly and efficiently. Unfortunately, it does not do individual directories, and so it eats up a great deal more storage space than <span class="command"><strong>tar</strong></span>. It is also written specifically for backups. 
+</p><p>
+The restore command performs the inverse function of dump, It can restore a full backup of a file system. Subsequent incremental backups can then be layered on top of the full backup. Single files and directory sub trees may 
+also be restored from full or partial backups. You can use dump if you need a procedure for both backing up file systems and restoring file systems after backups.
+</p><p>
+Dump has several levels of backup procedures. The levels range from 0 to 9, where level number 0 means a full backup and guarantees the entire file system is copied. A level number above 0, incremental backup, tells dump to copy 
+all files new or modified since the last dump of the same or lower level. To be more precise, at each incremental backup level you back up everything that has changed since the previous backup at the same or a previous level. 
+</p><p>
+What are the advantages and the reasons to create and use several levels to make a backup? I try to explain it with the following schemas:
+</p><pre class="literallayout">
+
+0	3	2	5	4	7	6	9	8	9
+|	|	|	|	|	|	|	|	|	|
+0 means a full backup.	|	|	|
+	|	|	|	|	|	|	|	|	|
+       3 means copy all files new or modified since level 0, and 3.
+	|	|	|	|	|	|	|	|
+          2 means copy all files new or modified since level 0, and 2.
+	        |	|	|	|	|	|	|
+                5 means copy all files new or modified since level 0, 3, and 5.
+	                |	|	|	|	|	|
+                   4 means copy all files new or modified since level 0, 3, and 4.
+	                |	|	|	|	|
+                      7 means copy all files new or modified since level 0, 3, 4, and 7.
+	                |	|	|	|
+                        6 means copy all files new or modified since level 0, 3, 4, and 6.
+	                |	|	|
+                           9 means copy all files new or modified since level 0, 3, 4, 6, and 9.
+	                        |	|
+                              8 means copy all files new or modified since level 0, 3, 4, 6, and 8.
+	                        |
+                                9 means copy all files new or modified since level 0, 3, 4, 6, 8, and 9.
+
+</pre><p>
+</p><p>
+The advantages and reasons for doing this are that with multiple levels, the backup history can be extended more cheaply. A longer backup history is useful, since deleted or corrupted files are often not noticed for a 
+long time. Even a version of a file that is not very up to date is better than no file at all. Also, backup levels are used to keep both the backup and restore times to a minimum -<span class="emphasis"><em>low</em></span>.
+</p><p>
+The dump manual page suggests a good scheme to take the full advantage of backup levels: 3, 2, 5, 4, 7, 6, 9, 8, 9, etc as described by the table below. The most you have to backup is two day's worth of work. The number 
+of tapes for a restore depends on how long you keep between full backups.
+</p><div class="table"><a name="idm23759"></a><p class="title"><b>Table 33.1. Dump scheme</b></p><div class="table-contents"><table class="table" summary="Dump scheme" width="100%" border="1"><colgroup><col width="1inch" align="center" class="clnm1"><col width="1inch" align="center" class="clnm2"><col width="1inch" align="center" class="clnm3"><col width="1inch" align="center" class="clnm4"></colgroup><thead valign="middle"><tr><th align="center" valign="middle">Tape</th><th align="center" valign="middle">Level</th><th align="center" valign="middle">Backup <span class="emphasis"><em>days</em></span></th><th align="center" valign="middle">Restore tapes</th></tr></thead><tbody valign="middle"><tr><td align="center" valign="middle">1</td><td align="center" valign="middle">0</td><td align="center" valign="middle"><abbr class="abbrev">N.A.</abbr></td><td align="center" valign="middle">1</td></tr><tr><td align="center" valign="middle">2</td><td align="center" valign="middle">3</td><td align="center" valign="middle">1</td><td align="center" valign="middle">1, 2</td></tr><tr><td align="center" valign="middle">3</td><td align="center" valign="middle">2</td><td align="center" valign="middle">2</td><td align="center" valign="middle">1, 3</td></tr><tr><td align="center" valign="middle">4</td><td align="center" valign="middle">5</td><td align="center" valign="middle">1</td><td align="center" valign="middle">1, 2, 4</td></tr><tr><td align="center" valign="middle">5</td><td align="center" valign="middle">4</td><td align="center" valign="middle">2</td><td align="center" valign="middle">1, 2, 5</td></tr><tr><td align="center" valign="middle">6</td><td align="center" valign="middle">7</td><td align="center" valign="middle">1</td><td align="center" valign="middle">1, 2, 5, 6</td></tr><tr><td align="center" valign="middle">7</td><td align="center" valign="middle">6</td><td align="center" valign="middle">2</td><td align="center" valign="middle">1, 2, 5, 7</td></tr><tr><td align="center" valign="middle">8</td><td align="center" valign="middle">9</td><td align="center" valign="middle">1</td><td align="center" valign="middle">1, 2, 5, 7, 8</td></tr><tr><td align="center" valign="middle">9</td><td align="center" valign="middle">8</td><td align="center" valign="middle">2</td><td align="center" valign="middle">1, 2, 5, 7, 9</td></tr><tr><td align="center" valign="middle">10</td><td align="center" valign="middle">9</td><td align="center" valign="middle">1</td><td align="center" valign="middle">1, 2, 5, 7, 9, 10</td></tr></tbody></table></div></div><p><br class="table-break">
+</p></div><div class="navfooter"><hr><table width="100%" summary="Navigation footer"><tr><td width="40%" align="left"><a accesskey="p" href="chap29sec307.html">Prev</a> </td><td width="20%" align="center"><a accesskey="u" href="whywhen.html">Up</a></td><td width="40%" align="right"> <a accesskey="n" href="chap29sec309.html">Next</a></td></tr><tr><td width="40%" align="left" valign="top">4. Restore files with <span class="command"><strong>tar</strong></span> </td><td width="20%" align="center"><a accesskey="h" href="index.html">Home</a></td><td width="40%" align="right" valign="top"> 6. Making backups with dump</td></tr></table></div></body></html>

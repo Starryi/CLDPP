@@ -1,0 +1,213 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1"><title>1. Introduction to Linux Routing</title><link rel="stylesheet" type="text/css" href="style.css"><meta name="generator" content="DocBook XSL Stylesheets V1.79.1"><meta name="keywords" content="linux, ip, iproute2, ifconfig, firewall, ARP, NAT, route, routing, route selection, routing selection, network administration"><link rel="home" href="index.html" title="Guide to IP Layer Network Administration with Linux"><link rel="up" href="ch04.html" title="Chapter 4. IP Routing"><link rel="prev" href="ch04.html" title="Chapter 4. IP Routing"><link rel="next" href="ch04s02.html" title="2. Routing to Locally Connected Networks"></head><body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF"><div class="navheader"><table width="100%" summary="Navigation header"><tr><th colspan="3" align="center">1. Introduction to Linux Routing</th></tr><tr><td width="20%" align="left"><a accesskey="p" href="ch04.html">Prev</a> </td><th width="60%" align="center">Chapter 4. IP Routing</th><td width="20%" align="right"> <a accesskey="n" href="ch04s02.html">Next</a></td></tr></table><hr></div><div class="section"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="routing-intro"></a>1. Introduction to Linux Routing</h2></div></div></div><p>
+      The design of IP routing allows for very simple route
+      definitions for small networks, while not hindering the flexibility of
+      routing in complex environments.  A key concept in IP routing is
+      the ability to define what addresses are locally reachable as opposed to
+      not directly known destinations.  Every IP capable host knows about at
+      least three classes of destination: itself, locally connected
+      computers and everywhere else.
+    </p><p>
+      Most fully-featured IP-aware networked operating systems
+      (all unix-like operating systems with IP stacks,
+      modern Macintoshes, and modern Windows) include support for the loopback
+      device and IP.  This is an IP and range configured on the host machine
+      itself which allows the machine to talk to itself.  Linux systems can
+      communicate over IP on any locally configured IP address, whether on the
+      loopback device or not.  This is the first class of destinations:
+      locally hosted addresses.
+    </p><p>
+      The second class of IP addresses are addresses in the locally
+      connected network segment.  Each machine with a connection to an IP
+      network can reach a subset of the entire IP address space on its
+      directly connected network interface.
+    </p><p>
+      All other hosts or destination IPs fall into a third range.  Any IP
+      which is not on the machine itself or locally reachable (i.e. connected
+      to the same media segment) is only reachable through an IP routing
+      device.  This routing device must have an IP address in a locally
+      reachable IP address range.
+    </p><p>
+      All IP networking is a permutation of these three fundamental concepts
+      of reachability.   This list summarizes the three possible
+      classifications for reachability of destination IP addresses from any
+      single source machine.
+    </p><a name="list-routing-intro"></a><div class="orderedlist"><ol class="orderedlist" type="1"><li class="listitem"><p>
+          The IP address is reachable on the machine itself.  Under linux
+          this is considered
+          <a class="link" href="apcs02.html#tb-tools-ip-addr-scope" title="Table C.2. IP Scope under ip address">scope host</a> and is used
+          for IPs bound to any network device including loopback devices,
+          and the network range for the loopback device.  Addresses of this
+          nature are called local IPs or locally hosted IPs.
+        </p></li><li class="listitem"><p>
+          The IP address is reachable on the directly connected link layer
+          medium.  Addresses of this type are called locally reachable or
+          (preferred) directly reachable IPs.
+        </p></li><li class="listitem"><p>
+          The IP address is ultimately reachable through a router which
+          is reachable on a directly connected link layer medium.  This class
+          of IP addresses is only reachable through a gateway.
+        </p></li></ol></div><p>
+      As a practical description of the above, this partial diagram of the
+      <a class="link" href="apa.html" title="Appendix A. An Example Network and Description">example network</a> shows two
+      machines connected to 192.168.99.0/24.  On <code class="systemitem">tristan</code> the IP addresses
+      127.0.0.1 (loopback--not pictured) and 192.168.99.35 are considered
+      locally hosted IP addresses.  The directly reachable IP addresses fall
+      inside the 192.168.99.0/24 network.  Any other destination addresses are
+      only reachable through a gateway, probably <code class="systemitem">masq-gw</code>.
+    </p><div class="example"><a name="routing-intro-classes"></a><p class="title"><b>Example 4.1. Classes of IP addresses</b></p><div class="example-contents"><div class="mediaobject"><a name="image-routing-intro"></a><img src="images/routing-intro.png"></div></div></div><br class="example-break"><p>
+      Before examining the routing system in more detail, there are some terms
+      to identify and define.  These terms are general IP networking terms 
+      and should be familiar to users who have used IP on other operating
+      systems and networking equipment.
+    </p><div class="variablelist"><a name="list-routing-intro-ipdefs"></a><dl class="variablelist"><dt><a name="list-routing-intro-ipdefs-octet"></a><span class="term">octet</span></dt><dd><a class="indexterm" name="idm1454"></a><a class="indexterm" name="idm1457"></a><p>
+            A single number between decimal 0 and 255, hexadecimal 0x00 and
+            0xff.  An octet is a single byte in size.
+          </p><p>
+            Examples: <span class="emphasis"><em>140</em></span>, <span class="emphasis"><em>254</em></span>,
+            <span class="emphasis"><em>255</em></span>, <span class="emphasis"><em>1</em></span>,
+            <span class="emphasis"><em>0</em></span>, <span class="emphasis"><em>7</em></span>.
+          </p></dd><dt><a name="list-routing-intro-ipdefs-ipaddr"></a><span class="term">IP address, </span><span class="term">IP</span></dt><dd><a class="indexterm" name="idm1472"></a><a class="indexterm" name="idm1475"></a><p>
+            A locally unique four
+            <a class="link" href="ch04s01.html#list-routing-intro-ipdefs-octet">octet</a>
+            logical identifier which a machine
+            can use to communicate using the Internet Protocol.  This
+            address is determined by combining the
+            <a class="link" href="ch04s01.html#list-routing-intro-ipdefs-netaddr">network
+            address</a> and the administratively assigned host address.
+            Simply put, the IP address is a unique number identifying
+            a host on a network.
+          </p><p>
+            Examples: <span class="emphasis"><em>192.168.99.35</em></span>,
+            <span class="emphasis"><em>140.71.38.7</em></span>,
+            <span class="emphasis"><em>205.254.210.186</em></span>.
+          </p></dd><dt><a name="list-routing-intro-ipdefs-hostaddr"></a><span class="term">host address portion</span></dt><dd><a class="indexterm" name="idm1488"></a><p>
+            The rightmost bits (frequently
+            <a class="link" href="ch04s01.html#list-routing-intro-ipdefs-octet">octets</a>)
+            in an
+            <a class="link" href="ch04s01.html#list-routing-intro-ipdefs-ipaddr">IP
+            address</a> which are not a part of the
+            <a class="link" href="ch04s01.html#list-routing-intro-ipdefs-netaddr">network
+            address</a>.  The part of an IP address which identifies the
+            computer on a network independent of the network.
+          </p><p>
+            Examples:  192.168.1.<span class="emphasis"><em>27</em></span>/24,
+            10.<span class="emphasis"><em>10.17.24</em></span>/8,
+            172.20.<span class="emphasis"><em>158.75</em></span>/16.
+          </p></dd><dt><a name="list-routing-intro-ipdefs-netaddr"></a><span class="term">network address, </span><span class="term">network, </span><span class="term">network prefix, </span><span class="term">subnetwork address</span></dt><dd><a class="indexterm" name="idm1505"></a><a class="indexterm" name="idm1508"></a><p>
+            A four
+            <a class="link" href="ch04s01.html#list-routing-intro-ipdefs-octet">octet</a>
+            address and
+            <a class="link" href="ch04s01.html#list-routing-intro-ipdefs-netmask">network
+            mask</a>
+            identifying the usable range of
+            <a class="link" href="ch04s01.html#list-routing-intro-ipdefs-ipaddr">IP
+            addresses</a>.  Conventional and CIDR notations combine
+            the four bare octets with the netmask or prefix length to
+            define this address.  Briefly, a network address is the first
+            address in a range, and is reserved to identify the entire
+            network.
+            <a href="#ftn.idm1515" class="footnote" name="idm1515"><sup class="footnote">[15]</sup></a>
+          </p><p>
+            Examples:  <span class="emphasis"><em>192.168.187.0/24</em></span>,
+            <span class="emphasis"><em>205.254.211.192/26</em></span>,
+            <span class="emphasis"><em>4.20.17.128/255.255.255.248</em></span>,
+            <span class="emphasis"><em>10.0.0.0/255.0.0.0</em></span>,
+            <span class="emphasis"><em>12.35.17.112/28</em></span>.
+          </p></dd><dt><a name="list-routing-intro-ipdefs-netmask"></a><span class="term">network mask, </span><span class="term">netmask, </span><span class="term">network bitmask</span></dt><dd><a class="indexterm" name="idm1534"></a><a class="indexterm" name="idm1537"></a><a class="indexterm" name="idm1540"></a><p>
+            A four-octet set of bits which, when AND'd with a particular
+            <a class="link" href="ch04s01.html#list-routing-intro-ipdefs-ipaddr">IP
+            address</a> produces the
+            <a class="link" href="ch04s01.html#list-routing-intro-ipdefs-netaddr">network
+            address</a>.  Combined with a network address or IP address,
+            the netmask identifies the range of IP addresses which are
+            directly reachable.
+          </p><p>
+            Examples:  <span class="emphasis"><em>255.255.255.0</em></span>,
+            <span class="emphasis"><em>255.255.0.0</em></span>,
+            <span class="emphasis"><em>255.255.192.0</em></span>,
+            <span class="emphasis"><em>255.255.255.224</em></span>,
+            <span class="emphasis"><em>255.0.0.0</em></span>.
+          </p></dd><dt><a name="list-routing-intro-ipdefs-prefix"></a><span class="term">prefix length</span></dt><dd><a class="indexterm" name="idm1555"></a><a class="indexterm" name="idm1558"></a><p>
+            An alternate representation of
+            <a class="link" href="ch04s01.html#list-routing-intro-ipdefs-netmask">network
+            mask</a>, this is a single integer between 0 and 32,
+            identifying the number of significant bits in an 
+            <a class="link" href="ch04s01.html#list-routing-intro-ipdefs-ipaddr">IP
+            address</a> or
+            <a class="link" href="ch04s01.html#list-routing-intro-ipdefs-netaddr">network
+            address</a>.  This is the "slash-number" component of a
+            CIDR address.
+          </p><p>
+            Examples:  4.20.17.0<span class="emphasis"><em>/24</em></span>,
+            66.14.17.116<span class="emphasis"><em>/30</em></span>,
+            10.158.42.72<span class="emphasis"><em>/29</em></span>,
+            10.48.7.198<span class="emphasis"><em>/9</em></span>,
+            192.168.154.64<span class="emphasis"><em>/26</em></span>.
+          </p></dd><dt><a name="list-routing-intro-ipdefs-bcast"></a><span class="term">broadcast address</span></dt><dd><a class="indexterm" name="idm1574"></a><a class="indexterm" name="idm1577"></a><p>
+            A four
+            <a class="link" href="ch04s01.html#list-routing-intro-ipdefs-octet">octet</a>
+            address derived from an OR operation between the
+            <a class="link" href="ch04s01.html#list-routing-intro-ipdefs-hostaddr">host address
+            portion</a> of a
+            <a class="link" href="ch04s01.html#list-routing-intro-ipdefs-netaddr">network
+            address</a> and the full broadcast special 255.255.255.255.
+            The broadcast is the highest allowable address in a given network,
+            and is reserved for broadcast traffic.
+          </p><p>
+            Examples:  <span class="emphasis"><em>192.168.205.255/24</em></span>,
+            <span class="emphasis"><em>172.18.255.255/16</em></span>,
+            <span class="emphasis"><em>12.7.149.63/26</em></span>.
+          </p></dd></dl></div><p>
+      These definitions are common to IP networking in general, and are
+      understood by all in the IP networking community.  For less terse
+      introductory material on matters of IP network addressing in general,
+      see
+      <a class="xref" href="apis01.html#links-general-ip" title="1.3. General IP Networking Resources">Section 1.3, &#8220;General IP Networking Resources&#8221;</a>.
+    </p><p>
+      As is apparent from the interdependencies amongst the above
+      definitions, each term defines a separate part of the concept of
+      the relationships between an IP address and its network.  A good
+      <a class="link" href="aphs01.html" title="1. ipcalc and other IP addressing calculators">IP calculator</a> can assist in
+      mastering these IP fundamentals.
+    </p><div class="example"><a name="ex-routing-intro-ipcalc"></a><p class="title"><b>Example 4.2. Using ipcalc to display IP information</b></p><div class="example-contents"><pre class="programlisting">
+<code class="prompt">[user@workstation]$ </code><strong class="userinput"><code>ipcalc -n 12.7.149.0/26</code></strong>
+
+Address:   12.7.149.0            00001100.00000111.10010101.00 000000
+Netmask:   255.255.255.192 = 26  11111111.11111111.11111111.11 000000
+Wildcard:  0.0.0.63              00000000.00000000.00000000.00 111111
+=&gt;
+Network:   12.7.149.0/26         00001100.00000111.10010101.00 000000 (Class A)
+Broadcast: 12.7.149.63           00001100.00000111.10010101.00 111111
+HostMin:   12.7.149.1            00001100.00000111.10010101.00 000001
+HostMax:   12.7.149.62           00001100.00000111.10010101.00 111110
+Hosts/Net: 62 
+      </pre></div></div><br class="example-break"><p>
+      A tool similar to the one shown in
+      <a class="xref" href="ch04s01.html#ex-routing-intro-ipcalc" title="Example 4.2. Using ipcalc to display IP information">Example 4.2, &#8220;Using ipcalc to display IP information&#8221;</a> can assist in visualizing the
+      relationships among IP addressing concepts.
+    </p><p>
+      Subequently, this chapter will introduce some concrete examples of
+      routing in a real network.  The
+      <a class="link" href="apa.html" title="Appendix A. An Example Network and Description">example network</a> illustrates
+      this network and all of the addresses involved.
+    </p><div class="footnotes"><br><hr style="width:100; text-align:left;margin-left: 0"><div id="ftn.idm1515" class="footnote"><p><a href="#idm1515" class="para"><sup class="para">[15] </sup></a>
+                At least one reader (CAO) has pointed out to me that there is
+                ambiguity in the meaning and common usage of the
+                term <em class="wordasword">network
+                address</em>.  While occasionally used to refer to a
+                single IP address at the top of a range of addresses, the
+                primary meaning requires the implicit
+                <a class="link" href="ch04s01.html#list-routing-intro-ipdefs-netmask">network
+                mask</a>.
+              </p><p>
+                Historically, this term has always meant the IP address at the
+                top of a range AND the netmask identifying the set of
+                available addresses.  Without this latter piece of
+                information, the <em class="wordasword">network address</em> is
+                simply an 
+                <a class="link" href="ch04s01.html#list-routing-intro-ipdefs-ipaddr">IP
+                address</a>.
+              </p><p>
+                Technically, the use of this term to mean a single IP
+                at the top of the range is incorrect, although not uncommon.
+              </p></div></div></div><div class="navfooter"><hr><table width="100%" summary="Navigation footer"><tr><td width="40%" align="left"><a accesskey="p" href="ch04.html">Prev</a> </td><td width="20%" align="center"><a accesskey="u" href="ch04.html">Up</a></td><td width="40%" align="right"> <a accesskey="n" href="ch04s02.html">Next</a></td></tr><tr><td width="40%" align="left" valign="top">Chapter 4. IP Routing </td><td width="20%" align="center"><a accesskey="h" href="index.html">Home</a></td><td width="40%" align="right" valign="top"> 2. Routing to Locally Connected Networks</td></tr></table></div></body></html>

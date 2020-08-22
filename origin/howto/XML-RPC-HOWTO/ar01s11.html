@@ -1,0 +1,177 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1"><title>11. Using XML-RPC with Microsoft .NET</title><link rel="stylesheet" type="text/css" href="style.css"><meta name="generator" content="DocBook XSL Stylesheets V1.79.1"><link rel="home" href="index.html" title="XML-RPC HOWTO"><link rel="up" href="index.html" title="XML-RPC HOWTO"><link rel="prev" href="ar01s10.html" title="10. Using XML-RPC with PHP"><link rel="next" href="ar01s12.html" title="12. Using XML-RPC with Ruby"></head><body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF"><div class="navheader"><table width="100%" summary="Navigation header"><tr><th colspan="3" align="center">11. Using XML-RPC with Microsoft .NET</th></tr><tr><td width="20%" align="left"><a accesskey="p" href="ar01s10.html">Prev</a> </td><th width="60%" align="center"> </th><td width="20%" align="right"> <a accesskey="n" href="ar01s12.html">Next</a></td></tr></table><hr></div><div class="section"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="xmlrpc-howto-dotnet"></a>11. Using XML-RPC with Microsoft .NET</h2></div></div></div><p><span class="emphasis"><em>(This section of the XML-RPC HOWTO was generously
+    provided by Charles Cook.)</em></span></p><p>Charles Cook has implemented XML-RPC for Microsoft's .NET
+    environment. You can find his XML-RPC.Net library at <a class="ulink" href="http://www.cookcomputing.com/xmlrpc/xmlrpc.shtml" target="_top">the Cook
+    Computing website</a>.</p><p>The following code requires the .NET SDK to be installed. To
+    build and run XML-RPC.Net client and server applications, unzip
+    <code class="filename">cookcomputing.xmlrpc.dll</code> from the XML-RPC.Net
+    distribution and copy to the required directories.</p><p>XML-RPC.Net is compliant with the Common Language Specification
+    and so can be used to build XML-RPC clients and servers using any
+    CLS-compliant programming language. At the time of writing this means
+    the languages provided by Microsoft&#8212;C#, VB.Net, JScript, and
+    Managed C++&#8212;but in the future will include other languages such
+    as Eiffel, Perl and Python.</p><p><code class="function">sample.sumAndDifference</code> client and server
+    samples are presented here in both C# and VB.Net.  The client samples
+    make synchronous calls but it is also possible to make asynchronous
+    calls&#8212;refer to the XML-RPC.Net documentation for further
+    information.</p><div class="section"><div class="titlepage"><div><div><h3 class="title"><a name="xmlrpc-howto-csharp-client"></a>11.1. A C# Client</h3></div></div></div><p>Save the following code in a file called
+      <code class="filename">getSumAndDiffCS.cs</code>:</p><pre class="programlisting">using System;
+using CookComputing.XmlRpc;
+
+public struct Result 
+{
+  public int sum;
+  public int difference;
+}
+
+[XmlRpcUri(
+  "http://aspx.securedomains.com/cookcomputing/sumanddiffvb.aspx")]
+class Proxy : XmlRpcClientProtocol
+{
+  [XmlRpcMethod("sample.sumAndDifference")]
+    public Result SumAndDifference(int x, int y)
+  {
+    return (Result)Invoke("SumAndDifference", new Object[]{x,y})[0]; 
+  }
+}
+
+public class App
+{
+  public static int Main(string[] args)
+  {
+    try
+    {
+      Proxy theProxy = new Proxy();
+      Result ret = theProxy.SumAndDifference(5, 3);
+      Console.WriteLine("5 + 3 = {0}", ret.sum);
+      Console.WriteLine("5 - 3 = {0}", ret.difference);
+    }
+    catch(XmlRpcClientException cex)
+    {
+      Console.WriteLine("Client exception: {0} {1}", 
+        cex.FaultCode, cex.FaultString);
+    }
+    catch(XmlRpcFaultException fex)
+    {
+      Console.WriteLine("Server exception: {0} {1}", 
+        fex.FaultCode, fex.FaultString);
+    }
+    return 0;
+  }
+}</pre><p>Use the following command to build the client:</p><pre class="programlisting">csc /r:cookcomputing.xmlrpc.dll getSumAndDiffCS.cs</pre></div><div class="section"><div class="titlepage"><div><div><h3 class="title"><a name="xmlrpc-howto-vbdotnet-client"></a>11.2. A Visual Basic .NET Client</h3></div></div></div><p>Save the following code in a file called
+      <code class="filename">getSumAndDiffVB.vb</code>:</p><pre class="programlisting">Imports CookComputing.XmlRpc
+
+Module Module1
+  
+  Structure Result
+    Dim sum, difference As Integer
+  End Structure
+  
+  Class &lt;XmlRpcUri( _
+    "http://aspx.securedomains.com/cookcomputing/sumanddiffcs.xmlrpc")&gt; _
+  Proxy : Inherits XmlRpcClientProtocol
+
+    Public Function &lt;XmlRpcMethod("sample.sumAndDifference")&gt; _
+    SumAndDifference(ByVal x As Integer, ByVal y As Integer) As Result
+      Dim results As Object() = Me.Invoke("SumAndDifference", _
+                                 New Object() {x,y})
+      Return CType(results(0), Result)
+    End Function
+
+  End Class
+  
+  Sub Main()
+    Dim theProxy As New Proxy()
+    Try
+      Dim ret As Result = theProxy.SumAndDifference(5, 3)
+      Console.WriteLine("5 + 3 = {0}", ret.sum)
+      Console.WriteLine("5 - 3 = {0}", ret.difference)
+    Catch cex As XmlRpcClientException
+      Console.WriteLine("Client exception: {0} {1}", _
+                        cex.FaultCode, cex.FaultString)
+    Catch fex As XmlRpcFaultException
+      Console.WriteLine("Server exception: {0} {1}", _
+                        fex.FaultCode, fex.FaultString)
+    End Try
+  End Sub
+  
+End Module</pre><p>Use the following command to build the client:</p><pre class="programlisting">vbc /r:cookcomputing.xmlrpc.dll getSumAndDiffVB.vb</pre></div><div class="section"><div class="titlepage"><div><div><h3 class="title"><a name="xmlrpc-howto-csharp-server"></a>11.3. A C# Server</h3></div></div></div><p>XML-RPC.Net enables the implementation of XML-RPC Services
+      running in the IIS 5 web server environment.</p><p>Save the following code in a file called
+      <code class="filename">SumAndDiffCS.cs</code>:</p><pre class="programlisting">using System;
+using CookComputing.XmlRpc;
+
+public struct Result 
+{
+  public int sum;
+  public int difference;
+}
+
+[XmlRpcService(Description=
+  "Sample XML-RPC.Net Service implemented in C#")]
+public class SumAndDiffService : XmlRpcService
+{
+  [XmlRpcMethod("sample.sumAndDifference", Description=
+    "This function takes two integers as arguments and returns an "+
+    "XML-RPC struct containing two elements: sum, the sum of the "+
+    "two integers, and difference, the difference between the two "+
+    "integers")]
+  public Result SumAndDifference(int x, int y)
+  {
+    Result ret;
+    ret.sum = x + y;
+    ret.difference = x - y;
+    return ret;
+  }
+}</pre><p>Use the following to build the client:</p><pre class="programlisting">csc /r:System.Web.dll,cookcomputing.xmlrpc.dll /target:library SumAndDiffCS.cs</pre><p>Create an IIS virtual root, say
+      <code class="filename">cookcomputing</code> for this example, and a
+      <code class="filename">bin</code> directory underneath it. Place the assembly
+      (<code class="filename">SumAndDiffCS.dll</code>) and the XML-RPC.Net assembly
+      (<code class="filename">cookcomputing.xmlrpc.dll</code>) in the
+      <code class="filename">bin</code> directory.</p><p>Create a text file called <code class="filename">config.web</code> in
+      the <code class="filename">cookcomputing</code> root directory with the
+      following contents:</p><pre class="programlisting">&lt;configuration&gt;
+  &lt;httphandlers&gt;
+    &lt;add verb="*" path="sumanddiffcs.aspx" type="SumAndDiffService, 
+SumAndDiffCS" /&gt;
+  &lt;/httphandlers&gt; 
+&lt;/configuration&gt;</pre><p>The Service is now installed and configured. To check this
+      navigate your browser to the URL of the Service where you will see an
+      automatically generated documentation page.</p></div><div class="section"><div class="titlepage"><div><div><h3 class="title"><a name="xmlrpc-howto-vbdotnet-server"></a>11.4. A Visual Basic .NET Server</h3></div></div></div><p>Save the following code in a file called
+      <code class="filename">SumAndDiffVB.cs</code>:</p><pre class="programlisting">Imports System
+Imports CookComputing.XmlRpc
+
+Public Structure Result
+  Dim sum, difference As Integer
+End Structure
+
+Public Class &lt;XmlRpcService(Description:= _
+  "Sample XML-RPC.Net Service implemented in VB.Net")&gt; _
+SumAndDiffService : Inherits XmlRpcService
+  
+  Public Function &lt;XmlRpcMethod("sample.sumAndDifference", _
+  Description:= "This function takes two integers as arguments "+ _  
+                "and returns an XML-RPC struct containing two "+ _
+                "elements: sum, the sum of the two integers, and "+ _
+                "difference, the difference between the two "+ _
+                "integers")&gt; _
+  SumAndDifference(ByVal x As Integer, ByVal y As Integer) As Result
+    Dim ret As Result
+    ret.sum = x + y
+    ret.difference = x - y
+    Return ret
+  End Function
+  
+End Class</pre><p>Use the following to build the client:</p><pre class="programlisting">vbc /r:System.Web.dll,cookcomputing.xmlrpc.dll /target:library SumAndDiffVB.vb</pre><p>Create an IIS virtual root, say
+      <code class="filename">cookcomputing</code> for this example, and a
+      <code class="filename">bin</code> directory underneath it.  Place the assembly
+      (<code class="filename">SumAndDiffVB.dll</code>) and the XML-RPC.Net assembly
+      (<code class="filename">cookcomputing.xmlrpc.dll</code>) in the
+      <code class="filename">bin</code> directory.</p><p>Create a text file called <code class="filename">config.web</code> in
+      the <code class="filename">cookcomputing</code> root directory with the
+      following contents (note that the entries are case sensitive):</p><pre class="programlisting">&lt;configuration&gt;
+  &lt;httphandlers&gt;
+    &lt;add verb="*" path="sumanddiffvb.aspx" type="SumAndDiffService, 
+SumAndDiffVB" /&gt;
+  &lt;/httphandlers&gt; 
+&lt;/configuration&gt;</pre><p>The Service is now installed and configured. To check this
+      navigate your browser to the URL of the Service where you will see an
+      automatically generated documentation page.</p></div></div><div class="navfooter"><hr><table width="100%" summary="Navigation footer"><tr><td width="40%" align="left"><a accesskey="p" href="ar01s10.html">Prev</a> </td><td width="20%" align="center"> </td><td width="40%" align="right"> <a accesskey="n" href="ar01s12.html">Next</a></td></tr><tr><td width="40%" align="left" valign="top">10. Using XML-RPC with PHP </td><td width="20%" align="center"><a accesskey="h" href="index.html">Home</a></td><td width="40%" align="right" valign="top"> 12. Using XML-RPC with Ruby</td></tr></table></div></body></html>

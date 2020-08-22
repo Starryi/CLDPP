@@ -1,0 +1,101 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1"><title>12. The /etc/rc.d/init.d/smb script file</title><link rel="stylesheet" type="text/css" href="style.css"><meta name="generator" content="DocBook XSL Stylesheets V1.79.1"><meta name="keywords" content="RedHat, redhat, maddy, linus, linux, Linux, Securing, Optimising, security, secure, openna, gerhard"><link rel="home" href="index.html" title="Securing and Optimizing Linux"><link rel="up" href="soft-fileshrng.html" title="Chapter 31. Software -Server/File Sharing-Network"><link rel="prev" href="chap29sec291.html" title="11. Samba Administrative Tools"><link rel="next" href="chap29sec293.html" title="13. Installed files"></head><body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF"><div class="navheader"><table width="100%" summary="Navigation header"><tr><th colspan="3" align="center">12. The <code class="filename">/etc/rc.d/init.d/smb</code> script file</th></tr><tr><td width="20%" align="left"><a accesskey="p" href="chap29sec291.html">Prev</a> </td><th width="60%" align="center">Chapter 31. Software -Server/File Sharing-Network</th><td width="20%" align="right"> <a accesskey="n" href="chap29sec293.html">Next</a></td></tr></table><hr></div><div class="section"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="idm22563"></a>12. The <code class="filename">/etc/rc.d/init.d/smb</code> script file</h2></div></div></div><p>
+      Configure your <code class="filename">/etc/rc.d/init.d/smb</code> script file to start and stop Samba <code class="literal">smbd</code> and <code class="literal">nmbd</code> daemons Server automaticaly.
+      Create the <code class="filename">smb</code> script file, <span class="command"><strong>touch</strong></span> <code class="filename">/etc/rc.d/init.d/smb</code> and add the following lines:
+    </p><pre class="programlisting">
+      #!/bin/sh
+      #
+      # chkconfig: - 91 35
+      # description: Starts and stops the Samba smbd and nmbd daemons \
+      #	       used to provide SMB network services.
+
+      # Source function library.
+      . /etc/rc.d/init.d/functions
+
+      # Source networking configuration.
+      . /etc/sysconfig/network
+
+      # Check that networking is up.
+      [ ${NETWORKING} = "no" ] &amp;&amp; exit 0
+
+      # Check that smb.conf exists.
+      [ -f /etc/smb.conf ] || exit 0
+
+      RETVAL=0
+
+      # See how we were called.
+      case "$1" in
+      start)
+      echo -n "Starting SMB services: "
+      daemon smbd -D 	
+      RETVAL=$?
+      echo
+      echo -n "Starting NMB services: "
+      daemon nmbd -D 
+      RETVAL2=$?
+      echo
+      [ $RETVAL -eq 0 -a $RETVAL2 -eq 0 ] &amp;&amp; touch /var/lock/subsys/smb || \
+      RETVAL=1
+      ;;
+      stop)
+      echo -n "Shutting down SMB services: "
+      killproc smbd
+      RETVAL=$?
+      echo
+      echo -n "Shutting down NMB services: "
+      killproc nmbd
+      RETVAL2=$?
+      [ $RETVAL -eq 0 -a $RETVAL2 -eq 0 ] &amp;&amp; rm -f /var/lock/subsys/smb
+      echo ""
+      ;;
+      restart)
+      $0 stop
+      $0 start
+      RETVAL=$?
+      ;;
+      reload)
+      echo -n "Reloading smb.conf file: "
+      killproc -HUP smbd
+      RETVAL=$?
+      echo
+      ;;
+      status)
+      status smbd
+      status nmbd
+      RETVAL=$?
+      ;;
+      *)
+      echo "Usage: $0 {start|stop|restart|status}"
+      exit 1
+      esac
+
+      exit $RETVAL
+    </pre><p>
+      Now, make this script executable and change its default permissions:
+      </p><pre class="screen">
+        [root@deep ] /# <span class="command"><strong>chmod</strong></span> 700 /etc/rc.d/init.d/smb
+      </pre><p>
+      Create the symbolic <code class="filename">rc.d</code> links for Samba with the command:
+      </p><pre class="screen">
+        [root@deep ] /# <span class="command"><strong>chkconfig</strong></span> --add smb
+      </pre><p>
+    </p><p>
+      Samba script will not automatically start the smbd and nmbd daemon when you reboot the server. You can change it to do this by default by executing the following command:
+      </p><pre class="screen">
+        [root@deep ] /# <span class="command"><strong>chkconfig</strong></span> --level 345 smb on
+      </pre><p>
+      Start your Samba Server manually with the following command:
+      </p><pre class="screen">
+        [root@deep ] /# /etc/rc.d/init.d/smb <span class="command"><strong>start</strong></span>
+      </pre><p>
+      </p><pre class="literallayout"><code class="computeroutput">
+        Starting SMB services:                     	[  OK  ]
+        Starting NMB services:                   	[  OK  ]
+      </code></pre><p>
+    </p><div class="section"><div class="titlepage"><div><div><h3 class="title"><a name="pr6ch31ssmb"></a>12.1. Securing Samba</h3></div></div></div><p>
+        Immunize important configuration files, the immutable bit can be used to prevent accidentally deleting or overwriting a file that must be protected. It also prevents someone from creating a symbolic link to this file. Once your <code class="filename">smb.conf</code> 
+        and <code class="filename">lmhosts</code> files have been configured, it's a good idea to immunize them with a  command like:
+        </p><pre class="screen">
+          [root@deep ] /# <span class="command"><strong>chattr</strong></span> +i /etc/smb.conf
+          [root@deep ] /# <span class="command"><strong>chattr</strong></span> +i /etc/lmhosts
+        </pre><p>
+      </p></div></div><div class="navfooter"><hr><table width="100%" summary="Navigation footer"><tr><td width="40%" align="left"><a accesskey="p" href="chap29sec291.html">Prev</a> </td><td width="20%" align="center"><a accesskey="u" href="soft-fileshrng.html">Up</a></td><td width="40%" align="right"> <a accesskey="n" href="chap29sec293.html">Next</a></td></tr><tr><td width="40%" align="left" valign="top">11. Samba Administrative Tools </td><td width="20%" align="center"><a accesskey="h" href="index.html">Home</a></td><td width="40%" align="right" valign="top"> 13. Installed files</td></tr></table></div></body></html>

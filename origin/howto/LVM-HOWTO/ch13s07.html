@@ -1,0 +1,106 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1"><title>7. Splitting a volume group</title><link rel="stylesheet" type="text/css" href="style.css"><meta name="generator" content="DocBook XSL Stylesheets V1.79.1"><link rel="home" href="index.html" title="LVM HOWTO"><link rel="up" href="ch13.html" title="Chapter 13. Recipes"><link rel="prev" href="ch13s06.html" title="6. Moving a volume group to another system"><link rel="next" href="ch13s08.html" title="8. Converting a root filesystem to LVM 1"></head><body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF"><div class="navheader"><table width="100%" summary="Navigation header"><tr><th colspan="3" align="center">7. Splitting a volume group</th></tr><tr><td width="20%" align="left"><a accesskey="p" href="ch13s06.html">Prev</a> </td><th width="60%" align="center">Chapter 13. Recipes</th><td width="20%" align="right"> <a accesskey="n" href="ch13s08.html">Next</a></td></tr></table><hr></div><div class="sect1"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="recipesplitvg"></a>7. Splitting a volume group</h2></div></div></div><p>
+        There is a new group of users "design" to add to the system. One
+        way of dealing with this is to create a new volume group to hold
+        their data.  There are no new disks but there is plenty of free
+        space on the existing disks that can be reallocated.
+      </p><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="idm1369"></a>7.1. Determine free space</h3></div></div></div><p>
+          </p><pre class="screen">
+<span class="command"><strong># pvscan </strong></span>
+<code class="computeroutput">pvscan -- reading all physical volumes (this may take a while...)
+pvscan -- ACTIVE   PV "/dev/sda"  of VG "dev"   [1.95 GB / 0 free]
+pvscan -- ACTIVE   PV "/dev/sdb"  of VG "sales" [1.95 GB / 1.27 GB free]
+pvscan -- ACTIVE   PV "/dev/sdc"  of VG "ops"   [1.95 GB / 564 MB free]
+pvscan -- ACTIVE   PV "/dev/sdd"  of VG "dev"   [1.95 GB / 0 free]
+pvscan -- ACTIVE   PV "/dev/sde"  of VG "ops"   [1.95 GB / 1.9 GB free]
+pvscan -- ACTIVE   PV "/dev/sdf"  of VG "dev"   [1.95 GB / 1.33 GB free]
+pvscan -- ACTIVE   PV "/dev/sdg1" of VG "ops"   [996 MB / 432 MB free]
+pvscan -- ACTIVE   PV "/dev/sdg2" of VG "dev"   [996 MB / 632 MB free]
+pvscan -- total: 8 [13.67 GB] / in use: 8 [13.67 GB] / in no VG: 0 [0]</code>
+          </pre><p>
+          We decide to reallocate /dev/sdg1 and /dev/sdg2 to design so
+          first we have to move the physical extents into the free areas
+          of the other volumes (in this case /dev/sdf for volume group dev
+          and /dev/sde for volume group ops).
+        </p></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="idm1375"></a>7.2. Move data off the disks to be used</h3></div></div></div><p>
+          Some space is still used on the chosen volumes so it is
+          necessary to move that used space off onto some others.
+        </p><p>
+          Move all the used physical extents from /dev/sdg1 to /dev/sde
+          and from /dev/sdg2 to /dev/sdf
+          </p><pre class="screen">
+<span class="command"><strong># pvmove /dev/sdg1 /dev/sde</strong></span>
+<code class="computeroutput">pvmove -- moving physical extents in active volume group "ops"
+pvmove -- WARNING: moving of active logical volumes may cause data loss!</code>
+<code class="prompt">pvmove -- do you want to continue? [y/n]</code> y
+<code class="computeroutput">pvmove -- doing automatic backup of volume group "ops"
+pvmove -- 141 extents of physical volume "/dev/sdg1" successfully moved</code>
+
+<span class="command"><strong># pvmove /dev/sdg2 /dev/sdf</strong></span>
+<code class="computeroutput">pvmove -- moving physical extents in active volume group "dev"
+pvmove -- WARNING: moving of active logical volumes may cause data loss!</code>
+<code class="prompt">pvmove -- do you want to continue? [y/n]</code> y
+<code class="computeroutput">pvmove -- doing automatic backup of volume group "dev"
+pvmove -- 91 extents of physical volume "/dev/sdg2" successfully moved</code>
+          </pre><p>
+        </p></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="idm1388"></a>7.3. Create the new volume group</h3></div></div></div><p>
+          Now, split /dev/sdg2 from dev and add it into a new group called
+          "design". it is possible to do this using vgreduce and vgcreate
+          but the vgsplit command combines the two.
+          </p><pre class="screen">
+<span class="command"><strong># vgsplit dev design /dev/sdg2</strong></span>
+<code class="computeroutput">vgsplit -- doing automatic backup of volume group "dev"
+vgsplit -- doing automatic backup of volume group "design"
+vgsplit -- volume group "dev" successfully split into "dev" and "design"</code>
+          </pre><p>
+        </p></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="idm1394"></a>7.4. Remove remaining volume</h3></div></div></div><p>
+          Next, remove /dev/sdg1 from ops and add it into design.
+          </p><pre class="screen">
+<span class="command"><strong># vgreduce ops /dev/sdg1</strong></span>
+<code class="computeroutput">vgreduce -- doing automatic backup of volume group "ops"
+vgreduce -- volume group "ops" successfully reduced by physical volume:
+vgreduce -- /dev/sdg1</code>
+
+<span class="command"><strong># vgextend design /dev/sdg1</strong></span>
+<code class="computeroutput">vgextend -- INFO: maximum logical volume size is 255.99 Gigabyte
+vgextend -- doing automatic backup of volume group "design"
+vgextend -- volume group "design" successfully extended</code>
+          </pre><p>
+        </p></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="idm1402"></a>7.5. Create new logical volume</h3></div></div></div><p>
+          Now create a logical volume. Rather than allocate all of the
+          available space, leave some spare in case it is needed
+          elsewhere.
+          </p><pre class="screen">
+<span class="command"><strong># lvcreate -L750M -n users design</strong></span>
+<code class="computeroutput">lvcreate -- rounding up size to physical extent boundary "752 MB"
+lvcreate -- doing automatic backup of "design"
+lvcreate -- logical volume "/dev/design/users" successfully created</code>
+          </pre><p>
+        </p></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="idm1408"></a>7.6. Make a file system on the volume</h3></div></div></div><pre class="screen">
+<span class="command"><strong># mke2fs /dev/design/users</strong></span>
+<code class="computeroutput">mke2fs 1.18, 11-Nov-1999 for EXT2 FS 0.5b, 95/08/09
+Filesystem label=
+OS type: Linux
+Block size=4096 (log=2)
+Fragment size=4096 (log=2)
+96384 inodes, 192512 blocks
+9625 blocks (5.00&lt;!-- ) reserved for the super user
+First data block=0
+6 block groups
+32768 blocks per group, 32768 fragments per group
+16064 inodes per group
+Superblock backups stored on blocks: 
+        32768, 98304, 163840
+
+Writing inode tables: done                            
+Writing superblocks and filesystem accounting information: done</code>
+        </pre></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="idm1413"></a>7.7. Mount the new volume</h3></div></div></div><pre class="screen">
+<span class="command"><strong># mkdir -p /mnt/design/users mount /dev/design/users /mnt/design/users/</strong></span>
+        </pre><p> 
+          It's also a good idea to add an entry for this file system in
+          your /etc/fstab file as follows:
+          </p><pre class="screen">
+/dev/design/user
+/mnt/design/users   ext2    defaults        1 2
+          </pre><p>
+        </p></div></div><div class="navfooter"><hr><table width="100%" summary="Navigation footer"><tr><td width="40%" align="left"><a accesskey="p" href="ch13s06.html">Prev</a> </td><td width="20%" align="center"><a accesskey="u" href="ch13.html">Up</a></td><td width="40%" align="right"> <a accesskey="n" href="ch13s08.html">Next</a></td></tr><tr><td width="40%" align="left" valign="top">6. Moving a volume group to another system </td><td width="20%" align="center"><a accesskey="h" href="index.html">Home</a></td><td width="40%" align="right" valign="top"> 8. Converting a root filesystem to
+        LVM 1</td></tr></table></div></body></html>

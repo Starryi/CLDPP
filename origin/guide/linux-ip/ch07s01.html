@@ -1,0 +1,94 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1"><title>1. Rationale for and Introduction to Packet Filtering</title><link rel="stylesheet" type="text/css" href="style.css"><meta name="generator" content="DocBook XSL Stylesheets V1.79.1"><meta name="keywords" content="linux, ip, iproute2, ifconfig, firewall, ARP, NAT, route, routing, route selection, routing selection, network administration"><link rel="home" href="index.html" title="Guide to IP Layer Network Administration with Linux"><link rel="up" href="ch07.html" title="Chapter 7. Packet Filtering"><link rel="prev" href="ch07.html" title="Chapter 7. Packet Filtering"><link rel="next" href="ch07s02.html" title="2. Limits and Weaknesses of Packet Filtering"></head><body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF"><div class="navheader"><table width="100%" summary="Navigation header"><tr><th colspan="3" align="center">1. Rationale for and Introduction to Packet Filtering</th></tr><tr><td width="20%" align="left"><a accesskey="p" href="ch07.html">Prev</a> </td><th width="60%" align="center">Chapter 7. Packet Filtering</th><td width="20%" align="right"> <a accesskey="n" href="ch07s02.html">Next</a></td></tr></table><hr></div><div class="section"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="pf-intro"></a>1. Rationale for and Introduction to Packet Filtering</h2></div></div></div><p>
+      Packet filtering refers to the technique of conditionally allowing
+      or denying packets entering or exiting a network or host based on
+      the characteristics of that packet.  There are two fundamental types of
+      packet filters.  A static packet filter is a set of rules against which
+      every packet is checked, and allowed or denied.
+      A dynamic packet filter keeps track of the connections currently passing
+      the firewall.  This is usually described as a stateful or dynamic packet
+      filtering engine.  Netfilter provides the capability for linux (2.4+) to
+      operate as a stateful packet filtering device.
+    </p><p>
+      For a brief digression, consider the term <em class="wordasword">stateful packet
+      inspection</em>.  This term has been used in two distinctly
+      different meanings.  At least one commercial security company
+      differentiates between stateful packet filtering and stateful packet
+      inspection
+      <a href="#ftn.idm2911" class="footnote" name="idm2911"><sup class="footnote">[34]</sup></a>.
+      Supposedly, a stateful packet inspection engine is able to examine the
+      contents of a packet and make a limited guess as to the legitimacy of
+      the application layer content.  While I would call this an application
+      layer proxy, I do not use the product.  For the purposes of this
+      documentation, the terms stateful packet inspection and stateful packet
+      filtering are synonomous.
+    </p><p>
+      Packet filtering, the network layer portion of a firewall solution, is
+      one part of a good security stance.  As the embodiment and manifestation
+      of an organizational security policy for network layer traffic, the
+      packet filter restricts traffic flows between networks and hosts.  There
+      is tremendous value from a security perspective in enforcing these
+      traffic flows, instead of allowing arbitrary traffic flow.
+    </p><p>
+      The use of packet filtering to enforce these traffic flows is not
+      restricted to routers and firewalls alone.  Standalone servers and
+      workstations can use these same tools to protect themselves.  There
+      are a couple of common approaches to packet filtering.  Generally,
+      network security professionals subscribe to the notion that the
+      filtering policy should deny or drop all traffic and selectively allow
+      desired traffic.  An alternate, more open, policy suggests allowing
+      everything, selectively blocking undesirable traffic.
+    </p><p>
+      The languages used in most packet filtering tools for describing IP
+      packets allow for a great deal of specifity when identifying traffic.
+      This specifity enables an administrator a great deal of flexibility for
+      protecting resources and limiting traffic flows.
+    </p><div class="section"><div class="titlepage"><div><div><h3 class="title"><a name="pf-history"></a>1.1. History of Linux Packet Filter Support</h3></div></div></div><p>
+        Packet filtering under linux has a long history, punctuated by major
+        alterations in the packet filtering systems included in the kernel.  In
+        the mid- and late-1990s, <span class="command"><strong>ipfwadm</strong></span> exposed the three
+        packet filtering chains of kernel 2.0 to the user: in, forward, and out.
+        Individual entries added to these chains would be traversed in order in
+        each ruleset.  The first matching rule in each chain would be used, and
+        every packet passing through a router would traverse these three
+        chains.
+      </p><p>
+        With the advent of linux 2.2, users could create their own chains and
+        chain structures.  The kernel architecture was different from that of
+        the earlier kernel, but from the user's perspective, the manner in
+        which the rules were written was only slightly different.  Rule
+        chains, traversed rather like subroutines and manipulated with
+        <span class="command"><strong>ipchains</strong></span>, could be arbitrarily complex and nested.
+        The built-in packet filtering chains had names:  input, output and
+        forward.  The first matching rule in any chain called from one of the
+        built-in chains would be used.  Every packet passing through a router
+        would traverse (at least) the three built-in rule chains.  There is
+        backward compatible support for <span class="command"><strong>ipfwadm</strong></span> syntax via
+        a wrapper shell script which converts the command to an
+        <span class="command"><strong>ipchains</strong></span> syntax.
+      </p><p>
+        In kernel 2.4, the
+        <a class="link" href="ch07s04.html" title="4. The Netfilter Architecture">netfilter architecture</a>
+        which provides functionality other than packet filtering, allows users
+        to create the arbitrary chains and chain structures similar to those
+        supported by linux 2.2.  The built in chains are INPUT, FORWARD, and
+        OUTPUT.  A major difference in the use of chains was introduced in
+        linux 2.4; packets passing through a router will traverse the FORWARD
+        chain only.  User-defined <span class="command"><strong>iptables</strong></span> chains resemble
+        branches rather than subroutines.  Under linux 2.4,
+        <span class="command"><strong>ipchains</strong></span> compatibility is maintained with a kernel
+        module.  For <span class="command"><strong>ipfwadm</strong></span> compatibility, the kernel
+        module and the aforementioned wrapper shell script function
+        adequately.
+      </p><p>
+        The packet filtering support under linux has grown increasingly
+        complex and mature with successive kernels and development efforts on
+        the user space tools.  The netfilter architecture of linux 2.4
+        represented a tremendous step forward in the packet filtering
+        capabilities of linux with support for stateful packet filtering.
+      </p></div><div class="footnotes"><br><hr style="width:100; text-align:left;margin-left: 0"><div id="ftn.idm2911" class="footnote"><p><a href="#idm2911" class="para"><sup class="para">[34] </sup></a>
+          See the following
+          <a class="ulink" href="http://www.netmaster.com/products/ggos-dpf.pdf" target="_top">PDF</a>
+          from NetMaster Digital Security.  Although I may disagree with their
+          use of terms, I can appreciate their clear attempt to explain their
+          use of these two terms.
+        </p></div></div></div><div class="navfooter"><hr><table width="100%" summary="Navigation footer"><tr><td width="40%" align="left"><a accesskey="p" href="ch07.html">Prev</a> </td><td width="20%" align="center"><a accesskey="u" href="ch07.html">Up</a></td><td width="40%" align="right"> <a accesskey="n" href="ch07s02.html">Next</a></td></tr><tr><td width="40%" align="left" valign="top">Chapter 7. Packet Filtering </td><td width="20%" align="center"><a accesskey="h" href="index.html">Home</a></td><td width="40%" align="right" valign="top"> 2. Limits and Weaknesses of Packet Filtering</td></tr></table></div></body></html>

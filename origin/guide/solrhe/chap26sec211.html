@@ -1,0 +1,108 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1"><title>2. Compile and Optimize</title><link rel="stylesheet" type="text/css" href="style.css"><meta name="generator" content="DocBook XSL Stylesheets V1.79.1"><meta name="keywords" content="RedHat, redhat, maddy, linus, linux, Linux, Securing, Optimising, security, secure, openna, gerhard"><link rel="home" href="index.html" title="Securing and Optimizing Linux"><link rel="up" href="net-oLDAP.html" title="Chapter 26. Linux OpenLDAP Server"><link rel="prev" href="chap26sec210.html" title="1. Compile ans Install"><link rel="next" href="chap26sec212.html" title="3. Configurations"></head><body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF"><div class="navheader"><table width="100%" summary="Navigation header"><tr><th colspan="3" align="center">2. Compile and Optimize</th></tr><tr><td width="20%" align="left"><a accesskey="p" href="chap26sec210.html">Prev</a> </td><th width="60%" align="center">Chapter 26. Linux OpenLDAP Server</th><td width="20%" align="right"> <a accesskey="n" href="chap26sec212.html">Next</a></td></tr></table><hr></div><div class="section"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="idm16093"></a>2. Compile and Optimize</h2></div></div></div><p>
+               Move into the new OpenLDAP directory and type the following commands on your terminal:
+             </p><p>
+               It is important to note that you can configure three different kinds of backend databases with <acronym class="acronym">LDAP</acronym>. 
+               </p><div class="orderedlist"><ol class="orderedlist" type="i"><li class="listitem"><p>
+                   A high-performance, disk-based database called <code class="literal">LDBM</code> 
+                 </p></li><li class="listitem"><p>
+                 A database interface to arbitrary UNIX commands or shell scripts calledd <code class="literal">SHELL</code> 
+                 </p></li><li class="listitem"><p>
+                 A simple password file database named <code class="literal">PASSWD</code>
+                 </p></li></ol></div><p>
+             </p><div class="procedure"><ul class="procedure"><li class="step"><p>
+                 The default installation of OpenLDAP assumes an <code class="literal">LDBM</code> backend database, so if you want to configure another type of backend database, you must specify it during the configuration and compile time. For a <code class="literal">SHELL</code> backend 
+                 database you must add the <code class="literal">--enable-shell</code> option and for a <code class="literal">PASSWD</code> backend database used as replacement for <acronym class="acronym">NIS</acronym> service you must add the <code class="literal">--enable-passwd</code> option in your 
+                 configuration lines.
+                 </p><pre class="programlisting">
+                   CC="egcs" \
+                   CFLAGS="-O9 -funroll-loops -ffast-math -malign-double -mcpu=pentiumpro -march=pentiumpro -fomit-frame-pointer -fno-exceptions -D_REENTRANT" \
+                   ./configure \
+                   --prefix=/usr \
+                   --libexecdir=/usr/sbin \
+                   --localstatedir=/var/run \
+                   --sysconfdir=/etc \
+                   --enable-dns \
+                   --enable-shared \
+                   --with-gnu-ld \
+                   --disable-debug
+                 </pre><p>
+                 This tells OpenLDAP to set itself up for this particular hardware setup as follows:
+                 </p><div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem"><p>
+                     Enable dns support.
+                   </p></li><li class="listitem"><p>
+                   Build shared libraries.
+                   </p></li><li class="listitem"><p>
+                   Assume the C compiler uses GNU ld.
+                   </p></li></ul></div><p>
+                 </p><div class="important" style="margin-left: 0.5in; margin-right: 0.5in;"><h3 class="title">
+<span class="inlinemediaobject"><img src="./images/Important.gif" alt="Important"></span>
+</h3><p>
+                   The compile options above assume that you want to set up an <code class="literal">LDBM</code> backend database. For the other type of backend database, you must add the required option in your configuration lines above.
+                 </p></div><p>
+               </p></li></ul></div><p>
+               Now, we must compile and install OpenLDAP in the server:
+               </p><pre class="screen">
+                 [root@deep openldap-1.2.10]# <span class="command"><strong>make depend</strong></span>
+                 [root@deep openldap-1.2.10]# <span class="command"><strong>make</strong></span>
+                 [root@deep openldap-1.2.10]# <span class="command"><strong>cd</strong></span> tests/
+                 [root@deep tests]# <span class="command"><strong>make</strong></span>
+                 [root@deep tests]# <span class="command"><strong>cd</strong></span> ..
+                 [root@deep openldap-1.2.10]# <span class="command"><strong>make install</strong></span>
+               </pre><p>
+               </p><div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem"><p>
+                   The <span class="command"><strong>make depend</strong></span> command will build and make the necessary dependencies for different files, 
+                 </p></li><li class="listitem"><p>
+                 <span class="command"><strong>make</strong></span> compiles all source files into executable binaries, 
+                 </p></li><li class="listitem"><p>
+                 <span class="command"><strong>make install</strong></span> installs the binaries and any supporting files into the appropriate locations.
+                 </p></li></ul></div><p>
+             </p><p>
+               The <span class="command"><strong>make</strong></span> command under <code class="filename">/test</code> subdirectory will do some important tests to verify the functionality of your <acronym class="acronym">LDAP</acronym> server before the installation. If some 
+               tests fails, you'll need to fixes the problems before continuing the installation.
+             </p><pre class="screen">
+               [root@deep openldap-1.2.10]# <span class="command"><strong>install</strong></span> -d -m 700 /var/ldap
+               [root@deep openldap-1.2.10]# echo localhost &gt; /etc/openldap/ldapserver
+               [root@deep openldap-1.2.10]# <span class="command"><strong>strip</strong></span> /usr/lib/liblber.so.1.0.0
+               [root@deep openldap-1.2.10]# <span class="command"><strong>strip</strong></span> /usr/lib/libldap.so.1.0.0
+               [root@deep openldap-1.2.10]# <span class="command"><strong>strip</strong></span> /usr/lib/libldap.a
+               [root@deep openldap-1.2.10]# <span class="command"><strong>strip</strong></span> /usr/lib/liblber.a
+               [root@deep openldap-1.2.10]# <span class="command"><strong>strip</strong></span> /usr/sbin/in.xfingerd
+               [root@deep openldap-1.2.10]# <span class="command"><strong>strip</strong></span> /usr/sbin/go500
+               [root@deep openldap-1.2.10]# <span class="command"><strong>strip</strong></span> /usr/sbin/go500gw
+               [root@deep openldap-1.2.10]# <span class="command"><strong>strip</strong></span> /usr/sbin/mail500
+               [root@deep openldap-1.2.10]# <span class="command"><strong>strip</strong></span> /usr/sbin/rp500
+               [root@deep openldap-1.2.10]# <span class="command"><strong>strip</strong></span> /usr/sbin/rcpt500
+               [root@deep openldap-1.2.10]# <span class="command"><strong>strip</strong></span> /usr/sbin/fax500
+               [root@deep openldap-1.2.10]# <span class="command"><strong>strip</strong></span> /usr/sbin/slapd
+               [root@deep openldap-1.2.10]# <span class="command"><strong>strip</strong></span> /usr/sbin/slurpd
+               [root@deep openldap-1.2.10]# <span class="command"><strong>strip</strong></span> /usr/sbin/ldif
+               [root@deep openldap-1.2.10]# <span class="command"><strong>strip</strong></span> /usr/sbin/ldif2ldbm
+               [root@deep openldap-1.2.10]# <span class="command"><strong>strip</strong></span> /usr/sbin/ldif2index
+               [root@deep openldap-1.2.10]# <span class="command"><strong>strip</strong></span> /usr/sbin/ldif2id2entry
+               [root@deep openldap-1.2.10]# <span class="command"><strong>strip</strong></span> /usr/sbin/ldif2id2children
+               [root@deep openldap-1.2.10]# <span class="command"><strong>strip</strong></span> /usr/sbin/ldbmcat
+               [root@deep openldap-1.2.10]# <span class="command"><strong>strip</strong></span> /usr/sbin/ldbmtest
+               [root@deep openldap-1.2.10]# <span class="command"><strong>strip</strong></span> /usr/sbin/centipede
+               [root@deep openldap-1.2.10]# <span class="command"><strong>strip</strong></span> /usr/bin/ud
+               [root@deep openldap-1.2.10]# <span class="command"><strong>strip</strong></span> /usr/bin/ldapadd
+               [root@deep openldap-1.2.10]# <span class="command"><strong>strip</strong></span> /usr/bin/ldapsearch
+               [root@deep openldap-1.2.10]# <span class="command"><strong>strip</strong></span> /usr/bin/ldapmodify
+               [root@deep openldap-1.2.10]# <span class="command"><strong>strip</strong></span> /usr/bin/ldapmodrdn
+               [root@deep openldap-1.2.10]# <span class="command"><strong>strip</strong></span> /usr/bin/ldappasswd
+               [root@deep openldap-1.2.10]# <span class="command"><strong>strip</strong></span> /usr/bin/ldapdelete
+             </pre><p>
+               </p><div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem"><p>
+                 The <span class="command"><strong>install</strong></span> command above will create a new directory named <code class="filename">ldap</code> under <code class="filename">/var</code> directory and will set its mode to 
+                 be readable, writable, and executable only by the super-user <code class="literal">root</code>, <code class="literal">700</code> for security reasons.
+               </p></li><li class="listitem"><p>
+               The <span class="command"><strong>strip</strong></span> command will discard all symbols from the object files. This means that our binary files will be smaller in size. This will improve the performance hit to the program since there 
+               will be fewer lines to be read by the system when it executes the binary.
+               </p></li></ul></div><p>
+             </p><p>
+               Please don't forget to cleanup later:
+               </p><pre class="screen">
+                 [root@deep] /# <span class="command"><strong>cd</strong></span> /var/tmp
+                 [root@deep ]/tmp# <span class="command"><strong>rm</strong></span> -rf openldap-version/ openldap-version.tgz
+               </pre><p>
+               The <span class="command"><strong>rm</strong></span> command will remove all the source files we have used to compile and install OpenLDAP. It will also remove the OpenLDAP compressed archive from the <code class="filename">/var/tmp</code> directory.
+             </p></div><div class="navfooter"><hr><table width="100%" summary="Navigation footer"><tr><td width="40%" align="left"><a accesskey="p" href="chap26sec210.html">Prev</a> </td><td width="20%" align="center"><a accesskey="u" href="net-oLDAP.html">Up</a></td><td width="40%" align="right"> <a accesskey="n" href="chap26sec212.html">Next</a></td></tr><tr><td width="40%" align="left" valign="top">1. Compile ans Install </td><td width="20%" align="center"><a accesskey="h" href="index.html">Home</a></td><td width="40%" align="right" valign="top"> 3. Configurations</td></tr></table></div></body></html>

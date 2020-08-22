@@ -1,0 +1,57 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1"><title>9. TCP_WRAPPERS</title><link rel="stylesheet" type="text/css" href="style.css"><meta name="generator" content="DocBook XSL Stylesheets V1.79.1"><meta name="keywords" content="RedHat, redhat, maddy, linus, linux, Linux, Securing, Optimising, security, secure, openna, gerhard"><link rel="home" href="index.html" title="Securing and Optimizing Linux"><link rel="up" href="gen-syssecured.html" title="Chapter 5. General System Security"><link rel="prev" href="chap5sec36.html" title="8. The inetd - /etc/inetd.conf file"><link rel="next" href="chap5sec39.html" title="10. The /etc/host.conf file"></head><body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF"><div class="navheader"><table width="100%" summary="Navigation header"><tr><th colspan="3" align="center">9. TCP_WRAPPERS</th></tr><tr><td width="20%" align="left"><a accesskey="p" href="chap5sec36.html">Prev</a> </td><th width="60%" align="center">Chapter 5. General System Security</th><td width="20%" align="right"> <a accesskey="n" href="chap5sec39.html">Next</a></td></tr></table><hr></div><div class="section"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="idm3395"></a>9. TCP_WRAPPERS</h2></div></div></div><p>
+             By default Red Hat Linux allows all service requests. Using TCP_WRAPPERS makes securing your servers against outside intrusion is a lot simpler and painless then you would expect. Deny all hosts by 
+             putting <code class="envar">ALL: ALL@ALL, PARANOID</code> in the <code class="filename">/etc/hosts.deny</code> file and explicitly list trusted hosts who are allowed to your machine in the <code class="filename">/etc/hosts.allow</code> file. This 
+             is the safest and the best configuration. TCP_WRAPPERS is controlled from two files and the search stops at the first match.
+             </p><table border="0" summary="Simple list" class="simplelist"><tr><td><code class="filename">
+             /etc/hosts.allow
+             </code></td></tr><tr><td><code class="filename">
+             /etc/hosts.deny
+             </code></td></tr></table><p>
+             </p><p>
+             Access will be granted when a daemon, client pair matches an entry in the <code class="filename">/etc/hosts.allow</code> file.
+             Otherwise, access will be denied when a daemon, client pair matches an entry in the <code class="filename">/etc/hosts.deny</code> file.
+             Otherwise, access will be granted.
+             </p><div class="procedure"><ol class="procedure" type="1"><li class="step"><p>
+             Edit the <code class="filename">hosts.deny</code> file vi <code class="filename">/etc/hosts.deny</code> and add the following lines:
+             <span class="emphasis"><em>Access is denied by default</em></span>.
+             </p><pre class="programlisting">
+             # Deny access to everyone.
+             ALL: ALL@ALL, PARANOID # Matches any host whose name does not match its address, see below.
+             </pre><p>
+
+             Which means all services, all locations, so any service not explicitly allowed is then blocked, unless they are permitted access by entries in the allow file.
+              </p><div class="note" style="margin-left: 0.5in; margin-right: 0.5in;"><h3 class="title"><span class="inlinemediaobject"><img src="./images/Note.gif" alt="Note"></span></h3><p>
+             <span class="emphasis"><em>
+             With the parameter</em></span> PARANOID; <span class="emphasis"><em>If you intend to run telnet or ftp services on your server, dont forget to add the client's machine name and IP address in 
+             your <code class="filename">/etc/hosts</code> file on the server or you can expect to wait several minutes for the DNS lookup to time out, before you get a</em></span> 
+             login: prompt.             
+             </p></div><p>             
+             </p></li><li class="step"><p>
+
+             Edit the <code class="filename">hosts.allow</code> file <span class="command"><strong>vi</strong></span> <code class="filename">/etc/hosts.allow</code> and add for example, the following line:
+             The explicitly authorized host are listed in the allow file.
+             As an example:<code class="envar">sshd:</code> <code class="literal">208.164.186.1 gate.openna.com</code>, For your client machine: <code class="literal">208.164.186.1</code> is the <acronym class="acronym">IP</acronym> address and <code class="literal">gate.openna.com</code> the host 
+             name of one of your client allowed using sshd.
+            </p></li><li class="step"><p>
+             The tcpdchk program is the <code class="literal">tcpd wrapper</code> configuration checker. It examines your <code class="literal">tcp wrapper</code> configuration and reports all potential and real problems it can find.
+             After your configuration is done, run the program tcpdchk.
+             </p><pre class="screen">
+             [root@deep] /# <span class="command"><strong>tcpdchk</strong></span>
+             </pre><p>
+             </p></li></ol></div><div class="note" style="margin-left: 0.5in; margin-right: 0.5in;"><h3 class="title"><span class="inlinemediaobject"><img src="./images/Note.gif" alt="Note"></span></h3><p>
+             Error messages may look like this: 
+             </p><pre class="literallayout"><code class="computeroutput">
+             warning: /etc/hosts.allow, 
+             line 6: can't verify hostname: gethostbyname(win.openna.com) failed.              
+             </code>
+             </pre><p>
+             If you receive this kind of error message, check in your <acronym class="acronym">DNS</acronym> configuration file 
+             for the existence of this hostname.
+            </p></div><div class="section"><div class="titlepage"><div><div><h3 class="title"><a name="idm3454"></a>9.1. Don't display system issue file</h3></div></div></div><p>
+               If you don't want your systems issue file to be displayed when people log in remotely, you can change the telnet option in your <code class="filename">/etc/inetd.conf</code> file to look like:
+               </p><pre class="screen">
+               telnet  stream  tcp     nowait  root    /usr/sbin/tcpd  in.telnetd -h
+               </pre><p>
+               Adding the <code class="literal">-h</code> flag on the end will cause the daemon to not display any system information and just hit the user with a login: prompt. This hack is only necessary if you are using a telnet daemon on 
+               your server instead I recommend you use SSH.
+             </p></div></div><div class="navfooter"><hr><table width="100%" summary="Navigation footer"><tr><td width="40%" align="left"><a accesskey="p" href="chap5sec36.html">Prev</a> </td><td width="20%" align="center"><a accesskey="u" href="gen-syssecured.html">Up</a></td><td width="40%" align="right"> <a accesskey="n" href="chap5sec39.html">Next</a></td></tr><tr><td width="40%" align="left" valign="top">8. The inetd - <code class="filename">/etc/inetd.conf</code> file </td><td width="20%" align="center"><a accesskey="h" href="index.html">Home</a></td><td width="40%" align="right" valign="top"> 10. The <code class="filename">/etc/host.conf</code> file</td></tr></table></div></body></html>

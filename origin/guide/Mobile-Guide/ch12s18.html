@@ -1,0 +1,405 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1"><title>18. Advanced Power Management - APM</title><link rel="stylesheet" type="text/css" href="style.css"><meta name="generator" content="DocBook XSL Stylesheets V1.79.1"><meta name="keywords" content="laptop, notebook, pda, handheld, computer, mobile, mobile phone, cell phone, portable player, linux, unix"><link rel="home" href="index.html" title="Linux on the Road"><link rel="up" href="ch12.html" title="Chapter 12. Hardware in Detail: CPU, Display, Keyboard, Sound and More"><link rel="prev" href="ch12s17.html" title="17. Pointing Devices - Mice and Their Relatives"><link rel="next" href="ch12s19.html" title="19. ACPI"></head><body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF"><div class="navheader"><table width="100%" summary="Navigation header"><tr><th colspan="3" align="center">18. Advanced Power Management - APM</th></tr><tr><td width="20%" align="left"><a accesskey="p" href="ch12s17.html">Prev</a> </td><th width="60%" align="center">Chapter 12. Hardware in Detail: CPU, Display, Keyboard, Sound and More</th><td width="20%" align="right"> <a accesskey="n" href="ch12s19.html">Next</a></td></tr></table><hr></div><div class="sect1"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="mobile-guide-p2c1s8-apm"></a>18. Advanced Power Management - APM</h2></div></div></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="idm2691"></a>18.1. Linux Compatibility Check</h3></div></div></div><p>
+   Start by reading the 
+   <a class="ulink" href="http://tldp.org/HOWTO/Battery-Powered/index.html" target="_top">Battery-Powered-mini-HOWTO</a>.
+</p><p>
+   For <acronym class="acronym">APM</acronym> to work the machine's firmware must implement the APM Specification.
+   
+   Linux supports versions 1.0 through 1.2 of the standard.
+   To work with Linux the <acronym class="acronym">APM</acronym> <acronym class="acronym">BIOS</acronym>
+   must support 32-bit protected mode connections.
+</p><p>
+   To display information about the <acronym class="acronym">APM</acronym> <acronym class="acronym">BIOS</acronym>
+   on your system you can run <span class="command"><strong>dmesg | grep apm</strong></span> command or look
+   in the <code class="filename">/proc/apm</code> file. 
+</p></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="idm2704"></a>18.2. Introduction</h3></div></div></div><p>
+   APM support consists of two parts: <span class="emphasis"><em>kernel</em></span> support
+   and <span class="emphasis"><em>user-land</em></span> support.
+</p><div class="sect3"><div class="titlepage"><div><div><h4 class="title"><a name="idm2709"></a>18.2.1. Kernel Support</h4></div></div></div><p>
+   You need a kernel that has the <acronym class="acronym">APM</acronym> driver compiled
+   in using the appropriate kernel configuration options.
+   Currently most distributions do not ship kernels with the
+   <acronym class="acronym">APM</acronym> driver enabled so you may have to enable the
+   driver using a boot option or to compile a custom kernel.
+   Please see 
+   <a class="ulink" href="http://tldp.org/HOWTO/Kernel-HOWTO/" target="_top">Kernel-HOWTO</a>
+   or your distribution manual for details.
+</p><p>
+   The <acronym class="acronym">APM</acronym> driver can be modularized but this is
+   not recommended since many drivers will disable their 
+   <acronym class="acronym">APM</acronym> features if the <acronym class="acronym">APM</acronym> driver
+   is not present when they initialize themselves.
+</p><p>
+   The available <acronym class="acronym">APM</acronym> options are (please see
+   <code class="filename">Documentation/Configure.help</code> in the kernel source
+   tree for more details):
+</p><p>
+
+</p><div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem"><p>
+   <span class="command"><strong>CONFIG_APM_IGNORE_USER_SUSPEND</strong></span> 
+   Just a workaround for some NEC Versa M series laptops.
+</p></li><li class="listitem"><p>
+   <span class="command"><strong>CONFIG_APM_DO_ENABLE</strong></span> 
+   Enable <acronym class="acronym">APM</acronym> features at boot time. 
+</p></li><li class="listitem"><p>
+   <span class="command"><strong>CONFIG_APM_CPU_IDLE</strong></span>
+   Puts CPU in power save mode, if there is nothing to do for the kernel.
+</p></li><li class="listitem"><p>
+   <span class="command"><strong>CONFIG_APM_DISPLAY_BLANK</strong></span> 
+   Some laptops can use this to
+   turn off the <acronym class="acronym">LCD</acronym> backlight when the screen blanker of
+   the Linux virtual console blanks the screen. Note that this is only used
+   by the virtual console screen blanker, and won't turn off the backlight
+   when using the X Window system.
+</p></li><li class="listitem"><p>
+   <span class="command"><strong>CONFIG_APM_POWER_OFF</strong></span> 
+   Turns the machine completely
+   down, when using <span class="command"><strong>halt</strong></span>. This feature works with most
+   laptops without problems.
+</p></li><li class="listitem"><p>
+   <span class="command"><strong>CONFIG_APM_IGNORE_MULTIPLE_SUSPEND</strong></span> 
+   Just a workaround for <span class="trademark">IBM</span>&#8482; ThinkPad 560.
+</p></li><li class="listitem"><p>
+   <span class="command"><strong>CONFIG_APM_IGNORE_SUSPEND_BOUNCE</strong></span> 
+   Just a workaround for Dell Inspiron 3200 and other notebooks.
+</p></li><li class="listitem"><p>
+   <span class="command"><strong>CONFIG_APM_RTC_IS_GMT</strong></span> 
+   Stores time in Greenwich Mean Time format. 
+   It is in fact recommended to store GMT in your real time clock (RTC) in the BIOS.
+</p></li><li class="listitem"><p>
+   <span class="command"><strong>CONFIG_APM_ALLOW_INTS</strong></span> 
+   Resolves some problems with <span class="emphasis"><em>Suspend to Disk</em></span> 
+   for some laptops, for instance many newer <span class="trademark">IBM</span>&#8482; ThinkPads.
+</p></li><li class="listitem"><p>
+   <span class="command"><strong>CONFIG_SMP</strong></span> Symmetric Multi-Processing support.
+   This enables support for systems with more than one CPU. If you have
+   a system with only one CPU, like most personal computers, say N.
+   Though the default seems to be Y. So it may be enabled if you are
+   unaware.
+   I have got reports that SMP support enabled does interfere with APM.
+   So with a single CPU machine like a laptop you are on the save side,
+   when you N.
+</p></li></ul></div><p>
+</p><p>
+   Features of the <acronym class="acronym">APM</acronym> driver according to the Kernel
+   documentation file <code class="filename">Documentation/Configure.help</code>:
+   "The system time will be reset after a USER RESUME operation, the
+   <code class="filename">/proc/apm</code> device will provide battery status
+   information, and user-space programs will receive notification of
+   <acronym class="acronym">APM</acronym> <span class="emphasis"><em>events</em></span> (e.g., battery status
+   change). "
+</p></div><div class="sect3"><div class="titlepage"><div><div><h4 class="title"><a name="idm2766"></a>18.2.2. Userland Support</h4></div></div></div><p>
+   The most important <span class="emphasis"><em>userland</em></span> utility is
+   <a class="ulink" href="http://worldvisions.ca/~apenwarr/apmd/" target="_top">apmd</a>,
+   a daemon that handles <acronym class="acronym">APM</acronym> events.
+</p><p>
+   If you run a 2.2.x or later kernel and
+   want to experiment, Gabor Kuti &lt;seasons_AT_falcon.sch.bme.hu&gt;
+   has made a kernel patch that allows you to
+   <span class="emphasis"><em>hibernate</em></span> any Linux system to disk, even if your
+   computers <acronym class="acronym">APM</acronym> <acronym class="acronym">BIOS</acronym> doesn't
+   support it directly. In my humble opinion you don't need this features
+   if your laptop provides a function key to invoke suspend mode
+   directly.
+</p><p>
+   Please see the 
+   <a class="ulink" href="http://tldp.org/HOWTO/Battery-Powered/" target="_top">Battery Powered Linux Mini-HOWTO</a> 
+   for detailed information.
+</p><p>
+   Here's what <span class="command"><strong>apmd</strong></span> can do:
+</p><p>
+
+</p><div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem"><p>
+   apmd(8): logs the battery status to syslog every now and then and
+   runs a proxy script that can take action before suspend or after
+   resume
+</p></li><li class="listitem"><p>
+   apm(1): prints the current battery status or suspends the computer
+</p></li><li class="listitem"><p>
+   apmsleep(1): suspends the machine for a limited time
+</p></li><li class="listitem"><p>
+   xapm(1x): provides a battery meter for X11
+</p></li><li class="listitem"><p>
+   libapm.a: a library for writing <acronym class="acronym">APM</acronym> applications
+</p></li></ul></div><p>
+
+</p><p>
+   Some <acronym class="acronym">APM</acronym> firmware fails to restore mixer
+   settings properly which can result in squeals of feedback in the
+   music after the machine has resumed. A solution is to set up the 
+   proxy script so that it calls a mixer application after resume.
+</p><p>
+   From the apmsleep(1) man page: Some computers, especially laptops,
+   can wake up from a low-power suspend to DRAM mode using the Real-time clock
+   (RTC) chip.  Apmsleep can be used to set the alarm time in the RTC and to go
+   into suspend or standby mode. An  interrupt  from  the  RTC  causes the
+   computer to wake-up.  The program detects this event, by waiting for a
+   leap  in  the kernel  time  and terminates successfully. If no time leap
+   occurs within one minute, or something  goes wrong, the exit value will
+   be non-zero. Apmsleep is part of the <span class="command"><strong>apmd</strong></span> package.
+</p><p>
+   In 2001 Richard Gooch wrote a simple <span class="command"><strong>apmd</strong></span> alternative
+   which is available in the
+   <a class="ulink" href="http://www.atnf.csiro.au/~rgooch/linux/" target="_top">pmutils</a> 
+   package.
+</p><p>
+   Also, take a look at <span class="command"><strong>apmcd</strong></span> (<span class="command"><strong>apm</strong></span> based crontab) at 
+   <a class="ulink" href="ftp://ftp.binary9.net/pub/linux/" target="_top">ftp://ftp.binary9.net/pub/linux/</a> . 
+   This tool was written by
+   <a class="ulink" href="http://mrnick.binary9.net/" target="_top">Nicolas J. Leon</a>
+   &lt;nicholas_AT_binary9.net&gt;.
+</p></div></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="idm2805"></a>18.3. Caveats</h3></div></div></div><p>
+   If you use another operating system at the same computer make sure
+   that its "suspend" and "hibernate" features don't write to partitions
+   that are used by Linux.
+</p></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="idm2808"></a>18.4. Troubleshooting</h3></div></div></div><p>
+   If your machine worked with 2.0.x kernels but not with the 2.2.x series,
+   take this advice from Klaus Franken kfr_AT_klaus.franken.de : "The
+   default changed in 2.2. Search in the init-scripts for
+   <span class="command"><strong>halt</strong></span> and change it to <span class="command"><strong>halt -p</strong></span> or
+   <span class="command"><strong>poweroff</strong></span>. See <span class="command"><strong>man halt</strong></span> , if you
+   don't have this option you need a newer version of
+   <span class="command"><strong>halt</strong></span>." You may find it in the
+   <span class="command"><strong>SysVinit</strong></span> package.
+</p><p>
+   On some new machines (for instance HP Omnibook 4150 - 366 MHz model) 
+   when accessing <code class="filename">/proc/apm</code>, 
+   you may get a kernel fault <span class="command"><strong>general protection fault: f000</strong></span>. 
+    
+   <a class="ulink" href="http://www.canb.auug.org.au/~sfr/" target="_top">Stephen Rothwell</a>
+   explaines: "This is your <acronym class="acronym">APM</acronym> <acronym class="acronym">BIOS</acronym> 
+   attempting to use a real mode segment while in protected mode, 
+   i.e. it is a bug in your BIOS. .. We have seen a few of 
+   these recently, except all the others are in the power off 
+   code in the <acronym class="acronym">BIOS</acronym> where we can work around 
+   it by returning to real mode before attempting to power off. Here we cannot do this."
+</p><p>
+   According to Kernel docs
+   <code class="filename">Documentation/Configure.help</code>: "Some other things
+   you should try when experiencing seemingly random,
+   <span class="emphasis"><em>weird</em></span> problems:
+</p><p>
+
+</p><div class="orderedlist"><ol class="orderedlist" type="1"><li class="listitem"><p>
+   make sure that you have enough swap space and that it is enabled
+   <span class="command"><strong>swapon -s</strong></span>. 
+</p></li><li class="listitem"><p>
+   pass the <span class="command"><strong>no-hlt</strong></span> option to the kernel.
+</p></li><li class="listitem"><p>
+   switch on floating point emulation in the kernel and pass the
+   <span class="command"><strong>no387</strong></span> option to the kernel.
+</p></li><li class="listitem"><p>
+   pass the <span class="command"><strong>floppy=nodma</strong></span> option to the kernel.
+</p></li><li class="listitem"><p>
+   pass the <span class="command"><strong>mem=4M</strong></span> option to the kernel (thereby
+   disabling all but the first 4 MB of RAM).
+</p></li><li class="listitem"><p>
+   make sure that the CPU is not over clocked (doesn't seem suitable for
+   mobile machines).
+</p></li><li class="listitem"><p>
+   read the 
+   <a class="ulink" href="http://www.bitwizard.nl/sig11/" target="_top">sig11 FAQ</a> .
+
+
+</p></li><li class="listitem"><p>
+   disable the cache from your <acronym class="acronym">BIOS</acronym> settings.
+</p></li><li class="listitem"><p>
+   install a fan for the video card or exchange video RAM (doesn't seem
+   suitable for mobile machines).
+</p></li><li class="listitem"><p>
+   install a better fan for the CPU (doesn't seem suitable for mobile
+   machines).
+</p></li><li class="listitem"><p>
+   exchange RAM chips (doesn't seem suitable for mobile machines).
+</p></li><li class="listitem"><p>
+   exchange the motherboard (doesn't seem suitable for mobile machines).
+</p></li></ol></div><p>
+
+</p></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="idm2860"></a>18.5. <acronym class="acronym">APM</acronym> and <acronym class="acronym">PCMCIA</acronym></h3></div></div></div><p>
+   From the
+   <a class="ulink" href="http://pcmcia-cs.sourceforge.net/ftp/doc/PCMCIA-HOWTO.html" target="_top"><acronym class="acronym">PCMCIA</acronym>-HOWTO</a>:
+   "Card Services can be compiled with support for
+   <acronym class="acronym">APM</acronym> (Advanced Power Management) if you've configured
+   your kernel with <acronym class="acronym">APM</acronym> support. ...  The
+   <acronym class="acronym">PCMCIA</acronym> modules will automatically be configured for
+   <acronym class="acronym">APM</acronym> if a compatible version is detected on your
+   system. Whether or not <acronym class="acronym">APM</acronym> is configured, you can use
+   <span class="command"><strong>cardctl suspend</strong></span> before suspending your laptop, and
+   <span class="command"><strong>cardctl resume</strong></span> after resuming, to cleanly shut down
+   and restart your <acronym class="acronym">PCMCIA</acronym> cards.  This will not work
+   with a modem that is in use, because the serial driver isn't able to
+   save and restore the modem operating parameters. <acronym class="acronym">APM</acronym>
+   seems to be unstable on some systems. If you experience trouble with
+   <acronym class="acronym">APM</acronym> and <acronym class="acronym">PCMCIA</acronym> on your system, try
+   to narrow down the problem to one package or the other before reporting
+   a bug. Some drivers, notably the <acronym class="acronym">PCMCIA</acronym> SCSI drivers,
+   cannot recover from a suspend/resume cycle.  When using a
+   <acronym class="acronym">PCMCIA</acronym> SCSI card, always use <span class="command"><strong>cardctl
+   eject</strong></span> prior to suspending the system.".
+</p></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="idm2881"></a>18.6. APM and Resuming X Windows</h3></div></div></div><p>
+   Some machines have <acronym class="acronym">APM</acronym> firmware that fails to save
+   and restore display controller chip registers across a suspend.
+   Earlier versions of the XFree86 X server did not restore the screen
+   properly after resume, a problem which was addressed by
+   <a class="ulink" href="http://www.linuxlaptops.com/ll/xresume.html" target="_top">Linux Laptops</a>.
+   However, contemporary versions of XFree86 mostly do the right thing.
+
+</p><p>
+   Sometimes X and <acronym class="acronym">APM</acronym> don't work smoothly together.
+   The machine might even hang. A recommendation from Steve Rader:
+   Some linux systems have their X11 server hang when doing
+   <span class="command"><strong>apm -s</strong></span>. Folks with this affliction might want to switch
+   to the console virtual terminal and then suspend 
+   <span class="command"><strong>chvt 1; apm -s</strong></span> as root, or, more appropiately 
+   <span class="command"><strong>sudo chvt 1; sudo apm -s</strong></span>. I have these commands in a script, say,
+   <span class="command"><strong>my-suspend</strong></span> and then do 
+   <span class="command"><strong>xapmload --click-command my-suspend</strong></span> .
+</p></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="idm2893"></a>18.7. Software Suspend</h3></div></div></div><p>
+   <a class="ulink" href="http://www.sourceforge.net/projects/swsusp" target="_top">Software suspend</a>
+   enables the possibility of suspending a machine. It doesn't need APM.
+   You may suspend your machine by either pressing Sysrq-d or with
+   <span class="command"><strong>swsusp</strong></span> or <span class="command"><strong>shutdown -z</strong></span> (patch for
+   <span class="command"><strong>sysvinit</strong></span> needed). It creates an image which is
+   saved in your active swaps. By the next booting the kernel detects the
+   saved image, restores the memory from it and then it continues to run
+   as before you've suspended. If you don't want the previous state to
+   continue use the <span class="command"><strong>noresume</strong></span> kernel option. 
+</p><p>
+   Software suspends may even be better than hibernate, because now I can
+   suspend my Linux system, boot into Microsoft Windows, perform a few
+   illegal operations and be shut down, and then restart my Linux setup
+   exactly where I left off! This is something that cannot be done with
+   hibernation, since that always restores the last state that you
+   suspended from, be it Microsoft Windows or Linux. So if I want to switch
+   to Microsoft Windows to play games or do anything else, I can leave my
+   Linux desktop exactly as it is and return to how I left it.
+</p><p>
+   In recent 2.6 kernels SoftWareSuspend is part of the kernel. You may
+   find it in the section Power Management. But there are also
+   backports to 2.4 available.
+</p><p>
+   Since the original Software Suspend code was written by Gabor Kuti and Pavel
+   Machek back in 1998, three different implementations have been created for the
+   2.6 kernel, all forks of the same original codebase.
+</p><p>
+   <a class="ulink" href="http://www.tuxonice.net/" target="_top">TuxOnIce</a>, former known as
+   Software Suspend 2,   has a long feature list, including the ability to cancel a
+   suspend by pressing Escape, image compression to save time and space, a
+   versatile plugin architecture, and support for machines with Highmem,
+   preemption and SMP.
+</p></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="idm2906"></a>18.8. Tips and Tricks</h3></div></div></div><div class="sect3"><div class="titlepage"><div><div><h4 class="title"><a name="idm2908"></a>18.8.1. Battery Status on Text Console</h4></div></div></div><p>
+   You may use the following entry in <code class="filename">.bashrc</code>
+   to show the battery level on the command prompt.
+</p><div class="sect4"><div class="titlepage"><div><div><h5 class="title"><a name="idm2912"></a>18.8.1.1. When Using APM</h5></div></div></div><p>
+
+</p><pre class="programlisting">
+export PS1="\$(cat /proc/apm | awk '{print \$7}') \h:\w\$ "
+</pre><p>
+
+</p></div><div class="sect4"><div class="titlepage"><div><div><h5 class="title"><a name="idm2916"></a>18.8.1.2. When Using ACPI</h5></div></div></div><p>
+
+</p><pre class="programlisting">
+# Color the bash prompt in function of the percentage of battery
+# with acpi subsystem.
+# Based on the originally apm based script that has been posted
+# on debian-laptop by 
+# Jason Kraftcheck &lt;kraftche at cae.wisc.edu&gt;.
+#
+# This script is licensed under the GNU GPL version 2 or later,
+# see /usr/share/common-licences/GPL on a Debian system or
+# http://www.gnu.org/copyleft/gpl.html on the web.
+ 
+# (c) 2003 Fabio 'farnis' Sirna &lt;farnis at libero dot it&gt;
+
+function acpi_percent()
+{
+ if [ `cat /proc/acpi/battery/BAT0/state | grep present: |cut -d\  -f18` = "yes" ]; then
+  {
+   CAPACITY=`cat /proc/acpi/battery/BAT0/info |grep "design capacity:"|cut -d\  -f11`
+   LEVEL=`cat /proc/acpi/battery/BAT0/state | grep remaining|cut -d\  -f8`
+   ACPI_PERCENT=`echo $(( $LEVEL * 100 / $CAPACITY ))`
+   if [ "$LEVEL" = "$CAPACITY" ]; then
+    echo FULL
+   else
+    echo $ACPI_PERCENT%
+   fi
+  }
+ else echo "NO BATTERY"
+ fi
+}
+
+function acpi_charge()
+{
+ ACPI_CHARGE=`cat /proc/acpi/ac_adapter/AC/state | cut -d\  -f20`
+ case $ACPI_CHARGE in
+       *on-line*)
+         ACPI_CHARGE="+" ;;
+       *off-line*)
+         ACPI_CHARGE="-" ;;
+     esac
+     echo $ACPI_CHARGE
+}
+
+function acpi_color()
+   {
+     if  [  "$(acpi_charge)"  =  "+"  ];  then
+      {
+       if [ `cat /proc/acpi/battery/BAT0/state | grep present: |cut -d\  -f18` = "no" ]; then
+        echo  "0;31"
+       else echo  "1;32"
+      fi
+     }
+     else
+       case  $(acpi_percent)  in
+          10?%)  echo  "0;32"  ;;
+           9?%)  echo  "0;32"  ;;
+           8?%)  echo  "0;32"  ;;
+           7?%)  echo  "0;32"  ;;
+           6?%)  echo  "0;32"  ;;
+           5?%)  echo  "0;32"  ;;
+           4?%)  echo  "0;33"  ;;
+           3?%)  echo  "0;33"  ;;
+           2?%)  echo  "0;33"  ;;
+           1?%)  echo  "0;31"  ;;
+            ?%)  echo  "0;31;5"  ;;
+             *)  echo  "0;35"  ;;
+
+       esac
+     fi
+   }
+
+function  acpi_color_prompt
+   {
+     PS1='\[\e[$(acpi_color)m\][$(acpi_charge)$(acpi_percent)][\t] \u:\w\$&gt;\[\e[0;37m\] '
+   }
+
+   #  linux  console
+   if  [  "$TERM"  =  "linux"  ];  then
+     PROMPT_COMMAND=acpi_color_prompt
+   fi
+
+   function  echo_acpi
+   {
+     echo -n "($(acpi_charge)$(acpi_percent)) "
+   }
+</pre><p>
+
+</p></div></div><div class="sect3"><div class="titlepage"><div><div><h4 class="title"><a name="idm2920"></a>18.8.2. Debian GNU/Linux</h4></div></div></div><p>
+   All "normal" Debian GNU/Linux kernels are APM capable, they just need an append
+   line added to the boot loader configuration file (e.g. <code class="filename">/etc/lilo.conf</code>.
+
+</p><pre class="programlisting">
+append="apm=on"
+</pre><p>
+
+</p><p>
+   You might use the following parameters (with the appropriate changes)
+   in your boot loader configuration file (e.g. <code class="filename">/etc/lilo.conf</code>
+   to experiment with <acronym class="acronym">ACPI</acronym> and APM, when compiled in the same kernel.
+   Usage of APM and <acronym class="acronym">ACPI</acronym> at the same time doesn't work, see Kernel docs for
+   details.
+
+</p><pre class="programlisting">
+append="acpi=off apm=on"
+</pre><p>
+
+</p></div></div></div><div class="navfooter"><hr><table width="100%" summary="Navigation footer"><tr><td width="40%" align="left"><a accesskey="p" href="ch12s17.html">Prev</a> </td><td width="20%" align="center"><a accesskey="u" href="ch12.html">Up</a></td><td width="40%" align="right"> <a accesskey="n" href="ch12s19.html">Next</a></td></tr><tr><td width="40%" align="left" valign="top">17. Pointing Devices - Mice and Their Relatives </td><td width="20%" align="center"><a accesskey="h" href="index.html">Home</a></td><td width="40%" align="right" valign="top"> 19. ACPI</td></tr></table></div></body></html>

@@ -1,0 +1,71 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1"><title>3. SASL Configuration: Digest-MD5</title><link rel="stylesheet" type="text/css" href="style.css"><meta name="generator" content="DocBook XSL Stylesheets V1.79.1"><link rel="home" href="index.html" title="LDAP Linux HOWTO"><link rel="up" href="ch06.html" title="Chapter 6. Additional Information and Features"><link rel="prev" href="ch06s02.html" title="2. Authentication using LDAP"><link rel="next" href="ch06s04.html" title="4. Graphical LDAP tools"></head><body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF"><div class="navheader"><table width="100%" summary="Navigation header"><tr><th colspan="3" align="center">3. SASL Configuration: Digest-MD5</th></tr><tr><td width="20%" align="left"><a accesskey="p" href="ch06s02.html">Prev</a> </td><th width="60%" align="center">Chapter 6. Additional Information and Features</th><td width="20%" align="right"> <a accesskey="n" href="ch06s04.html">Next</a></td></tr></table><hr></div><div class="section"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="sasl"></a>3. SASL Configuration: Digest-MD5</h2></div></div></div><p>I've got LDAP-SASL authentication running using the DIGEST-MD5 mechanism. To accomplish that, I've 
+followed strictly the steps listed bellow:</p><div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem"><p>Downloaded SleepyCat 4.2.52, compiling and building manually.  After downloading, 
+I've just followed the instructions listed on the file docs/index.html under the directory where I've 
+unpacked the .tar.gz bundle.</p><p>After unpacking you can run the suggested:</p><pre class="screen">root@rdnt03:/usr/local/BerkeleyDB.4.2/build_unix#../dist/configure
+root@rdnt03:/usr/local/BerkeleyDB.4.2/build_unix#make
+root@rdnt03:/usr/local/BerkeleyDB.4.2/build_unix#make install
+</pre></li><li class="listitem"><p>Downloaded Cyrus SASL 2.1.17, unpacking and following the instructions listed on the
+document doc/install.html, under the directory where I've unpacked the .tar.gz file. Here there's a point of
+attention, you need to run the configure script using some env parameters:</p><pre class="screen">root@rdnt03:/usr/local/cyrus-sasl-2.1.17#env CPPFLAGS="-I/usr/local/BerkeleyDB.4.2/include"
+LDFLAGS="-L/usr/local/BerkeleyDB.4.2/lib" ./configure</pre><p>The CPPFLAGS and LDFLAGS environment parameters should point to the respective include and lib directories 
+where Berkeley BDB was installed.</p><p>After that you can run the suggested:</p><pre class="screen">root@rdnt03:/usr/local/cyrus-sasl-2.1.17#make
+root@rdnt03:/usr/local/cyrus-sasl-2.1.17#make install
+root@rdnt03:/usr/local/cyrus-sasl-2.1.17#ln -s /usr/local/lib/sasl2 /usr/lib/sasl2</pre></li><li class="listitem"><p>Finally, I've installed OpenLDAP 2.2.5 using the same directions listed on this document, just running 
+the configure script the same way as SASL's configure:</p><pre class="screen">root@rdnt03:/usr/local/openldap-2.2.5#env CPPFLAGS="-I/usr/local/BerkeleyDB.4.2/include"
+LDFLAGS="-L/usr/local/BerkeleyDB.4.2/lib" ./configure</pre><p>After that, I've run the suggested:</p><pre class="screen">root@rdnt03:/usr/local/openldap-2.2.5#make depend
+root@rdnt03:/usr/local/openldap-2.2.5#make
+root@rdnt03:/usr/local/openldap-2.2.5#make install</pre></li><li class="listitem"><p>Next, I've created the sasl user database:</p><pre class="screen">root@rdnt03:~# saslpasswd2 -c admin</pre><p>You'll be prompted for a password. Remember that the username should not be a DN (distinguished name). 
+Also remember to use the same password as your admin entry on the directory tree.</p></li><li class="listitem"><p>Now, you should set the sasl-regexp directive in the <span class="emphasis"><em>slapd.conf</em></span> file before 
+starting the slapd daemon and testing the authentication. My <span class="emphasis"><em>slapd.conf</em></span> file resides at 
+/usr/local/etc/openldap:</p><pre class="screen">sasl-regexp uid=(.*),cn=rdnt03,cn=DIGEST-MD5,cn=auth uid=$1,ou=People,o=Ever</pre><p>This parameter is in the format of:</p><p>uid=&lt;username&gt;,cn=&lt;realm&gt;,cn=&lt;mech&gt;,cn=auth</p><p>The username is taken from sasl and inserted into the ldap search string in the place of $1.Your realm is supposed to be your FQDN (fully qualified domain name), but in some cases it isn't, like mine. To find out what your realm is do:</p><pre class="screen">root@rdnt03:~# sasldblistusers2
+admin@rdnt03: userPassword
+admin@rdnt03: cmusaslsecretOTP</pre><p>In my case, <span class="emphasis"><em>rdnt03</em></span> is indicated as the realm. If it is your FQDN you shouldn't have any problems. I use the following LDIF file:
+</p><pre class="screen">dn: o=Ever
+o: Ever
+description: Organization Root
+objectClass: top
+objectClass: organization
+
+dn: ou=Staff, o=Ever
+ou: Staff
+description: These are privileged users that can interact with Organization products
+objectClass: top
+objectClass: organizationalUnit
+
+dn: ou=People, o=Ever
+ou: People
+objectClass: top
+objectClass: organizationalUnit
+
+dn: uid=admin, ou=Staff, o=Ever
+uid: admin
+cn: LDAP Adminstrator
+sn: admin
+userPassword: {SHA}5en6G6MezRroT3XKqkdPOmY/BfQ=
+objectClass: Top
+objectClass: Person
+objectClass: Organizationalperson
+objectClass: Inetorgperson
+
+dn: uid=admin,ou=People,o=Ever
+objectClass: top
+objectClass: person
+objectClass: organizationalPerson
+objectClass: inetOrgPerson
+userPassword: {SHA}5en6G6MezRroT3XKqkdPOmY/BfQ=
+displayName: admin
+mail: admin@eversystems.com.br
+uid: admin
+cn: Administrator
+sn: admin
+</pre><p>Add the entries to your LDAP directory using the following command:</p><pre class="screen">slapadd -c -l Ever.ldif -f slapd.conf -v -d 256</pre></li><li class="listitem"><p>Now, start the <span class="emphasis"><em>slapd</em></span> daemon and run a query using the <span class="emphasis"><em>ldapsearch</em></span> command:</p><pre class="screen">root@rdnt03:~# ldapsearch -U admin@rdnt03 -b 'o=Ever' '(objectclass=*)'
+SASL/DIGEST-MD5 authentication started
+Please enter your password:
+SASL username: admin@rdnt03
+SASL SSF: 128
+SASL installing layers
+...
+Entries
+...</pre></li></ul></div><p>That's it ! If you prefer to use SASL with Kerberos V or GSSAPI, there's a useful link at
+<a class="ulink" href="http://www.openldap.org/doc/admin22/sasl.html" target="_top">http://www.openldap.org/doc/admin22/sasl.html</a>. This link assumes you've already managed to install and configure the SASL library.
+The mailing lists will help you get going with this matter: <a class="ulink" href="http://asg.web.cmu.edu/sasl/index.html#mailinglists" target="_top">http://asg.web.cmu.edu/sasl/index.html#mailinglists</a></p></div><div class="navfooter"><hr><table width="100%" summary="Navigation footer"><tr><td width="40%" align="left"><a accesskey="p" href="ch06s02.html">Prev</a> </td><td width="20%" align="center"><a accesskey="u" href="ch06.html">Up</a></td><td width="40%" align="right"> <a accesskey="n" href="ch06s04.html">Next</a></td></tr><tr><td width="40%" align="left" valign="top">2. Authentication using LDAP </td><td width="20%" align="center"><a accesskey="h" href="index.html">Home</a></td><td width="40%" align="right" valign="top"> 4. Graphical LDAP tools</td></tr></table></div></body></html>

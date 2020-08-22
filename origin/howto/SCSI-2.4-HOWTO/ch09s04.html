@@ -1,0 +1,155 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1"><title>4. Generic driver (sg)</title><link rel="stylesheet" type="text/css" href="style.css"><meta name="generator" content="DocBook XSL Stylesheets V1.79.1"><link rel="home" href="index.html" title="The Linux 2.4 SCSI subsystem HOWTO"><link rel="up" href="ch09.html" title="Chapter 9. Upper level drivers"><link rel="prev" href="ch09s03.html" title="3. Tape driver (st)"><link rel="next" href="ch10.html" title="Chapter 10. Lower Level drivers"></head><body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF"><div class="navheader"><table width="100%" summary="Navigation header"><tr><th colspan="3" align="center">4. Generic driver (sg)</th></tr><tr><td width="20%" align="left"><a accesskey="p" href="ch09s03.html">Prev</a> </td><th width="60%" align="center">Chapter 9. Upper level drivers</th><td width="20%" align="right"> <a accesskey="n" href="ch10.html">Next</a></td></tr></table><hr></div><div class="sect1"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="sg"></a>4. Generic driver (sg)</h2></div></div></div><p>
+All types of SCSI devices are accessible via the sg driver. This means
+devices such as CDROM drives can be accessed both via the sr and sg
+drivers. Other SCSI devices such as scanners can only be accessed
+via the sg driver.
+The sg driver is capable of recognizing 256 SCSI devices. Any number of
+devices (up to the overall limit of 256) can be added after the sg
+driver is loaded.
+</p><p>
+See reference <a class="link" href="apf.html#W4">W4</a> for the SCSI Generic (sg) driver
+documentation (also found there is the sg_utils package). 
+For SCSI standards see reference <a class="link" href="apf.html#W1">W1</a> and for a
+book on the subject of SCSI programming and pass through mechanisms see
+reference <a class="link" href="apf.html#B3">B3</a>.
+</p><p>
+The sg driver in lk 2.4 is "version 3" which adds an additional interface
+structure and some new ioctl()s. The most interesting new ioctl()
+is SG_IO which sends a SCSI command and waits for its response. 
+See the Linux Documentation Project site:
+<a class="ulink" href="http://www.tldp.org/HOWTO/SCSI-Generic-HOWTO/" target="_top">
+<code class="literal">www.tldp.org/HOWTO/SCSI-Generic-HOWTO/</code></a> 
+for a full description of the sg driver.
+A (possibly later) version of this document can be found at
+<a class="ulink" href="http://www.torque.net/sg/p/sg_v3_ho.html" target="_top">
+<code class="literal">www.torque.net/sg/p/sg_v3_ho.html</code></a>.
+</p><p>
+The abbreviation "sg" is used within the kernel to refer both to the
+SCSI generic driver and the scatter-gather capability offered by many
+modern IO devices (usually associated with DMA). The context usually
+makes it clear which one is being referred to. As an example, note the
+contorted sg ioctl() named SG_GET_SG_TABLESIZE where the second "SG"
+refers to scatter gather.
+</p><p>
+The public interface for sg is found in the file: <code class="filename">
+/usr/src/linux/include/scsi/sg.h</code>. Depending on the distribution
+this may or may not contain the same information as <code class="filename">
+/usr/include/scsi/sg.h</code> which is controlled by the GNU library
+maintainers. If these 2 files are not the same use the former header
+file. Those writing applications based on sg should see its documentation
+for more on this matter.
+</p><p>
+The sg driver registers all SCSI devices (with a current maximum of 256)
+as they are seen. Each newly registered SCSI device gets allocated the
+next available minor device number. At least initially this will be the
+same sequence that devices are displayed in mid level's <span class="command"><strong>
+cat /proc/scsi/scsi</strong></span>. The sg devices device mapping can be
+seen with <span class="command"><strong>cat /proc/scsi/sg/devices</strong></span> or <span class="command"><strong>
+cat /proc/scsi/sg/device_strs</strong></span>. Differences between
+<span class="command"><strong>cat /proc/scsi/scsi</strong></span> and sg orderings will appear when
+a low level driver is removed (e.g. <span class="command"><strong>rmmod aha1542</strong></span>) or
+when a device is removed with remove-single-device.
+The sg driver will leave remaining SCSI device mapping to minor device
+numbers unchanged. This potentially leaves a "hole" in the sg mapping.
+An example follows:
+</p><pre class="programlisting">
+$ cat /proc/scsi/scsi 
+Attached devices: 
+Host: scsi0 Channel: 00 Id: 00 Lun: 00
+  Vendor: IBM      Model: DNES-309170W     Rev: SA30
+  Type:   Direct-Access            ANSI SCSI revision: 03
+Host: scsi1 Channel: 00 Id: 02 Lun: 00
+  Vendor: PIONEER  Model: DVD-ROM DVD-303  Rev: 1.10
+  Type:   CD-ROM                   ANSI SCSI revision: 02
+Host: scsi1 Channel: 00 Id: 06 Lun: 00
+  Vendor: YAMAHA   Model: CRW4416S         Rev: 1.0g
+  Type:   CD-ROM                   ANSI SCSI revision: 02
+
+$ cat /proc/scsi/sg/device_strs 
+IBM             DNES-309170W            SA30
+PIONEER         DVD-ROM DVD-303         1.10
+YAMAHA          CRW4416S                1.0g
+
+$ echo "scsi remove-single-device 1 0 2 0" &gt; /proc/scsi/scsi
+
+$ cat /proc/scsi/scsi 
+Attached devices: 
+Host: scsi0 Channel: 00 Id: 00 Lun: 00
+  Vendor: IBM      Model: DNES-309170W     Rev: SA30
+  Type:   Direct-Access            ANSI SCSI revision: 03
+Host: scsi1 Channel: 00 Id: 06 Lun: 00
+  Vendor: YAMAHA   Model: CRW4416S         Rev: 1.0g
+  Type:   CD-ROM                   ANSI SCSI revision: 02
+
+$ cat /proc/scsi/sg/device_strs 
+IBM             DNES-309170W            SA30
+&lt;no active device&gt;
+YAMAHA          CRW4416S                1.0g
+</pre><p>
+Notice how the sg driver maintains the row positions of the remaining
+devices in the "device_strs" output. So when the Pioneer
+dvd player is removed, a hole opens up in the sg device mapping
+which is not reflected in the <span class="command"><strong>cat /proc/scsi/scsi</strong></span>
+output. That "hole" corresponds to the device name <code class="filename">
+/dev/sg1</code>.
+</p><p>
+The new sg_io_hdr interface includes a data transfer residual count
+field called "resid". Only some lower level adapters support this
+feature and those that don't always yield zero in this field. At
+the time of writing the advansys, aha152x and the sym53c8xx
+drivers support this feature.
+</p><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="sgbparams"></a>4.1. sg boot parameters</h3></div></div></div><p>
+The sg driver maintains a reserved buffer for each open file descriptor.
+The purpose is to guarantee applications that data transfers up to the
+size of the reserved buffer will not fail for lack of kernel memory. This
+is important for applications like cdrecord that cannot easily recover
+(the CDR) from a ENOMEM error.
+</p><p>
+In the absence of the boot parameter 'sg_def_reserved_size' or the sg module
+parameter 'def_reserved_size', then each time a sg file descriptor is opened
+the reserved buffer size is inherited from SG_DEF_RESERVED_SIZE which is
+defined in <code class="filename">include/linux/sg.h</code>.
+</p><p>
+The SG_DEF_RESERVED_SIZE define value can be overridden by this kernel boot
+option:
+</p><pre class="programlisting">
+    sg_def_reserved_size=&lt;n&gt;
+</pre><p>
+</p></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="sgmparams"></a>4.2. sg module parameters</h3></div></div></div><p>
+When the sg module is loaded the SG_DEF_RESERVED_SIZE define value can be
+overridden by supplying this option:
+</p><pre class="programlisting">
+    def_reserved_size=&lt;n&gt;
+</pre><p>
+</p></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="sgproc"></a>4.3. sg proc interface</h3></div></div></div><p>
+All the following files are readable by all and produce ASCII output
+when read. The file
+'def_reserved_size' is also writable by root. The ASCII output has been
+formatted in such a way as to be human and machine readable (and hence
+a compromise). Use Unix commands of the form <span class="command"><strong>cat device_hdrs devices
+</strong></span> to see the output of tables.
+</p><pre class="programlisting">
+
+/proc/scsi/sg/debug       [internal state of sg driver]
+/proc/scsi/sg/def_reserved_size
+                          [like boot/module load parameter]
+/proc/scsi/sg/devices     [table of numeric device data]
+/proc/scsi/sg/device_hdr  [column headers for sg/devices]
+/proc/scsi/sg/device_strs [table of strings from INQUIRY]
+/proc/scsi/sg/hosts       [table of numeric host data]
+/proc/scsi/sg/host_hdr    [column headers for sg/hosts]
+/proc/scsi/sg/host_strs   [table of string ids for hosts]
+/proc/scsi/sg/version     [sg version number and date]
+</pre><p>
+All the above files are owned by root and readable by all while
+<code class="filename">def_reserved_size</code> is writable by root. For the
+<code class="filename">devices</code> and <code class="filename">device_strs</code> files
+the first row output corresponds to <code class="filename">/dev/sg0</code>
+(sg minor device number 0). The second row output corresponds to
+<code class="filename">/dev/sg1</code>, etc.
+For the <code class="filename">hosts</code> and <code class="filename">host_strs</code>
+files the first row output corresponds to host (adapter number) 0, etc.
+For numeric tables a missing device or host is indicated by a row
+of "-1" values. For string tables a missing device or host is indicated
+by a row containing "&lt;no active device/host&gt;".
+</p></div></div><div class="navfooter"><hr><table width="100%" summary="Navigation footer"><tr><td width="40%" align="left"><a accesskey="p" href="ch09s03.html">Prev</a> </td><td width="20%" align="center"><a accesskey="u" href="ch09.html">Up</a></td><td width="40%" align="right"> <a accesskey="n" href="ch10.html">Next</a></td></tr><tr><td width="40%" align="left" valign="top">3. Tape driver (st) </td><td width="20%" align="center"><a accesskey="h" href="index.html">Home</a></td><td width="40%" align="right" valign="top"> Chapter 10. Lower Level drivers</td></tr></table></div></body></html>

@@ -1,0 +1,53 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1"><title>18. Apache to use shared libraries</title><link rel="stylesheet" type="text/css" href="style.css"><meta name="generator" content="DocBook XSL Stylesheets V1.79.1"><meta name="keywords" content="RedHat, redhat, maddy, linus, linux, Linux, Securing, Optimising, security, secure, openna, gerhard"><link rel="home" href="index.html" title="Securing and Optimizing Linux"><link rel="up" href="netweb-Apache.html" title="Chapter 29. Software -Network Server, web/Apache"><link rel="prev" href="chap29sec254.html" title="17. Apache in a chroot jail"><link rel="next" href="chap29sec256.html" title="19. The /chroot/etc directory"></head><body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF"><div class="navheader"><table width="100%" summary="Navigation header"><tr><th colspan="3" align="center">18. Apache to use shared libraries</th></tr><tr><td width="20%" align="left"><a accesskey="p" href="chap29sec254.html">Prev</a> </td><th width="60%" align="center">Chapter 29. Software -Network Server, web/Apache</th><td width="20%" align="right"> <a accesskey="n" href="chap29sec256.html">Next</a></td></tr></table><hr></div><div class="section"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="idm19800"></a>18. Apache to use shared libraries</h2></div></div></div><p>
+      Since we have compiled apache to use shared libraries, we need to install them into the chroot directory structure. Use <span class="command"><strong>ldd</strong></span> <code class="filename">/chroot/httpd/usr/sbin/httpd</code> to find out which libraries are needed. 
+      The output, depending on what you've compiled with Apache will be something similar to:
+      </p><pre class="literallayout"><code class="computeroutput">
+        libpam.so.0 =&gt;/lib/libpam.so.0 (0x40016000)
+        libm.so.6 =&gt;/lib/libm.so.6 (0x4001f000)
+        libdl.so.2 =&gt;/lib/libdl.so.2 (0x4003b000)
+        libcrypt.so.1 =&gt;/lib/libcrypt.so.1 (0x4003e000)
+        libnsl.so.1 =&gt;/lib/libnsl.so.1 (0x4006b000)
+        libresolv.so.2 =&gt;/lib/libresolv.so.2 (0x40081000)
+        libdb.so.3 =&gt;/lib/libdb.so.3 (0x40090000)
+        libc.so.6 =&gt;/lib/libc.so.6 (0x400cb000)
+        /lib/ld-linux.so.2 =&gt;/lib/ld-linux.so.2 (0x40000000)
+      </code></pre><p>
+    </p><p>
+      Copy the shared libraries identified above:
+      </p><pre class="screen">
+        [root@deep ]/# <span class="command"><strong>cp</strong></span> /lib/libpam.so.0 /chroot/httpd/lib/
+        [root@deep ]/# <span class="command"><strong>cp</strong></span> /lib/libm.so.6 /chroot/httpd/lib/
+        [root@deep ]/# <span class="command"><strong>cp</strong></span> /lib/libdl.so.2 /chroot/httpd/lib/
+        [root@deep ]/# <span class="command"><strong>cp</strong></span> /lib/libcrypt.so.1 /chroot/httpd/lib/
+        [root@deep ]/# <span class="command"><strong>cp</strong></span> /lib/libnsl* /chroot/httpd/lib/
+        [root@deep ]/# <span class="command"><strong>cp</strong></span> /lib/libresolv* /chroot/httpd/lib/
+        [root@deep ]/# <span class="command"><strong>cp</strong></span> /lib/libdb.so.3 /chroot/httpd/lib/
+        [root@deep ]/# <span class="command"><strong>cp</strong></span> /lib/libc.so.6 /chroot/httpd/lib/
+        [root@deep ]/# <span class="command"><strong>cp</strong></span> /lib/ld-linux.so.2 /chroot/httpd/lib/
+      </pre><p>
+    </p><p>
+      You'll also need the following extra libraries for some network functions, like resolving:
+      </p><pre class="screen">
+        [root@deep ]/# <span class="command"><strong>cp</strong></span> /lib/libnss_compat* /chroot/httpd/lib/
+        [root@deep ]/# <span class="command"><strong>cp</strong></span> /lib/libnss_dns* /chroot/httpd/lib/
+        [root@deep ]/# <span class="command"><strong>cp</strong></span> /lib/libnss_files* /chroot/httpd/lib/
+      </pre><p>
+    </p><div class="procedure"><ul class="procedure"><li class="step"><p>
+        We now need to copy the passwd and group files inside the <code class="filename">/chroot/httpd/etc</code> chrooted directory. The concept here is the same as how ftpd uses passwd and group files. Next, we'll remove 
+        all entries except for the user that apache runs as in both files <code class="literal">passwd</code> and <code class="literal">group</code>.
+        </p><ol type="a" class="substeps"><li class="step"><p>
+            </p><pre class="screen">
+              [root@deep ]/# <span class="command"><strong>cp</strong></span> /etc/passwd /chroot/httpd/etc/
+              [root@deep ]/# <span class="command"><strong>cp</strong></span> /etc/group /chroot/httpd/etc/
+            </pre><p>
+          </p></li><li class="step"><p>
+            Edit the <code class="filename">passwd</code> file, <span class="command"><strong>vi</strong></span> <code class="filename">/chroot/httpd/etc/passwd</code> and delete all entries except for the user apache run as in our configuration, it's <code class="literal">www</code>:
+            </p><pre class="programlisting">
+              www:x:80:80::/home/www:/bin/bash
+            </pre><p>
+          </p></li><li class="step"><p>
+            Edit the <code class="literal">group</code> file, <span class="command"><strong>vi</strong></span> <code class="filename">/chroot/httpd/etc/group</code> and delete all entries except the group apache run as, in our configuration it,s <code class="literal">www</code>:
+            </p><pre class="programlisting">
+              www:x:80:
+            </pre><p>
+          </p></li></ol></li></ul></div></div><div class="navfooter"><hr><table width="100%" summary="Navigation footer"><tr><td width="40%" align="left"><a accesskey="p" href="chap29sec254.html">Prev</a> </td><td width="20%" align="center"><a accesskey="u" href="netweb-Apache.html">Up</a></td><td width="40%" align="right"> <a accesskey="n" href="chap29sec256.html">Next</a></td></tr><tr><td width="40%" align="left" valign="top">17. Apache in a chroot jail </td><td width="20%" align="center"><a accesskey="h" href="index.html">Home</a></td><td width="40%" align="right" valign="top"> 19. The <code class="filename">/chroot/etc</code> directory</td></tr></table></div></body></html>

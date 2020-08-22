@@ -1,0 +1,655 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN""http://www.w3.org/TR/html4/loose.dtd">
+<HTML
+><HEAD
+><TITLE
+>Tuning your drives</TITLE
+><META
+NAME="GENERATOR"
+CONTENT="Modular DocBook HTML Stylesheet Version 1.79"><LINK
+REL="HOME"
+TITLE="Tuning Linux"
+HREF="index.html"><LINK
+REL="UP"
+TITLE="Disk Tuning"
+HREF="disk.html"><LINK
+REL="PREVIOUS"
+TITLE="Overview of Disk Technologies"
+HREF="diskoverview.html"><LINK
+REL="NEXT"
+TITLE="Network Tuning"
+HREF="network.html"></HEAD
+><BODY
+CLASS="SECTION"
+BGCOLOR="#FFFFFF"
+TEXT="#000000"
+LINK="#0000FF"
+VLINK="#840084"
+ALINK="#0000FF"
+><DIV
+CLASS="NAVHEADER"
+><TABLE
+SUMMARY="Header navigation table"
+WIDTH="100%"
+BORDER="0"
+CELLPADDING="0"
+CELLSPACING="0"
+><TR
+><TH
+COLSPAN="3"
+ALIGN="center"
+>Tuning Linux</TH
+></TR
+><TR
+><TD
+WIDTH="10%"
+ALIGN="left"
+VALIGN="bottom"
+><A
+HREF="diskoverview.html"
+ACCESSKEY="P"
+>Prev</A
+></TD
+><TD
+WIDTH="80%"
+ALIGN="center"
+VALIGN="bottom"
+>Chapter 4. Disk Tuning</TD
+><TD
+WIDTH="10%"
+ALIGN="right"
+VALIGN="bottom"
+><A
+HREF="network.html"
+ACCESSKEY="N"
+>Next</A
+></TD
+></TR
+></TABLE
+><HR
+ALIGN="LEFT"
+WIDTH="100%"></DIV
+><DIV
+CLASS="SECTION"
+><H1
+CLASS="SECTION"
+><A
+NAME="DISKTUNING"
+>4.3. Tuning your drives</A
+></H1
+><P
+>      Now that we understand the major types of drives available
+      for your system, let's take a look at the ways you can
+      tune your particular setup.
+    </P
+><DIV
+CLASS="SECTION"
+><H2
+CLASS="SECTION"
+><A
+NAME="DISKTUNINGIDE"
+>4.3.1. Tuning the IDE bus</A
+></H2
+><P
+>        There are a few methods of tuning the IDE bus, both through
+        the BIOS setup, and within Linux.  Some of these options
+        are not supported by all controllers and all drives, so you
+        will want to compare specifications of each before testing.
+        As always, be aware that some tuning commands can cause
+        data loss, so be sure to back up your data before experimenting.
+      </P
+><DIV
+CLASS="SECTION"
+><H3
+CLASS="SECTION"
+><A
+NAME="DISKTUNINGIDEBIOS"
+>4.3.1.1. Tuning IDE from within the BIOS</A
+></H3
+><P
+>          Typically, most users will just leave the BIOS to automatically
+          configure itself based off a negotiation between the hard drive
+          and the controller in the system.  There are, however, a few
+          options within the BIOS that users can examine to get either
+          improved performance, or debug tricky issues.
+        </P
+><P
+>          There are three methods for IDE to address a drive:  Normal,
+          CHS, and LBA.  Normal mode works only with drives smaller
+          than 500MB.  Since no drives since 1996 have been made this
+          small, we can forget this mode.  CHS stands for Cylinder,
+          Head, and Sector, while LBA stands for Logical Block Address.
+          CHS and LBA are fairly similar in performance, but be aware
+          that taking a drive that is configured in CHS and moving it
+          to a system that use LBA will destroy all the data on that
+          drive.
+        </P
+><P
+>	  
+          Now that the drive can be accessed, there are two methods
+          for that drive to get its data from the drive to the CPU:
+          PIO, and DMA.  PIO requires the CPU to shuttle data from 
+          the drive to memory so the CPU can use it later, but
+          is the most compatible way for Linux to talk to a drive
+          due to the large number of IDE controller chips.
+          DMA mode seems to be much faster, since the CPU is not
+          involved in moving the data between the drive and memory,
+          freeing the CPU to do other things.  Until the later
+          Linux 2.2 kernels, DMA mode was not selected by default
+          for access to drives due to compatability with interface
+          chips.  You can now select a specific IDE controller and
+          select DMA access to make sure your combination is
+          correct.
+        </P
+></DIV
+><DIV
+CLASS="SECTION"
+><H3
+CLASS="SECTION"
+><A
+NAME="DISKTUNINGIDEOS"
+>4.3.1.2. Tuning IDE from within Linux</A
+></H3
+><P
+>          As mentioned in <A
+HREF="disktuning.html#DISKTUNINGIDEBIOS"
+>Section 4.3.1.1</A
+>,
+          Linux has drivers for some specific IDE controllers,
+          plus a generic IDE interface.  Once the OS boots, Linux
+          will ignore the state of the BIOS when it accesses hardware,
+          choosing instead to use its own drivers and options. By default,
+          the Linux kernel will have DMA access available, but not
+          activated.  This can be changed if you choose to compile your
+          own kernel (see <A
+HREF="kernelcompile.html"
+>Section 6.2</A
+> for more
+          information).
+        </P
+><P
+>	  
+          Once Linux is started, all IDE tuning occurs using
+          <B
+CLASS="COMMAND"
+>hdparm</B
+>.  Using <B
+CLASS="COMMAND"
+>hdparm</B
+>
+          followed by a drive (<B
+CLASS="COMMAND"
+>hdparm /dev/hda</B
+>) will
+          return the current settings for that drive.
+        </P
+><P
+><B
+CLASS="COMMAND"
+>hdparm</B
+>  [-c <TT
+CLASS="REPLACEABLE"
+><I
+>iovalue</I
+></TT
+>] [-d] [-m <TT
+CLASS="REPLACEABLE"
+><I
+>multimode</I
+></TT
+>] {<TT
+CLASS="REPLACEABLE"
+><I
+>device</I
+></TT
+>}</P
+><TABLE
+BORDER="1"
+BGCOLOR="#E0E0E0"
+WIDTH="100%"
+><TR
+><TD
+><FONT
+COLOR="#000000"
+><PRE
+CLASS="SCREEN"
+># hdparm /dev/hda
+
+/dev/hda:
+multcount    =  0 (off)
+I/O support  =  0 (default 16-bit)
+unmaskirq    =  0 (off)
+using_dma    =  1 (on)
+keepsettings =  0 (off)
+nowerr       =  0 (off)
+readonly     =  0 (off)
+readahead    =  8 (on)
+geometry     = 1559/240/63, sectors = 23572080, start = 0
+#</PRE
+></FONT
+></TD
+></TR
+></TABLE
+><P
+>          As you can see, there are a few options for tuning that
+          are available for this drive.  The biggest boost for IDE drive
+	  performance is to use DMA access, and this is already turned
+	  on.  If DMA access is not turned on by default in the kernel,
+	  you can use -d1 to turn DMA access on, and -d0 to turn it off.
+	  Note that DMA access will not necessarily increase performance
+	  of getting data to and from the drive, but will free up the CPU
+	  during data transfers.
+        </P
+><P
+>          Another item to take a look at is the I/O support, which
+          on our sample drive is set to 16-bit access instead of 32.
+          The -c option to <B
+CLASS="COMMAND"
+>hdparm</B
+> will check the
+          I/O support for the specified device, there are a total of three
+          options that can be given to -c to set the I/O support.  The
+          two most stable for systems are 0, used to set 16-bit access,
+          and 3, used to set 32-bit synchronous access.  Using an
+	  <TT
+CLASS="REPLACEABLE"
+><I
+>iovalue</I
+></TT
+> of 
+          1 sets 32-bit access but may not work on all chipsets, causing
+          a system hang if the chipset does not support regular 32-bit
+          access.
+        </P
+><P
+>          Also test and check out multiple sector I/O with the -m option.
+          Many newer IDE drives support transferrint multiple sectors
+          worth of data per I/O cycle, reducing the numer of I/O cycles
+          required to tranfer data.  The -i option to hdparm will tell
+          you what the maximum <TT
+CLASS="REPLACEABLE"
+><I
+>multimode</I
+></TT
+>
+	  is in the MaxMultSect
+          section.  By setting <TT
+CLASS="REPLACEABLE"
+><I
+>multimode</I
+></TT
+>
+	  to its highest,
+          large transfers of data happen even quicker.
+        </P
+><DIV
+CLASS="WARNING"
+><P
+></P
+><TABLE
+CLASS="WARNING"
+WIDTH="100%"
+BORDER="0"
+><TR
+><TD
+WIDTH="25"
+ALIGN="CENTER"
+VALIGN="TOP"
+><IMG
+SRC="../images/warning.png"
+HSPACE="5"
+ALT="Warning"></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+>            The <B
+CLASS="COMMAND"
+>hdparm</B
+> manual page indicates that
+            with some drives, using multiple sector I/O can result
+            in massive filsystem corruption.  As always, be sure
+            to test your systems thoroughly before using them
+            in a production environment.
+          </P
+></TD
+></TR
+></TABLE
+></DIV
+><P
+>          Unfortunately, the correct setting for DMA, multiple sector
+          I/O, and I/O support varies by drive and controller.  You will
+          have to do your own testing to find the correct combination
+          for your system.  The right combination should be able to:
+        </P
+><P
+></P
+><UL
+><LI
+><P
+>              Have a high throughput of data from the drive to the system.
+            </P
+></LI
+><LI
+><P
+>              Maintain that high throughput under heavy CPU load.
+            </P
+></LI
+><LI
+><P
+>              Prevent the drive or the IDE driver from corrupting data.
+            </P
+></LI
+></UL
+><P
+>          Fortunately, testing throughput is easy with <B
+CLASS="COMMAND"
+>          hdparm</B
+>.  The -t option tests the throughput
+          of data directly from the drive, while -T tests throughput
+          of data directly from the Linux drive buffer.  To ensure the
+          tests run properly, they should be run when the
+          system is quiet and few other processes are running.  Usually,
+          runlevel 1, also known as single user mode, provides
+          this environment.  Tests should be run two or three times.
+        </P
+><P
+>          Once an optimum setting is found, you can have hdparm make
+          the setting at boot time by including the relevant commands
+          in <TT
+CLASS="FILENAME"
+>/etc/rc.local</TT
+>
+        </P
+></DIV
+></DIV
+><DIV
+CLASS="SECTION"
+><H2
+CLASS="SECTION"
+><A
+NAME="DISKTUNINGSCSI"
+>4.3.2. Tuning SCSI disks</A
+></H2
+><P
+>      </P
+><DIV
+CLASS="SECTION"
+><H3
+CLASS="SECTION"
+><A
+NAME="DISKTUNINGSCSIOPTIONS"
+>4.3.2.1. SCSI Options</A
+></H3
+><P
+>	  In many cases, SCSI support is an add-in card to the
+	  system, giving you many options in vendors and card
+	  types.  Some server motherboards include SCSI chipset
+	  and support onboard as well.  In addition, there are
+	  dedicated RAID cards that implement various RAID levels
+	  in hardware, offloading much of the logic from the CPU.
+	</P
+><P
+>	  SCSI has three major protocol varieties:  SCSI-1, SCSI-2,
+	  and SCSI-3.  Fortunately, the protocols are backwards and
+	  forwards compatible, meaning that a SCSI-3 controller card
+	  can talk to a SCSI-1 drive, albeit at a slower speed.  For
+	  best performance, make sure that the protocols of the controller
+	  card and devices match.
+	</P
+><P
+>	  On the physical side, cable types range from a DB-25 pin connector
+	  on older Apple Macintoshes to 80-pin SCA connectors that not
+	  only include the SCSI pins, but power and ID information.
+	</P
+><P
+>	  Here's a quick rundown on the various connector types available.
+	</P
+><P
+>	  INSERT TABLE OF CONNECTORS
+	</P
+><DIV
+CLASS="SECTION"
+><H4
+CLASS="SECTION"
+><A
+NAME="DISKTUNINGSCSIRAID"
+>4.3.2.1.1. SCSI RAID</A
+></H4
+><P
+>	    
+	    Depending on the RAID level you select, you can optimize
+	    a drive array ranging from high performance to high availability.
+	    In addition, many hardware RAID cards support standby drives,
+	    so if one drive in the RAID fails, a previously-unused drive
+	    immediately fills in and  becomes part of the RAID.
+	  </P
+><P
+>	    RAID 0 is also known as striping, where each drive in the array
+	    is represented together as one large drive.  It is very high
+	    I/O performance, since data is written sequentially across
+	    each drive.  In RAID 0, no data space is lost, but if one
+	    of the drives dies, the entire array is lost.  Drives
+	    in the array can be of varying sizes.
+	  </P
+><P
+>	    RAID 1 is known as mirroring.  Each drive mirrors its contents
+	    to another drive in the array.  Performance is no slower than
+	    and drive in the array, but if one drive in the array fails
+	    its mirror immediately takes over with no loss.  RAID 1 has
+	    the highest overhead of drive space, requiring two drives
+	    for the storage of one.  Each drive pair must be the
+	    same size.
+	  </P
+><P
+>	    RAID 5 is one of the most popular RAID formats.  In this 
+	    setup, data is spread amongst at least three drives along
+	    with parity data.  In the event of any one drive failing, the
+	    remaining drives still have all the data from all drives and
+	    can continue without loss of data.  If a second drive were
+	    to fail, the entire array would fail.  Drive space loss comes
+	    to N-1 where N is the number of drives in the array.  So
+	    in a 5 drive array, you would get the storage of 4 drives.
+	    All drives in this array must be the same size.
+	    Since parity data has to be created and written across multiple
+	    drives, the speed of RAID 5 is slow, but its reliability is
+	    quite high.  For those implementing high availablity on
+	    their own, this is the best balance of speed and reliability.
+	  </P
+><P
+>	    There are other RAID levels available, and in some cases
+	    these are vendor-specific (such as RAID 51, which is
+	    a mirrored RAID 5 array).  For best file performance,
+	    RAID 0 will be the fastest.  Configuration of each of
+	    these levels usually happens outside of Linux, in the card's
+	    BIOS, and is specific to each hardware RAID card.
+	  </P
+><P
+>	    For performance reasons, it is not recommended that you
+	    use software RAID.  Instead of offloading the RAID functionality
+	    to a hardware card and offload the functions from the CPU, software
+	    RAID uses the main CPU to create and maintain the RAID.  This
+	    eats up valuable I/O cycles.
+	  </P
+></DIV
+><DIV
+CLASS="SECTION"
+><H4
+CLASS="SECTION"
+><A
+NAME="DISKTUNINGSCSIHW"
+>4.3.2.1.2. Tuning SCSI Drives</A
+></H4
+><P
+>	    Since SCSI drivers are written to negotiate the best connection
+	    between SCSI controller and its drives, there is very little
+	    from the OS that is needed to improve your performance.  Your
+	    best idea for performance is to have the latest kernel and drivers
+	    and to use the correct driver for your card.  In some cases, there
+	    are both Linux and BSD versions of drivers for your card.  Some
+	    report that the BSD drivers are faster, so if you have both
+	    drivers available, test each out to see which gives better
+	    performance.
+	  </P
+><P
+>	    On the hardware side, make sure that you are using the best
+	    match of SCSI controller and drives.  Your best performance
+	    will probably be seen with Fibre Channel controllers and
+	    drives, since they have the highest throughput.  If
+	    you have a large number of drives, you can span them across
+	    multiple controllers.  Linux supports up to 8 or 16 cards
+	    each with the ability to hold up to 16 devices per card,
+	    not counting the card itself.
+	  </P
+><P
+>	    One way of tuning the SCSI bus is to make sure it is properly
+	    terminated.  Without proper termination, the SCSI bus may ratchet
+	    its speed down, or fail altogether.  Termination should occur at
+	    both ends of a physical SCSI chain, but most SCSI chipsets include
+	    internal termination for their end.  Purchase the correct
+	    termination for your cable and put it at the far end of the cable.
+	    This will make sure there is no signal reflections anywhere in the
+	    cable that can cause interference.
+	  </P
+></DIV
+></DIV
+></DIV
+><DIV
+CLASS="SECTION"
+><H2
+CLASS="SECTION"
+><A
+NAME="DISKFILESYSTEMS"
+>4.3.3. Tuning Filesystems</A
+></H2
+><P
+>        Fast hard drive access is only half of getting fast read
+	and write access.  The other half is getting the data from
+	the hard drive, through kernel, and to the application.
+	This is the function of the filesystem that the data lives on.
+      </P
+><P
+>        The first Linux filesystems (xiafs, minixfs, extfs) were
+	all designed to give some level of performance to Linux
+	while giving features close to what you would expect
+	from a regular UNIX operating system.  Over time,
+	second extended filesystem (ext2fs) arrived and was the
+	standard filesystem for Linux for many years.  Now, the number
+	of native filesystems for Linux include ext3, reiserfs,
+	GFS, Coda, XFS, JFS, and Intermezzo.
+      </P
+><P
+>        Such features that are available for Linux include inodes,
+	directories, files, and tools
+	to modify and create the filesystem.  Inodes are the basic
+	building blocks of the filesystem, creating pointers to
+	file data, entries in directories, and directories themselves.
+	The directory of inodes is kept in the superblock, and these
+	superblocks are duplicated many times through the filesystem
+	so if one superblock gets corrupted, another can be used to
+	recover the missing data.
+      </P
+><P
+>        In the event the OS shuts down without unmounting its filesystems,
+	a filesystem check must be run in order to make sure the
+	inodes point to the data it should be pointing at.  A journalling
+	filesystem (ext3, reiserfs, JFS, XFS) ensures that all writes
+	to a filesystem are
+	finished before reporting success to the OS.
+      </P
+><P
+>        Each type of filesystem has its advantages and disadvantages.  A
+	filesystem like ext2 or ext3 are better tuned to large files, so access
+	for reads and writes happen very quickly.  But if there are a large
+	amount of small files in a directory, its performance starts to suffer.
+	A filesystem like reiserfs is better tunes to smaller files, but
+	increases overhead for larger files.
+      </P
+><P
+>        For applications that are writing or reading the hard drive, block sizes
+	will allow Linux to write larger blocks of data to the hard drive in one
+	operation.  For example, a block size of 64k will try to write to the
+	hard drive in 64kb chunks.  Depending on the hard drive and interface,
+	larger block results in better performance.  If the block size is not
+	set properly, it can result in poorer performance.  If the optimal block
+	size is 64k, but is set for 32k, it would take two operations to write
+	the block to the hard drive.  If it is set to 96kb, then it would take
+	OS will wait for a timeout period or the rest of the block size to fill
+	up before it writes the data to disk, dropping the latency of writing
+	data to the disk.
+      </P
+><P
+>        Block sizes are usually reserved for operations where raw data is being
+	written to or read from the hard drive.  But applications like
+	<SPAN
+CLASS="APPLICATION"
+>dd</SPAN
+> can use varying size block sizes when
+	writing data to the drive, allowing you to tune various block sizes.
+      </P
+></DIV
+></DIV
+><DIV
+CLASS="NAVFOOTER"
+><HR
+ALIGN="LEFT"
+WIDTH="100%"><TABLE
+SUMMARY="Footer navigation table"
+WIDTH="100%"
+BORDER="0"
+CELLPADDING="0"
+CELLSPACING="0"
+><TR
+><TD
+WIDTH="33%"
+ALIGN="left"
+VALIGN="top"
+><A
+HREF="diskoverview.html"
+ACCESSKEY="P"
+>Prev</A
+></TD
+><TD
+WIDTH="34%"
+ALIGN="center"
+VALIGN="top"
+><A
+HREF="index.html"
+ACCESSKEY="H"
+>Home</A
+></TD
+><TD
+WIDTH="33%"
+ALIGN="right"
+VALIGN="top"
+><A
+HREF="network.html"
+ACCESSKEY="N"
+>Next</A
+></TD
+></TR
+><TR
+><TD
+WIDTH="33%"
+ALIGN="left"
+VALIGN="top"
+>Overview of Disk Technologies</TD
+><TD
+WIDTH="34%"
+ALIGN="center"
+VALIGN="top"
+><A
+HREF="disk.html"
+ACCESSKEY="U"
+>Up</A
+></TD
+><TD
+WIDTH="33%"
+ALIGN="right"
+VALIGN="top"
+>Network Tuning</TD
+></TR
+></TABLE
+></DIV
+></BODY
+></HTML
+>

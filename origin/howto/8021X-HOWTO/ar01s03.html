@@ -1,0 +1,164 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1"><title>3. Authentication Server: Setting up FreeRADIUS</title><link rel="stylesheet" type="text/css" href="style.css"><meta name="generator" content="DocBook XSL Stylesheets V1.79.1"><link rel="home" href="index.html" title="802.1X Port-Based Authentication HOWTO"><link rel="up" href="index.html" title="802.1X Port-Based Authentication HOWTO"><link rel="prev" href="ar01s02.html" title="2. Obtaining Certificates"><link rel="next" href="ar01s04.html" title="4. Supplicant: Setting up Xsupplicant"></head><body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF"><div class="navheader"><table width="100%" summary="Navigation header"><tr><th colspan="3" align="center">3. Authentication Server: Setting up FreeRADIUS</th></tr><tr><td width="20%" align="left"><a accesskey="p" href="ar01s02.html">Prev</a> </td><th width="60%" align="center"> </th><td width="20%" align="right"> <a accesskey="n" href="ar01s04.html">Next</a></td></tr></table><hr></div><div class="sect1"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="FreeRADIUS"></a>3. Authentication Server: Setting up FreeRADIUS</h2></div></div></div><p>
+ <span class="application">FreeRADIUS</span> is a fully GPLed RADIUS server
+ implementation. It supports a wide range of authentication mechanisms,
+ but PEAP is used for the example in this document.
+ </p><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="instradius"></a>3.1. Installing FreeRADIUS</h3></div></div></div><div class="procedure"><a name="idm269"></a><p class="title"><b>Procedure 1. Installing FreeRADIUS</b></p><ol class="procedure" type="1"><li class="step"><p>
+  Head over to the <span class="application">FreeRADIUS</span> site, <a class="ulink" href="http://www.freeradius.org/" target="_top">http://www.freeradius.org/</a>,
+  and download the latest release.
+  </p><pre class="screen">
+   <code class="prompt"># </code><strong class="userinput"><code><span class="command"><strong>cd </strong></span>/usr/local/src</code></strong>
+   <code class="prompt"># </code><strong class="userinput"><code><span class="command"><strong>wget </strong></span>ftp://ftp.freeradius.org/pub/radius/freeradius-1.0.0.tar.gz</code></strong>
+   <code class="prompt"># </code><strong class="userinput"><code><span class="command"><strong>tar </strong></span>zxfv freeradius-1.0.0.tar.gz</code></strong>
+   <code class="prompt"># </code><strong class="userinput"><code><span class="command"><strong>cd </strong></span>freeradius-1.0.0</code></strong>
+  </pre></li><li class="step"><p>
+   Configure, make and install:
+   </p><pre class="screen">
+    <code class="prompt"># </code><strong class="userinput"><code><span class="command"><strong>./configure</strong></span></code></strong>
+    <code class="prompt"># </code><strong class="userinput"><code><span class="command"><strong>make</strong></span></code></strong>
+    <code class="prompt"># </code><strong class="userinput"><code><span class="command"><strong>make install</strong></span></code></strong>
+   </pre><p>
+    <span class="emphasis"><em>You can pass options to
+    <span class="command"><strong>configure</strong></span>. Use <span class="command"><strong>./configure
+    --help</strong></span> or read the README file, for more
+    information.</em></span>
+    </p></li></ol></div><p>
+ The binaries are installed in <code class="filename">/usr/local/bin</code> and
+ <code class="filename">/usr/local/sbin</code>. The configuration files are found
+ under <code class="filename">/usr/local/etc/raddb</code>.
+ </p><p>
+ If something went wrong, check the <code class="filename">INSTALL</code> and
+ <code class="filename">README</code> included with the source. The <a class="ulink" href="http://www.freeradius.org/faq/" target="_top">RADIUS FAQ</a> also contains
+ valuable information.
+ </p></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="confradius"></a>3.2. Configuring FreeRADIUS</h3></div></div></div><p>
+ <span class="application">FreeRADIUS</span> has a big and mighty
+ configuration file. It's so big, it has been split into several
+ smaller files that are just <span class="quote">&#8220;<span class="quote">included</span>&#8221;</span> into the main
+ <code class="filename">radius.conf</code> file.
+ </p><p>
+ There is numerous ways of using and setting up FreeRADIUS to do
+ what you want: i.e., fetch user information from LDAP, SQL, PDC,
+ Kerberos, etc. In this document, user information from a plain text
+ file, <code class="filename">users</code>, is used.
+ </p><div class="tip" style="margin-left: 0.5in; margin-right: 0.5in;"><h3 class="title">Tip</h3><p>
+ The configuration files are thoroughly commented, and, if that is not
+ enough, the <code class="filename">doc/</code> folder that comes with the source
+ contains additional information.
+ </p></div><div class="procedure"><a name="idm323"></a><p class="title"><b>Procedure 2. Configuring FreeRADIUS</b></p><ol class="procedure" type="1"><li class="step"><p>
+   The configuration files can be found under <code class="filename">/usr/local/etc/raddb/</code>
+   </p><pre class="screen">
+    <code class="prompt"># </code><strong class="userinput"><code><span class="command"><strong>cd </strong></span>/usr/local/etc/raddb/</code></strong>
+   </pre></li><li class="step"><p>
+   Open the main configuration file <code class="filename">radiusd.conf</code>,
+   <span class="emphasis"><em>and read the comments!</em></span> Inside the encrypted
+   PEAP tunnel, an MS-CHAPv2 authentication mechanism is used.
+   </p><ol type="a" class="substeps"><li class="step"><p>
+    MPPE [<a class="ulink" href="http://www.ietf.org/rfc/rfc3078.txt" target="_top">RFC3078</a>] is
+    responsible for sending the PMK to the AP. Make sure the following
+   settings are set:
+    </p><pre class="programlisting">
+    # under MODULES, make sure mschap is uncommented!
+    mschap {
+      # authtype value, if present, will be used
+      # to overwrite (or add) Auth-Type during
+      # authorization. Normally, should be MS-CHAP
+      authtype = MS-CHAP
+
+      # if use_mppe is not set to no, mschap will
+      # add MS-CHAP-MPPE-Keys for MS-CHAPv1 and
+      # MS-MPPE-Recv-Key/MS-MPPE-Send-Key for MS-CHAPv2
+      #
+      use_mppe = yes
+
+      # if mppe is enabled, require_encryption makes
+      # encryption moderate
+      #
+      require_encryption = yes
+
+      # require_strong always requires 128 bit key
+      # encryption
+      #
+      require_strong = yes
+
+      authtype = MS-CHAP
+      # The module can perform authentication itself, OR
+      # use a Windows Domain Controller. See the radius.conf file
+      # for how to do this.
+    }
+    </pre></li><li class="step"><p>
+    Also make sure the <span class="quote">&#8220;<span class="quote">authorize</span>&#8221;</span> and
+    <span class="quote">&#8220;<span class="quote">authenticate</span>&#8221;</span> contains:
+    </p><pre class="programlisting">
+    authorize {
+        preprocess
+        mschap
+	suffix
+	eap
+	files
+    }
+    
+    authenticate {
+         
+         #
+         #  MSCHAP authentication.    
+         Auth-Type MS-CHAP {
+               mschap
+          }
+	
+	 #
+         #  Allow EAP authentication.
+         eap
+     }
+    </pre></li></ol></li><li class="step"><p>
+   Then, change the <code class="filename">clients.conf</code> file to specify
+   what network it's serving: 
+   </p><pre class="programlisting">
+   # Here, we specify which network we're serving
+   client 192.168.0.0/16 { 
+        # This is the shared secret between the Authenticator (the 
+	# access point) and the Authentication Server (RADIUS).
+        secret          = SharedSecret99
+        shortname       = testnet
+    }
+   </pre></li><li class="step"><p>
+    The <code class="filename">eap.conf</code> should also be pretty
+    straightforward.
+    </p><ol type="a" class="substeps"><li class="step"><p>
+     Set <span class="quote">&#8220;<span class="quote">default_eap_type</span>&#8221;</span> to <span class="quote">&#8220;<span class="quote">peap</span>&#8221;</span>:
+     </p><pre class="programlisting">
+      default_eap_type = peap
+     </pre></li><li class="step"><p>
+    Since PEAP is using TLS, the TLS section must contain:
+    </p><pre class="programlisting">
+    tls { 
+        # The private key password
+        private_key_password = SecretKeyPass77
+	# The private key
+        private_key_file = ${raddbdir}/certs/cert-srv.pem
+        #  Trusted Root CA list
+        CA_file = ${raddbdir}/certs/demoCA/cacert.pem
+        dh_file = ${raddbdir}/certs/dh
+        random_file = /dev/urandom
+	}
+    </pre></li><li class="step"><p>
+     Find the <span class="quote">&#8220;<span class="quote">peap</span>&#8221;</span> section, and make sure it contain
+    the following:
+     </p><pre class="programlisting">
+      peap {
+        #  The tunneled EAP session needs a default
+        #  EAP type, which is separate from the one for
+        #  the non-tunneled EAP module.  Inside of the
+        #  PEAP tunnel, we recommend using MS-CHAPv2,
+        #  as that is the default type supported by
+        #  Windows clients.
+        default_eap_type = mschapv2
+      }
+      </pre></li></ol></li><li class="step"><p>
+   The user information is stored in a plain text file
+   <code class="filename">users</code>. A more sophisticated solution to store
+   user information may be preferred (SQL, LDAP, PDC, etc.).
+   </p><p>
+   Make sure the <code class="filename">users</code> file contains the
+   following entry:
+   </p><pre class="screen">
+   "testuser"      User-Password == "Secret149"
+   </pre></li></ol></div></div></div><div class="navfooter"><hr><table width="100%" summary="Navigation footer"><tr><td width="40%" align="left"><a accesskey="p" href="ar01s02.html">Prev</a> </td><td width="20%" align="center"> </td><td width="40%" align="right"> <a accesskey="n" href="ar01s04.html">Next</a></td></tr><tr><td width="40%" align="left" valign="top">2. Obtaining Certificates </td><td width="20%" align="center"><a accesskey="h" href="index.html">Home</a></td><td width="40%" align="right" valign="top"> 4. Supplicant: Setting up Xsupplicant</td></tr></table></div></body></html>

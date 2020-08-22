@@ -1,0 +1,346 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1"><title>2. NAT Scripts</title><link rel="stylesheet" type="text/css" href="style.css"><meta name="generator" content="DocBook XSL Stylesheets V1.79.1"><meta name="keywords" content="linux, ip, iproute2, ifconfig, firewall, ARP, NAT, route, routing, route selection, routing selection, network administration"><link rel="home" href="index.html" title="Guide to IP Layer Network Administration with Linux"><link rel="up" href="ch11.html" title="Chapter 11. Scripts for Managing IP"><link rel="prev" href="ch11s01.html" title="1. Proxy ARP Scripts"><link rel="next" href="ch12.html" title="Chapter 12. Troubleshooting"></head><body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF"><div class="navheader"><table width="100%" summary="Navigation header"><tr><th colspan="3" align="center">2. NAT Scripts</th></tr><tr><td width="20%" align="left"><a accesskey="p" href="ch11s01.html">Prev</a> </td><th width="60%" align="center">Chapter 11. Scripts for Managing IP</th><td width="20%" align="right"> <a accesskey="n" href="ch12.html">Next</a></td></tr></table><hr></div><div class="section"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="scripts-nat"></a>2. NAT Scripts</h2></div></div></div><p>
+      The script will remove all NAT route entries and then all RPDB entries,
+      other than the three default entries and anything saying "iif lo".  It
+      will then populate the RPDB and create NAT route entries according to
+      the configuration file.  Use this script with caution if you have
+      customized your RPDB.
+    </p><div class="example"><a name="ex-sc-nat"></a><p class="title"><b>Example 11.3. Static NAT SysV initialization script</b></p><div class="example-contents"><p>
+        <a class="ulink" href="scripts/nat" target="_top">Download.</a>
+      </p><pre class="programlisting">
+#! /bin/sh -
+#
+# nat;  start and stop network address translations using iproute2 tools
+#
+# chkconfig: 345 45 55
+# description: iproute2 tools allow for sophisticated routing, network
+#              address translation, and policy based routing.  This script
+#              generalizes static NAT mappings and exceptions.
+#  
+# Copyright (c)2002 SecurePipe, Inc. - http://www.securepipe.com/
+# 
+# This program is free software; you can redistribute it and/or modify it
+# under the terms of the GNU General Public License as published by the
+# Free Software Foundation; either version 2 of the License, or (at your
+# option) any later version.
+#
+# This program is distributed in the hope that it will be useful, but
+# WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+# or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+# for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software Foundation, 
+# Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+#
+#
+# -- written initially, 2002-03-02; -MAB
+#    2002-08-14; Martin A. Brown &lt;mabrown@securepipe.com&gt;
+#      - cleaned up and commented the code a bit
+#      - altered the script to provide support for NAT from user-specified
+#        networks instead of assuming that anything from 0/0 should be
+#        translated
+#    2002-08-30; Martin A. Brown &lt;mabrown@securepipe.com&gt;
+#      - add configuration setting to flush all NAT rules and routes before
+#        installing new rules and routes
+#      - add a ./nat flush option
+#    2003-01-31; Matthew Callaway &lt;matt@securepipe.com&gt;
+#      - add validation routines
+#    2003-02-05; Martin A. Brown &lt;mabrown@securepipe.com&gt;
+#      - oversight identified by Shawn Balestracci; not all NAT rules
+#        were flushed--we were looking only for map-to, not the exclude
+#        rules as well
+
+gripe () {  echo "$@" &gt;&amp;2;               }
+abort () {  gripe "Fatal: $@"; exit 1;   }
+
+CONFIG=${CONFIG:-/etc/sysconfig/static-nat}
+[ -r "$CONFIG" ] || abort $CONFIG is not readable
+
+function isIP () {
+  # -- this function validates a variable as a valid IP address or CIDR network
+  #
+  VAR=$1
+
+  echo ${VAR} | grep -Eq \
+    "[[:digit:]]{1,3}\.[[:digit:]]{1,3}\.[[:digit:]]{1,3}\.[[:digit:]]{1,3}(|[[:digit:]]{1,2})"
+
+  [ $? -eq 0 ] &amp;&amp; return 0
+  return 1
+}
+
+function isINT () {
+  # -- this function validates a variable as a valid integer
+  #
+  VAR=$1
+
+  echo ${VAR} | grep -Eq \
+    "[[:digit:]]{1,}"
+
+  [ $? -eq 0 ] &amp;&amp; return 0
+  return 1
+}
+
+function validate () {
+  grep -Ev '^#|^$' $CONFIG | while read NET NAT REAL NPRIO RPRIO EXCLUDE ; do
+    # Fields 5 and 6 are optional
+    if [ -z "$NET" -o -z "$NAT" -o -z "$REAL" -o -z "$NPRIO" ]; then
+       echo Syntax error: Missing field: $NET $NAT $REAL $NPRIO $RPRIO $EXCLUDE
+       exit 1
+    fi
+    if [ -n "$RPRIO" -a -z "$EXCLUDE" ]; then
+       echo Syntax error: $NET $NAT $REAL $NPRIO $RPRIO $EXCLUDE
+       echo Field 6 must be used with field 5
+       exit 1
+    fi
+    for ITEM in $NET $NAT $REAL $EXCLUDE ; do
+      isIP $ITEM
+      if [ $? -ne 0 ]; then 
+         echo "In line:"
+         echo $NET $NAT $REAL $NPRIO $RPRIO $EXCLUDE
+         echo $ITEM is not a valid IP or CIDR block
+         exit 1
+      fi
+    done
+    for ITEM in $NPRIO $RPRIO; do
+      isINT $ITEM
+      if [ $? -ne 0 ]; then 
+         echo "In line:"
+         echo $NET $NAT $REAL $NPRIO $RPRIO $EXCLUDE
+         echo $ITEM is not an integer
+         exit 1
+      fi
+    done
+  done
+}
+
+function flush () {
+  # -- this function should remove all NAT rules and routes
+  #
+  # -- remove all of the rules, except the three builtins and any IPSec
+  #    rule; -MAB;
+  #
+  ip rule show | grep -Ev '^(0|32766|32767):|iif lo' \
+    | while read PRIO NATRULE; do
+    ip rule del prio ${PRIO%%:*} $( echo $NATRULE | sed 's|all|0/0|' )
+  done
+  # -- remove all of the rules
+  #
+  ip route show table local  | grep ^nat | while read NATROUTE; do
+    ip route del $NATROUTE
+  done
+  ip route flush cache;
+}
+
+function nat () {
+  grep -Ev '^#|^$' $CONFIG | while read NET NAT REAL NPRIO RPRIO EXCLUDE ; do
+
+    # &lt;-- set up the route for the NAT IP to turn it into the real IP
+    #
+    ip route add from $NET nat $NAT via ${REAL%%/*}
+    [ "$?" -eq "0" ] || \
+      gripe cmd failed: ip route add nat $NAT via ${REAL%%/*}
+
+    # &lt;-- establish the minimum routing policy database;
+    #     this is required so that the outbound packet gets
+    #     rewritten to be from the IP which sent us the packet
+    #
+    ip rule add to $NET nat ${NAT%%/*} from $REAL prio $NPRIO 
+    [ "$?" -eq "0" ] || \
+      gripe cmd failed: ip rule add nat ${NAT%%/*} from $REAL prio $NPRIO 
+
+    # &lt;-- determine if the user has supplied networks or address to be
+    #     excluded from the $NETwork address above
+    #
+    [ ! -z "$RPRIO" ] &amp;&amp; [ ! -z "$EXCLUDE" ] &amp;&amp; {
+      for NETWORK in $EXCLUDE ; do
+        ip rule add from $REAL to $NETWORK prio $RPRIO
+        [ "$?" -eq "0" ] || \
+          gripe cmd failed: ip rule add from $REAL to $NETWORK prio $RPRIO
+      done;
+    }
+  done;
+  # &lt;-- We don't want to forget to flush the cache, or the user will
+  #     sit around wondering for the next few minutes why the NAT rules
+  #     aren't working.  After flushing the cache, the NAT rules will
+  #     work right away.
+  #
+  ip route flush cache;
+}
+
+# see how we were called
+case "$1" in 
+      start) validate &amp;&amp; nat
+             ;;
+       stop) flush
+             ;;
+    restart) $0 stop; $0 start
+             ;;
+     status) ip route show table local | grep ^nat
+             ip rule show | grep map-to
+             ;;
+          *) echo "usage: nat {start|stop|restart|status}"
+             ;;
+esac
+
+#   
+# - end of nat
+
+      </pre></div></div><br class="example-break"><div class="example"><a name="ex-sc-static-nat"></a><p class="title"><b>Example 11.4. Static NAT configuration file</b></p><div class="example-contents"><p>
+        <a class="ulink" href="scripts/static-nat" target="_top">Download.</a>
+      </p><pre class="programlisting">
+#  
+# NAT configuration file
+#
+# -- This file is used to configure NAT routes and rules
+#    via the iproute2 package.  A sysV init script (nat)
+#    uses this file to set up the routes/rules.
+#
+#
+# Copyright (c)2002 SecurePipe, Inc. - http://www.securepipe.com/
+# 
+# This program is free software; you can redistribute it and/or modify it
+# under the terms of the GNU General Public License as published by the
+# Free Software Foundation; either version 2 of the License, or (at your
+# option) any later version.
+#
+# This program is distributed in the hope that it will be useful, but
+# WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+# or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+# for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software Foundation, 
+# Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+#
+#
+# -- file created by Matt Callaway &lt;matt@securepipe.com&gt;
+#    2002-03-01; Martin A. Brown &lt;mabrown@securepipe.com&gt;
+#      - first major revision; added comments
+#    2002-08-14; Martin A. Brown &lt;mabrown@securepipe.com&gt;
+#      - cleaned up the file; added copious commenting and examples
+#      - provided support for NAT only from specified networks (backwards
+#        incompatibility added here; benefit is huge flexibility gain)
+#    2003-02-10; Martin A. Brown &lt;mabrown@securepipe.com&gt;
+#      - example #6 added.  Thanks for identification and description of
+#        this scenario, and the example in the format of the other
+#        examples go to Shawn Balestracci &lt;shawnb@securepipe.com&gt;
+#
+# -- field descriptions:
+#    field 1   this field contains a network address.  Any packets from
+#              this network will be translated according to fields two and
+#              three, with the exception of any networks specified in fields
+#              6 and higher
+#    field 2   contains the NAT IP, the IP that only exists as a publicly
+#              reachable IP for an internal host
+#    field 3   contains the real IP of the machine, usually an internal IP
+#    field 4   contains the priority for the NAT rule itself in the RPDB
+#    field 5   contains the priority for the routing rule in the RPDB.  In
+#              order for the internal networks to reach the real IP of the
+#              server/host, this priority must be higher than the priority
+#              for the NAT rule.  **lower numbers == higher priority**
+#    field 6+  contains a whitespace separated list of networks which
+#              should be able to reach the real IP (field 2) directly.
+#              The entries into the rule policy database (RPDB) for these
+#              networks will prevent packets from real-IP to dest-network
+#              from being rewritten with the NAT IP as the source IP.
+#              Networks specified here should be subnets of the network
+#              specified in field 1.
+#
+# -- notes
+#
+#    - white space, lines beginning with a comment and blank lines are ignored
+#    - field 5 should always be a lower number (higher priority) than field 4
+#    - fields 5 and 6+ are optional
+#    - fields 5 and 6+ must be used together, if used at all
+#
+# -- examples
+#
+#    - each example is commented with an English description of the network
+#      address translation which will occur
+#    - followed by a pseudo shellcode description of how to understand
+#      exactly what the NAT will look like
+#
+# -- example #1; NAT a single IP from anywhere
+#
+# 0/0  10.10.0.14  172.31.254.1  1000
+#
+# for packets from any address (0/0);
+#   if destination_address is 10.10.0.14 ; then
+#      rewrite destination address from 10.10.0.14 to 172.31.254.1
+#   fi
+# done
+#
+# -- example #2; NAT an entire network (from anywhere)
+#
+# 0/0  10.13.0.0/16  172.17.0.0/16  1000
+#
+# for packets from any address (0/0); do
+#   if destination_address is in 10.13.0.0/16 ; then
+#      rewrite destination address from 10.13.x.x to 172.17.x.x
+#   fi
+# done
+#
+# -- example #3; NAT an entire network, but only from a specified nework
+#
+# 10.10.0.0/16  10.15.0.0/24  192.168.0.0/24  1000
+#
+# if packet is from 10.10.0.0/16 ; then
+#    if destination_address is in 10.15.0.0/24 ; then
+#       rewrite destination address from 10.15.0.x to 192.168.0.x
+#    fi
+# fi
+#
+# -- example #4; NAT an entire network, but only from a specified nework;
+#                make an exception for certain IP ranges
+#
+# 10.10.0.0/16  10.15.2.0/24  192.168.2.0/24  1000  990  10.10.38.0/24
+#
+# if packet is from 10.10.0.0/16 and not from 10.10.38.0/24 ; then
+#    if destination_address is in 10.15.2.0/24 ; then
+#       rewrite destination address from 10.15.2.x to 192.168.2.x
+#    fi
+# fi
+#
+# -- example #5; NAT a single IP from anywhere; don't NAT if from specified
+#                IP ranges
+#
+# 0/0  10.74.1.8  192.168.73.15  1000  990  192.168.71.0/24  192.168.70.0/24
+#
+# for packets from any address except 192.168.71.0/24 and 192.168.70.0/24; do
+#    if destination_address is 10.74.1.8 ; then
+#       rewrite destination address from 10.74.1.8 to 192.168.73.15
+#    fi
+# done
+#
+# -- example #6; NAT to the same IP differently based on the source
+#                network IP ranges
+#
+# 0/0              10.74.1.8      192.168.73.15   1000
+# 192.168.71.0/24  192.168.71.15  192.168.73.15    400
+# 192.168.70.0/24  192.168.71.15  192.168.73.15    400
+#
+# N.B., the RPDB must traverse lines two and three first, hence the higher
+#       priority.  If the source network is not 192.168.{71,70}.0/24 then
+#       the we'll meet the next entry, 1000.
+# N.B., the third entry in this example will cause an RTNETLINK: file
+#       exists error, because there is already an entry in the local
+#       routing table for 192.168.71.15 --NAT--&gt; 192.168.73.15.  Known bug.
+#
+# for packets from 192.168.71.0/24 or 192.168.70.0/24; do
+#       if destination_address is 192.168.71.15 ; then
+#         rewrite destination address from 192.168.71.15 to 192.168.73.15
+#       fi
+# done
+#
+# for packets from any address except 192.168.71.0/24 and 192.168.70.0/24; do
+#       if destination_address is 10.74.1.8 ; then
+#         rewrite destination address from 10.74.1.8 to 192.168.73.15
+#       fi
+# done
+#
+# -- add your own configuration here
+
+# -- end /etc/sysconfig/static-nat
+#   
+
+      </pre></div></div><br class="example-break"></div><div class="navfooter"><hr><table width="100%" summary="Navigation footer"><tr><td width="40%" align="left"><a accesskey="p" href="ch11s01.html">Prev</a> </td><td width="20%" align="center"><a accesskey="u" href="ch11.html">Up</a></td><td width="40%" align="right"> <a accesskey="n" href="ch12.html">Next</a></td></tr><tr><td width="40%" align="left" valign="top">1. Proxy ARP Scripts </td><td width="20%" align="center"><a accesskey="h" href="index.html">Home</a></td><td width="40%" align="right" valign="top"> Chapter 12. Troubleshooting</td></tr></table></div></body></html>

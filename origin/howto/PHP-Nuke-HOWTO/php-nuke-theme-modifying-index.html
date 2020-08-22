@@ -1,0 +1,379 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN""http://www.w3.org/TR/html4/loose.dtd">
+<HTML
+><HEAD
+><TITLE
+>Modifying the PHP-Nuke theme index</TITLE
+><META
+NAME="GENERATOR"
+CONTENT="Modular DocBook HTML Stylesheet Version 1.79"><LINK
+REL="HOME"
+TITLE="PHP-Nuke: Management and Programming"
+HREF="index.html"><LINK
+REL="UP"
+TITLE="Customising PHP-Nuke themes "
+HREF="customization.html"><LINK
+REL="PREVIOUS"
+TITLE="Modifying the PHP-Nuke theme body"
+HREF="php-nuke-theme-modifying-body.html"><LINK
+REL="NEXT"
+TITLE="Modifying the PHP-Nuke theme footer"
+HREF="php-nuke-theme-modifying-footer.html"></HEAD
+><BODY
+CLASS="SECT1"
+BGCOLOR="#FFFFFF"
+TEXT="#000000"
+LINK="#0000FF"
+VLINK="#840084"
+ALINK="#0000FF"
+><DIV
+CLASS="NAVHEADER"
+><TABLE
+SUMMARY="Header navigation table"
+WIDTH="100%"
+BORDER="0"
+CELLPADDING="0"
+CELLSPACING="0"
+><TR
+><TH
+COLSPAN="3"
+ALIGN="center"
+>PHP-Nuke: Management and Programming</TH
+></TR
+><TR
+><TD
+WIDTH="10%"
+ALIGN="left"
+VALIGN="bottom"
+><A
+HREF="php-nuke-theme-modifying-body.html"
+ACCESSKEY="P"
+>Prev</A
+></TD
+><TD
+WIDTH="80%"
+ALIGN="center"
+VALIGN="bottom"
+>Chapter 14. Customising <SPAN
+CLASS="APPLICATION"
+>PHP-Nuke</SPAN
+> themes</TD
+><TD
+WIDTH="10%"
+ALIGN="right"
+VALIGN="bottom"
+><A
+HREF="php-nuke-theme-modifying-footer.html"
+ACCESSKEY="N"
+>Next</A
+></TD
+></TR
+></TABLE
+><HR
+ALIGN="LEFT"
+WIDTH="100%"></DIV
+><DIV
+CLASS="SECT1"
+><H1
+CLASS="SECT1"
+><A
+NAME="PHP-NUKE-THEME-MODIFYING-INDEX"
+>14.5. Modifying the <SPAN
+CLASS="APPLICATION"
+>PHP-Nuke</SPAN
+> theme index</A
+></H1
+><P
+>The themeindex() function displays and formats the News articles. In its standard form, it will attribute a news article to the administrator, rather than the registered user who submitted it. It would be nice if the &#8220;Posted by&#8221; string pointed to the real author, not the administrator who approved and posted the submission (see <A
+HREF="php-nuke-theme-modifying-index.html#FIG-POSTED-BY"
+>Figure 14-4</A
+>).</P
+><P
+><DIV
+CLASS="FIGURE"
+><A
+NAME="FIG-POSTED-BY"
+></A
+><P
+><B
+>Figure 14-4.    News article: &#8220;posted by&#8221; does not mean &#8220;submitted by&#8221;.
+   </B
+></P
+><DIV
+CLASS="MEDIAOBJECT"
+><P
+><IMG
+SRC="./images/posted-by.png"><DIV
+CLASS="CAPTION"
+><P
+>News article: &#8220;posted by&#8221; does not mean &#8220;submitted by&#8221;.</P
+></DIV
+></P
+></DIV
+></DIV
+></P
+><P
+>To give credit, where credit is due, you must change function themeindex() in the file theme.php of your theme, e.g. themes/NukeNews/theme.php. Change the following:</P
+><TABLE
+BORDER="1"
+BGCOLOR="#E0E0E0"
+WIDTH="100%"
+><TR
+><TD
+><FONT
+COLOR="#000000"
+><PRE
+CLASS="SCREEN"
+>    if ("$aid" == "$informant") {
+        $content = "$thetext$notes\n";
+    } else {
+        if($informant != "") {
+            $content = "&#60;a href=\"modules.php?name=Your_Account
+               &#38;amp;op=userinfo&#38;amp;username=$informant\"&#62;$informant&#60;/a&#62; ";
+        } else {
+            $content = "$anonymous ";
+        }
+        $content .= ""._WRITES." &#60;i&#62;\"$thetext\"&#60;/i&#62;$notes\n";
+    }
+    $posted = ""._POSTEDBY." ";
+    $posted .= get_author($aid);</PRE
+></FONT
+></TD
+></TR
+></TABLE
+><P
+>to:</P
+><TABLE
+BORDER="1"
+BGCOLOR="#E0E0E0"
+WIDTH="100%"
+><TR
+><TD
+><FONT
+COLOR="#000000"
+><PRE
+CLASS="SCREEN"
+>    $content = "$thetext$notesn";
+    $posted = ""._POSTEDBY." ";
+    if("$informant" == "") {
+        $posted .= "$anonymous ";
+    } else {
+        $posted .= get_author($informant);
+    }</PRE
+></FONT
+></TD
+></TR
+></TABLE
+><P
+>or, if you want to be more flexible, to:</P
+><TABLE
+BORDER="1"
+BGCOLOR="#E0E0E0"
+WIDTH="100%"
+><TR
+><TD
+><FONT
+COLOR="#000000"
+><PRE
+CLASS="SCREEN"
+>if ($informant == "") {
+        $informant = "Anonymous";
+}else {
+       $holder = sql_query("SELECT url, femail 
+       FROM ".$user_prefix."_users where uname='$informant'", $dbi);
+       list($url, $femail) = sql_fetch_row($holder, $dbi);
+       if ($url != "") {
+           $informant = "&#60;a href="$url"&#62;$aid&#60;/a&#62;";
+       } elseif ($femail != "") {
+           $informant = "&#60;a href="mailto:$femail"&#62;$informant&#60;/a&#62;";
+       } else {
+           $informant = "&#60;a href="modules.php?name=Your_Account
+           &#38;op=userinfo&#38;uname=$informant"&#62;$aid&#60;/a&#62;";
+       }
+}
+echo "$informant";</PRE
+></FONT
+></TD
+></TR
+></TABLE
+><P
+>If you apply the latter solution, you should also declare $user_prefix and $dbi to be global variables in themeindex(). </P
+><DIV
+CLASS="CAUTION"
+><P
+></P
+><TABLE
+CLASS="CAUTION"
+WIDTH="100%"
+BORDER="0"
+><TR
+><TD
+WIDTH="25"
+ALIGN="CENTER"
+VALIGN="TOP"
+><IMG
+SRC="../images/caution.png"
+HSPACE="5"
+ALT="Caution"></TD
+><TH
+ALIGN="LEFT"
+VALIGN="MIDDLE"
+><B
+>Every theme is different!</B
+></TH
+></TR
+><TR
+><TD
+>&nbsp;</TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+>Not all themes are like the NukeNews theme. Some may format the "Posted by" string in a separate function. The important thing to remember is that you must find the line</P
+><TABLE
+BORDER="1"
+BGCOLOR="#E0E0E0"
+WIDTH="100%"
+><TR
+><TD
+><FONT
+COLOR="#000000"
+><PRE
+CLASS="SCREEN"
+>$posted = ""._POSTEDBY." ";</PRE
+></FONT
+></TD
+></TR
+></TABLE
+><P
+>in the themeindex() function. The name of the &#8220;informant&#8221; is echoed immediately after that line. That's the place to include the above pieces of code (perhaps replacing some function call).</P
+></TD
+></TR
+></TABLE
+></DIV
+><P
+>See <A
+HREF="http://www.nukeforums.com/forums/viewtopic.php?t=14121"
+TARGET="_top"
+>submit news problem</A
+> and <A
+HREF="http://www.nukeforums.com/forums/viewtopic.php?t=12588"
+TARGET="_top"
+>Need to change some links</A
+> for further discussion of this topic.</P
+><P
+>The themeindex() function in theme.php is also the place where the &#8220;number of reads&#8221; is printed after the &#8220;posted by&#8221; part (see <A
+HREF="http://www.karakas-online.de/forum/viewtopic.php?t=386"
+TARGET="_top"
+>How to remove the number of reads in News</A
+>). Thus, if you want to remove the number of reads in the News module and your theme is NukeNews, for example, you have to edit themes/NukeNews/theme.php with a <A
+HREF="http://www.karakas-online.de/forum/viewtopic.php?t=122"
+TARGET="_top"
+>decent text editor</A
+> (see also <A
+HREF="editing-php-nuke-files.html"
+>Chapter 11</A
+>), find the line</P
+><TABLE
+BORDER="1"
+BGCOLOR="#E0E0E0"
+WIDTH="100%"
+><TR
+><TD
+><FONT
+COLOR="#000000"
+><PRE
+CLASS="SCREEN"
+>$posted .= " "._ON." $time $timezone ($counter "._READS.")";</PRE
+></FONT
+></TD
+></TR
+></TABLE
+><P
+>in the themeindex() function and change it to:</P
+><TABLE
+BORDER="1"
+BGCOLOR="#E0E0E0"
+WIDTH="100%"
+><TR
+><TD
+><FONT
+COLOR="#000000"
+><PRE
+CLASS="SCREEN"
+>$posted .= " "._ON." $time $timezone ";</PRE
+></FONT
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="NAVFOOTER"
+><HR
+ALIGN="LEFT"
+WIDTH="100%"><TABLE
+SUMMARY="Footer navigation table"
+WIDTH="100%"
+BORDER="0"
+CELLPADDING="0"
+CELLSPACING="0"
+><TR
+><TD
+WIDTH="33%"
+ALIGN="left"
+VALIGN="top"
+><A
+HREF="php-nuke-theme-modifying-body.html"
+ACCESSKEY="P"
+>Prev</A
+></TD
+><TD
+WIDTH="34%"
+ALIGN="center"
+VALIGN="top"
+><A
+HREF="index.html"
+ACCESSKEY="H"
+>Home</A
+></TD
+><TD
+WIDTH="33%"
+ALIGN="right"
+VALIGN="top"
+><A
+HREF="php-nuke-theme-modifying-footer.html"
+ACCESSKEY="N"
+>Next</A
+></TD
+></TR
+><TR
+><TD
+WIDTH="33%"
+ALIGN="left"
+VALIGN="top"
+>Modifying the <SPAN
+CLASS="APPLICATION"
+>PHP-Nuke</SPAN
+> theme body</TD
+><TD
+WIDTH="34%"
+ALIGN="center"
+VALIGN="top"
+><A
+HREF="customization.html"
+ACCESSKEY="U"
+>Up</A
+></TD
+><TD
+WIDTH="33%"
+ALIGN="right"
+VALIGN="top"
+>Modifying the <SPAN
+CLASS="APPLICATION"
+>PHP-Nuke</SPAN
+> theme footer</TD
+></TR
+></TABLE
+></DIV
+></BODY
+></HTML
+>

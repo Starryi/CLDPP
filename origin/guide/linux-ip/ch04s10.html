@@ -1,0 +1,101 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1"><title>10. ICMP and Routing</title><link rel="stylesheet" type="text/css" href="style.css"><meta name="generator" content="DocBook XSL Stylesheets V1.79.1"><meta name="keywords" content="linux, ip, iproute2, ifconfig, firewall, ARP, NAT, route, routing, route selection, routing selection, network administration"><link rel="home" href="index.html" title="Guide to IP Layer Network Administration with Linux"><link rel="up" href="ch04.html" title="Chapter 4. IP Routing"><link rel="prev" href="ch04s09.html" title="9. Routing Policy Database (RPDB)"><link rel="next" href="ch05.html" title="Chapter 5. Network Address Translation (NAT)"></head><body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF"><div class="navheader"><table width="100%" summary="Navigation header"><tr><th colspan="3" align="center">10. ICMP and Routing</th></tr><tr><td width="20%" align="left"><a accesskey="p" href="ch04s09.html">Prev</a> </td><th width="60%" align="center">Chapter 4. IP Routing</th><td width="20%" align="right"> <a accesskey="n" href="ch05.html">Next</a></td></tr></table><hr></div><div class="section"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="routing-icmp"></a>10. ICMP and Routing</h2></div></div></div><p>
+      ICMP is a very important part of the communication between hosts on
+      IP networks.  Used by routers and endpoints (clients and servers)
+      ICMP communicates error conditions in networks and
+      provides a means for endpoints to receive information
+      about a network path or requested connection.
+    </p><p>
+      One of the commonest uses of ICMP by the administrator of a network is
+      the use of
+      <a class="link" href="apgs01.html" title="1. ping"><span class="command"><strong>ping</strong></span></a> to detect the
+      state of a machine in the network.  There are other types of ICMP which
+      are used for other inter-computer communication.  One other common type
+      of ICMP is the ICMP returned by a router or host which is not accepting
+      connections.  Essentially, the host returns the ICMP as a polite method
+      of saying <span class="quote">&#8220;<span class="quote">Go away.</span>&#8221;</span>.
+    </p><p>
+    </p><div class="section"><div class="titlepage"><div><div><h3 class="title"><a name="routing-icmp-mtu"></a>10.1. MTU, MSS, and ICMP</h3></div></div></div><p>
+        One important use of ICMP, which is completely transparent
+        to most users (and indeed many admins), is the use of ICMP to discover
+        the Path Maximum Transmission Unit (PMTU).  By discovering the Path MTU
+        and transmitting packets with this the MTU, a host can
+        minimize the delay of traffic due to fragmentation, and
+        (theoretically) attain a more even rate of data transmission.  Because
+        each destination may have a different MTU due to different network
+        paths, the MTU is a per route attribute stored in the
+        <a class="link" href="ch04s07.html" title="7. Routing Cache">routing cache</a>.
+      </p><p>
+        Path MTU can be quite easily broken if any single hop along the way
+        blocks all ICMP.  Be sure to allow ICMP unreachable/fragmentation
+        needed packets into and out of your network.  This will prevent you
+        from being one of the unclueful network admins who cause PMTU
+        problems.
+      </p><p>
+      </p></div><div class="section"><div class="titlepage"><div><div><h3 class="title"><a name="routing-icmp-redirect"></a>10.2. ICMP Redirects and Routing</h3></div></div></div><p>
+        An ICMP redirect is a router's way of communicating
+        that there is a better path out of this network or into another one
+        than the one the host had chosen.  In
+        <a class="link" href="apas01.html" title="1. Example Network Map and General Notes">the example network</a>, 
+        <code class="systemitem">tristan</code> has a route to the world through <code class="systemitem">masq-gw</code> and a route to
+        192.168.98.0/24 through <code class="systemitem">isdn-router</code>.  If <code class="systemitem">tristan</code> sends a packet
+        for 192.168.98.0/24 to <code class="systemitem">masq-gw</code>, the optimal outcome is for
+        <code class="systemitem">masq-gw</code> to suggest with an ICMP redirect that <code class="systemitem">tristan</code> send such
+        packets via <code class="systemitem">isdn-router</code> instead.
+      </p><p>
+        By this method, hosts can learn what networks are reachable
+        through which routers on the local network segment.  ICMP redirect
+        messages, however, are easy to forge, and were (at one time) used to
+        subvert poorly configured machines.  While this is infrequently a
+        problem on the Internet today,
+        it's still good practice to ignore ICMP redirect
+        messages from public networks.  Create static routes where
+        necessary on private and public networks to
+        prevent ICMP redirect messages from being generated on your network.
+      </p><p>
+        To examine an example of ICMP redirect in action, we simply
+        need to send a packet directly from <code class="systemitem">tristan</code> to
+        <code class="systemitem">morgan</code>.  We assume that <code class="systemitem">masq-gw</code> has a route to 192.168.98.0/24
+        via 192.168.99.1 (<code class="systemitem">isdn-router</code>), that <code class="systemitem">tristan</code> has no
+        such route.
+      </p><div class="example"><a name="ex-routing-icmp-redirect"></a><p class="title"><b>Example 4.21. ICMP Redirect on the Wire
+          <a href="#ftn.idm2431" class="footnote" name="idm2431"><sup class="footnote">[29]</sup></a>
+        </b></p><div class="example-contents"><pre class="programlisting">
+<code class="prompt">[root@tristan]# </code><strong class="userinput"><code>echo test | nc 192.168.98.82 22</code></strong>
+<code class="prompt">[root@tristan]# </code><strong class="userinput"><code>tcpdump -nneqti eth0</code></strong>
+<code class="computeroutput">0:80:c8:f8:4a:51 0:80:c8:f8:5c:71 74: 192.168.99.35.54510 &gt; 192.168.98.82.22: tcp 0 (DF)
+0:80:c8:f8:5c:71 0:80:c8:f8:4a:51 102: 192.168.99.254 &gt; 192.168.99.35: icmp: redirect 192.168.98.82 to host 192.168.99.1 [tos 0xc0] 
+0:80:c8:f8:5c:71 0:c0:7b:45:6a:39 74: 192.168.99.35.54510 &gt; 192.168.98.82.22: tcp 0 (DF)</code>
+        </pre></div></div><br class="example-break"><p>
+        There's a great deal of information above, so let's examine the
+        important parts.  We have the first three packets which passed by our
+        NIC as a result of this attempt to establish a session.  First, we see
+        a packet from <code class="systemitem">tristan</code> bound for <code class="systemitem">morgan</code> with <code class="systemitem">tristan</code>'s source MAC
+        and <code class="systemitem">masq-gw</code>'s destination MAC.  Because <code class="systemitem">masq-gw</code> is <code class="systemitem">tristan</code>'s
+        default gateway, <code class="systemitem">tristan</code> will send all packets there.
+      </p><p>
+        The next packet is the ICMP redirect, informing <code class="systemitem">tristan</code> of a 
+        better route.  It includes several pieces of information.
+        Implicitly, the source IP indicates what router is suggesting the
+        alternate route, and the contents specify what the intended
+        destination was, and what the better route is.  Note that <code class="systemitem">masq-gw</code>
+        suggests using 192.168.99.1 (<code class="systemitem">isdn-router</code>) as the gateway for this
+        destination.
+      </p><p>
+        The final packet is part of the intended session, but has the MAC
+        address of <code class="systemitem">masq-gw</code>  on it.  <code class="systemitem">masq-gw</code> has (courteously) informed us
+        that we should not use it as a route for the intended destination, but
+        has also (courteously) forwarded the packet as we had requested.  In
+        this small network, it is acceptable to allow ICMP redirect messages,
+        although these should always be dropped at network borders, both
+        inbound and outbound.
+      </p><p>
+        So, in summary, ICMP redirect messages are not intrinsically dangerous
+        or problematic, but they shouldn't exist in well-maintained networks.
+        If you happen to see them growing in the shadows of your network, some
+        careful observation should show you what hosts are affected and which
+        routing tables could use some attention.
+      </p></div><div class="footnotes"><br><hr style="width:100; text-align:left;margin-left: 0"><div id="ftn.idm2431" class="footnote"><p><a href="#idm2431" class="para"><sup class="para">[29] </sup></a>
+              Consult <a class="xref" href="apas02.html#tb-example-network-hosts" title="Table A.2. Example Network; Host Addressing">Table A.2, &#8220;Example Network; Host Addressing&#8221;</a> for details on
+              the IP and MAC addresses of the hosts referred to in this
+              example.
+            </p></div></div></div><div class="navfooter"><hr><table width="100%" summary="Navigation footer"><tr><td width="40%" align="left"><a accesskey="p" href="ch04s09.html">Prev</a> </td><td width="20%" align="center"><a accesskey="u" href="ch04.html">Up</a></td><td width="40%" align="right"> <a accesskey="n" href="ch05.html">Next</a></td></tr><tr><td width="40%" align="left" valign="top">9. Routing Policy Database (RPDB) </td><td width="20%" align="center"><a accesskey="h" href="index.html">Home</a></td><td width="40%" align="right" valign="top"> Chapter 5. Network Address Translation (NAT)</td></tr></table></div></body></html>

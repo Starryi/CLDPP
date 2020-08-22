@@ -1,0 +1,148 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1"><title>8.  Connecting MMBase to MySQL using MySQL Connector/J</title><link rel="stylesheet" type="text/css" href="style.css"><meta name="generator" content="DocBook XSL Stylesheets V1.79.1"><link rel="home" href="index.html" title="MMBase Installation HOWTO"><link rel="up" href="index.html" title="MMBase Installation HOWTO"><link rel="prev" href="ar01s07.html" title="7. Installing MMBase"><link rel="next" href="ar01s09.html" title="9.  Installing MMBase additional applications"></head><body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF"><div class="navheader"><table width="100%" summary="Navigation header"><tr><th colspan="3" align="center">8. 
+Connecting <span class="application">MMBase</span>
+to <span class="application">MySQL</span>
+using <code class="systemitem">MySQL Connector/J</code>
+</th></tr><tr><td width="20%" align="left"><a accesskey="p" href="ar01s07.html">Prev</a> </td><th width="60%" align="center"> </th><td width="20%" align="right"> <a accesskey="n" href="ar01s09.html">Next</a></td></tr></table><hr></div><div class="sect1"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="idm572"></a>8. 
+Connecting <span class="application">MMBase</span>
+to <span class="application">MySQL</span>
+using <code class="systemitem">MySQL Connector/J</code>
+</h2></div></div></div><p>
+We can connect
+<span class="application">MMBase</span>
+to our <span class="application">MySQL</span> database server
+using <code class="systemitem">MySQL Connector/J</code>.
+This <acronym class="acronym">JDBC</acronym> driver
+for <span class="application">MySQL</span>
+can be downloaded from:
+</p><pre class="screen">
+  <a class="ulink" href="http://www.mysql.com/downloads/api-jdbc.html" target="_top">http://www.mysql.com/downloads/api-jdbc.html</a>
+</pre><p>
+</p><p>
+Copy the <acronym class="acronym">JDBC</acronym> driver
+to the <span class="application">MMBase</span>
+<code class="filename">lib/</code> directory:
+</p><pre class="programlisting">
+  
+  cp mysql-connector-java-xxx-bin.jar /usr/local/tomcat/webapps/mmbase-webapp/WEB-INF/lib/
+  chown tomcat:tomcat /usr/local/tomcat/webapps/mmbase-webapp/WEB-INF/lib/mysql-connector-java-xxx-bin.jar
+  chmod 664 /usr/local/tomcat/webapps/mmbase-webapp/WEB-INF/lib/mysql-connector-java-xxx-bin.jar
+  
+  </pre><p>
+</p><p>
+Make this your <acronym class="acronym">JDBC</acronym> driver
+for <span class="application">MMBase</span>
+by editing
+<code class="filename">/usr/local/tomcat/webapps/mmbase-webapp/WEB-INF/config/modules/jdbc.xml</code>.
+Substitute the database name
+(<em class="replaceable"><code>mmbase</code></em>),
+user (<em class="replaceable"><code>mmuser</code></em>)
+and password (<em class="replaceable"><code>mmpass</code></em>)
+with the database settings you'd like
+<span class="application">MMBase</span> to use.
+</p><pre class="programlisting">
+  
+  &lt;property name="url"&gt;jdbc:mysql://$HOST:$PORT/$DBM&lt;/property&gt;
+  &lt;property name="user"&gt;mmuser&lt;/property&gt;
+  &lt;property name="password"&gt;mmpass&lt;/property&gt;
+  &lt;property name="supportclass"&gt;org.mmbase.module.database.DatabaseSupportShim&lt;/property&gt;
+  &lt;property name="database"&gt;mmbase&lt;/property&gt;
+  &lt;property name="connections"&gt;20&lt;/property&gt;
+  &lt;property name="host"&gt;localhost&lt;/property&gt;
+  &lt;property name="driver"&gt;com.mysql.jdbc.Driver&lt;/property&gt;
+  &lt;property name="port"&gt;3306&lt;/property&gt;
+  &lt;property name="querys"&gt;256&lt;/property&gt;
+  &lt;property name="probetime"&gt;30&lt;/property&gt;
+  
+  </pre><p>
+</p><p>
+Set the ownership and access rights of this configuration file.
+Since it contains your database name, user name and password,
+make sure other users can not read this file.
+</p><pre class="programlisting">
+  
+  chown tomcat:tomcat /usr/local/tomcat/webapps/mmbase-webapp/WEB-INF/config/modules/jdbc.xml
+  chmod 640 /usr/local/tomcat/webapps/mmbase-webapp/WEB-INF/config/modules/jdbc.xml
+  
+  </pre><p>
+</p><p>
+Now create the <span class="application">MySQL</span> database
+you've just defined for
+<span class="application">MMBase</span>:
+</p><pre class="programlisting">
+  
+  mysql -u root -p
+  
+  </pre><p>
+</p><p>
+</p><pre class="programlisting">
+  
+  CREATE DATABASE &lt;mmbase&gt;;
+  USE &lt;mmbase&gt;;
+  GRANT SELECT,INSERT,UPDATE,DELETE,CREATE,DROP ON &lt;mmbase&gt;.* TO
+      &lt;mmuser&gt;@'%' IDENTIFIED BY '&lt;password&gt;';
+  GRANT SELECT,INSERT,UPDATE,DELETE,CREATE,DROP ON &lt;mmbase&gt;.* TO
+      &lt;mmuser&gt;@localhost IDENTIFIED BY '&lt;password&gt;';
+  GRANT SELECT,INSERT,UPDATE,DELETE,CREATE,DROP ON &lt;mmbase&gt;.* TO
+      &lt;mmuser&gt;@localhost.&lt;domainname&gt; IDENTIFIED BY '&lt;password&gt;';
+    # RH bug fix
+  GRANT SELECT,INSERT,UPDATE,DELETE,CREATE,DROP ON &lt;mmbase&gt;.* TO
+      &lt;mmuser&gt;@&lt;hostname&gt; IDENTIFIED BY '&lt;password&gt;';
+  flush privileges;
+  exit;
+  
+  </pre><p>
+</p><p>
+Substitute the hostname (<em class="replaceable"><code>&lt;hostname&gt;</code></em>)
+and domain name (<em class="replaceable"><code>&lt;domainname&gt;</code></em>)
+with your own hostname and domain name,
+and the database name (<em class="replaceable"><code>&lt;mmbase&gt;</code></em>),
+user (<em class="replaceable"><code>&lt;mmuser&gt;</code></em>)
+and password (<em class="replaceable"><code>&lt;password&gt;</code></em>)
+with the values you just entered in the JDBC driver configuration file.
+</p><p>
+</p><div class="tip" style="margin-left: 0.5in; margin-right: 0.5in;"><h3 class="title">Tip</h3><p>
+To quickly empty
+your <span class="application">MySQL</span> database,
+i.e. after you've updated
+your <span class="application">MMBase</span> configuration or
+application
+(replace the database name <em class="replaceable"><code>&lt;mmbase&gt;</code></em> with your
+own):
+</p><pre class="programlisting">
+  
+  mysqladmin -u root -p drop &lt;mmbase&gt;
+  mysqladmin -u root -p create &lt;mmbase&gt;
+  
+  </pre><p>
+</p></div><p>
+</p><p>
+</p><div class="tip" style="margin-left: 0.5in; margin-right: 0.5in;"><h3 class="title">Tip</h3><p>
+If you are already using quite some
+<span class="application">MySQL</span> connections
+(for example for authentication by and as a back-end to your mail daemons
+and <span class="application">Apache</span> servers),
+the <span class="application">MySQL</span> server
+might run out of connections (its maximum number defaults to 100).
+Then <span class="application">Tomcat</span>
+could simply refuse to start or give an error message
+when initiating the
+<span class="application">MySQL</span> connection pool,
+or your <span class="application">IMAP</span>
+or <span class="application">POP</span> servers will have
+problems authenticating their clients.
+</p><p>
+You can increase the maximum number of connections
+to <span class="application">MySQL</span>
+by adding to the configuration file
+<code class="filename">/etc/my.cnf</code>:
+</p><pre class="programlisting">
+  
+  [mysqld]
+  set-variable = max_connections=200
+  
+  </pre><p>
+</p></div><p>
+</p></div><div class="navfooter"><hr><table width="100%" summary="Navigation footer"><tr><td width="40%" align="left"><a accesskey="p" href="ar01s07.html">Prev</a> </td><td width="20%" align="center"> </td><td width="40%" align="right"> <a accesskey="n" href="ar01s09.html">Next</a></td></tr><tr><td width="40%" align="left" valign="top">7. Installing <span class="application">MMBase</span> </td><td width="20%" align="center"><a accesskey="h" href="index.html">Home</a></td><td width="40%" align="right" valign="top"> 9. 
+Installing <span class="application">MMBase</span>
+additional applications
+</td></tr></table></div></body></html>

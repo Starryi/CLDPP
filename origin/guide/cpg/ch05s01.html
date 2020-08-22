@@ -1,0 +1,46 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1"><title>1. The 64 bit barrier</title><link rel="stylesheet" type="text/css" href="style.css"><meta name="generator" content="DocBook XSL Stylesheets V1.79.1"><link rel="home" href="index.html" title="Custom Linux: A Porting Guide"><link rel="up" href="ch05.html" title="Chapter 5. Linux Is Booting ... What Now ?"><link rel="prev" href="ch05.html" title="Chapter 5. Linux Is Booting ... What Now ?"><link rel="next" href="ch05s02.html" title="2. Booting from flash"></head><body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF"><div class="navheader"><table width="100%" summary="Navigation header"><tr><th colspan="3" align="center">1. The 64 bit barrier</th></tr><tr><td width="20%" align="left"><a accesskey="p" href="ch05.html">Prev</a> </td><th width="60%" align="center">Chapter 5. Linux Is Booting ... What Now ?</th><td width="20%" align="right"> <a accesskey="n" href="ch05s02.html">Next</a></td></tr></table><hr></div><div class="sect1"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="idm295"></a>1. The 64 bit barrier</h2></div></div></div><p>The CPC700 has a <span class="quote">&#8220;<span class="quote">feature</span>&#8221;</span> which is supposed to make some memory access use 64 bit wide. This is a problem since some test-and-set registers on our board might get set unintentionally, because we were trying to read something 16 bits lower. In order to solve this situation, we set the memory controller to 64 bit wide intervals.  If you try to access those areas in another manner (8 or 16 bit access), the CPC700 simply throws them away.  We had to be able to read/write those areas, since important <span class="quote">&#8220;<span class="quote">discretes</span>&#8221;</span> (controlled by an Altera device) were mapped there.</p><p>In order to access those areas, we needed a function that does a 64 bit write.  As far as I know, doing a 64 bit write on a PowerPC is possible in two ways:  using cache lines and using a floating point register.  The floating point register is a 64 bit sized register, so when we write it, the whole 64 bit get written. The problem is that you can't do floating point in the kernel. Since the kernel doesn't save the floating point registers during context switch, it doesn't allow FP, and will throw an exception if done in the kernel.</p><p>After messing with cache lines, we decided to go the FP way, and added the following function:
+
+</p><pre class="programlisting">
+
+void out64(__u32 addr, long long *pVal) {
+	__u32 flags, tmp_msr;
+
+	save_flags(flags);
+	cli();
+	tmp_msr = __get_MSR();
+	tmp_msr |= MSR_FP;
+	tmp_msr &amp;= ~(MSR_FE0 | MSR_FE1);
+	__put_MSR(tmp_msr);
+
+	sysOut64(addr, pVal);
+	__put_MSR(flags &amp; ~(MSR_EE));
+	restore_flags(flags);
+}
+
+</pre><p>
+
+The function adds a floating point to the PowerPC MSR register, and makes sure that no exceptions will be generated as a result of doing FP. Once done, it uses an assembly code, described below in the <code class="function">sysOut64()</code> to do the actual floating-point operation. Note that the function turns off interrupts, but this is acceptable here, since we use the function on rare occasion.
+
+</p><pre class="programlisting">
+
+_GLOBAL(sysOut64)
+stwu    r1, -DEPTH(r1)
+mflr    r0
+stw     r31, FP_LOC(r1)
+stw     r0,  LR_LOC(r1)
+mr              r31, r1
+stfd    fr0, FPR_SAVE(r31)      /* save floating point reg contents */
+
+lfd     fr0,0(r4)
+stfd  fr0,0(r3)
+eieio
+
+lfd     fr0, FPR_SAVE(r31)      /* restore floating point value */
+lwz     r4, 0(r1)               /* now restore the stack frame  */
+lwz     r0, 4(r4)
+mtlr    r0
+lwz     r31, -4(r4)
+mr      r1, r4
+blr
+
+</pre></div><div class="navfooter"><hr><table width="100%" summary="Navigation footer"><tr><td width="40%" align="left"><a accesskey="p" href="ch05.html">Prev</a> </td><td width="20%" align="center"><a accesskey="u" href="ch05.html">Up</a></td><td width="40%" align="right"> <a accesskey="n" href="ch05s02.html">Next</a></td></tr><tr><td width="40%" align="left" valign="top">Chapter 5. Linux Is Booting ... What Now ? </td><td width="20%" align="center"><a accesskey="h" href="index.html">Home</a></td><td width="40%" align="right" valign="top"> 2. Booting from flash</td></tr></table></div></body></html>

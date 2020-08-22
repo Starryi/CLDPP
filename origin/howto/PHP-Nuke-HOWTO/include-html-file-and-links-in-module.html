@@ -1,0 +1,823 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN""http://www.w3.org/TR/html4/loose.dtd">
+<HTML
+><HEAD
+><TITLE
+>How to include a HTML file and its links in a PHP-Nuke module</TITLE
+><META
+NAME="GENERATOR"
+CONTENT="Modular DocBook HTML Stylesheet Version 1.79"><LINK
+REL="HOME"
+TITLE="PHP-Nuke: Management and Programming"
+HREF="index.html"><LINK
+REL="UP"
+TITLE="Creating modules"
+HREF="creating-modules.html"><LINK
+REL="PREVIOUS"
+TITLE="How to include a HTML file in a PHP-Nuke module"
+HREF="include-html-file-in-module.html"><LINK
+REL="NEXT"
+TITLE="How to include a HTML file and its links using an iframe in a PHP-Nuke module"
+HREF="include-html-file-and-links-in-module-iframe.html"></HEAD
+><BODY
+CLASS="SECT1"
+BGCOLOR="#FFFFFF"
+TEXT="#000000"
+LINK="#0000FF"
+VLINK="#840084"
+ALINK="#0000FF"
+><DIV
+CLASS="NAVHEADER"
+><TABLE
+SUMMARY="Header navigation table"
+WIDTH="100%"
+BORDER="0"
+CELLPADDING="0"
+CELLSPACING="0"
+><TR
+><TH
+COLSPAN="3"
+ALIGN="center"
+>PHP-Nuke: Management and Programming</TH
+></TR
+><TR
+><TD
+WIDTH="10%"
+ALIGN="left"
+VALIGN="bottom"
+><A
+HREF="include-html-file-in-module.html"
+ACCESSKEY="P"
+>Prev</A
+></TD
+><TD
+WIDTH="80%"
+ALIGN="center"
+VALIGN="bottom"
+>Chapter 21. Creating modules</TD
+><TD
+WIDTH="10%"
+ALIGN="right"
+VALIGN="bottom"
+><A
+HREF="include-html-file-and-links-in-module-iframe.html"
+ACCESSKEY="N"
+>Next</A
+></TD
+></TR
+></TABLE
+><HR
+ALIGN="LEFT"
+WIDTH="100%"></DIV
+><DIV
+CLASS="SECT1"
+><H1
+CLASS="SECT1"
+><A
+NAME="INCLUDE-HTML-FILE-AND-LINKS-IN-MODULE"
+>21.6. How to include a HTML file and its links in a <SPAN
+CLASS="APPLICATION"
+>PHP-Nuke</SPAN
+> module</A
+></H1
+><P
+>If the HTML file you included in your module with the methods shown in <A
+HREF="include-html-file-in-module.html"
+>Section 21.5</A
+> contains links to HTML files that you would also like to have included, you will need to apply some additional handwork. The problem here is that, although the included file will show correctly inside your module (and your theme), as soon as you click on one of its HTML links, you will be shown the target HTML file as is, i.e. outside your <SPAN
+CLASS="APPLICATION"
+>PHP-Nuke</SPAN
+> environment, like any other file independent of <SPAN
+CLASS="APPLICATION"
+>PHP-Nuke</SPAN
+>. This is certainly not something you are going to like - otherwise, why go into the trouble of including the first HTML file anyway? It is clear that, for a collection of interlinked HTML documents, a better approach is needed.</P
+><DIV
+CLASS="TIP"
+><P
+></P
+><TABLE
+CLASS="TIP"
+WIDTH="100%"
+BORDER="0"
+><TR
+><TD
+WIDTH="25"
+ALIGN="CENTER"
+VALIGN="TOP"
+><IMG
+SRC="../images/tip.png"
+HSPACE="5"
+ALT="Tip"></TD
+><TH
+ALIGN="LEFT"
+VALIGN="MIDDLE"
+><B
+>See the <SPAN
+CLASS="APPLICATION"
+>PHP-Nuke</SPAN
+> HOWTO module!</B
+></TH
+></TR
+><TR
+><TD
+>&nbsp;</TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+>For a real world example of including a large collection of HTML documents in a <SPAN
+CLASS="APPLICATION"
+>PHP-Nuke</SPAN
+> module,  download and install the <A
+HREF="http://www.karakas-online.de/EN-Book/EN-Book-Nuke.tar.gz"
+TARGET="_top"
+>PHP-Nuke HOWTO module</A
+>. Then, see how modules/PHP-Nuke_HOWTO/index.php is programmed, as well as how the HTML links to files of the HOWTO were set up.</P
+></TD
+></TR
+></TABLE
+></DIV
+><P
+>In the method we will present here, we use an URL parameter (&#8220;page&#8221;) to find out which file to include in index.php. Every link to a file of our collection is changed to contain this URL parameter. The page URL parameter is validated through an associative array, minimizing the risk for SQL injection and other cracking attacks (see <A
+HREF="common-php-nuke-security-vulnerabilities.html#SQL-INJECTION-WITH-PHP-NUKE"
+>Section 23.3.2</A
+>). For a simpler, but not universal, method using iframes, see <A
+HREF="include-html-file-and-links-in-module-iframe.html"
+>Section 21.7</A
+>.</P
+><P
+>Proceed in two steps as follows:</P
+><P
+></P
+><OL
+TYPE="1"
+><LI
+><P
+>Change every HTML link that appears in your HTML documents and points to another document of the same collection (links to other documents should be left unchanged) For example, a link to somefile.html like the following one</P
+><TABLE
+BORDER="1"
+BGCOLOR="#E0E0E0"
+WIDTH="90%"
+><TR
+><TD
+><FONT
+COLOR="#000000"
+><PRE
+CLASS="SCREEN"
+>&#60;a href="somefile.html"&#62;</PRE
+></FONT
+></TD
+></TR
+></TABLE
+><P
+>should be changed to </P
+><TABLE
+BORDER="1"
+BGCOLOR="#E0E0E0"
+WIDTH="90%"
+><TR
+><TD
+><FONT
+COLOR="#000000"
+><PRE
+CLASS="SCREEN"
+>&#60;a href="modules.php?name=Your_Module&#38;amp;page=somefile.html"&#62;</PRE
+></FONT
+></TD
+></TR
+></TABLE
+><P
+>where you should replace "Your_Module" with the name of your module, of course. This link passes the filename as the value of the page URL parameter to Your_Module. You should do this for every link in your HTML document collection that points to another file of the same collection.</P
+></LI
+><LI
+><P
+>As a next step, you modify the index.php file of your <SPAN
+CLASS="APPLICATION"
+>PHP-Nuke</SPAN
+> module slightly (this is the file modules/Your_Module/index.php, if we stay with the module naming of our example). You add a line for every file that was involved in a link modification above. This means that for every file like somefile.html in the above example, you add a line</P
+><TABLE
+BORDER="1"
+BGCOLOR="#E0E0E0"
+WIDTH="90%"
+><TR
+><TD
+><FONT
+COLOR="#000000"
+><PRE
+CLASS="SCREEN"
+>$ACCEPT_FILE['somefile.html'] = 'somefile.html';</PRE
+></FONT
+></TD
+></TR
+></TABLE
+></LI
+></OL
+><P
+>Thus, if your HTML file collection consists of the files</P
+><TABLE
+BORDER="1"
+BGCOLOR="#E0E0E0"
+WIDTH="100%"
+><TR
+><TD
+><FONT
+COLOR="#000000"
+><PRE
+CLASS="SCREEN"
+>accelerating-php-nuke.html
+add-on-blocks.html
+add-on-modules.html
+administration-functions.html
+admin-management.html</PRE
+></FONT
+></TD
+></TR
+></TABLE
+><P
+>then, following the above step 1, you should change every HTML link in those files as shown in <A
+HREF="include-html-file-and-links-in-module.html#TAB-CHANGING-HTML-LINKS"
+>Table 21-1</A
+>.</P
+><P
+><DIV
+CLASS="TABLE"
+><A
+NAME="TAB-CHANGING-HTML-LINKS"
+></A
+><P
+><B
+>Table 21-1. Changing HTML links for use in a custom <SPAN
+CLASS="APPLICATION"
+>PHP-Nuke</SPAN
+> module</B
+></P
+><TABLE
+BORDER="1"
+RULES="all"
+CLASS="CALSTABLE"
+><COL
+WIDTH="1*"
+ALIGN="LEFT"
+TITLE="COL0"><COL
+WIDTH="1*"
+ALIGN="LEFT"
+TITLE="COL1"><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+>Original link</P
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+>Changed link</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+>&#60;a href="accelerating-php-nuke.html"&#62;</P
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+>&#60;a href="modules.php?name=Your_Module</P
+><P
+>&#38;amp;page=accelerating-php-nuke.html"&#62;</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+>&#60;a href="add-on-blocks.html"&#62;</P
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+>&#60;a href="modules.php?name=Your_Module</P
+><P
+>&#38;amp;page=add-on-blocks.html"&#62;</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+>&#60;a href="add-on-modules.html"&#62;</P
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+>&#60;a href="modules.php?name=Your_Module</P
+><P
+>&#38;amp;page=add-on-modules.html"&#62;</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+>&#60;a href="administration-functions.html"&#62;</P
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+>&#60;a href="modules.php?name=Your_Module</P
+><P
+>&#38;amp;page=administration-functions.html"&#62;</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+>&#60;a href="admin-management.html"&#62;</P
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+>&#60;a href="modules.php?name=Your_Module</P
+><P
+>&#38;amp;page=admin-management.html"&#62;</P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+></P
+><P
+>After that, following step 2 above, you should insert the following lines in the index.php file of Your_Module:</P
+><TABLE
+BORDER="1"
+BGCOLOR="#E0E0E0"
+WIDTH="100%"
+><TR
+><TD
+><FONT
+COLOR="#000000"
+><PRE
+CLASS="SCREEN"
+>$ACCEPT_FILE['accelerating-php-nuke.html'] = 'accelerating-php-nuke.html';
+$ACCEPT_FILE['add-on-blocks.html'] = 'add-on-blocks.html';
+$ACCEPT_FILE['add-on-modules.html'] = 'add-on-modules.html';
+$ACCEPT_FILE['administration-functions.html'] = 'administration-functions.html';
+$ACCEPT_FILE['admin-management.html'] = 'admin-management.html';</PRE
+></FONT
+></TD
+></TR
+></TABLE
+><P
+>The ACCEPT_FILE plays the role of a validator for the page URL parameter. It connects a value of &#8220;page&#8221;, as passed by some URL, with the name of a file that has to be selected. The way we programmed it above, ACCEPT_FILE points to the file accelerating-php-nuke.html when given the &#8220;page&#8221; argument 'accelerating-php-nuke.html' (i.e. when &#8220;page&#8221; was 'accelerating-php-nuke.html' on the URL). This may look trivial, but is not. What's more, there is nothing that would prevent you from choosing a different (and less intuitive) mapping from the values of &#8220;page&#8221; to the selected filenames. </P
+><P
+>Thus, you could decide that a &#8220;page&#8221; (URL parameter) value of &#8220;1&#8221; means the accelerating-php-nuke.html file, a vlaue of &#8220;2&#8221; the add-on-blocks.html file etc. Then, the ACCEPT_FILE assignments would look as follows:</P
+><TABLE
+BORDER="1"
+BGCOLOR="#E0E0E0"
+WIDTH="100%"
+><TR
+><TD
+><FONT
+COLOR="#000000"
+><PRE
+CLASS="SCREEN"
+>$ACCEPT_FILE['1'] = 'accelerating-php-nuke.html';
+$ACCEPT_FILE['2'] = 'add-on-blocks.html';
+$ACCEPT_FILE['3'] = 'add-on-modules.html';
+$ACCEPT_FILE['4'] = 'administration-functions.html';
+$ACCEPT_FILE['5'] = 'admin-management.html';</PRE
+></FONT
+></TD
+></TR
+></TABLE
+><P
+>while the HTML links in the files themselves should be changed as indicated by <A
+HREF="include-html-file-and-links-in-module.html#TAB-CHANGING-HTML-LINKS-2"
+>Table 21-2</A
+>.</P
+><P
+><DIV
+CLASS="TABLE"
+><A
+NAME="TAB-CHANGING-HTML-LINKS-2"
+></A
+><P
+><B
+>Table 21-2. Alternative way of changing HTML links for use in a custom <SPAN
+CLASS="APPLICATION"
+>PHP-Nuke</SPAN
+> module</B
+></P
+><TABLE
+BORDER="1"
+RULES="all"
+CLASS="CALSTABLE"
+><COL
+WIDTH="1*"
+ALIGN="LEFT"
+TITLE="COL0"><COL
+WIDTH="1*"
+ALIGN="LEFT"
+TITLE="COL1"><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+>Original link</P
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+>Changed link</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+>&#60;a href="accelerating-php-nuke.html"&#62;</P
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+>&#60;a href="modules.php?name=Your_Module</P
+><P
+>&#38;amp;page=1"&#62;</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+>&#60;a href="add-on-blocks.html"&#62;</P
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+>&#60;a href="modules.php?name=Your_Module</P
+><P
+>&#38;amp;page=2"&#62;</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+>&#60;a href="add-on-modules.html"&#62;</P
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+>&#60;a href="modules.php?name=Your_Module</P
+><P
+>&#38;amp;page=3"&#62;</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+>&#60;a href="administration-functions.html"&#62;</P
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+>&#60;a href="modules.php?name=Your_Module</P
+><P
+>&#38;amp;page=4"&#62;</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+>&#60;a href="admin-management.html"&#62;</P
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+>&#60;a href="modules.php?name=Your_Module</P
+><P
+>&#38;amp;page=5"&#62;</P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+></P
+><P
+>The idea is that you retain control of what filename is selected. If you would blindly set the name of the selected file to be equal to the passed parameter value of &#8220;page&#8221;, then a malicious user could use the URL</P
+><TABLE
+BORDER="1"
+BGCOLOR="#E0E0E0"
+WIDTH="100%"
+><TR
+><TD
+><FONT
+COLOR="#000000"
+><PRE
+CLASS="SCREEN"
+>modules.php?name=Your_Module&#38;amp;page=/etc/passwd</PRE
+></FONT
+></TD
+></TR
+></TABLE
+><P
+>and read the contents of the system's password file (or whatever other file readable by the web server, for that matter). The use of an associative mapping between URL parameters and filenames, as the one implemented by the ACCEPT_FILE array above, is thus not a gimmic, but a necessity. It protects your module from SQL injections and other attacks that rely on the programmer being too lazy to verify user input. See <A
+HREF="security.html"
+>Chapter 23</A
+> for more on <SPAN
+CLASS="APPLICATION"
+>PHP-Nuke</SPAN
+> security in general and <A
+HREF="common-php-nuke-security-vulnerabilities.html#SQL-INJECTION-WITH-PHP-NUKE"
+>Section 23.3.2</A
+> for SQL injections with <SPAN
+CLASS="APPLICATION"
+>PHP-Nuke</SPAN
+> in particular.</P
+><P
+>However, even with these precautions in place, the module is still vulnerable to a serious attack, as <A
+HREF="http://www.waraxe.us"
+TARGET="_top"
+>waraxe</A
+> has pointed out in a security advisory (to be published): if the $ACCEPT_FILE array is not initialized, one could &#8220;poison&#8221; it. This means that an attacker could pass the parameters '...&#38;page=xxx&#38;ACCEPT_FILE[xxx]=/etc/passwd' on the URL and could still get /etc/passwd (or any other file for that matter) back! This will not work if safe_mode is ON in php.ini, but it still poses a very serious threat. For this reason, we must initialize the array first:</P
+><TABLE
+BORDER="1"
+BGCOLOR="#E0E0E0"
+WIDTH="100%"
+><TR
+><TD
+><FONT
+COLOR="#000000"
+><PRE
+CLASS="SCREEN"
+>// We initialize the array, to avoid attacks based on poisoning the
+// &#60;acronym&#62;PHP&#60;/acronym&#62; global variable space. Thanks to waraxe for pointing this out!
+// See http://www.waraxe.us
+//
+$ACCEPT_FILE = array();</PRE
+></FONT
+></TD
+></TR
+></TABLE
+><P
+>Now you can hopefully see how important is the following rule:</P
+><DIV
+CLASS="IMPORTANT"
+><P
+></P
+><TABLE
+CLASS="IMPORTANT"
+WIDTH="100%"
+BORDER="0"
+><TR
+><TD
+WIDTH="25"
+ALIGN="CENTER"
+VALIGN="TOP"
+><IMG
+SRC="../images/important.png"
+HSPACE="5"
+ALT="Important"></TD
+><TH
+ALIGN="LEFT"
+VALIGN="MIDDLE"
+><B
+>Don't forget:</B
+></TH
+></TR
+><TR
+><TD
+>&nbsp;</TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+>Always initialize your variables!</P
+></TD
+></TR
+></TABLE
+></DIV
+><P
+>The complete code of modules/Your_Module/index.php is thus:</P
+><TABLE
+BORDER="1"
+BGCOLOR="#E0E0E0"
+WIDTH="100%"
+><TR
+><TD
+><FONT
+COLOR="#000000"
+><PRE
+CLASS="SCREEN"
+>&#60;?php
+/************************************************************************/
+/* PHP-NUKE: Web Portal System                                          */
+/* ===========================                                          */
+/*                                                                      */
+/* PHP-Nuke-HOWTO module for &#60;application&#62;PHP-Nuke&#60;/application&#62;                                   */
+/*                                                                      */
+/* Copyright (c) 2003 index.php                                         */
+/* by Chris Karakas                                                     */
+/* http://www.karakas-online.de                                         */
+/*                                                                      */
+/* See licence.html for the Licence of the other files                  */
+/* distributed together with this index.php file.                       */
+/*                                                                      */
+/* This program is free software. You can redistribute it and/or modify */
+/* it under the terms of the &#60;acronym&#62;GNU&#60;/acronym&#62; General Public License as published by */
+/* the Free Software Foundation; either version 2 of the License.       */
+/************************************************************************/
+if (!eregi("modules.php", $PHP_SELF)) {
+  die ("You can't access this file directly...");
+}
+$index = 0;   // 0 : do not show right blocks - 1:show right blocks 
+require_once("mainfile.php");
+$module_name = basename(dirname(__FILE__));
+include("header.php");
+// We initialize the array, to avoid attacks based on poisoning the
+// &#60;acronym&#62;PHP&#60;/acronym&#62; global variable space. Thanks to waraxe for pointing this out!
+// See http://www.waraxe.us
+//
+$ACCEPT_FILE = array();
+$ACCEPT_FILE['accelerating-php-nuke.html'] = 'accelerating-php-nuke.html';
+$ACCEPT_FILE['add-on-blocks.html'] = 'add-on-blocks.html';
+$ACCEPT_FILE['add-on-modules.html'] = 'add-on-modules.html';
+$ACCEPT_FILE['administration-functions.html'] = 'administration-functions.html';
+$ACCEPT_FILE['admin-management.html'] = 'admin-management.html';
+OpenTable();
+$php_ver = phpversion();
+$php_ver = explode(".", $php_ver);
+$phpver = "$php_ver[0]$php_ver[1]";
+if ($phpver &#62;= 41) {
+    $page = $_GET['page'];
+} else {
+    $page = $HTTP_GET_VARS['page'];
+}
+$pagename = $ACCEPT_FILE[$page];
+if (!isSet($pagename)) $pagename = "accelerating-php-nuke.html"; // default file
+include("modules/Your_Module/$pagename");
+CloseTable();
+include("footer.php");
+?&#62;</PRE
+></FONT
+></TD
+></TR
+></TABLE
+><P
+>As you can easily deduce from the above code, the "page" URL parameter is firtst extracted using either the <A
+HREF="http://www.php.net/manual/en/reserved.variables.php#reserved.variables.get"
+TARGET="_top"
+>GET superglobal</A
+>, if the <ACRONYM
+CLASS="ACRONYM"
+>PHP</ACRONYM
+> version is at least 4.1, or the $HTTP_GET_VARS array otherwise. The associated filename is then computed from the ACCEPT_FILE array. If the user (maliciously or not) entered a value for &#8220;page&#8221; that could not be mapped to a filename, a default file is used (the accelerating-php-nuke.html in the example). Finally, the computed filename is included, just as we have seen in the simpler examples of <A
+HREF="include-html-file-in-module.html"
+>Section 21.5</A
+>.</P
+><DIV
+CLASS="TIP"
+><P
+></P
+><TABLE
+CLASS="TIP"
+WIDTH="100%"
+BORDER="0"
+><TR
+><TD
+WIDTH="25"
+ALIGN="CENTER"
+VALIGN="TOP"
+><IMG
+SRC="../images/tip.png"
+HSPACE="5"
+ALT="Tip"></TD
+><TH
+ALIGN="LEFT"
+VALIGN="MIDDLE"
+><B
+>Automate!</B
+></TH
+></TR
+><TR
+><TD
+>&nbsp;</TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+>Most of the work  in the method we presented,  will revolve around changing links in the various files and adding the right ACCEPT_FILE line for each file in index.php. This is an error prone procedure, even with just a few files. You should thus automate it with whatever tools you have at your disposal. For the creation of the <A
+HREF="http://www.karakas-online.de/EN-Book/EN-Book-Nuke.tar.gz"
+TARGET="_top"
+>PHP-Nuke HOWTO module</A
+>, for example, a shell script is used to produce dynamically the right sed commands, which are then executed to produce the link substitutions. The ACCEPT_FILE lines are also produced automatically.  The result is a perfectly integrated <SPAN
+CLASS="APPLICATION"
+>PHP-Nuke</SPAN
+> module, even with the hundreds of files that comprise this HOWTO. <SPAN
+CLASS="INLINEMEDIAOBJECT"
+><IMG
+SRC="./images/icon_smile.png"></SPAN
+> </P
+></TD
+></TR
+></TABLE
+></DIV
+></DIV
+><DIV
+CLASS="NAVFOOTER"
+><HR
+ALIGN="LEFT"
+WIDTH="100%"><TABLE
+SUMMARY="Footer navigation table"
+WIDTH="100%"
+BORDER="0"
+CELLPADDING="0"
+CELLSPACING="0"
+><TR
+><TD
+WIDTH="33%"
+ALIGN="left"
+VALIGN="top"
+><A
+HREF="include-html-file-in-module.html"
+ACCESSKEY="P"
+>Prev</A
+></TD
+><TD
+WIDTH="34%"
+ALIGN="center"
+VALIGN="top"
+><A
+HREF="index.html"
+ACCESSKEY="H"
+>Home</A
+></TD
+><TD
+WIDTH="33%"
+ALIGN="right"
+VALIGN="top"
+><A
+HREF="include-html-file-and-links-in-module-iframe.html"
+ACCESSKEY="N"
+>Next</A
+></TD
+></TR
+><TR
+><TD
+WIDTH="33%"
+ALIGN="left"
+VALIGN="top"
+>How to include a HTML file in a <SPAN
+CLASS="APPLICATION"
+>PHP-Nuke</SPAN
+> module</TD
+><TD
+WIDTH="34%"
+ALIGN="center"
+VALIGN="top"
+><A
+HREF="creating-modules.html"
+ACCESSKEY="U"
+>Up</A
+></TD
+><TD
+WIDTH="33%"
+ALIGN="right"
+VALIGN="top"
+>How to include a HTML file and its links using an iframe in a <SPAN
+CLASS="APPLICATION"
+>PHP-Nuke</SPAN
+> module</TD
+></TR
+></TABLE
+></DIV
+></BODY
+></HTML
+>

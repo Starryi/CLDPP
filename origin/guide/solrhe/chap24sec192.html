@@ -1,0 +1,117 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1"><title>2. Compile and Optimize</title><link rel="stylesheet" type="text/css" href="style.css"><meta name="generator" content="DocBook XSL Stylesheets V1.79.1"><meta name="keywords" content="RedHat, redhat, maddy, linus, linux, Linux, Securing, Optimising, security, secure, openna, gerhard"><link rel="home" href="index.html" title="Securing and Optimizing Linux"><link rel="up" href="netencrypt.html" title="Chapter 24. Software -Networking/Encryption"><link rel="prev" href="opssl.html" title="1. Linux OPENSSL Server"><link rel="next" href="chap24sec193.html" title="3. Configure OpenSSL to optimise"></head><body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF"><div class="navheader"><table width="100%" summary="Navigation header"><tr><th colspan="3" align="center">2. Compile and Optimize</th></tr><tr><td width="20%" align="left"><a accesskey="p" href="opssl.html">Prev</a> </td><th width="60%" align="center">Chapter 24. Software -Networking/Encryption</th><td width="20%" align="right"> <a accesskey="n" href="chap24sec193.html">Next</a></td></tr></table><hr></div><div class="section"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="idm13648"></a>2. Compile and Optimize</h2></div></div></div><p>
+         Move into the new Openssl directory and type the following commands on your terminal:
+         </p><div class="procedure"><ol class="procedure" type="1"><li class="step"><p>
+         Edit the <code class="filename">c_rehash</code> file, <span class="command"><strong>vi</strong></span> +11 <code class="filename">tools/c_rehash</code> and change the line:
+
+         </p><pre class="programlisting">
+         DIR=/usr/local/ssl
+         </pre><p>
+         To read:
+         </p><pre class="programlisting">
+         DIR=/usr
+         </pre><p>
+         The changed line above will build and install OpenSSL in the default location <code class="filename">/usr</code>.
+         </p></li><li class="step"><p>
+         By default, OpenSSL source files suppose that your Perl program directory is located under the <code class="filename">/usr/local/bin/perl</code> directory. We must modify the <span class="markup">#!/usr/local/bin/perl</span> line 
+         in all scripts that rely on perl to reflect our Perl directory under Red Hat Linux to be <code class="filename">/usr/bin</code>.
+         </p><pre class="screen">
+           [root@deep ]/openssl-0.9.5a# <span class="command"><strong>perl</strong></span> util/perlpath.pl /usr/bin <a name="prssl"></a><span><img src="images/callouts/1.png" alt="1" border="0"></span>
+         </pre><p>
+         </p><div class="calloutlist"><table border="0" summary="Callout list"><tr><td width="5%" valign="top" align="left"><p><a href="#prssl"><span><img src="images/callouts/1.png" alt="1" border="0"></span></a> </p></td><td valign="top" align="left"><p>
+         where your perl program reside.
+         </p></td></tr></table></div><p>
+         </p></li><li class="step"><p>
+         OpenSSL must know where to find the necessary OpenSSL source libraries to compile successfully its required files. With the command below, we set the <code class="literal">PATH</code> environment variable to the default directory where we 
+         have uncompressed the OpenSSL source files.
+         </p><pre class="screen">
+         [root@deep ]/openssl-0.9.5a# <span class="command"><strong>export</strong></span> LD_LIBRARY_PATH=`pwd`
+         </pre><p>
+         </p></li><li class="step"><p>
+         Now, we must configure OpenSSL for our system:
+         </p><pre class="programlisting">
+         CC="egcs" \
+         ./Configure linux-elf -DSSL_FORBID_ENULL \ <a name="dsfrd"></a><span><img src="images/callouts/1.png" alt="1" border="0"></span>
+         --prefix=/usr  \
+         --openssldir=/etc/ssl
+         </pre><p>
+         </p><div class="calloutlist"><table border="0" summary="Callout list"><tr><td width="5%" valign="top" align="left"><p><a href="#dsfrd"><span><img src="images/callouts/1.png" alt="1" border="0"></span></a> </p></td><td valign="top" align="left"><p>
+         The <code class="envar">-DSSL_FORBID_ENULL</code> option is required for not allowing null encryption for security reasons.
+         </p></td></tr></table></div><p>
+         </p></li><li class="step"><p>         
+         Edit the Makefile.ssl file  and change the following line:
+         </p><ol type="a" class="substeps"><li class="step"><p>
+         <span class="command"><strong>vi</strong></span> +50 <code class="filename">Makefile.ssl</code>
+         </p><pre class="programlisting">
+         CC= gcc
+         </pre><p>
+         To read:
+         </p><pre class="programlisting">
+         CC= egcs
+         </pre><p>
+         </p></li><li class="step"><p>
+         Edit with <span class="command"><strong>vi</strong></span> +52 <code class="filename">Makefile.ssl</code> and add/change the following line:
+         </p><pre class="programlisting">
+         CFLAG= -DTHREADS -D_REENTRANT -DSSL_FORBID_ENULL -DL_ENDIAN -DTERMIO -O9 -funroll-loops -ffast-math -malign-double -mcpu=pentiumpro -march=pentiumpro -fomit-frame-pointer -fno-exceptions -Wall -DSHA1_ASM -DMD5_ASM -DRMD160_ASM
+         </pre><p>
+         </p></li><li class="step"><p>
+         Edit with <span class="command"><strong>vi</strong></span> +79 <code class="filename">Makefile.ssl</code> and add the following value for a Pentium Pro processor:
+         </p><pre class="programlisting">
+         PROCESSOR=  686
+         </pre><p>
+         </p><div class="note" style="margin-left: 0.5in; margin-right: 0.5in;"><h3 class="title"><span class="inlinemediaobject"><img src="./images/Note.gif" alt="Note"></span></h3><p>
+         The three modifications we made above will set the optimization flag for compilation of OpenSSL software on the server. For the last modification <code class="envar">PROCESSOR=</code> above, if you use 
+         <code class="literal">586</code> to denote a Pentium, use <code class="literal">686</code> to denote Pro/II/III, use <code class="literal">486</code> to denote a 486, depending on the type of processor you have. 
+         </p></div><p>
+         </p></li><li class="step"><p>
+         Edit with <span class="command"><strong>vi</strong></span> +161 <code class="filename">Makefile.ssl</code> and change the following line:
+         </p><pre class="programlisting">
+         MANDIR=$(OPENSSLDIR)/man
+         </pre><p>
+         To read:
+         </p><pre class="programlisting">
+         MANDIR=/usr/man
+         </pre><p>
+         This step is necessary to set the directory for where the man pages of OpenSSL will be installed. With this modification, we install them under <code class="filename">/usr/man</code> directory.
+         </p></li></ol></li></ol></div><p>
+           Now we must compile and install OpenSSL on the server:
+           </p><pre class="screen">
+             [root@deep ]/openssl-0.9.5a# <span class="command"><strong>make</strong></span> -f  Makefile
+             [root@deep ]/openssl-0.9.5a# <span class="command"><strong>make</strong></span> test
+             [root@deep ]/openssl-0.9.5a# <span class="command"><strong>make</strong></span> install
+             [root@deep ]/openssl-0.9.5a# <span class="command"><strong>mv</strong></span> /etc/ssl/misc/*  /usr/bin/
+             [root@deep ]/openssl-0.9.5a# <span class="command"><strong>rm</strong></span> -rf  /etc/ssl/misc/
+             [root@deep ]/openssl-0.9.5a# <span class="command"><strong>rm</strong></span> -rf  /etc/ssl/lib/
+             [root@deep ]/openssl-0.9.5a# <span class="command"><strong>rm</strong></span> -f   /usr/bin/CA.pl
+             [root@deep ]/openssl-0.9.5a# <span class="command"><strong>rm</strong></span> -f   /usr/bin/CA.sh
+             [root@deep ]/openssl-0.9.5a# <span class="command"><strong>install</strong></span> -m 644 libRSAglue.a  /usr/lib/
+             [root@deep ]/openssl-0.9.5a# <span class="command"><strong>install</strong></span> -m 644 rsaref/rsaref.h  /usr/include/openssl/
+             [root@deep ]/openssl-0.9.5a# <span class="command"><strong>strip</strong></span> /usr/bin/openssl
+             [root@deep ]/openssl-0.9.5a# <span class="command"><strong>mkdir</strong></span> -p /etc/ssl/crl
+           </pre><p>
+         </p><p>
+         </p><div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem"><p>
+           The <span class="command"><strong>make</strong></span> -f  command will build the OpenSSL libraries, <code class="filename">libcrypto.a</code> and <code class="filename">libssl.a</code> and the OpenSSL binary openssl. The libraries 
+           will be built in the top-level directory, and the binary will be in the <code class="filename">apps</code> directory.
+         </p></li><li class="listitem"><p>
+         After a successful build, the <span class="command"><strong>make test</strong></span> will test the libraries and finally the <span class="command"><strong>make install</strong></span> will create the installation directory and <span class="command"><strong>install</strong></span> OpenSSL.
+         </p></li><li class="listitem"><p>
+         The <span class="command"><strong>mv</strong></span> command will move all files under the <code class="filename">/etc/ssl/misc/</code> directory to the <code class="filename">/usr/bin/</code> directory. These 
+         files are binary and must be located under <code class="filename">/usr/bin/</code> since in our system, all binary files are keep in this directory. Also putting these files in the <code class="filename">/usr/bin/</code> 
+         directory will keep them in our <code class="literal">PATH</code> environment variable.
+         </p></li><li class="listitem"><p>
+         The <span class="command"><strong>rm</strong></span> command will remove the <code class="filename">/etc/ssl/misc/</code> and <code class="filename">/etc/ssl/lib/</code> directories from our system, since files that were in these directories are 
+         now located in other places. Also, it will remove the <code class="filename">CA.pl</code> and <code class="filename">CA.sh</code> files, that are small scripts used to create your own CA certificates. Those scripts related to <span class="command"><strong>openssl ca</strong></span> 
+         commands has some strange requirements,  and the default OpenSSL config doesn't allow one easily to use <span class="command"><strong>openssl ca</strong></span> directly. So we'll create the <code class="filename">sign.sh</code> script program later to replace them.
+         </p></li></ul></div><p>
+         </p><div class="caution" style="margin-left: 0.5in; margin-right: 0.5in;"><h3 class="title">
+<span class="inlinemediaobject"><img src="./images/Caution.gif" alt="Caution"></span>
+</h3><p>
+           The <code class="literal">bc-1.05a-4.i386.rpm</code> package or higher must be already installed on your Linux server or you'll receive an error message during the library test of OpenSSL.
+         </p></div><p>
+           Please don't forget to cleanup later:
+           </p><pre class="screen">
+             [root@deep] /# <span class="command"><strong>cd</strong></span> /var/tmp
+             [root@deep tmp]# <span class="command"><strong>rm</strong></span>  -rf openssl-version/ openssl-version.tar.gz
+           </pre><p>
+           The <span class="command"><strong>rm</strong></span> command will remove all the source files we have used to compile and install OpenSSL. It will also remove the OpenSSL compressed archive from th<code class="filename">/var/tmp</code> directory.
+         </p></div><div class="navfooter"><hr><table width="100%" summary="Navigation footer"><tr><td width="40%" align="left"><a accesskey="p" href="opssl.html">Prev</a> </td><td width="20%" align="center"><a accesskey="u" href="netencrypt.html">Up</a></td><td width="40%" align="right"> <a accesskey="n" href="chap24sec193.html">Next</a></td></tr><tr><td width="40%" align="left" valign="top">1. Linux OPENSSL Server </td><td width="20%" align="center"><a accesskey="h" href="index.html">Home</a></td><td width="40%" align="right" valign="top"> 3. Configure OpenSSL to optimise</td></tr></table></div></body></html>

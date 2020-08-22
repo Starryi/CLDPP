@@ -1,0 +1,263 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1"><title>4. netstat</title><link rel="stylesheet" type="text/css" href="style.css"><meta name="generator" content="DocBook XSL Stylesheets V1.79.1"><meta name="keywords" content="linux, ip, iproute2, ifconfig, firewall, ARP, NAT, route, routing, route selection, routing selection, network administration"><link rel="home" href="index.html" title="Guide to IP Layer Network Administration with Linux"><link rel="up" href="apg.html" title="Appendix G. Diagnostic Tools"><link rel="prev" href="apgs03.html" title="3. mtr"><link rel="next" href="apgs05.html" title="5. tcpdump"></head><body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF"><div class="navheader"><table width="100%" summary="Navigation header"><tr><th colspan="3" align="center">4. <span class="command"><strong>netstat</strong></span></th></tr><tr><td width="20%" align="left"><a accesskey="p" href="apgs03.html">Prev</a> </td><th width="60%" align="center">Appendix G. Diagnostic Tools</th><td width="20%" align="right"> <a accesskey="n" href="apgs05.html">Next</a></td></tr></table><hr></div><div class="section"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="tools-netstat"></a>4. <span class="command"><strong>netstat</strong></span></h2></div></div></div><a class="indexterm" name="idm6085"></a><p>
+        The <span class="command"><strong>netstat</strong></span> utility summarizes a variety of
+        characteristics of the networking stack.  With
+        <span class="command"><strong>netstat</strong></span> you can learn a number of important things.
+        If no other type of data is requested it will report on the <a class="link" href="apgs04.html#tools-netstat-socket" title="4.1. Displaying socket status with netstat">state of all active sockets</a>.
+        You can however request the
+        <a class="link" href="apgs04.html#tools-netstat-route" title="4.2. Displaying the main routing table with netstat">routing table</a>,
+        <a class="link" href="apgs04.html#tools-netstat-masquerade" title="4.5. Displaying the masquerading table with netstat">masquerading table</a>,
+        <a class="link" href="apgs04.html#tools-netstat-interface" title="4.3. Displaying network interface statistics with netstat command">network interface
+        statistics</a>, and 
+        <a class="link" href="apgs04.html#tools-netstat-statistics" title="4.4. Displaying network stack statistics with netstat">network stack
+        statistics</a>
+        <a href="#ftn.idm6096" class="footnote" name="idm6096"><sup class="footnote">[60]</sup></a>.
+      </p><div class="section"><div class="titlepage"><div><div><h3 class="title"><a name="tools-netstat-socket"></a>4.1. Displaying socket status with
+          <span class="command"><strong>netstat</strong></span></h3></div></div></div><a class="indexterm" name="idm6103"></a><p>
+          One of the most common uses of the <span class="command"><strong>netstat</strong></span>
+          utility is to determine the state of sockets on a machine.
+          There are many questions that <span class="command"><strong>netstat</strong></span> can 
+          answer with the right set of options.  Here's a list of some of
+          the things different things we can learn.
+        </p><div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem"><p>
+              which services are listening on which sockets
+            </p></li><li class="listitem"><p>
+              what process (and controlling PID) is listening on a given socket
+            </p></li><li class="listitem"><p>
+              whether data is waiting to be read on a socket
+            </p></li><li class="listitem"><p>
+              what connections are currently established to which sockets
+            </p></li></ul></div><p>
+          By invoking <span class="command"><strong>netstat</strong></span> without any options, you are
+          asking for a list of all currently open connections to and from the
+          networking stack on the local machine.  This means IP network
+          connections, unix domain sockets, IPX sockets and Appletalk sockets
+          among others.  Naturally, we'll skip over the
+          non-IP sockets since this is about IP networking with linux.
+        </p><p>
+          Assume the <code class="option">--inet</code> switch in all cases below unless
+          we are examining a particular higher layer protocol (e.g., TCP with
+          the <code class="option">--tcp</code> switch or UDP with <code class="option">--udp</code>
+          switch.
+        </p><p>
+          A convenient feature of <span class="command"><strong>netstat</strong></span> is its ability to
+          differentiate between two different sorts of name lookup.  Normally
+          the <code class="option">-n</code> specifies no name lookup, but this is
+          ambiguous when there are hostnames, port names, and user names.
+          Fortunately, <span class="command"><strong>netstat</strong></span> offers the following options
+          to differentiate the different forms of lookup and suppress only the
+          [un-]desired lookup.
+        </p><div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem"><p>
+              <code class="option">--numeric-hosts</code>
+            </p></li><li class="listitem"><p>
+              <code class="option">--numeric-ports</code>
+            </p></li><li class="listitem"><p>
+              <code class="option">--numeric-users</code>
+            </p></li></ul></div><p>
+          The option <code class="option">-n</code> (my favorite), suppress all hostname,
+          port name and username lookup, and is a synonym for
+          <code class="option">--numeric</code>.  I'll reiterate that hostnames and DNS in
+          particular can be confusing, or worse, misleading when trying to
+          diagnose or debug a networking related issue, so it is wise to
+          suppress hostname lookups in these sorts of situations.
+        </p><p>
+          In <a class="xref" href="apgs04.html#ex-tools-netstat-inet" title="Example G.11. Displaying IP socket status with netstat">Example G.11, &#8220;Displaying IP socket status with
+            <span class="command">netstat</span>&#8221;</a> we will look at
+          <span class="command"><strong>netstat</strong></span>'s numeric output and then we'll invoke
+          the same command but suppress the host lookups.  Though the output
+          is almost the same, a particular situation might call for one or the
+          other invocation.
+        </p><div class="example"><a name="ex-tools-netstat-inet"></a><p class="title"><b>Example G.11. Displaying IP socket status with
+            <span class="command">netstat</span></b></p><div class="example-contents"><pre class="programlisting">
+<code class="prompt">[root@morgan]# </code><strong class="userinput"><code>netstat --inet -n</code></strong>
+<code class="computeroutput">Active Internet connections (w/o servers)
+Proto Recv-Q Send-Q Local Address           Foreign Address         State
+tcp        0    192 192.168.98.82:22        192.168.99.35:40991     ESTABLISHED
+tcp        0      0 192.168.98.82:42929     192.168.100.17:993      ESTABLISHED
+tcp       96      0 127.0.0.1:40863         127.0.0.1:6010          ESTABLISHED
+tcp        0      0 127.0.0.1:6010          127.0.0.1:40863         ESTABLISHED
+tcp        0      0 127.0.0.1:38502         127.0.0.1:6010          ESTABLISHED
+tcp        0      0 127.0.0.1:6010          127.0.0.1:38502         ESTABLISHED
+tcp        0      0 192.168.98.82:53733     209.10.26.51:80         SYN_SENT
+tcp        0      0 192.168.98.82:44468     192.168.100.17:993      ESTABLISHED
+tcp        0      0 192.168.98.82:44320     192.168.100.17:139      TIME_WAIT</code>
+<code class="prompt">[root@morgan]# </code><strong class="userinput"><code>netstat --inet --numeric-hosts</code></strong>
+<code class="computeroutput">Active Internet connections (w/o servers)
+Proto Recv-Q Send-Q Local Address           Foreign Address         State
+tcp        0      0 192.168.98.82:ssh       192.168.99.35:40991     ESTABLISHED
+tcp        0      0 192.168.98.82:42929     192.168.100.17:imaps    ESTABLISHED
+tcp        0      0 127.0.0.1:40863         127.0.0.:x11-ssh-offset ESTABLISHED
+tcp        0      0 127.0.0.:x11-ssh-offset 127.0.0.1:40863         ESTABLISHED
+tcp        0      0 127.0.0.1:38502         127.0.0.:x11-ssh-offset ESTABLISHED
+tcp        0      0 127.0.0.:x11-ssh-offset 127.0.0.1:38502         ESTABLISHED
+tcp        0      0 192.168.98.82:53733     209.10.26.51:http       SYN_SENT
+tcp        0      0 192.168.98.82:44468     192.168.100.17:imaps    ESTABLISHED
+tcp        0      0 192.168.98.82:44320     192.168.100:netbios-ssn TIME_WAIT</code>
+          </pre></div></div><br class="example-break"><p>
+          Each line represents a either the sending or
+          receiving half of a connection.  In the above output on <code class="systemitem">morgan</code> it
+          appears that there are no connections other than TCP connections.
+          If you are very familiar with TCP ports and the service associated
+          with that port, then the first format will suffice in most cases.  A
+          possibly misleading aspect of the latter output is visible in the
+          connections to and from localhost and the final line.
+          <span class="command"><strong>netstat</strong></span> abbreviates the IP endpoint in order to
+          reproduce the entire string retrieved from the port lookup
+          (in <code class="filename">/etc/services</code>).  Also interestingly, this
+          line conveys to us (in the first output) that the kernel is
+          waiting for the remote endpoint to acknowledge the 192 bytes which
+          are still in the Send-Q buffer.
+        </p><p>
+          The first line describes a TCP connection to the IP locally hosted
+          on <code class="systemitem">morgan</code>'s Ethernet interface.  The connection was initiated from
+          an ephemeral port (40991) on <code class="systemitem">tristan</code> to a service running on port
+          22.  The service normally running on this well-known port is sshd,
+          so we can conclude that somebody on <code class="systemitem">tristan</code> has connected to the
+          <code class="systemitem">morgan</code>'s ssh server.
+          The second line describes a TCP session open to port 993 on
+          <code class="systemitem">isolde</code>, which probably means that the user on <code class="systemitem">morgan</code> has an open
+          connection to an IMAP over SSL server.
+        </p><p>
+          The third through the sixth lines can be understood in pairs.  By
+          examining the source and destination IP and port pairs, we can see
+          that two different TCP sessions have been established with the
+          source and destination address of 127.0.0.1.  For an administrator
+          to publish services on localhost is not at all uncommon.  This makes
+          the service harder to abuse from the network.  In this case, when we
+          allow the service lookup, the port in question (6010) appears to be
+          used to tunnel forwarded X applications over ssh.
+        </p><p>
+          The next line is the first TCP session in our output which is not in
+          a state of ESTABLISHED.  Refer to
+          <a class="xref" href="apgs04.html#tb-tools-netstat-socket-states" title="Table G.1. Possible Session States in netstat output">Table G.1, &#8220;Possible Session States in <span class="command">netstat</span>
+            output&#8221;</a> for a full list of the
+          possible values of the State field in the <span class="command"><strong>netstat</strong></span>
+          output.  The state SYN_SENT means that an application has made
+          arequest for a TCP session, but has not yet received the return
+          SYN+ACK packet.
+        </p><p>
+          The final line of our <span class="command"><strong>netstat</strong></span>output shows a
+          connection in the TIME_WAIT state, which means that the TCP sessions
+          have been terminated, but the kernel is waiting for any packets
+          which may still be left on the network for this session.  It is not
+          at all abnormal for sockets to be in a TIME_WAIT state for a short
+          period of time after a TCP session has ended.
+        </p><p>
+          If we needed to know exactly which application owned a particular
+          network connection, we would use the <code class="option">-p | --program</code>
+          switch which gives us the PID and process name of the owner process.
+          If we want to see the unix user and the PID and process we'll add the
+          <code class="option">-e | --extend</code> switch.
+        </p><div class="example"><a name="ex-tools-netstat-inet-details"></a><p class="title"><b>Example G.12. Displaying IP socket status details with
+            <span class="command">netstat</span></b></p><div class="example-contents"><pre class="programlisting">
+<code class="prompt">[root@masq-gw]# </code><strong class="userinput"><code>netstat -p -e --inet --numeric-hosts</code></strong>
+<code class="computeroutput">Proto Recv-Q Send-Q Local Address           Foreign Address         State       User       Inode      PID/Program name   
+tcp        0      0 192.168.100.254:ssh     192.168.100.17:49796    ESTABLISHED root       25453      6326/sshd
+tcp        0    240 192.168.99.254:ssh      192.168.99.35:42948     ESTABLISHED root       171748     31535/sshd</code>
+          </pre></div></div><br class="example-break"><p>
+          There doesn't appear to be a large number of connections to and
+          from the <code class="systemitem">masq-gw</code> host.  The two sessions are initiated to the sshd
+          running on port 22, and the process which owns each socket is a root
+          process.
+        </p><p>
+        </p><p>
+        </p><p>
+        </p><div class="table"><a name="tb-tools-netstat-socket-states"></a><p class="title"><b>Table G.1. Possible Session States in <span class="command">netstat</span>
+            output</b></p><div class="table-contents"><table class="table" summary="Possible Session States in netstat
+            output" border="1"><colgroup><col><col></colgroup><thead><tr><th align="left">State</th><th align="left">Description</th></tr></thead><tbody><tr><td align="left">LISTEN</td><td align="left">accepting connections</td></tr><tr><td align="left">ESTABLISHED</td><td align="left">connection up and passing data</td></tr><tr><td align="left">SYN_SENT</td><td align="left">TCP; session has been requested by us; waiting for
+                       reply from remote endpoint</td></tr><tr><td align="left">SYN_RECV</td><td align="left">TCP; session has been requested by a remote endpoint
+                       for a socket on which we were listening</td></tr><tr><td align="left">LAST_ACK</td><td align="left">TCP; our socket is closed; remote endpoint has also
+                       shut down; we are waiting for a final
+                       acknowledgement</td></tr><tr><td align="left">CLOSE_WAIT</td><td align="left">TCP; remote endpoint has shut down; the kernel is
+                       waiting for the application to close the socket</td></tr><tr><td align="left">TIME_WAIT</td><td align="left">TCP; socket is waiting after closing for any packets
+                       left on the network</td></tr><tr><td align="left">CLOSED</td><td align="left">socket is not being used (FIXME. What does mean?)</td></tr><tr><td align="left">CLOSING</td><td align="left">TCP; our socket is shut down; remote endpoint is shut
+                       down; not all data has been sent</td></tr><tr><td align="left">FIN_WAIT1</td><td align="left">TCP; our socket has closed; we are in the process of
+                       tearing down the connection</td></tr><tr><td align="left">FIN_WAIT2</td><td align="left">TCP; the connection has been closed; our socket is
+                       waiting for the remote endpoint to shut down</td></tr></tbody></table></div></div><br class="table-break"><p>
+        </p><p>
+        </p><p>
+        </p><p>
+        </p><p>
+        </p><p>
+        </p><p>
+        </p><p>
+        </p></div><div class="section"><div class="titlepage"><div><div><h3 class="title"><a name="tools-netstat-route"></a>4.2. Displaying the main routing table with
+          <span class="command"><strong>netstat</strong></span></h3></div></div></div><a class="indexterm" name="idm6241"></a><p>
+          One of the most common uses of <span class="command"><strong>netstat</strong></span>,
+          especially in cross-platform environments is the reporting of the
+          main routing table.  On many platforms, <span class="command"><strong>netstat
+          -rn</strong></span> is the preferred method of displaying routing
+          information, although linux provides at least two alternatives to
+          this:  <a class="link" href="apds01.html" title="1. route"><span class="command"><strong>route</strong></span></a>
+          and <a class="link" href="apds02.html" title="2. ip route"><span class="command"><strong>ip route
+          show</strong></span></a>.
+        </p><div class="example"><a name="ex-tools-netstat-route"></a><p class="title"><b>Example G.13. Displaying the main routing table with
+            <span class="command">netstat</span></b></p><div class="example-contents"><pre class="programlisting">
+<code class="prompt">[root@morgan]# </code><strong class="userinput"><code>netstat -rn</code></strong>
+<code class="computeroutput">Kernel IP routing table
+Destination     Gateway         Genmask         Flags   MSS Window  irtt Iface
+192.168.98.0    0.0.0.0         255.255.255.0   U        40 0          0 eth0
+127.0.0.0       0.0.0.0         255.0.0.0       U        40 0          0 lo
+0.0.0.0         192.168.98.254  0.0.0.0         UG       40 0          0 eth0</code>
+          </pre></div></div><br class="example-break"><p>
+          This output should look familiar.  The routing cache itself may not
+          be as familiar to most, but can also be displayed with
+          <span class="command"><strong>netstat</strong></span>.  The ouput below is exactly the same as
+          the ouput from <span class="command"><strong>route -enC</strong></span>.  Refer also to
+          <a class="xref" href="apds01.html#ex-tools-route-show-cache" title="Example D.3. Viewing the routing cache with route">Example D.3, &#8220;Viewing the routing cache with <span class="command">route</span>&#8221;</a>.
+        </p><div class="example"><a name="ex-tools-netstat-route-cache"></a><p class="title"><b>Example G.14. Displaying the routing cache with
+            <span class="command">netstat</span></b></p><div class="example-contents"><pre class="programlisting">
+<code class="prompt">[root@tristan]# </code><strong class="userinput"><code>netstat -rnC</code></strong>
+<code class="computeroutput">Kernel IP routing cache
+Source          Destination     Gateway         Flags   MSS Window  irtt Iface
+194.52.197.133  192.168.99.35   192.168.99.35     l      40 0          0 lo
+192.168.99.35   194.52.197.133  192.168.99.254         1500 0         29 eth0
+192.168.99.35   192.168.99.254  192.168.99.254         1500 0          0 eth0
+192.168.99.254  192.168.99.35   192.168.99.35     il     40 0          0 lo
+192.168.99.35   192.168.99.35   192.168.99.35     l   16436 0          0 lo
+192.168.99.35   194.52.197.133  192.168.99.254         1500 0          0 eth0
+192.168.99.35   192.168.99.254  192.168.99.254         1500 0          0 eth0</code>
+          </pre></div></div><br class="example-break"><p>
+          Consult <a class="xref" href="apds01.html#tools-route-show" title="1.1. Displaying the routing table with route">Section 1.1, &#8220;Displaying the routing table with <span class="command"><strong>route</strong></span>&#8221;</a> for more detail on
+          reading and interpreting the data in this output.  Because this is
+          simply another way of reporting the routing table information, we'll
+          skip over any detailed description.
+        </p></div><div class="section"><div class="titlepage"><div><div><h3 class="title"><a name="tools-netstat-interface"></a>4.3. Displaying network interface statistics with
+          <span class="command"><strong>netstat</strong></span> command</h3></div></div></div><a class="indexterm" name="idm6277"></a><p>
+          <span class="command"><strong>netstat -i</strong></span> summarizes interface statistics in a
+          terse format.  This format 
+        </p><p>
+        </p><p>
+        </p><p>
+        </p><p>
+          OK!  This is strange.  <span class="command"><strong>netstat -ie</strong></span> looks exactly
+          like <span class="command"><strong>ifconfig</strong></span> output.  That's weird!
+        </p></div><div class="section"><div class="titlepage"><div><div><h3 class="title"><a name="tools-netstat-statistics"></a>4.4. Displaying network stack statistics with
+          <span class="command"><strong>netstat</strong></span></h3></div></div></div><a class="indexterm" name="idm6294"></a><p>
+        </p><p>
+        </p></div><div class="section"><div class="titlepage"><div><div><h3 class="title"><a name="tools-netstat-masquerade"></a>4.5. Displaying the masquerading table with
+          <span class="command"><strong>netstat</strong></span></h3></div></div></div><a class="indexterm" name="idm6305"></a><p>
+          For machines which perform masquerading, typically dual-homed
+          packet-filtering firewalls like <code class="systemitem">masq-gw</code> a tool to list the current
+          state of the masquerading table is convenient.
+        </p><p>
+          Each masqueraded connection can be described by a tuple of six
+          pieces of data:  the source IP and source port, the destination IP
+          and destination port, and the (usually implicit) locally hosted IP
+          and a local port.
+        </p><div class="example"><a name="ex-tools-netstat-masquerade"></a><p class="title"><b>Example G.15. Displaying the masquerading table with <span class="command">netstat</span></b></p><div class="example-contents"><pre class="programlisting">
+<code class="prompt">[root@masq-gw]# </code><strong class="userinput"><code>netstat -Mn</code></strong>
+<code class="computeroutput">
+</code>
+          </pre></div></div><br class="example-break"><p>
+        </p><p>
+        </p><p>
+          FIXME; this command seems to fail on all of the iptables boxen, even
+          if I'm using the <code class="option">-j MASQUERADE</code> target.  I
+          can use it successfully on ipchains boxen.  Anybody have any ideas
+          or explanation here?
+        </p></div><div class="footnotes"><br><hr style="width:100; text-align:left;margin-left: 0"><div id="ftn.idm6096" class="footnote"><p><a href="#idm6096" class="para"><sup class="para">[60] </sup></a>
+            Additionally, <span class="command"><strong>netstat</strong></span> can display multicast
+            information with the <code class="option">--group</code> switch.  I have zero
+            experience here.  Anybody with experience want to write about
+            this?
+          </p></div></div></div><div class="navfooter"><hr><table width="100%" summary="Navigation footer"><tr><td width="40%" align="left"><a accesskey="p" href="apgs03.html">Prev</a> </td><td width="20%" align="center"><a accesskey="u" href="apg.html">Up</a></td><td width="40%" align="right"> <a accesskey="n" href="apgs05.html">Next</a></td></tr><tr><td width="40%" align="left" valign="top">3. <span class="command"><strong>mtr</strong></span> </td><td width="20%" align="center"><a accesskey="h" href="index.html">Home</a></td><td width="40%" align="right" valign="top"> 5. <span class="command"><strong>tcpdump</strong></span></td></tr></table></div></body></html>

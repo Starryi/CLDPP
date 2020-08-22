@@ -1,0 +1,108 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1"><title>4. The /etc/sendmail.mc file /Central Mail Hub</title><link rel="stylesheet" type="text/css" href="style.css"><meta name="generator" content="DocBook XSL Stylesheets V1.79.1"><meta name="keywords" content="RedHat, redhat, maddy, linus, linux, Linux, Securing, Optimising, security, secure, openna, gerhard"><link rel="home" href="index.html" title="Securing and Optimizing Linux"><link rel="up" href="soser-mailn.html" title="Chapter 22. Software -Server/Mail Network"><link rel="prev" href="chap22sec175.html" title="3. Configurations"><link rel="next" href="chap22sec177.html" title="5. Build and Tweak Sendmail"></head><body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF"><div class="navheader"><table width="100%" summary="Navigation header"><tr><th colspan="3" align="center">4. The <code class="filename">/etc/sendmail.mc</code> file /Central Mail Hub</th></tr><tr><td width="20%" align="left"><a accesskey="p" href="chap22sec175.html">Prev</a> </td><th width="60%" align="center">Chapter 22. Software -Server/Mail Network</th><td width="20%" align="right"> <a accesskey="n" href="chap22sec177.html">Next</a></td></tr></table><hr></div><div class="section"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="idm11977"></a>4. The <code class="filename">/etc/sendmail.mc</code> file /Central Mail Hub</h2></div></div></div><p>
+         The <code class="filename">/etc/sendmail.mc</code> file for the Central Mail Hub, instead of having each individual server or workstation in a network handle its own mail, it can be advantageous to have powerful central server that handles 
+         all mail. Such a server is called a Mail Hub. The advantage of a Central Mail Hub is:
+         </p><div class="orderedlist"><ol class="orderedlist" type="i"><li class="listitem"><p>
+         All incoming mail is sent to the hub, and no mail is sent directly to a client machine.
+         </p></li><li class="listitem"><p>
+         All outgoing mail from clients is sent to the Hub, and the Hub then forwards that mail to its ultimate destination.
+         </p></li><li class="listitem"><p>
+         All outgoing mail appears to come from a single server and no client's name needs to be known to the outside world.
+         </p></li><li class="listitem"><p>
+         No client needs to run a sendmail daemon to listen for mail.
+         </p></li></ol></div><p>
+         </p><p>
+         The sendmail.cf is the first file reading by Sendmail when it runs and one of the most important for Sendmail. Among the many items contained in that file are the locations of all the other files, the default permissions for those files and 
+         directories that Sendmail needs. The m4 macro preprocessor program of Linux is used by Sendmail V8 to produce a Sendmail configuration file. This macro program will produce the <code class="filename">/etc/mail/sendmail.cf</code> configuration file 
+         by processing a file whose name ends in <code class="filename">.mc</code>. 
+         </p><p>
+         For this reason, we'll create this file <code class="filename">sendmail.mc</code> and put the necessary macro values in it to allow the m4 program to process, <span class="emphasis"><em>read</em></span> its 
+         input and gathers definitions of macros, and then replaces those macros with their values and output the result to create our <code class="filename">sendmail.cf</code> file. Please refer to the Sendmail documentation and README file under the 
+         <code class="filename">cf</code> subdirectory of the V8 Sendmail source distribution for more information.
+         </p><p>
+         Create the sendmail.mc file, <span class="command"><strong>touch</strong></span> <code class="filename">/var/tmp/sendmail-version/cf/cf/sendmail.mc</code> and add the following lines:
+         </p><pre class="programlisting">
+         define(`confDEF_USER_ID',``8:12'')dnl
+         OSTYPE(`linux')dnl
+         DOMAIN(`generic')dnl
+         define(`confTRY_NULL_MX_LIST',true)dnl
+         define(`confDONT_PROBE_INTERFACES',true)dnl
+         define(`PROCMAIL_MAILER_PATH',`/usr/bin/procmail')dnl
+         define(`LOCAL_MAILER_FLAGS', `ShPfn')dnl
+         define(`LOCAL_MAILER_ARGS', `procmail -a $h -d $u')dnl
+         FEATURE(`smrsh',`/usr/sbin/smrsh')dnl
+         FEATURE(`mailertable')dnl
+         FEATURE(`virtusertable',`hash -o /etc/mail/virtusertable')dnl
+         FEATURE(`redirect')dnl
+         FEATURE(`always_add_domain')dnl
+         FEATURE(`use_cw_file')dnl
+         FEATURE(`local_procmail')dnl
+         FEATURE(`access_db')dnl
+         FEATURE(`blacklist_recipients')dnl
+         FEATURE(`dnsbl')dnl
+         MAILER(`local')dnl
+         MAILER(`smtp')dnl
+         MAILER(`procmail')dnl
+         </pre><p>
+         </p><p>
+         This tells the sendmail.mc file to set itself up for this particular configuration with:
+         </p><div class="glosslist"><a name="pr6ch22sc3gls"></a><dl><dt><span class="glossterm">define(`confDEF_USER_ID',``8:12'')dnl</span></dt><dd class="glossdef"><p>
+         This configuration option specifies the default user id. In our case the <code class="literal">user mail</code> and <code class="literal">group mail</code>, which correspond to ID number <code class="literal">8:12</code> <span class="emphasis"><em>see 
+         the <code class="filename">/etc/passwd</code> and <code class="filename">/etc/group</code> file</em></span>.
+         </p></dd><dt><span class="glossterm">OSTYPE(`linux')dnl</span></dt><dd class="glossdef"><p>
+         This configuration option specifies the default operating system Sendmail wil bel running on; in our case the <code class="literal">linux</code> system. This item is one of the minimal pieces of information required by the <code class="filename">mc</code> file.
+         </p></dd><dt><span class="glossterm">DOMAIN(`generic')dnl</span></dt><dd class="glossdef"><p>
+         This configuration option will specify and describe a particular domain appropriated for your environment.
+         </p></dd><dt><span class="glossterm">define(`confTRY_NULL_MX_LIST',true)dnl</span></dt><dd class="glossdef"><p>
+         This configuration option specifies whether the receiving server is the best <code class="literal">MX</code> for a host and if so, try connecting to that host directly.
+         </p></dd><dt><span class="glossterm">define(`confDONT_PROBE_INTERFACES',true)dnl</span></dt><dd class="glossdef"><p>
+         This configuration option, if set to true, means Sendmail will _not_insert the names and addresses of any local interfaces into the <code class="envar">$=w</code> class, <span class="emphasis"><em>list of known equivalent addresses</em></span>.
+         </p></dd><dt><span class="glossterm">define(`PROCMAIL_MAILER_PATH',`/usr/bin/procmail')dnl</span></dt><dd class="glossdef"><p>
+         This configuration option sets the path to the procmail program installed in your server. Since the path in Red Hat Linux differs from other Linux versions, we must specify the new path with this macro. It's important 
+         to note that this macro is also used by <code class="envar">FEATURE(`local_procmail')</code> as defined later in this file.
+         </p></dd><dt><span class="glossterm">define(`LOCAL_MAILER_FLAGS', `ShPfn')dnl</span></dt><dd class="glossdef"><p>
+         This configuration option defines the flags that must be used by the local mailer (procmail). See your Sendmail documentation for more information of each one.
+         </p></dd><dt><span class="glossterm">define(`LOCAL_MAILER_ARGS', `procmail -a $h -d $u')dnl</span></dt><dd class="glossdef"><p>
+         This configuration option defines the arguments that must be passed to the local mailer (procmail). See your Sendmail documentation for more information on each one.
+         </p></dd><dt><span class="glossterm">FEATURE(`smrsh',`/usr/sbin/smrsh')dnl</span></dt><dd class="glossdef"><p>
+         This m4 macro enables the use of <span class="command"><strong>smrsh</strong></span>, <span class="emphasis"><em>the sendmail restricted shell</em></span>, instead of the default <code class="filename">/bin/sh</code> for mailing programs. With this feature 
+         you can control what program gets run via e-mail through the <code class="filename">/etc/mail/aliases</code> and <code class="filename">~/.forward</code> files. The default location for the <span class="command"><strong>smrsh</strong></span> program is <code class="filename">/usr/libexec/smrsh</code>.
+         Since we have installed <span class="command"><strong>smrsh</strong></span> in another location, we need to add an argument to the smrsh feature to indicate the new placement <code class="filename">/usr/sbin/smrsh</code>. The use of <span class="command"><strong>smrsh</strong></span> is recommended 
+         by <acronym class="acronym">CERT</acronym>, so you are encouraged to use this feature as often as possible.
+         </p></dd><dt><span class="glossterm">FEATURE(`mailertable')dnl</span></dt><dd class="glossdef"><p>
+         This m4 macro enables the use of <code class="literal">mailertable</code> <span class="emphasis"><em>database selects new delivery agents</em></span>. A mailertable is a database that maps <code class="literal">host.domain</code> names to special delivery agent and new 
+         domain name pairs. With this feature, mail can be delivered through the use of a specified or particular delivery agent to a new domain name. Usually, this feature must be available only on a Central Mail Hub server.
+         </p></dd><dt><span class="glossterm">FEATURE(`virtusertable',`hash -o /etc/mail/virtusertable')dnl</span></dt><dd class="glossdef"><p>
+         This m4 macro enables the use of <code class="literal">virtusertable</code>, <span class="emphasis"><em>support for virtual domains</em></span>, which allow multiple virtual domains to be hosted on one machine. A virtusertable is a database that maps virtual domains into new 
+         addresses. With this feature, mail for virtual domains can be delivered to a local, remote, or single user address. Usually this feature must be available only on a Central Mail Hub server.
+         </p></dd><dt><span class="glossterm">FEATURE(`redirect')dnl</span></dt><dd class="glossdef"><p>
+         This m4 macro enables the use of <code class="literal">redirect</code> <span class="emphasis"><em>support for</em></span> <code class="literal">address.REDIRECT</code>. With this feature, mail addressed to a retired user account <code class="literal">wahib</code>, for example, will be bounced with an indication of the new forwarding address. The retired 
+         accounts must be set up in the aliases file on the mail server. Usually this feature must be available only on a Central Mail Hub server.
+         </p></dd><dt><span class="glossterm">FEATURE(`always_add_domain')dnl</span></dt><dd class="glossdef"><p>
+         This m4 macro enables the use of <code class="envar">always_add_domain</code>, <span class="emphasis"><em>add the local domain even on local mail</em></span>. With this feature, all addresses that are locally delivered will be fully qualified. It is safe and recommended to set this feature for security reasons.
+         </p></dd><dt><span class="glossterm">FEATURE(`use_cw_file')dnl</span></dt><dd class="glossdef"><p>
+         This m4 macro enables the use of <code class="envar">use_cw_file</code>, use <code class="filename">/etc/mail/local-host-names</code> file for local hostnames. With this feature you can declare a list of hosts in the <code class="filename">/etc/mail/local-host-names</code> file for 
+         which the local host is acting as the <code class="literal">MX</code> recipient. In other word this feature causes the file <code class="filename">/etc/mail/local-host-names</code> to be read to obtain alternative names for the local host.
+         </p></dd><dt><span class="glossterm">FEATURE(`local_procmail')dnl</span></dt><dd class="glossdef"><p>
+         This m4 macro enables the use of <code class="envar">local_procmail</code> <span class="emphasis"><em>use procmail as local delivery agent</em></span>. With this feature you can use procmail as a Sendmail delivery agent.
+         </p></dd><dt><span class="glossterm">FEATURE(`access_db')dnl</span></dt><dd class="glossdef"><p>
+         This m4 macro enables the access database feature. With this feature you have the ability through the access db to allow or refuse to accept mail from specified domains. Usually this feature must be available 
+         only in a Central Mail Hub server.
+         </p></dd><dt><span class="glossterm">FEATURE(`blacklist_recipients')dnl</span></dt><dd class="glossdef"><p>
+         This m4 macro enables the ability to block incoming mail for certain recipient usernames, hostnames, or addresses. With this feature you can, for example, block incoming mail 
+         to <code class="literal">user nobody</code>, <code class="literal">host foo.mydomain.com</code>, or <code class="literal">guest@bar.mydomain.com.</code>
+         </p></dd><dt><span class="glossterm">FEATURE(`dnsbl')dnl</span></dt><dd class="glossdef"><p>
+         This m4 macro enables Sendmail to reject mail from any site in the Realtime Blackhole List database <code class="literal">rbl.maps.vix.com</code>. The <acronym class="acronym">DNS</acronym> based rejection is a database maintained 
+         in <acronym class="acronym">DNS</acronym> of spammers. For details, see <a class="link" href="appendixa.html#prtinxfp19" title="Sendmail">http://maps.vix.com/rbl/</a>.
+         </p></dd><dt><span class="glossterm">MAILER(`local'), MAILER(`smtp'), and MAILER(`procmail')dnl</span></dt><dd class="glossdef"><p>
+         This m4 macro enables the use of local, smtp, and procmail as delivery agents <span class="emphasis"><em>in Sendmail by default, delivery agents are not automatically declared</em></span>. With this feature, you can specify which ones you want to support 
+         and which ones to ignore. The MAILER(`local'), MAILER(`smtp'), and MAILER(`procmail') options cause support for local, smtp, esmtp, smtp8, relay delivery agents and procmail to be included. It's important to note that MAILER(`smtp') should 
+         always precede MAILER(`procmail').
+         </p></dd></dl></div><p>
+         </p><div class="note" style="margin-left: 0.5in; margin-right: 0.5in;"><h3 class="title"><span class="inlinemediaobject"><img src="./images/Note.gif" alt="Note"></span></h3><p>
+         Sometimes, a domain with which you wish to continue communications may end up in the <acronym class="acronym">RBL</acronym> list. In this case, Sendmail allows you to override these domains to allow their e-mail to be received. To do this, simply 
+         edit the <code class="filename">/etc/mail/access</code> file and add the appropriate domain information.
+         </p></div><div class="example"><a name="idm12140"></a><p class="title"><b>Example 22.1. Overriding <acronym class="acronym">RBL</acronym></b></p><div class="example-contents"><p>
+           </p><pre class="programlisting">
+         blacklisted.domain      OK
+         </pre><p>
+         </p></div></div><br class="example-break"></div><div class="navfooter"><hr><table width="100%" summary="Navigation footer"><tr><td width="40%" align="left"><a accesskey="p" href="chap22sec175.html">Prev</a> </td><td width="20%" align="center"><a accesskey="u" href="soser-mailn.html">Up</a></td><td width="40%" align="right"> <a accesskey="n" href="chap22sec177.html">Next</a></td></tr><tr><td width="40%" align="left" valign="top">3. Configurations </td><td width="20%" align="center"><a accesskey="h" href="index.html">Home</a></td><td width="40%" align="right" valign="top"> 5. Build and Tweak Sendmail</td></tr></table></div></body></html>

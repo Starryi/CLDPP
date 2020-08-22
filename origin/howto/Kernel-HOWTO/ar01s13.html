@@ -1,0 +1,190 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1"><title>13.  Advanced Topics - Linux Boot Process</title><link rel="stylesheet" type="text/css" href="style.css"><meta name="generator" content="DocBook XSL Stylesheets V1.79.1"><link rel="home" href="index.html" title="The Linux Kernel HOWTO"><link rel="up" href="index.html" title="The Linux Kernel HOWTO"><link rel="prev" href="ar01s12.html" title="12.  Install, Upgrade at Speed of Light With apt-get (Redhat, Debian, Suse, Mandrake, Others)"><link rel="next" href="ar01s14.html" title="14.  Other Formats of this Document"></head><body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF"><div class="navheader"><table width="100%" summary="Navigation header"><tr><th colspan="3" align="center">13. 
+      Advanced Topics - Linux Boot Process 
+    </th></tr><tr><td width="20%" align="left"><a accesskey="p" href="ar01s12.html">Prev</a> </td><th width="60%" align="center"> </th><td width="20%" align="right"> <a accesskey="n" href="ar01s14.html">Next</a></td></tr></table><hr></div><div class="sect1"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="linux_boot_process"></a>13. 
+      Advanced Topics - Linux Boot Process 
+    </h2></div></div></div><p>
+      This section may not be interesting for 'average Joe home PC user' but 
+      will be more directed towards someone with computer science background. 
+    </p><p>
+      The chain of events at boot are: CPU-&gt; VGA-&gt; Power-On-Self-Test-&gt; SCSI-&gt; 
+      Boot Manager-&gt; Lilo boot loader-&gt; kernel-&gt; init-&gt; bash. The firmware and 
+      software programs output various messages as the computer and Linux come 
+      to life. 
+    </p><p>
+      A guided tour of a Linux Boot process: 
+      </p><div class="orderedlist"><ol class="orderedlist" type="1"><li class="listitem"><p>
+            The Motherboard BIOS Triggers the Video Display Card BIOS 
+            Initialization 
+          </p></li><li class="listitem"><p>
+            Motherboard BIOS Initializes Itself 
+          </p></li><li class="listitem"><p>
+            SCSI Controller BIOS Initializes 
+          </p></li><li class="listitem"><p>
+            Hardware Summary: The motherboard BIOS then displays the following 
+            summary of its hardware inventory. And runs its Virus checking 
+            code that looks for changed boot sectors. 
+          </p></li><li class="listitem"><p>
+            BootManager Menu : The Master Boot Record (MBR) on the first hard 
+            disk is read, by DOS tradition, into address 0x00007c00, and the 
+            processor starts executing instructions there. This MBR boot code 
+            loads the first sector of code on the active DOS partition. 
+          </p></li><li class="listitem"><p>
+            Lilo is started: If the Linux selection is chosen and if Linux has 
+            been installed with Lilo, Lilo is loaded into address 0x00007c00. 
+            Lilo prints LILO with its progress revealed by individually 
+            printing the letters. The first "L" is printed after Lilo moves 
+            itself to a better location at 0x0009A000. The "I" is printed just 
+            before it starts its secondary boot loader code. Lilo's secondary 
+            boot loader prints the next "L", loads descriptors pointing to 
+            parts of the kernel, and then prints the final "O". The 
+            descriptors are placed at 0x0009d200. The boot message and a 
+            prompt line, if specified, are printed. The pressing "Tab" at the 
+            prompt, allows the user to specify a system and to provide 
+            command-line specifications to the Linux Kernel, its drivers, and 
+            the "init" program. Also, environment variables may be defined at 
+            this point. 
+            </p><pre class="programlisting">
+The following line is from /boot/message:
+&gt;
+&gt;
+&gt;
+ Press  to list available boot image labels.
+The following line is the prompt from /sbin/lilo:
+boot:
+Note: If Lilo is not used, then the boot code built into the head 
+      of the Linux kernel, linux/arch/i386/boot/bootsect.S 
+	  prints "Loading" and continues.
+Lilo displays the following as it loads the kernel code. It gets the 
+text "Linux-2.2.12" from the "label=..." specification in lilo.conf.
+Loading linux-2.2.12..........
+		  	</pre><p>
+          </p></li><li class="listitem"><p>
+            The kernel code in /linux/arch/i386/boot/setup.S arranges the 
+            transition from the processor running in real mode (DOS mode) to 
+            protected mode (full 32-bit mode). Blocks of code named 
+            Trampoline.S and Trampoline32.S help with the transition. Small 
+            kernel images (zImage) are decompressed and loaded at 0x00010000. 
+            Large kernel images (bzImage) are loaded instead at 0x00100000. 
+            This code sets up the registers, decompresses the compressed 
+            kernel (which has linux/arch/i386/head.S at its start), printing 
+            the following 2 lines from linux/arch/i386/boot/compressed/misc.c 
+            Uncompressing Linux... Ok. Booting the kernel. The i386-specific 
+            setup.S code has now completed its job and it jumps to 0x00010000 
+            (or 0x00100000) to start the generic Linux kernel code. 
+            </p><div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem"><p>
+                  Processor, Console, and Memory Initialization : This runs 
+                  linux/arch/i386/head.S which in turn jumps to 
+                  start_kernel(void) in linux/init/main.c where the interrupts 
+                  are redefined. linux/kernel/module.c then loads the drivers 
+                  for the console and pci bus. From this point on the kernel 
+                  messages are also saved in memory and available using 
+                  /bin/dmesg. They are then usually transferred to 
+                  /var/log/message for a permanent record. 
+                </p></li><li class="listitem"><p>
+                  PCI Bus Initialization : mpci_init() in linux/init/main.c 
+                  causes the following lines from 
+                  linux/arch/i386/kernel/bios32.c to be printed: 
+                </p></li><li class="listitem"><p>
+                  Network Initialization: socket_init() in linux/init/main.c 
+                  causes the following network initializations: 
+                  </p><pre class="programlisting">
+linux/net/socket.c prints:
+Linux NET4.0 for Linux 2.2
+Based upon Swansea University Computer Society NET3.039
+linux/net/unix/af_unix.c prints:
+NET4: Unix domain sockets 1.0 for Linux NET4.0.
+linux/net/ipv4/af_inet.c prints:
+NET4: Linux TCP/IP 1.0 for NET4.0
+IP Protocols: ICMP, UDP, TCP
+linux/net/ipv4/ip_gre.c prints:
+GRE over IPv4 tunneling driver
+linux/net/core/dev.c prints:
+early initialization of device gre0 is deferred
+linux/net/core/rtnetlink.c prints:
+Initializing RT netlink socket
+					</pre><p>
+                </p></li><li class="listitem"><p>
+                  The Kernel Idle Thread (Process 0) is Started : At this 
+                  point a kernel thread is started running init() which is one 
+                  of the routines defined in linux/init/main.c. This init() 
+                  must not be confused with the program /sbin/init that will 
+                  be run after the Linux kernel is up and running. 
+                  mkswapd_setup() in linux/init/main.c causes the following 
+                  line from linux/mm/vmscan.c to be printed: Starting kswapd v 
+                  1.5 
+                </p></li><li class="listitem"><p>
+                  Device Driver Initialization : The kernel routine 
+                  linux/arch/i386/kernel/setup.c then initializes devices and 
+                  file systems (built into the kernel??). It produces the 
+                  following lines and then forks to run /sbin/init: 
+                  </p><div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: circle; "><li class="listitem"><p>
+                        Generic Parallel Port Initialization : The parallel 
+                        port initialization routine 
+                        linux/drivers/misc/parport_pc.c prints the following: 
+                      </p></li><li class="listitem"><p>
+                        Character Device Initializations : The following 3 
+                        lines are from linux/drivers/char/serial.c: 
+                      </p></li><li class="listitem"><p>
+                        Block Device Initializations : 
+                        linux/drivers/block/rd.c prints: RAM disk driver 
+                        initialized: 16 RAM disks of 8192K size 
+                        linux/drivers/block/loop.c prints: loop: registered 
+                        device at major 7 linux/drivers/block/floppy.c prints: 
+                        Floppy drive(s): fd0 is 1.44M, fd1 is 1.44M FDC 0 is a 
+                        post-1991 82077 
+                      </p></li><li class="listitem"><p>
+                        SCSI Bus Initialization: The following lines are from 
+                        aic7xxx.c, scsi.c, sg.c, sd.c or sr.c in the 
+                        subdirectory linux/drivers/scsi: 
+                      </p></li></ul></div><p>
+                </p></li><li class="listitem"><p>
+                  Initialization of Kernel Support for Point-to-Point Protocol 
+                  : The following initialization is done by 
+                  linux/drivers/net/ppp.c. 
+                </p></li><li class="listitem"><p>
+                  Examination of Fixed Disk Arrangement : The following lines 
+                  are from linux/drivers/block/genhd.c: 
+                </p></li></ul></div><p>
+          </p></li><li class="listitem"><p>
+            Init Program (Process 1) Startup : The program /sbin/init is 
+            started by the "idle" process (Process 0) code in 
+            linux/init/main.c and becomes process 1. /sbin/init then completes 
+            the initialization by running scripts and forking additional 
+            processes as specified in /etc/inittab. It starts by printing: 
+            INIT: version 2.76 booting and reads /etc/inittab. 
+          </p></li><li class="listitem"><p>
+            The Bash Shell is Started : The bash shell, /bin/bash is then 
+            started up. Bash initialization begins by executing script in 
+            /etc/profile which set the system-wide environment variables: 
+          </p></li></ol></div><p>
+    </p><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="bootprocess_urls"></a>13.1. 
+        References for Boot Process 
+      </h3></div></div></div><p>
+        Refer to following resources : 
+        </p><div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem"><p>
+              <a class="ulink" href="http://www.tldp.org/HOWTO/Bootdisk-HOWTO/x1440.html" target="_top">
+                The Linux Boot Process 
+              </a>
+            </p></li><li class="listitem"><p>
+              <a class="ulink" href="http://www.tldp.org/HOWTO/Bootdisk-HOWTO/x88.html" target="_top">
+                Bootdisks and Boot Process 
+              </a>
+            </p></li><li class="listitem"><p>
+              <a class="ulink" href="http://ourworld.compuserve.com/homepages/KanjiFlash/SGVLUG.htm" target="_top">
+                Linux Boot Process - by San Gabreil LUG 
+              </a>
+            </p></li><li class="listitem"><p>
+              <a class="ulink" href="http://www.linuxnetmag.com/en/issue4/m4boot1.html" target="_top">
+                Boot Process (Netmag) 
+              </a>
+            </p></li><li class="listitem"><p>
+              <a class="ulink" href="http://oldfield.wattle.id.au/luv/boot.html" target="_top">
+                Boot Process (LUG Victoria) 
+              </a>
+            </p></li></ul></div><p>
+      </p></div></div><div class="navfooter"><hr><table width="100%" summary="Navigation footer"><tr><td width="40%" align="left"><a accesskey="p" href="ar01s12.html">Prev</a> </td><td width="20%" align="center"> </td><td width="40%" align="right"> <a accesskey="n" href="ar01s14.html">Next</a></td></tr><tr><td width="40%" align="left" valign="top">12. 
+      Install, Upgrade at Speed of Light With apt-get (Redhat, Debian, Suse, 
+      Mandrake, Others) 
+     </td><td width="20%" align="center"><a accesskey="h" href="index.html">Home</a></td><td width="40%" align="right" valign="top"> 14. 
+      Other Formats of this Document 
+    </td></tr></table></div></body></html>

@@ -1,0 +1,72 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1"><title>6. For graphic cards without DRI</title><link rel="stylesheet" type="text/css" href="style.css"><meta name="generator" content="DocBook XSL Stylesheets V1.79.1"><link rel="home" href="index.html" title="XFree Local Multi-User HOWTO"><link rel="up" href="ch04.html" title="Chapter 4. Setting up the X servers"><link rel="prev" href="ch04s05.html" title="5. Using independent mice with XFree"><link rel="next" href="ch04s07.html" title="7. Nvidia GLX &amp; DRI"></head><body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF"><div class="navheader"><table width="100%" summary="Navigation header"><tr><th colspan="3" align="center">6. For graphic cards without DRI</th></tr><tr><td width="20%" align="left"><a accesskey="p" href="ch04s05.html">Prev</a> </td><th width="60%" align="center">Chapter 4. Setting up the X servers</th><td width="20%" align="right"> <a accesskey="n" href="ch04s07.html">Next</a></td></tr></table><hr></div><div class="sect1"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="no_dri"></a>6. For graphic cards without DRI</h2></div></div></div><p>(or reusing Xinerama configured XFree)</p><p>There could be several reasons for not using DRI:</p><p></p><div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem"><p>As far I know only one graphic card in a system can use DRI.</p></li><li class="listitem"><p>The Nvidia closed source driver does not support DRI. </p></li></ul></div><p>In case one of this reasons applies to your system, you do not need different XFree configuration files for the different displays.</p><p>You can configure your system for Xinerama using the tools provided with your distribution and reading <a class="ulink" href="http://www.tldp.org/HOWTO/Xinerama-HOWTO/index.html" target="_top">The Xinerama-HOWTO</a>, so when the system is used by a single user, he/she could switch to Xinerama desktop and use all available displays for a bigger desktop. </p><p>Once configured for Xinerama, only small additions are needed to achieve multiple independent desktops. All you have to do is to add new layouts which use single screen definition and have independent input devices (well, this is actually needed only for the mouse devices, as the keyboard is managed through the <code class="option">vt[n]</code> option).</p><p>If you have configured Xinerama in the following way:</p><pre class="programlisting">Section "ServerLayout"
+    Identifier  "Simple Layout"
+    Screen "Screen 2"
+    Screen "Screen 1" RightOf "Screen 2"
+    InputDevice "Mouse1" "CorePointer"
+    InputDevice "Keyboard1" "CoreKeyboard"
+EndSection</pre><p>To achieve multiple independent desktops you only have to add layout definitions for a single screen :</p><pre class="programlisting">Section "ServerLayout"
+    Identifier  "first-Xserver"
+    Screen "Screen 1"
+    InputDevice "Mouse1" "CorePointer"
+    InputDevice "Keyboard1" "CoreKeyboard"
+EndSection
+
+Section "ServerLayout"
+    Identifier  "second-Xserver"
+    Screen "Screen 2"
+    InputDevice "Mouse2" "CorePointer"
+    InputDevice "Keyboard1" "CoreKeyboard"
+EndSection</pre><p>Which should result in these layout definitions:</p><pre class="programlisting">Section "ServerLayout"
+    Identifier  "Xinerama"
+    Screen "Screen 2"
+    Screen "Screen 1" RightOf "Screen 2"
+    InputDevice "Mouse1" "CorePointer"
+    InputDevice "Keyboard1" "CoreKeyboard"
+EndSection
+
+Section "ServerLayout"
+    Identifier  "first-Xserver"
+    Screen "Screen 1"
+    InputDevice "Mouse1" "CorePointer"
+    InputDevice "Keyboard1" "CoreKeyboard"
+EndSection
+
+Section "ServerLayout"
+    Identifier  "second-Xserver"
+    Screen "Screen 2"
+    InputDevice "Mouse2" "CorePointer"
+    InputDevice "Keyboard1" "CoreKeyboard"
+EndSection</pre><p>Now you can start a single X server with option <code class="option">-layout Xinerama</code> and enjoy the Xinerama desktop, or</p><p>You can start 2 independent X servers using <code class="option">-layout first-Xserver</code> for the first, and <code class="option">-layout second-Xserver</code> for the second. </p><p>Since you will use a single XFree configuration file for all X servers, </p><div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem"><p>in order to use independent keyboards you have to use following command:</p><p>For 1st X server with the 1st keyboard:</p><p><span class="command"><strong>$ startx -- /usr/X11R6/bin/X0 :0  -layout first-Xserver vt7</strong></span></p><p>For 2nd X server with the 2nd keyboard:</p><p><span class="command"><strong>$ startx -- /usr/X11R6/bin/X1 :1 -layout second-Xserver vt17</strong></span></p><p>and if you want to use Xinerama:</p><p><span class="command"><strong>$ startx -- /usr/X11R6/bin/X -layout Xinerama vt7</strong></span></p></li><li class="listitem"><div class="note" style="margin-left: 0.5in; margin-right: 0.5in;"><h3 class="title">Note</h3><p>For older versions of Backstreet Ruby you have to use:</p><p>For 1st X server with the 1st keyboard:</p><p><span class="command"><strong>$ startx -- /usr/X11R6/bin/X0 :0  -layout first-Xserver vt7</strong></span></p><p>For 2nd X server with the 2nd keyboard:</p><p><span class="command"><strong>$ startx -- /usr/X11R6/bin/X1 :1 -layout second-Xserver vt8</strong></span></p></div></li><li class="listitem"><p>also the mice must have different identifiers:</p><pre class="programlisting">------------------------------------------------------------------------------------------------
+
+# **********************************************************************
+# Pointer section
+# **********************************************************************
+
+Section "InputDevice"
+
+    Identifier  "Mouse1"
+    Driver      "mouse"
+    Option "Protocol"    "IMPS/2"
+    Option "Device"      "/dev/input/mouse0"
+    Option "ZAxisMapping" "4 5"
+
+# ChordMiddle is an option for some 3-button Logitech mice
+    Option "Emulate3Buttons"
+#    Option "ChordMiddle"
+
+EndSection
+
+Section "InputDevice"
+
+    Identifier  "Mouse2"
+    Driver      "mouse"
+    Option "Protocol"    "IMPS/2"
+    Option "Device"      "/dev/input/mouse1"
+    Option "ZAxisMapping" "4 5"
+
+# ChordMiddle is an option for some 3-button Logitech mice
+    Option "Emulate3Buttons"
+#    Option "ChordMiddle"
+
+EndSection
+-----------------------------------------------------------------------------------------------</pre></li></ul></div></div><div class="navfooter"><hr><table width="100%" summary="Navigation footer"><tr><td width="40%" align="left"><a accesskey="p" href="ch04s05.html">Prev</a> </td><td width="20%" align="center"><a accesskey="u" href="ch04.html">Up</a></td><td width="40%" align="right"> <a accesskey="n" href="ch04s07.html">Next</a></td></tr><tr><td width="40%" align="left" valign="top">5. Using independent mice with XFree </td><td width="20%" align="center"><a accesskey="h" href="index.html">Home</a></td><td width="40%" align="right" valign="top"> 7. Nvidia GLX &amp; DRI</td></tr></table></div></body></html>

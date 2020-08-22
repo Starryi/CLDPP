@@ -1,0 +1,609 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1"><title>Custom Linux: A Porting Guide</title><link rel="stylesheet" type="text/css" href="style.css"><meta name="generator" content="DocBook XSL Stylesheets V1.79.1"></head><body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF"><div class="book"><div class="titlepage"><div><div><h1 class="title"><a name="cpg"></a>Custom Linux: A Porting Guide</h1></div><div><h2 class="subtitle">Porting LinuxPPC to a Custom SBC</h2></div><div><div class="authorgroup"><div class="author"><h3 class="author"><span class="firstname">Shie</span> <span class="surname">Erlich</span></h3><div class="affiliation"><div class="address"><p><br>
+<code class="email">&lt;<a class="email" href="mailto:shie@myrealbox.com">shie@myrealbox.com</a>&gt;</code><br>
+          </p></div></div></div><div class="othercredit"><h3 class="othercredit"><span class="firstname">Rafi Yanai</span></h3><span class="contrib">my partner in the porting process</span> </div><div class="othercredit"><h3 class="othercredit"><span class="firstname">Avi Rubenbach</span></h3><span class="contrib">without whom this wouldn't be possible</span> </div></div></div><div><div class="revhistory"><table style="border-style:solid; width:100%;" summary="Revision History"><tr><th align="left" valign="top" colspan="3"><b>Revision History</b></th></tr><tr><td align="left">Revision 2.1</td><td align="left">2003-03-08</td><td align="left">gjf</td></tr><tr><td align="left" colspan="3">Modified code example per author</td></tr><tr><td align="left">Revision 2.0</td><td align="left">2002-06-13</td><td align="left">tab</td></tr><tr><td align="left" colspan="3">Added GFDL per author</td></tr><tr><td align="left">Revision 1.0</td><td align="left">2002-05-13</td><td align="left">SE</td></tr><tr><td align="left" colspan="3">Initial release</td></tr></table></div></div></div><hr></div><div class="toc"><p><b>Table of Contents</b></p><dl class="toc"><dt><span class="chapter"><a href="#idm35">1. Introduction</a></span></dt><dd><dl><dt><span class="sect1"><a href="#idm37">1. Who needs to read this ?</a></span></dt><dt><span class="sect1"><a href="#idm40">2. What do I need to know (why so much) ?</a></span></dt><dt><span class="sect1"><a href="#idm63">3. The tools</a></span></dt><dt><span class="sect1"><a href="#idm86">4. The hardware</a></span></dt><dt><span class="sect1"><a href="#idm114">5. Copyright &amp; License</a></span></dt></dl></dd><dt><span class="chapter"><a href="#idm119">2. Bootcamp: How To Begin ?</a></span></dt><dd><dl><dt><span class="sect1"><a href="#idm121">1. Creating a development environment</a></span></dt><dt><span class="sect1"><a href="#idm136">2. Compiling the first kernel</a></span></dt><dt><span class="sect1"><a href="#idm149">3. Booting the machine</a></span></dt></dl></dd><dt><span class="chapter"><a href="#idm184">3. Booting In The Dark</a></span></dt><dd><dl><dt><span class="sect1"><a href="#idm186">1. Debugging with print_str()</a></span></dt><dt><span class="sect1"><a href="#idm197">2. Modifying code using compiler flags</a></span></dt><dt><span class="sect1"><a href="#idm205">3. Getting the console to work</a></span></dt><dd><dl><dt><span class="sect2"><a href="#idm207">3.1. Forcing the kernel to boot our-way</a></span></dt><dt><span class="sect2"><a href="#idm219">3.2. Non-standard hardware - just say no!</a></span></dt><dt><span class="sect2"><a href="#idm227">3.3. Let there be light: calculating baud rate</a></span></dt></dl></dd></dl></dd><dt><span class="chapter"><a href="#idm233">4. Linux Still Isn't Booting</a></span></dt><dd><dl><dt><span class="sect1"><a href="#idm235">1. Memory probing, RTC and decrementors</a></span></dt><dt><span class="sect1"><a href="#idm247">2. Big-little endian (we should have known)</a></span></dt><dd><dl><dt><span class="sect2"><a href="#idm249">2.1. Probing the CPC700</a></span></dt><dt><span class="sect2"><a href="#idm254">2.2. Making CPC700 speak little-endian</a></span></dt></dl></dd><dt><span class="sect1"><a href="#idm259">3. Ethernet: our first PCI device</a></span></dt><dt><span class="sect1"><a href="#idm273">4. Some Miscellaneous Issues</a></span></dt></dl></dd><dt><span class="chapter"><a href="#idm293">5. Linux Is Booting ... What Now ?</a></span></dt><dd><dl><dt><span class="sect1"><a href="#idm295">1. The 64 bit barrier</a></span></dt><dt><span class="sect1"><a href="#idm305">2. Booting from flash</a></span></dt></dl></dd><dt><span class="appendix"><a href="#gfdl">A. GNU Free Documentation License</a></span></dt><dd><dl><dt><span class="sect1"><a href="#gfdl-0">1. PREAMBLE</a></span></dt><dt><span class="sect1"><a href="#gfdl-1">2. APPLICABILITY AND DEFINITIONS</a></span></dt><dt><span class="sect1"><a href="#gfdl-2">3. VERBATIM COPYING</a></span></dt><dt><span class="sect1"><a href="#gfdl-3">4. COPYING IN QUANTITY</a></span></dt><dt><span class="sect1"><a href="#gfdl-4">5. MODIFICATIONS</a></span></dt><dt><span class="sect1"><a href="#gfdl-5">6. COMBINING DOCUMENTS</a></span></dt><dt><span class="sect1"><a href="#gfdl-6">7. COLLECTIONS OF DOCUMENTS</a></span></dt><dt><span class="sect1"><a href="#gfdl-7">8. AGGREGATION WITH INDEPENDENT WORKS</a></span></dt><dt><span class="sect1"><a href="#gfdl-8">9. TRANSLATION</a></span></dt><dt><span class="sect1"><a href="#gfdl-9">10. TERMINATION</a></span></dt><dt><span class="sect1"><a href="#gfdl-10">11. FUTURE REVISIONS OF THIS LICENSE</a></span></dt><dt><span class="sect1"><a href="#gfdl-11">12. How to use this License for your documents</a></span></dt></dl></dd><dt><span class="appendix"><a href="#trademarks">B. Trademarks</a></span></dt></dl></div><div class="chapter"><div class="titlepage"><div><div><h1 class="title"><a name="idm35"></a>Chapter 1. Introduction</h1></div></div></div><div class="toc"><p><b>Table of Contents</b></p><dl class="toc"><dt><span class="sect1"><a href="#idm37">1. Who needs to read this ?</a></span></dt><dt><span class="sect1"><a href="#idm40">2. What do I need to know (why so much) ?</a></span></dt><dt><span class="sect1"><a href="#idm63">3. The tools</a></span></dt><dt><span class="sect1"><a href="#idm86">4. The hardware</a></span></dt><dt><span class="sect1"><a href="#idm114">5. Copyright &amp; License</a></span></dt></dl></div><div class="sect1"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="idm37"></a>1. Who needs to read this ?</h2></div></div></div><p>This guide describes a work in progress, to port Linux to a custom PowerPC-based board.
+This means making the operating system work on unfamiliar hardware. Anyone who is on
+the same track might benefit from reading this paper, as it highlights the pitfalls
+and problematic points along the way.</p></div><div class="sect1"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="idm40"></a>2. What do I need to know (why so much) ?</h2></div></div></div><p>Before attempting to port Linux, know at least the following:
+(whenever possible, a link to a proper information source is attached)</p><div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem"><p>Hardware: know what hardware you've got, how it works (if it works),
+   and how is it initialized. Get all the hardware manuals you can - you'll probably need them.
+   Also, never assume the hardware works the way it supposed to ! Hardware people do the
+   darnest things :-(</p></li><li class="listitem"><p>Basic understanding of drivers and how they work in Linux. Programming
+   knowledge of simple drivers is an advantage - but not a must.
+   <a class="ulink" href="http://www.tldp.org/HOWTO/Module-HOWTO/index.html" target="_top">http://www.tldp.org/HOWTO/Module-HOWTO/index.html</a></p></li><li class="listitem"><p>How to work with Vision-ICE, how configure it and use it to load a binary
+   kernel into the target RAM. Also, at the beginning, you'll need to know how to
+   use ICE to debug in assembly.</p></li><li class="listitem"><p>How to compile and configure a Linux kernel.
+   <a class="ulink" href="http://www.tldp.org/HOWTO/Kernel-HOWTO.html" target="_top">http://www.tldp.org/HOWTO/Kernel-HOWTO.html</a></p></li><li class="listitem"><p>The Linux boot process.
+   <a class="ulink" href="http://www.tldp.org/HOWTO/BootPrompt-HOWTO.html" target="_top">http://www.tldp.org/HOWTO/BootPrompt-HOWTO.html</a></p></li><li class="listitem"><p>Working knowledge of C programming is a must. Some assembly is sure to
+   help. Also, it is best to get to know Makefiles. They tend to raise their ugly head once
+   in a while.</p></li><li class="listitem"><p>The Internet is your friend. All the information you need is probably on
+   the net. You just have to know how to find it. Google is a good way to start; mailing
+   lists and news groups usually keep the real gold.</p></li><li class="listitem"><p>How to install Linux, configure it, administrate it and basically take
+   care of everything it needs. This guide does not cover anything regarding system
+   administration, setting up a server etc.</p></li></ul></div></div><div class="sect1"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="idm63"></a>3. The tools</h2></div></div></div><p>This section describes the tools we used during the process. Most are trivial to
+install and use. When neccesary, consult the appropriate url or manual.</p><div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem"><p><span class="emphasis"><em>HardHat Linux</em></span>: First and foremost, HHLinux, now known
+   as MontaVista Linux, is the distribution we started with. The distribution contains LSPs (same as BSPs)
+   for PowerPC in a number of board configurations. For porting to our board, we took the LSP which
+   is closest in hardware to our Artysyn PMPPC board, and started from there.</p></li><li class="listitem"><p><span class="emphasis"><em>LXR</em></span>: This is THE killer tool, which allowed us to port
+   Linux in a very short time. LXR is a cross referencer, which means it reads a piece of code
+   (the Linux kernel, for example), and then allows browsing the code, searching through it and
+   much more. I cannot emphasize enough how important this tool is. To see what the end
+   result looks like, look at <a class="ulink" href="http://lxr.linux.no/source" target="_top">http://lxr.linux.no/source</a>. LXR itself
+   can be downloaded at <a class="ulink" href="http://lxr.sf.net" target="_top">http://lxr.sf.net</a></p></li><li class="listitem"><p><span class="emphasis"><em>VisionICE</em></span>: A hardware debugger, which has the ability
+   to stop, run and add breakpoint straight in the CPU. VisionIce is very usuful when no operating
+   system is running, and allows to step in the kernel during boot process. The application can also be used to
+   take a binary image of a kernel, load it into the target's RAM memory and run it - useful
+   when you've got no boot loader.</p></li><li class="listitem"><p><span class="emphasis"><em>CVS</em></span>: A version control system, allows you to keep
+   multiple versions of the code. Other than backing up the code, it allows diffing between
+   different version, and reverting to older version, when needed.</p></li><li class="listitem"><p>A terminal program, like <span class="application">HyperTerminal</span> or <span class="application">ProCOMM</span>
+   for Windows&#8482;, or <span class="application">minicom</span> for Linux.</p></li></ul></div></div><div class="sect1"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="idm86"></a>4. The hardware</h2></div></div></div><p>The board is based on PPC750 (PowerPC) processor. It is 6U VME64 standard. The board is designed to
+host two PCI Mezzanine cards (CCPMC) - Mezzanine cards that comply with Std CCPMC1386 can be attached.</p><div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem"><p>COP connector.</p></li><li class="listitem"><p>1 MB of L2 cache.</p></li><li class="listitem"><p>CPC700 system controller.</p></li><li class="listitem"><p>128 MB SDRAM with ECC.</p></li><li class="listitem"><p>Flash memory, divided to boot flash and user flash.</p></li><li class="listitem"><p>NVRAM memory.</p></li><li class="listitem"><p>I/O discretes.</p></li><li class="listitem"><p>RS232 channels.</p></li><li class="listitem"><p>General purpose registers.</p></li><li class="listitem"><p>PCI 2.1 local bus.</p></li><li class="listitem"><p>10/100 BaseT ethernet channel.</p></li><li class="listitem"><p>VME64 system bus.</p></li></ul></div></div><div class="sect1"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="idm114"></a>5. Copyright &amp; License</h2></div></div></div><p>Copyright (c) 2002 Shie Elrich</p><p>Permission is granted to copy, distribute and/or modify this document
+      under the terms of the GNU Free Documentation License, Version 1.1
+      or any later version published by the Free Software Foundation;
+      with no Invariant Sections, no Front-Cover Texts, and no Back-Cover Texts.
+      A copy of the license is included in <a class="xref" href="#gfdl" title="Appendix A. GNU Free Documentation License">Appendix A, <i>GNU Free Documentation License</i></a>.
+</p></div></div><div class="chapter"><div class="titlepage"><div><div><h1 class="title"><a name="idm119"></a>Chapter 2. Bootcamp: How To Begin ?</h1></div></div></div><div class="toc"><p><b>Table of Contents</b></p><dl class="toc"><dt><span class="sect1"><a href="#idm121">1. Creating a development environment</a></span></dt><dt><span class="sect1"><a href="#idm136">2. Compiling the first kernel</a></span></dt><dt><span class="sect1"><a href="#idm149">3. Booting the machine</a></span></dt></dl></div><div class="sect1"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="idm121"></a>1. Creating a development environment</h2></div></div></div><p>The minimum requirments are obviously a development station and a target. However,
+the recommended way of working is having a third host which acts as a server. The server
+runs several services such as ftp, telnet, NFS, tftp (if needed) and CVS. The main role of
+the server is to run CVS and track version control, however once you can boot the target
+from network, the server will also hold the target images, and filesystem,
+which makes development much easier.</p><p>Regardless, the first step is to install a tool-chain (compiler, linker etc.) for your 
+target. The HardHat Linux cdrom includes all the needed files, and the installation sequence
+is documented in the HardHat Linux documentation. During the installation, you must select 
+your LSP (basic software for the selected board), and HardHat will install a set of tools 
+and a kernel source tree matching your LSP.</p><p>We had a board that had vxWorks running on it, so we setup the target to boot 
+using the standard vxWorks loader. Once the loader initiated, we used visionICE to take-over 
+the target (so that vxWorks won't load an image file) and load a Linux image into the target. 
+What you need to do at this point is get an ICE, connect it to the network and to the target -
+through a JTAG connection - and install the ICE software on your host.</p><p>What should have been done so far:</p><div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem"><p>A Linux host installed, and the HardHat tool-chain.</p></li><li class="listitem"><p>A working target (hardware should be functional)</p></li><li class="listitem"><p>ICE is connected to the target and the network and its software usable.</p></li><li class="listitem"><p>Optionally, a server running CVS, telnetd, NFS and FTP.</p></li></ul></div></div><div class="sect1"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="idm136"></a>2. Compiling the first kernel</h2></div></div></div><p>If you've installed the Linux kernel that comes with HardHat, then cross-compiling
+should already be enabled in the kernel <code class="filename">Makefile</code>. If your
+kernel is not from the HardHat CD, you should enable cross-compiling in the
+<code class="filename">Makefile</code> by defining a CROSS_COMPILE entry in the following manner:
+(a code segment from the main Makefile)</p><pre class="programlisting">
+
+CROSS_COMPILE 	= /opt/hardhat/devkit/ppc/7xx/bin/ppc_7xx-
+AS		= $(CROSS_COMPILE)as
+LD		= $(CROSS_COMPILE)ld
+CC		= $(CROSS_COMPILE)gcc
+
+</pre><p>The Linux kernel is modular, and allows you to configure it and choose which <span class="quote">&#8220;<span class="quote">blocks</span>&#8221;</span> 
+should be compiled with the kernel. In order to do this, first <span class="command"><strong>cd /usr/src/linux</strong></span>
+(assuming your kernel source code is installed at /usr/src/linux). Once there, type
+<span class="command"><strong>make xconfig</strong></span>.After saving your options, you should <span class="command"><strong>make vmlinux</strong></span>
+to create a kernel image suitably for using with VisionICE.</p><p>We will not go into more details here, as it's outside the scope of this document.
+For more information, try <a class="ulink" href="http://www.tldp.org/HOWTO/Kernel-HOWTO.html" target="_top">http://www.tldp.org/HOWTO/Kernel-HOWTO.html</a></p></div><div class="sect1"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="idm149"></a>3. Booting the machine</h2></div></div></div><p>First, configure the terminal program, in our case <span class="application">minicom</span>,
+the following way: 9600 bps, 8 bits, no parity, 1 stop bit and no flow control of any kind.
+The serial port in Linux should be <code class="filename">/dev/ttyS0</code> for <code class="envar">COM1</code>,
+<code class="filename">/dev/ttyS1</code> for <code class="envar">COM2</code> etc.</p><p>Start the target. You should see the vxWorks bootloader on your terminal screen, and
+should be able to stop the boot sequence by pressing the space bar.</p><div class="note" style="margin-left: 0.5in; margin-right: 0.5in;"><h3 class="title">Note</h3><p>We <span class="emphasis"><em>cannot use the vxWorks bootloader to load a Linux kernel</em></span> since
+it looks in the ELF header and loads the image to the address written there. However, the Linux
+kernel, which uses virtual memory, is linked to a high-memory address, and vxWorks can't
+handle that.</p></div><p>Once the target is stopped, run the <span class="application">VisionICE</span> software
+and perform the following steps:
+</p><div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem"><p>Initialize the target by pressing <span class="command"><strong>Target|Initialize</strong></span></p></li><li class="listitem"><p>Press <span class="command"><strong>File|Load Executable</strong></span>. A dialog box will open,
+   asking you to choose a file. Please choose your kernel image (vmlinux). Before pressing
+   <span class="command"><strong>Load</strong></span>, don't forget to enter a value in the <em class="parameter"><code>+/- Bias</code></em> field.
+   </p><div class="tip" style="margin-left: 0.5in; margin-right: 0.5in;"><h3 class="title">Tip</h3><p>The bias field makes it possible to tell ICE to load a certain image in a different
+   address than what's stated in the ELF binary. We wanted to load the kernel into address
+   <code class="envar">0x300000</code>, and since the binary was linked to <code class="envar">0xC0000000</code>, we entered
+   <code class="envar">-0xBFD00000</code>.</p></div></li><li class="listitem"><p>Once the image is loaded succesfully, you can press <span class="command"><strong>Run</strong></span>
+   or <span class="command"><strong>Step</strong></span> to start executing your kernel.</p></li></ul></div><p>
+
+After pressing the <span class="command"><strong>Run</strong></span> button, nothing happened. At that moment, and for some time after, it
+seemed that nothing was happening and the kernel was stuck. We used ICE to step through the
+initialization code of the kernel and rule out some potential problems, like virtual memory
+errors, only to finally discover that the problem was simple: the kernel was indeed booting
+but since the console (tty) driver had problems, we couldn't see anything!
+
+</p><div class="caution" style="margin-left: 0.5in; margin-right: 0.5in;"><h3 class="title">Caution</h3><p>VisionICE is not the correct tool to use when debugging Linux. ICE doesn't know
+about virtual memory and protected mode (at least the version we had), and since the Linux
+kernel turns on virtual memory very early, ICE is only useful for debugging the first assembler
+statements. After VM is turned on, ICE starts crashing and giving wierd results. </p></div><p>
+</p></div></div><div class="chapter"><div class="titlepage"><div><div><h1 class="title"><a name="idm184"></a>Chapter 3. Booting In The Dark</h1></div></div></div><div class="toc"><p><b>Table of Contents</b></p><dl class="toc"><dt><span class="sect1"><a href="#idm186">1. Debugging with print_str()</a></span></dt><dt><span class="sect1"><a href="#idm197">2. Modifying code using compiler flags</a></span></dt><dt><span class="sect1"><a href="#idm205">3. Getting the console to work</a></span></dt><dd><dl><dt><span class="sect2"><a href="#idm207">3.1. Forcing the kernel to boot our-way</a></span></dt><dt><span class="sect2"><a href="#idm219">3.2. Non-standard hardware - just say no!</a></span></dt><dt><span class="sect2"><a href="#idm227">3.3. Let there be light: calculating baud rate</a></span></dt></dl></dd></dl></div><div class="sect1"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="idm186"></a>1. Debugging with print_str()</h2></div></div></div><p>As stated in the previous chapter, the machine starts to boot, but nothing happens. At least, nothing
+that we can see. The screen is blank and no kernel messages appear. At this point, you have to ask yourself,
+is it really booting?</p><p>Since the console wouldn't start, and ICE died real fast, we had no choice. We had to debug somehow,
+and the oldest way is good here - printing to the screen. Obviously, we couldn't use <code class="function">printk()</code>, so we wrote a short function which pushes characters straight into the serial port. We used the boot process <span class="quote">&#8220;<span class="quote">map</span>&#8221;</span> shown in the previous section, and inserted some prints along the way. This helped us to know at what stage we are completing and where we're dying. The following piece of code prints a single character to the serial port, by polling it and waiting for it to be free.
+
+</p><pre class="programlisting">
+
+                                 /* tx holding reg empty or tx    */
+#define LSR_THREMPTY 0x20        /* fifo is empty (in fifo mode ) */
+#define THR_REG      0x00        /* Transmit holding reg */
+#define LSR_REG      0x05        /* Line status reg */
+#define COM1_ADDRESS 0xFF600300  /* == replace with your UART address */
+
+void print_char (char ch) {
+	volatile  unsigned char status = 0;
+	/* wait until txempty */
+	while ((status &amp; LSR_THREMPTY ) == 0)
+		status = *((volatile unsigned char *)(COM1_ADDRESS + LSR_REG));
+
+	*((volatile unsigned char *)(COM1_ADDRESS + THR_REG)) = ch;
+}
+
+</pre><p>
+
+</p><div class="note" style="margin-left: 0.5in; margin-right: 0.5in;"><h3 class="title">Note</h3><p>There's a better code for printing directly to the serial port, however, it's a bit
+more complicated. You can find it in arch/ppc/boot/common/misc-common.c, using <code class="function">puts()</code> or 
+<code class="function">putc()</code>.</p></div><p>
+</p></div><div class="sect1"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="idm197"></a>2. Modifying code using compiler flags</h2></div></div></div><p>Although it is not a porting issue, the way you modify your code matters. It's easier if you do it right the
+first time. The Linux kernel uses standard configuration flags CONFIG_XXXX (like CONFIG_PPC, CONFIG_ISA etc),
+which are used to mark a certain machine, architecture or device. We defined ourselves a new flag (let's call
+it CONFIG_TESTMACH), and surrounded our new/modified code with these flags:
+
+</p><pre class="programlisting">
+
+....original code....
+#ifdef CONFIG_TESTMACH
+....modified code....
+#else
+....original code....
+#endif /* CONFIG_TESTMACH */
+
+</pre><p>
+
+To <span class="quote">&#8220;<span class="quote">activate</span>&#8221;</span> our code, we added the new flag to the kernel configuration file - <code class="filename">.config</code> -
+by adding <span class="command"><strong>CONFIG_TESTMACH=y</strong></span> to it. In the first stage, this solution allows you a quick
+way to find the code you changed, but later the flag you chose will allow you to add your code into the
+kernel tree and into the configuration program (<span class="command"><strong>make xconfig</strong></span>).</p></div><div class="sect1"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="idm205"></a>3. Getting the console to work</h2></div></div></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="idm207"></a>3.1. Forcing the kernel to boot our-way</h3></div></div></div><p>Once we discovered the kernel was indeed booting, but the console wasn't printing, it was time to begin.
+First, we forced the kernel to boot using a specified configuration for the serial port,
+in our case <code class="envar">9600n1</code>, and did not allow any command line options or boot time considerations etc.</p><p>The first place to go is <code class="filename">drivers/char/tty_io.c</code>, to <code class="function">console_init()</code>.
+This function determines the console configuration at startup. Here's a small part of it:
+
+</p><pre class="programlisting">
+
+memset(, 0, sizeof(struct termios));
+memcpy(tty_std_termios.c_cc, INIT_C_CC, NCCS);
+tty_std_termios.c_iflag = ICRNL | IGNPAR;
+tty_std_termios.c_oflag = OPOST | ONLCR;
+tty_std_termios.c_cflag = CLOCAL | B9600 | CS8 | CREAD;
+tty_std_termios.c_cflag &amp;= ~(CRTSCTS);
+tty_std_termios.c_lflag = ISIG | ICANON | ECHO | ECHOE | ECHOK | ECHOCTL | ECHOKE | IEXTEN;
+tty_std_termios.c_iflag = ICRNL | IXON;
+tty_std_termios.c_oflag = OPOST | ONLCR;
+tty_std_termios.c_cflag = B38400 | CS8 | CREAD | HUPCL;
+tty_std_termios.c_lflag = ISIG | ICANON | ECHO | ECHOE | ECHOK | ECHOCTL | ECHOKE | IEXTEN;
+
+</pre><p>
+
+The first (naive) thing we tried, was to configure the console the way we wanted.
+<span class="emphasis"><em>Of course, this didn't help us much ;-)</em></span></p><p>Disappointed but not discouraged, we remembered that we didn't have a bootloader yet, and that we didn't
+really know if any option was being  passed on to the kernel. <span class="quote">&#8220;<span class="quote">Maybe the kernel gets some garbage for command line?</span>&#8221;</span> 
+we (again, naively) thought. So we tried to stop the kernel from parsing command-line options, and manually
+inserted our command line. <span class="emphasis"><em>This didn't help us much ;-)</em></span></p></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="idm219"></a>3.2. Non-standard hardware - just say no!</h3></div></div></div><p>At that point, we didn't have a console, but we had time. So we dove a bit deeper into the console
+issues. Looking at <code class="filename">drivers/char/serial.c</code>, 
+we came across <code class="function">serial_console_setup()</code>. This function, apart from parsing command-line
+options, also configures the serial port by writing directly to it. Our hardware people 
+decided it was a good time to let us know that our serial port wasn't standard. The lines that are used for
+flow control were not connected.  We decided to remark-out the following line, which sets the RTS and DTR
+lines high, because we just didn't have them.
+
+</p><pre class="programlisting">serial_out(info, UART_MCR, UART_MCR_DTR | UART_MCR_RTS);</pre><p>
+<span class="emphasis"><em>Ofcourse, this didn't help us much :-(</em></span>
+The lesson learned here was <span class="emphasis"><em>check, check, check your hardware!</em></span>.  Custom boards might
+not be standard, and the porting will go a lot quicker if you know about it.</p></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="idm227"></a>3.3. Let there be light: calculating baud rate</h3></div></div></div><p>Finally, we decided to check the baudrate. Did Linux mean what we thought it meant when it said
+9600? Possibly not, since we didn't know how it computed that value. We've noticed that the file(s)
+<code class="filename">include/asm-ppc/pmppc_serial.h</code>  (replace pmppc with your board name) included a definition
+of <code class="envar">BAUDBASE</code>, which is later used for everything regarding serial ports. It was computed
+using the board's local bus frequency, bus clock to system clock ratio etc. This seemed wrong, so we checked 
+out what the base baud was in a vxWorks system we had running on the board, and changed it to:
+
+</p><pre class="programlisting">
+
+/*
+ * system clock = 33Mhz, serial clock = system clock / 4
+ * the following must hold: (divisor * BaudRate) == (System clock / 64)
+ */
+#define BASE_BAUD (33000000 / 4 / 16)
+
+</pre><p>
+
+A quick compilation, and a reboot later we had a booting kernel visible through our serial port.  Success!
+</p></div></div></div><div class="chapter"><div class="titlepage"><div><div><h1 class="title"><a name="idm233"></a>Chapter 4. Linux Still Isn't Booting</h1></div></div></div><div class="toc"><p><b>Table of Contents</b></p><dl class="toc"><dt><span class="sect1"><a href="#idm235">1. Memory probing, RTC and decrementors</a></span></dt><dt><span class="sect1"><a href="#idm247">2. Big-little endian (we should have known)</a></span></dt><dd><dl><dt><span class="sect2"><a href="#idm249">2.1. Probing the CPC700</a></span></dt><dt><span class="sect2"><a href="#idm254">2.2. Making CPC700 speak little-endian</a></span></dt></dl></dd><dt><span class="sect1"><a href="#idm259">3. Ethernet: our first PCI device</a></span></dt><dt><span class="sect1"><a href="#idm273">4. Some Miscellaneous Issues</a></span></dt></dl></div><div class="sect1"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="idm235"></a>1. Memory probing, RTC and decrementors</h2></div></div></div><p> Now that the console was working, we could see the real problems. The system wasn't booting yet. Since we were working with C code, we traced the code, and found that a function called <code class="function">sdram_size()</code> wasn't completing correctly.  The function probed a register for the size of the RAM, a register our board doesn't have.  We made the function return a given value of 128MB, it's an ugly hack, but our board doesn't have a way of knowing the amount of RAM.</p><p>Wwe had the same problems with a bunch of functions called todc_XXXX, mainly
+<code class="function">todc_get_rtc_time()</code>, <code class="function">todc_set_rtc_time()</code>, and <code class="function">time_init()</code> since we don't have a RTC (real-time clock) chip on our board, and those functions were using it. For the time being, we made the <code class="function">todc_XXX</code> function only set and get a constant date and time, since our board doesn't have a bios battery and so cannot keep time when powered off.</p><p>Once all this was done, we found <code class="function">todc_calibrate_descr()</code>, which again uses the RTC chip. We had to replace that function with our own:
+
+</p><pre class="programlisting">
+
+void calibrate_decr() {
+	int freq, divisor;
+	freq = bus_freq();
+	divisor = 4;
+	tb_ticks_per_jiffy = freq / HZ / divisor;
+	tb_to_us = mulhwu_scale_factor(freq / divisor, 1000000);
+}
+
+</pre></div><div class="sect1"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="idm247"></a>2. Big-little endian (we should have known)</h2></div></div></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="idm249"></a>2.1. Probing the CPC700</h3></div></div></div><p>Finally, we reached the PCI-probing part of the boot process, only to discover that it didn't work. We tried communicating with the CPC700 using <code class="function">cpc700_read_local_pci_cfgb()</code>, which was supplied along with the PMPPC's LSP, and tried to read CPC's config register.  We should have gotten <code class="envar">0x1014</code>, which is the vendor ID, but we didn't. We realized that we were talking little-endian and the CPC was listening in big-endian. We made a small patch to the functions, so that we spoke big-endian to the CPC700.  We could then read the vendor ID correctly, but the rest of it still didn't work.  We didn't want to alter the code so that everything would be done big-endian style.</p></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="idm254"></a>2.2. Making CPC700 speak little-endian</h3></div></div></div><p>We discovered that the CPC700 can be initialized to do automatic byte-swapping, which does little-to-big endian convertion on the fly.  As it seems, our board was initialized to do just that.  We added a small code segment in <code class="function">setup_arch()</code>, which checks if byte-swapping is enabled, and if so, disables it:
+
+</p><pre class="programlisting">
+
+while (cnt&lt;2) {
+	cpc700_read_local_pci_cfgb(0, );
+	cpc700_read_local_pci_cfgb(1, );
+	if (l == 0 &amp;&amp; h == 0) {
+		if (cnt == 0) {
+			printk("CPC700 byte swaping enabled - trying to disable ... ");
+			cpc700_write_pifcfg_be(0x18, 0); /* disable byte-swapping */
+		} else {
+			printk("FAILED !!\n");
+			break;
+		}
+	} else {cd
+		printk("byte swapping disabled.\n");
+		break;
+	}
+	++cnt;
+}
+
+</pre><p>
+
+A short compilation later, PCI probing was working! We got some beer and partied ;-)</p></div></div><div class="sect1"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="idm259"></a>3. Ethernet: our first PCI device</h2></div></div></div><p>Our board uses an Intel ethernet chip, called i82559er, which has a module called <span class="emphasis"><em>eepro100</em></span>. After compiling the module and booting, we discovered that the module isn't working, although an ethernet device was found. We guessed that it was an irq problem, and that the devices don't get the IRQs they need.  We modified a function called <code class="function">pmppc_map_irq()</code> to map our ethernet devices:
+
+</p><pre class="programlisting">
+
+XXXX_map_irq(struct pci_dev *dev, unsigned char idsel, unsigned char pin) {
+	static char pci_irq_table[][4] =
+	/*
+	 *      PCI IDSEL/INTPIN-&gt;INTLINE
+	 *      A       B       C       D
+	 */
+	{
+		{22,    0,      0,      0},/* IDSEL 3 - Ethernet */
+		{0,     0,      0,      0},/* IDSEL 4 - unused   */
+		{0,     0,      0,      0},/* IDSEL 5 - unused   */
+		{0,     0,      0,      0},/* IDSEL 6 - ????     */
+		{0,     0,      0,      0},/* IDSEL 7 - unused   */
+		{0,     0,      0,      0},/* IDSEL 8 - unused   */
+		{0,     0,      0,      0},/* IDSEL 9 - unused   */
+	};
+
+	const long min_idsel = 3, max_idsel = 9, irqs_per_slot = 4;
+	return PCI_IRQ_TABLE_LOOKUP;
+}
+
+</pre><p>
+
+The function maps IRQs according to IDselects, which means in the order on the PCI bus by which the devices are set. This structure is a bit tricky: <span class="emphasis"><em>min_idsel</em></span> denotes the topleft corner of the array, and <span class="emphasis"><em>max_idsel</em></span> is the bottomleft corner. <span class="emphasis"><em>irqs_per_slot</em></span> is the number of IRQs per line. The structure is as follows:
+
+</p><pre class="programlisting">
+
+each cell contains (IDSEL, SLOT#, IRQ)
+		+----------------------------------------+
+		| (3,0,22) | (3,1,0) | (3,2,0) | (3,3,0) |
+		+----------------------------------------+
+		| (4,0,0)  | (4,1,0) | (4,2,0) | (4,3,0) |
+		+----------------------------------------+
+							..........
+							..........
+		+----------------------------------------+
+		| (9,0,0)  | (9,1,0) | (9,2,0) | (9,3,0) |
+		+----------------------------------------+
+
+</pre><p>
+
+As you can see, our i8559er needs IRQ 22, and is seated in IDselect 3. Of course, we didn't know that at the start, so we wrote a small piece of code that read all the vendor IDs in all the IDselects.  Once done we compiled, but the ethernet device still didn't work.</p><p>The next problem was that the module couldn't decide on a MAC address for the device. The MAC address should be written on an EEPROM chip (connected to the device), but we discovered that the hardware guys decided that i82559 doesn't need the EEPROM, so they removed it.  After hardcoding a MAC address inside <code class="filename">eepro100.c</code>, the ethernet device finally worked.  The final solution was to make the module read the MAC address from NVRAM memory, and if no other choice was available, to fall back to a default MAC address.
+
+</p><div class="note" style="margin-left: 0.5in; margin-right: 0.5in;"><h3 class="title">Note</h3><p>The next step was to mount a NFS root filesystem. For details see the documentation in Documentation/nfsroot.txt</p></div><p>
+</p></div><div class="sect1"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="idm273"></a>4. Some Miscellaneous Issues</h2></div></div></div><p>We had new problems, some would say good problems. We didn't have a bootloader yet, however we needed to pass a command line to the kernel at boot time.  We hard-coded the command line into the kernel inside the <code class="function">parse_options()</code>. After that was finished, we made <code class="function">console_init()</code> and <code class="function">serial_console_setup()</code> work the way they should.  They no longer ignored the command line, but still RTS and DTR stay low.</p><p>Another important issue was memory mapping. The file <code class="filename">arch/ppc/mm/init.c</code> contains a function called <code class="function">MMU_init()</code>. This function is actually a big <span class="command"><strong>switch</strong></span> statment, divided by the machine type. Each machine maps its memory using the <code class="function">setbat()</code> and <code class="function">ioremap()</code> functions. The BAT mechanism is a way of translating virtual addresses into physical ones. Thus, <code class="function">setbat()</code> is used by specifying a virtual address, a physical address and a page size.  Not every size can be used here; you should use one of the finite set of sizes, ranging from 128KB to 256MB.  We mapped our IO memory so that virtual equalled physical.</p><p>As mentioned, there is another way of mapping memory - <code class="function">ioremap()</code>. <code class="function">ioremap()</code> is used to map physical addresses into virtual ones, making them available to the kernel. The function <span class="emphasis"><em>does not allocate any memory</em></span>, simply returns a virtual address by which one can access the memory region. The following is a snippet from <code class="function">MMU_init()</code>:
+
+</p><pre class="programlisting">
+
+case _MACH_mymachine:
+	setbat(0, LOW_IO_VIRT_BASE, LOW_IO_PHYS_BASE, LOW_IO_SIZE, IO_PAGE);
+	ioremap(UNIVERSE_BASE,UNIVERSE_SIZE);      /* Universe VME */
+	ioremap(EEPRO100_BASE,EEPRO100_SIZE);      /* Ethernet EEPRO100 */
+	break;
+
+</pre><p>
+
+As you can see,  we don't take the return value of <code class="function">ioremap()</code>. We don't need it,  since at this stage the kernel maps the addresses so that virtual address == physical address.</p></div></div><div class="chapter"><div class="titlepage"><div><div><h1 class="title"><a name="idm293"></a>Chapter 5. Linux Is Booting ... What Now ?</h1></div></div></div><div class="toc"><p><b>Table of Contents</b></p><dl class="toc"><dt><span class="sect1"><a href="#idm295">1. The 64 bit barrier</a></span></dt><dt><span class="sect1"><a href="#idm305">2. Booting from flash</a></span></dt></dl></div><div class="sect1"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="idm295"></a>1. The 64 bit barrier</h2></div></div></div><p>The CPC700 has a <span class="quote">&#8220;<span class="quote">feature</span>&#8221;</span> which is supposed to make some memory access use 64 bit wide. This is a problem since some test-and-set registers on our board might get set unintentionally, because we were trying to read something 16 bits lower. In order to solve this situation, we set the memory controller to 64 bit wide intervals.  If you try to access those areas in another manner (8 or 16 bit access), the CPC700 simply throws them away.  We had to be able to read/write those areas, since important <span class="quote">&#8220;<span class="quote">discretes</span>&#8221;</span> (controlled by an Altera device) were mapped there.</p><p>In order to access those areas, we needed a function that does a 64 bit write.  As far as I know, doing a 64 bit write on a PowerPC is possible in two ways:  using cache lines and using a floating point register.  The floating point register is a 64 bit sized register, so when we write it, the whole 64 bit get written. The problem is that you can't do floating point in the kernel. Since the kernel doesn't save the floating point registers during context switch, it doesn't allow FP, and will throw an exception if done in the kernel.</p><p>After messing with cache lines, we decided to go the FP way, and added the following function:
+
+</p><pre class="programlisting">
+
+void out64(__u32 addr, long long *pVal) {
+	__u32 flags, tmp_msr;
+
+	save_flags(flags);
+	cli();
+	tmp_msr = __get_MSR();
+	tmp_msr |= MSR_FP;
+	tmp_msr &amp;= ~(MSR_FE0 | MSR_FE1);
+	__put_MSR(tmp_msr);
+
+	sysOut64(addr, pVal);
+	__put_MSR(flags &amp; ~(MSR_EE));
+	restore_flags(flags);
+}
+
+</pre><p>
+
+The function adds a floating point to the PowerPC MSR register, and makes sure that no exceptions will be generated as a result of doing FP. Once done, it uses an assembly code, described below in the <code class="function">sysOut64()</code> to do the actual floating-point operation. Note that the function turns off interrupts, but this is acceptable here, since we use the function on rare occasion.
+
+</p><pre class="programlisting">
+
+_GLOBAL(sysOut64)
+stwu    r1, -DEPTH(r1)
+mflr    r0
+stw     r31, FP_LOC(r1)
+stw     r0,  LR_LOC(r1)
+mr              r31, r1
+stfd    fr0, FPR_SAVE(r31)      /* save floating point reg contents */
+
+lfd     fr0,0(r4)
+stfd  fr0,0(r3)
+eieio
+
+lfd     fr0, FPR_SAVE(r31)      /* restore floating point value */
+lwz     r4, 0(r1)               /* now restore the stack frame  */
+lwz     r0, 4(r4)
+mtlr    r0
+lwz     r31, -4(r4)
+mr      r1, r4
+blr
+
+</pre></div><div class="sect1"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="idm305"></a>2. Booting from flash</h2></div></div></div><p>While Linux was booting using an NFS filesystem, this was not enough. For an actual field product, we needed Linux to boot from an independent device, without the need for a network at all.  We decided to create a special kind of image, called <span class="emphasis"><em>initrd</em></span>, which is basically a Linux kernel with a compressed file. The compressed file includes a Linux filesystem.  The filesystem is unpacked to a ramdisk on boot, and mounted as the root filesystem.</p><p>During the boot process, the bootloader relocated the kernel image to address zero - which was fine, and the initrd part to a higher address.  The area to which initrd was relocated was not mapped in our kernel's memory, and all we got was a kernel error (access to bad area).  After modifying the bootloader to relocate initrd to a different address, all was fine and Linux booted succesfully.</p><div class="tip" style="margin-left: 0.5in; margin-right: 0.5in;"><h3 class="title">Tip</h3><p>If your board has some NVRAM memory, it would be a good idea to use it for bootloader purposes. After writing a module for our NVRAM memory (out of scope for this paper), we modified the bootloader, so that the kernel command-line, and MAC address were saved in NVRAM. When the bootloader starts, it checks NVRAM and if it is initialized (by a certain magic number), the bootloader uses the command line written there. Otherwise, the bootloader reverts to a default command line, allowing the user to edit it.</p></div></div></div><div class="appendix"><div class="titlepage"><div><div><h1 class="title"><a name="gfdl"></a>Appendix A. GNU Free Documentation License</h1></div></div></div><div class="toc"><p><b>Table of Contents</b></p><dl class="toc"><dt><span class="sect1"><a href="#gfdl-0">1. PREAMBLE</a></span></dt><dt><span class="sect1"><a href="#gfdl-1">2. APPLICABILITY AND DEFINITIONS</a></span></dt><dt><span class="sect1"><a href="#gfdl-2">3. VERBATIM COPYING</a></span></dt><dt><span class="sect1"><a href="#gfdl-3">4. COPYING IN QUANTITY</a></span></dt><dt><span class="sect1"><a href="#gfdl-4">5. MODIFICATIONS</a></span></dt><dt><span class="sect1"><a href="#gfdl-5">6. COMBINING DOCUMENTS</a></span></dt><dt><span class="sect1"><a href="#gfdl-6">7. COLLECTIONS OF DOCUMENTS</a></span></dt><dt><span class="sect1"><a href="#gfdl-7">8. AGGREGATION WITH INDEPENDENT WORKS</a></span></dt><dt><span class="sect1"><a href="#gfdl-8">9. TRANSLATION</a></span></dt><dt><span class="sect1"><a href="#gfdl-9">10. TERMINATION</a></span></dt><dt><span class="sect1"><a href="#gfdl-10">11. FUTURE REVISIONS OF THIS LICENSE</a></span></dt><dt><span class="sect1"><a href="#gfdl-11">12. How to use this License for your documents</a></span></dt></dl></div><p>Version 1.1, March 2000</p><div class="blockquote"><blockquote class="blockquote"><p>Copyright (C) 2000  Free Software Foundation, Inc.
+59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+Everyone is permitted to copy and distribute verbatim copies
+of this license document, but changing it is not allowed.</p></blockquote></div><div class="sect1"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="gfdl-0"></a>1. PREAMBLE</h2></div></div></div><p>The purpose of this License is to make a manual, textbook,
+    or other written document "free" in the sense of freedom: to
+    assure everyone the effective freedom to copy and redistribute it,
+    with or without modifying it, either commercially or
+    noncommercially.  Secondarily, this License preserves for the
+    author and publisher a way to get credit for their work, while not
+    being considered responsible for modifications made by
+    others.</p><p>This License is a kind of "copyleft", which means that
+    derivative works of the document must themselves be free in the
+    same sense.  It complements the GNU General Public License, which
+    is a copyleft license designed for free software.</p><p>We have designed this License in order to use it for manuals
+    for free software, because free software needs free documentation:
+    a free program should come with manuals providing the same
+    freedoms that the software does.  But this License is not limited
+    to software manuals; it can be used for any textual work,
+    regardless of subject matter or whether it is published as a
+    printed book.  We recommend this License principally for works
+    whose purpose is instruction or reference.</p></div><div class="sect1"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="gfdl-1"></a>2. APPLICABILITY AND DEFINITIONS</h2></div></div></div><p>This License applies to any manual or other work that
+    contains a notice placed by the copyright holder saying it can be
+    distributed under the terms of this License.  The "Document",
+    below, refers to any such manual or work.  Any member of the
+    public is a licensee, and is addressed as "you".</p><p>A "Modified Version" of the Document means any work
+    containing the Document or a portion of it, either copied
+    verbatim, or with modifications and/or translated into another
+    language.</p><p>A "Secondary Section" is a named appendix or a front-matter
+    section of the Document that deals exclusively with the
+    relationship of the publishers or authors of the Document to the
+    Document's overall subject (or to related matters) and contains
+    nothing that could fall directly within that overall subject.
+    (For example, if the Document is in part a textbook of
+    mathematics, a Secondary Section may not explain any mathematics.)
+    The relationship could be a matter of historical connection with
+    the subject or with related matters, or of legal, commercial,
+    philosophical, ethical or political position regarding
+    them.</p><p>The "Invariant Sections" are certain Secondary Sections
+    whose titles are designated, as being those of Invariant Sections,
+    in the notice that says that the Document is released under this
+    License.</p><p>The "Cover Texts" are certain short passages of text that
+    are listed, as Front-Cover Texts or Back-Cover Texts, in the
+    notice that says that the Document is released under this
+    License.</p><p>A "Transparent" copy of the Document means a
+    machine-readable copy, represented in a format whose specification
+    is available to the general public, whose contents can be viewed
+    and edited directly and straightforwardly with generic text
+    editors or (for images composed of pixels) generic paint programs
+    or (for drawings) some widely available drawing editor, and that
+    is suitable for input to text formatters or for automatic
+    translation to a variety of formats suitable for input to text
+    formatters.  A copy made in an otherwise Transparent file format
+    whose markup has been designed to thwart or discourage subsequent
+    modification by readers is not Transparent.  A copy that is not
+    "Transparent" is called "Opaque".</p><p>Examples of suitable formats for Transparent copies include
+    plain ASCII without markup, Texinfo input format, LaTeX input
+    format, SGML or XML using a publicly available DTD, and
+    standard-conforming simple HTML designed for human modification.
+    Opaque formats include PostScript, PDF, proprietary formats that
+    can be read and edited only by proprietary word processors, SGML
+    or XML for which the DTD and/or processing tools are not generally
+    available, and the machine-generated HTML produced by some word
+    processors for output purposes only.</p><p>The "Title Page" means, for a printed book, the title page
+    itself, plus such following pages as are needed to hold, legibly,
+    the material this License requires to appear in the title page.
+    For works in formats which do not have any title page as such,
+    "Title Page" means the text near the most prominent appearance of
+    the work's title, preceding the beginning of the body of the
+    text.</p></div><div class="sect1"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="gfdl-2"></a>3. VERBATIM COPYING</h2></div></div></div><p>You may copy and distribute the Document in any medium,
+    either commercially or noncommercially, provided that this
+    License, the copyright notices, and the license notice saying this
+    License applies to the Document are reproduced in all copies, and
+    that you add no other conditions whatsoever to those of this
+    License.  You may not use technical measures to obstruct or
+    control the reading or further copying of the copies you make or
+    distribute.  However, you may accept compensation in exchange for
+    copies.  If you distribute a large enough number of copies you
+    must also follow the conditions in section 3.</p><p>You may also lend copies, under the same conditions stated
+    above, and you may publicly display copies.</p></div><div class="sect1"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="gfdl-3"></a>4. COPYING IN QUANTITY</h2></div></div></div><p>If you publish printed copies of the Document numbering more
+    than 100, and the Document's license notice requires Cover Texts,
+    you must enclose the copies in covers that carry, clearly and
+    legibly, all these Cover Texts: Front-Cover Texts on the front
+    cover, and Back-Cover Texts on the back cover.  Both covers must
+    also clearly and legibly identify you as the publisher of these
+    copies.  The front cover must present the full title with all
+    words of the title equally prominent and visible.  You may add
+    other material on the covers in addition.  Copying with changes
+    limited to the covers, as long as they preserve the title of the
+    Document and satisfy these conditions, can be treated as verbatim
+    copying in other respects.</p><p>If the required texts for either cover are too voluminous to
+    fit legibly, you should put the first ones listed (as many as fit
+    reasonably) on the actual cover, and continue the rest onto
+    adjacent pages.</p><p>If you publish or distribute Opaque copies of the Document
+    numbering more than 100, you must either include a
+    machine-readable Transparent copy along with each Opaque copy, or
+    state in or with each Opaque copy a publicly-accessible
+    computer-network location containing a complete Transparent copy
+    of the Document, free of added material, which the general
+    network-using public has access to download anonymously at no
+    charge using public-standard network protocols.  If you use the
+    latter option, you must take reasonably prudent steps, when you
+    begin distribution of Opaque copies in quantity, to ensure that
+    this Transparent copy will remain thus accessible at the stated
+    location until at least one year after the last time you
+    distribute an Opaque copy (directly or through your agents or
+    retailers) of that edition to the public.</p><p>It is requested, but not required, that you contact the
+    authors of the Document well before redistributing any large
+    number of copies, to give them a chance to provide you with an
+    updated version of the Document.</p></div><div class="sect1"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="gfdl-4"></a>5. MODIFICATIONS</h2></div></div></div><p>You may copy and distribute a Modified Version of the
+    Document under the conditions of sections 2 and 3 above, provided
+    that you release the Modified Version under precisely this
+    License, with the Modified Version filling the role of the
+    Document, thus licensing distribution and modification of the
+    Modified Version to whoever possesses a copy of it.  In addition,
+    you must do these things in the Modified Version:</p><div class="orderedlist"><ol class="orderedlist" type="A"><li class="listitem"><p>Use in the Title Page
+      (and on the covers, if any) a title distinct from that of the
+      Document, and from those of previous versions (which should, if
+      there were any, be listed in the History section of the
+      Document).  You may use the same title as a previous version if
+      the original publisher of that version gives permission.</p></li><li class="listitem"><p>List on the Title Page,
+      as authors, one or more persons or entities responsible for
+      authorship of the modifications in the Modified Version,
+      together with at least five of the principal authors of the
+      Document (all of its principal authors, if it has less than
+      five).</p></li><li class="listitem"><p>State on the Title page
+      the name of the publisher of the Modified Version, as the
+      publisher.</p></li><li class="listitem"><p>Preserve all the
+      copyright notices of the Document.</p></li><li class="listitem"><p>Add an appropriate
+      copyright notice for your modifications adjacent to the other
+      copyright notices.</p></li><li class="listitem"><p>Include, immediately
+      after the copyright notices, a license notice giving the public
+      permission to use the Modified Version under the terms of this
+      License, in the form shown in the Addendum below.</p></li><li class="listitem"><p>Preserve in that license
+      notice the full lists of Invariant Sections and required Cover
+      Texts given in the Document's license notice.</p></li><li class="listitem"><p>Include an unaltered
+      copy of this License.</p></li><li class="listitem"><p>Preserve the section
+      entitled "History", and its title, and add to it an item stating
+      at least the title, year, new authors, and publisher of the
+      Modified Version as given on the Title Page.  If there is no
+      section entitled "History" in the Document, create one stating
+      the title, year, authors, and publisher of the Document as given
+      on its Title Page, then add an item describing the Modified
+      Version as stated in the previous sentence.</p></li><li class="listitem"><p>Preserve the network
+      location, if any, given in the Document for public access to a
+      Transparent copy of the Document, and likewise the network
+      locations given in the Document for previous versions it was
+      based on.  These may be placed in the "History" section.  You
+      may omit a network location for a work that was published at
+      least four years before the Document itself, or if the original
+      publisher of the version it refers to gives permission.</p></li><li class="listitem"><p>In any section entitled
+      "Acknowledgements" or "Dedications", preserve the section's
+      title, and preserve in the section all the substance and tone of
+      each of the contributor acknowledgements and/or dedications
+      given therein.</p></li><li class="listitem"><p>Preserve all the
+      Invariant Sections of the Document, unaltered in their text and
+      in their titles.  Section numbers or the equivalent are not
+      considered part of the section titles.</p></li><li class="listitem"><p>Delete any section
+      entitled "Endorsements".  Such a section may not be included in
+      the Modified Version.</p></li><li class="listitem"><p>Do not retitle any
+      existing section as "Endorsements" or to conflict in title with
+      any Invariant Section.</p></li></ol></div><p>If the Modified Version includes new front-matter sections
+    or appendices that qualify as Secondary Sections and contain no
+    material copied from the Document, you may at your option
+    designate some or all of these sections as invariant.  To do this,
+    add their titles to the list of Invariant Sections in the Modified
+    Version's license notice.  These titles must be distinct from any
+    other section titles.</p><p>You may add a section entitled "Endorsements", provided it
+    contains nothing but endorsements of your Modified Version by
+    various parties--for example, statements of peer review or that
+    the text has been approved by an organization as the authoritative
+    definition of a standard.</p><p>You may add a passage of up to five words as a Front-Cover
+    Text, and a passage of up to 25 words as a Back-Cover Text, to the
+    end of the list of Cover Texts in the Modified Version.  Only one
+    passage of Front-Cover Text and one of Back-Cover Text may be
+    added by (or through arrangements made by) any one entity.  If the
+    Document already includes a cover text for the same cover,
+    previously added by you or by arrangement made by the same entity
+    you are acting on behalf of, you may not add another; but you may
+    replace the old one, on explicit permission from the previous
+    publisher that added the old one.</p><p>The author(s) and publisher(s) of the Document do not by
+    this License give permission to use their names for publicity for
+    or to assert or imply endorsement of any Modified Version.</p></div><div class="sect1"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="gfdl-5"></a>6. COMBINING DOCUMENTS</h2></div></div></div><p>You may combine the Document with other documents released
+    under this License, under the terms defined in section 4 above for
+    modified versions, provided that you include in the combination
+    all of the Invariant Sections of all of the original documents,
+    unmodified, and list them all as Invariant Sections of your
+    combined work in its license notice.</p><p>The combined work need only contain one copy of this
+    License, and multiple identical Invariant Sections may be replaced
+    with a single copy.  If there are multiple Invariant Sections with
+    the same name but different contents, make the title of each such
+    section unique by adding at the end of it, in parentheses, the
+    name of the original author or publisher of that section if known,
+    or else a unique number.  Make the same adjustment to the section
+    titles in the list of Invariant Sections in the license notice of
+    the combined work.</p><p>In the combination, you must combine any sections entitled
+    "History" in the various original documents, forming one section
+    entitled "History"; likewise combine any sections entitled
+    "Acknowledgements", and any sections entitled "Dedications".  You
+    must delete all sections entitled "Endorsements."</p></div><div class="sect1"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="gfdl-6"></a>7. COLLECTIONS OF DOCUMENTS</h2></div></div></div><p>You may make a collection consisting of the Document and
+    other documents released under this License, and replace the
+    individual copies of this License in the various documents with a
+    single copy that is included in the collection, provided that you
+    follow the rules of this License for verbatim copying of each of
+    the documents in all other respects.</p><p>You may extract a single document from such a collection,
+    and distribute it individually under this License, provided you
+    insert a copy of this License into the extracted document, and
+    follow this License in all other respects regarding verbatim
+    copying of that document.</p></div><div class="sect1"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="gfdl-7"></a>8. AGGREGATION WITH INDEPENDENT WORKS</h2></div></div></div><p>A compilation of the Document or its derivatives with other
+    separate and independent documents or works, in or on a volume of
+    a storage or distribution medium, does not as a whole count as a
+    Modified Version of the Document, provided no compilation
+    copyright is claimed for the compilation.  Such a compilation is
+    called an "aggregate", and this License does not apply to the
+    other self-contained works thus compiled with the Document, on
+    account of their being thus compiled, if they are not themselves
+    derivative works of the Document.</p><p>If the Cover Text requirement of section 3 is applicable to
+    these copies of the Document, then if the Document is less than
+    one quarter of the entire aggregate, the Document's Cover Texts
+    may be placed on covers that surround only the Document within the
+    aggregate.  Otherwise they must appear on covers around the whole
+    aggregate.</p></div><div class="sect1"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="gfdl-8"></a>9. TRANSLATION</h2></div></div></div><p>Translation is considered a kind of modification, so you may
+    distribute translations of the Document under the terms of section
+    4.  Replacing Invariant Sections with translations requires
+    special permission from their copyright holders, but you may
+    include translations of some or all Invariant Sections in addition
+    to the original versions of these Invariant Sections.  You may
+    include a translation of this License provided that you also
+    include the original English version of this License.  In case of
+    a disagreement between the translation and the original English
+    version of this License, the original English version will
+    prevail.</p></div><div class="sect1"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="gfdl-9"></a>10. TERMINATION</h2></div></div></div><p>You may not copy, modify, sublicense, or distribute the
+    Document except as expressly provided for under this License.  Any
+    other attempt to copy, modify, sublicense or distribute the
+    Document is void, and will automatically terminate your rights
+    under this License.  However, parties who have received copies, or
+    rights, from you under this License will not have their licenses
+    terminated so long as such parties remain in full
+    compliance.</p></div><div class="sect1"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="gfdl-10"></a>11. FUTURE REVISIONS OF THIS LICENSE</h2></div></div></div><p>The Free Software Foundation may publish new, revised
+    versions of the GNU Free Documentation License from time to time.
+    Such new versions will be similar in spirit to the present
+    version, but may differ in detail to address new problems or
+    concerns.  See <a class="ulink" href="http://www.gnu.org/copyleft/" target="_top">http://www.gnu.org/copyleft/</a>.</p><p>Each version of the License is given a distinguishing
+    version number.  If the Document specifies that a particular
+    numbered version of this License "or any later version" applies to
+    it, you have the option of following the terms and conditions
+    either of that specified version or of any later version that has
+    been published (not as a draft) by the Free Software Foundation.
+    If the Document does not specify a version number of this License,
+    you may choose any version ever published (not as a draft) by the
+    Free Software Foundation.</p></div><div class="sect1"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="gfdl-11"></a>12. How to use this License for your documents</h2></div></div></div><p>To use this License in a document you have written, include
+    a copy of the License in the document and put the following
+    copyright and license notices just after the title page:</p><div class="blockquote"><blockquote class="blockquote"><p>
+Copyright (c)  YEAR  YOUR NAME.
+      Permission is granted to copy, distribute and/or modify this document
+      under the terms of the GNU Free Documentation License, Version 1.1
+      or any later version published by the Free Software Foundation;
+      with the Invariant Sections being LIST THEIR TITLES, with the
+      Front-Cover Texts being LIST, and with the Back-Cover Texts being LIST.
+      A copy of the license is included in the section entitled "GNU
+      Free Documentation License".
+</p></blockquote></div><p>If you have no Invariant Sections, write "with no Invariant
+    Sections" instead of saying which ones are invariant.  If you have
+    no Front-Cover Texts, write "no Front-Cover Texts" instead of
+    "Front-Cover Texts being LIST"; likewise for Back-Cover
+    Texts.</p><p>If your document contains nontrivial examples of program
+    code, we recommend releasing these examples in parallel under your
+    choice of free software license, such as the GNU General Public
+    License, to permit their use in free software.</p></div></div><div class="appendix"><div class="titlepage"><div><div><h1 class="title"><a name="trademarks"></a>Appendix B. Trademarks</h1></div></div></div><p><span class="trademark">Linux</span>® is a registered trademark of Linus Torvalds.</p><p><span class="trademark">MontaVista</span>&#8482; is a trademark of MontaVista Software Inc.</p><p><span class="trademark">PowerPC</span>® is a registered trademark of IBM Corporation.</p><p><span class="trademark">Windows</span>® is a registered trademark of Microsoft Corporation.</p><p><span class="trademark">vxWorks</span>&#8482; and <span class="trademark">Vision ICE</span>&#8482; are trademarks of Wind River Systems Inc.</p><p><span class="trademark">ProCOMM</span>&#8482; is a trademark of Symantec Corporation.</p></div></div></body></html>

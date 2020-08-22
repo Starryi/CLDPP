@@ -1,0 +1,75 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1"><title>4. Taking a Backup Using Snapshots</title><link rel="stylesheet" type="text/css" href="style.css"><meta name="generator" content="DocBook XSL Stylesheets V1.79.1"><link rel="home" href="index.html" title="LVM HOWTO"><link rel="up" href="ch13.html" title="Chapter 13. Recipes"><link rel="prev" href="ch13s03.html" title="3. Add a new disk to a multi-disk SCSI system"><link rel="next" href="ch13s05.html" title="5. Removing an Old Disk"></head><body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF"><div class="navheader"><table width="100%" summary="Navigation header"><tr><th colspan="3" align="center">4. Taking a Backup Using Snapshots</th></tr><tr><td width="20%" align="left"><a accesskey="p" href="ch13s03.html">Prev</a> </td><th width="60%" align="center">Chapter 13. Recipes</th><td width="20%" align="right"> <a accesskey="n" href="ch13s05.html">Next</a></td></tr></table><hr></div><div class="sect1"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="Snapshots_Backup"></a>4. Taking a Backup Using Snapshots</h2></div></div></div><p>
+        Following on from the previous example we now want to use the extra
+        space in the "ops" volume group to make a database backup every
+        evening. To ensure that the data that goes onto the tape is
+        consistent we use an LVM snapshot logical volume.
+      </p><p>
+        A snapshot volume is a special type of volume that presents
+        all the data that was in the volume at the time the snapshot
+        was created.  For a more detailed description, see       
+        <a class="xref" href="ch03s08.html" title="8. Snapshots">Section 8, &#8220;Snapshots&#8221;</a>, Snapshots.
+        This means we
+        can back up that volume without having to worry about data
+        being changed while the backup is going on, and we don't have
+        to take the database volume offline while the backup is taking
+        place.
+      </p><div class="note" style="margin-left: 0.5in; margin-right: 0.5in;"><h3 class="title">Note</h3><p>
+          In LVM1, this type of volume was read-only, but
+          LVM2 creates read/write snapshots by default.
+        </p></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="snapbackcreate"></a>4.1. Create the snapshot volume</h3></div></div></div><p>
+          There is a little over 500 Megabytes of free space in the "ops"
+          volume group, so we will use all of it to allocate space for the
+          snapshot logical volume.  A snapshot volume can be as large or a
+          small as you like but it must be large enough to hold all the
+          changes that are likely to happen to the original volume during
+          the lifetime of the snapshot. So here, allowing 500 megabytes of
+          changes to the database volume which should be plenty.
+          </p><pre class="screen">
+<span class="command"><strong># lvcreate -L592M -s -n dbbackup /dev/ops/databases </strong></span>
+<code class="computeroutput">lvcreate -- WARNING: the snapshot must be disabled if it gets full
+lvcreate -- INFO: using default snapshot chunk size of 64 KB for "/dev/ops/dbbackup"
+lvcreate -- doing automatic backup of "ops"
+lvcreate -- logical volume "/dev/ops/dbbackup" successfully created</code>
+
+          </pre><p>
+        </p><div class="warning" style="margin-left: 0.5in; margin-right: 0.5in;"><h3 class="title">Full snapshot are automatically disabled</h3><p>
+            If the snapshot logical volume becomes full it will be dropped
+            (become unusable) so it is vitally important to allocate enough space.
+            The amount of space necessary is dependent on the usage of the
+            snapshot, so there is no set recipe to follow for this. If the
+            snapshot size equals the origin size, it will never overflow.
+          </p></div></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="idm1243"></a>4.2. Mount the snapshot volume</h3></div></div></div><p>
+          We can now create a mount-point and mount the volume
+          </p><pre class="screen">
+<span class="command"><strong># mkdir /mnt/ops/dbbackup
+# mount /dev/ops/dbbackup /mnt/ops/dbbackup</strong></span>
+<code class="computeroutput">mount: block device /dev/ops/dbbackup is write-protected, mounting read-only</code>
+          </pre><p>
+        </p><p>
+          If you are using XFS as the filesystem you will need to add the
+          <code class="option">nouuid</code> option
+          to the mount command:
+          </p><pre class="screen">
+<span class="command"><strong># mount /dev/ops/dbbackup /mnt/ops/dbbackup -onouuid,ro</strong></span>
+          </pre><p>
+        </p></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="idm1253"></a>4.3. Do the backup</h3></div></div></div><p>
+          I assume you will have a more sophisticated backup strategy than
+          this!
+          </p><pre class="screen">
+<span class="command"><strong># tar -cf /dev/rmt0 /mnt/ops/dbbackup</strong></span>
+<code class="computeroutput">tar: Removing leading `/' from member names</code>
+          </pre><p>
+        </p></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="idm1259"></a>4.4. Remove the snapshot</h3></div></div></div><p>
+          When the backup has finished you can now unmount the volume and
+          remove it from the system. You should remove snapshot volume
+          when you have finished with them because they take a copy of all
+          data written to the original volume and this can hurt
+          performance.
+          </p><pre class="screen">
+<span class="command"><strong># umount /mnt/ops/dbbackup
+# lvremove /dev/ops/dbbackup </strong></span>
+<code class="prompt">lvremove -- do you really want to remove "/dev/ops/dbbackup"? [y/n]: </code>y
+<code class="computeroutput">lvremove -- doing automatic backup of volume group "ops"
+              lvremove -- logical volume "/dev/ops/dbbackup" successfully removed</code>
+          </pre><p>
+        </p></div></div><div class="navfooter"><hr><table width="100%" summary="Navigation footer"><tr><td width="40%" align="left"><a accesskey="p" href="ch13s03.html">Prev</a> </td><td width="20%" align="center"><a accesskey="u" href="ch13.html">Up</a></td><td width="40%" align="right"> <a accesskey="n" href="ch13s05.html">Next</a></td></tr><tr><td width="40%" align="left" valign="top">3. Add a new disk to a multi-disk SCSI system </td><td width="20%" align="center"><a accesskey="h" href="index.html">Home</a></td><td width="40%" align="right" valign="top"> 5. Removing an Old Disk</td></tr></table></div></body></html>

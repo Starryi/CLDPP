@@ -1,0 +1,432 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 3.2 Final//EN">
+<HTML>
+<HEAD>
+ <META NAME="GENERATOR" CONTENT="LinuxDoc-Tools 0.9.72">
+ <TITLE>Linux+Solaris HOWTO</TITLE>
+</HEAD>
+<BODY>
+<H1>Linux+Solaris HOWTO</H1>
+
+<H2>
+<A HREF="mailto:max.berger@xslt.de">Max Berger</A>
+        </H2>v0.8-$Revision$, $Date$
+<HR>
+<EM> Describes how
+        to use Linux (x86) and Solaris (x86) together on one machine
+      </EM>
+<HR>
+<H2>Appendix</H2>
+<H2><A NAME="s1">1. Introduction</A></H2>
+
+<H2><A NAME="ss1.1">1.1 Why Solaris?</A>
+</H2>
+
+<P>This is actually a good
+question. Why use Solaris, when you can have Linux?  Solaris is a
+commercial system, the hardware support is scarce. But if you are
+reading this you have probably already decided on using Solaris. If
+not, here are some reasons:
+<UL>
+<LI> I have a part-time job administrating Solaris
+machines. It is of no use that I learning all the neat
+command parameters and nifty Linux tricks at home, when
+I can't use them on my Solaris-Box.</LI>
+<LI> Sun was giving away Solaris for what they call
+``Shipping and handling cost only'' for some time. They
+might do that again. And almost-free-of-charge is always
+a good deal.</LI>
+<LI> Another reason might be that you like CDE.</LI>
+</UL>
+</P>
+<H2><A NAME="ss1.2">1.2 Things covered in this HOWTO</A>
+</H2>
+
+<P>This HOWTO tries to help you install Solaris 7 or 8 on an x86
+computer already running Linux. The main targets are
+<UL>
+<LI>not to destroy any data, see section
+<A HREF="#harddrive">Preparing your Harddrive</A></LI>
+<LI> To make Linux and Solaris coexist (boot manager),
+see section
+<A HREF="#boot">Boot-Managing</A></LI>
+<LI> To share data between Linux and Solaris, as described in
+section 
+<A HREF="#sharing">Sharing Data</A></LI>
+</UL>
+</P>
+<H2><A NAME="ss1.3">1.3 Referenced versions</A>
+</H2>
+
+<P>The reference versions used while creating this
+document where:
+<UL>
+<LI>Solaris 7 x86 (= Solaris 2.7 / SunOS 5.7)</LI>
+<LI>Solaris 8 x86 (= Solaris 2.8 / SunOS 5.8)</LI>
+<LI>Linux 2.2.14, 2.3.99-pre3</LI>
+<LI>fdisk v2.10f</LI>
+</UL>
+
+The information might apply to other versions of the software, or it
+might all be different.</P>
+<H2><A NAME="ss1.4">1.4 Warning</A>
+</H2>
+
+<P><EM>Please back up any data
+before messing with your system!  A lot of the things
+described in this document may result in excessive data
+loss!  I am not responsible for any data loss! See also
+section 
+<A HREF="#legal">Legal stuff</A></EM></P>
+<H2><A NAME="harddrive"></A> <A NAME="s2">2. Preparing your Hard Drive</A></H2>
+
+<P>To Prepare your hard-drive for Solaris, you need
+to know about standard PC partition tables and
+about Solaris disk slices. In this HOWTO I talk
+about single-disk systems only, but all the
+information should also apply to a multi-disk
+environment. </P>
+<H2><A NAME="ss2.1">2.1 Traditional PC partitions</A>
+</H2>
+
+<P>The standard partition-table has only 4 entries. The
+entries important for us are the following:
+<DL>
+<DT><B>A Primary Partition</B><DD>
+<P>Takes up one entry, and contains exactly one
+partition. A waste of resources, but the only partition
+you can boot from!</P>
+<DT><B>An extended Partition</B><DD>
+<P>Takes up one entry, but can
+contain multiple DOS, Linux, and other partitions</P>
+<DT><B>A Solaris Partition</B><DD>
+<P>Takes up one entry,
+but can contain multiple Solaris Partitions</P>
+</DL>
+
+To find out what partitions are present on your system, use
+the <CODE>fdisk</CODE> program. Partitions numbers 1 to 4
+(<CODE>hda1</CODE>..<CODE>4</CODE>, <CODE>sda1</CODE>..<CODE>4</CODE>, ...) are the ones 
+in your partition table.</P>
+<H2><A NAME="ss2.2">2.2 Solaris partition labels</A>
+</H2>
+
+<P>Solaris has its own partitioning scheme. It
+uses one entry in the partition table, and
+this entry is and acts as this partition would
+be the entire disk. </P>
+<P>This virtual disk is then divided in up to 8 slices. The
+third slice, s2, covers the whole virtual disk, so you
+actually have up to 7 slices for Solaris.</P>
+<P>Unfortunately, the Solaris partition entry has the same
+type as a Linux Swap partition (82). Therefore, you should
+not have any Linux swap partitions as primary
+partitions. Linux doesn't care about this, but who knows
+what Solaris does?</P>
+<P>Although the Linux fdisk program has some ``Sun
+disklabel'' support, this doesn't seem to help any.</P>
+<H2><A NAME="ss2.3">2.3 Hard disk space</A>
+</H2>
+
+<P> Of course, Solaris needs disk space. The minimum
+installation of Solaris 8 is about 300 MB. For the normal
+tools its about 700 MB, and for a ``developer-system'' about
+1 GB.</P>
+<P>But this is only the space required for the base
+installation. You might want to add a lot of GNU-Tools, and
+other stuff. And if you want to share data between Solaris
+and Linux, this has to happen on the Solaris partitions.</P>
+<P>You might even think of sharing your home directories
+between Solaris and Linux. As the time of this writing:
+Forget it! I messed up my home directory doing so and I was
+<EM>very</EM> happy about my backup. See also section
+<A HREF="#sharing">sharing data</A></P>
+<H2><A NAME="ss2.4">2.4 Quick check list</A>
+</H2>
+
+<P>Here's the quick check list. Make sure you:
+<UL>
+<LI>have used no more than 3 entries in your partition table</LI>
+<LI>have no Linux swap partitions as primary partitions</LI>
+<LI>Have at least 1 Linux ext2 partition as primary</LI>
+<LI>Have at least 1 GB unpartitioned space</LI>
+</UL>
+</P>
+<H2><A NAME="s3">3. Preparing Linux</A></H2>
+
+<H2><A NAME="kernel"></A> <A NAME="ss3.1">3.1 Building a new kernel</A>
+</H2>
+
+<P>Some people don´t like building a custom kernel. For those of you:
+you <EM>must</EM> build your own kernel if you want to share data 
+between Solaris and Linux on one hard disk. If, however, you do not 
+want to share data, you are safe with your old kernel.</P>
+<P>Here are your kernel options for ``Solaris compatibility'':
+<UL>
+<LI>Under <CODE>code maturity</CODE>:
+<DL>
+<DT><B><CODE>Prompt for development drivers</CODE></B><DD>
+<P>Unfortunately UFS writing is still experimental.</P>
+</DL>
+</LI>
+<LI>In <CODE>file systems</CODE>:
+<DL>
+<DT><B><CODE>UFS file system support</CODE></B><DD>
+<P>UFS is
+the Solaris file system</P>
+<DT><B><CODE>UFS file system
+write support</CODE></B><DD>
+<P>The only way to pass data
+to Solaris</P>
+<DT><B><CODE>partition types / Solaris
+(x86) partition table support</CODE></B><DD>
+<P>Is needed
+for the slices within your Solaris partition to be
+found.</P>
+</DL>
+</LI>
+</UL>
+
+Additional info about kernel building can be found in the
+Kernel-HOWTO</P>
+<H2><A NAME="ss3.2">3.2 Preparing your boot loader</A>
+</H2>
+
+<P><EM>Before
+messing with your boot loader, please make sure that you have
+an emergency disk ready which enables you to boot your old
+system.</EM></P>
+<P>Unfortunately the Solaris install
+overwrites the master boot record (MBR) and overwrites your
+old boot manager.</P>
+<P>Fortunately, the Solaris boot manager
+is able to chain-boot. For this to work you have to put your
+old boot loader (e.g. lilo) into the boot sector of one primary
+Linux partition.</P>
+<P>For lilo this means: look at your
+/etc/lilo.conf. Look for the <CODE>boot=</CODE>
+line. If it is something like <CODE>boot=/dev/hda1</CODE>
+everything is fine. But if it´s something like
+<CODE>boot=/dev/hda</CODE> it points to the MBR. Please change
+it to point to a primary Linux partition
+(e.g. <CODE>boot=/dev/hda1</CODE>)</P>
+<P>A way to check if your
+boot-loader is chain-loadable is installing lilo in to the
+MBR and trying to chain load your other boot-manager. I used
+the following file called lilo.conf.mbr for
+this: 
+<HR>
+<PRE>
+#lilo.conf.mbr 
+#Lilo in Master Boot Record doing nothing but chain-loading another lilo 
+boot=/dev/hda
+root=/dev/hda5 
+install=/boot/boot.b 
+map=/boot/map 
+vga=ask
+delay=50 
+other=/dev/hda1 
+label=lilochain
+</PRE>
+<HR>
+ 
+You can then
+run <CODE>lilo -C lilo.conf.mbr</CODE> to install lilo into your
+MBR. And don´t forget to run <CODE>lilo</CODE> to have lilo in
+the boot sector of your hard-drive.</P>
+<P>If you reboot
+now, you should have a lilo-prompt. When you select <CODE>other</CODE> this 
+chain loads the old lilo, which in turn loads Linux.</P>
+<H2><A NAME="s4">4. Installing Solaris</A></H2>
+
+<H2><A NAME="ss4.1">4.1 Solaris interactive</A>
+</H2>
+
+<P>
+<DL>
+<DT><B>Solaris 7</B><DD>
+<P>Solaris Interactive is on the first CD. Boot it, select
+Solaris interactive</P>
+<DT><B>Solaris 8</B><DD>
+<P>On the Solaris 8 CDs the interactive installer is on
+the first software CD. You don't need the install CD at
+all.</P>
+</DL>
+
+The Solaris installation itself is quite straight
+forward. One thing that might be confusing is the
+partitioning. Solaris will automatically use all the free
+space on your hard disk, and create it's own virtual disk in
+it. And when it comes to slicing up your virtual disk, don´t
+forget to add space for Solaris/Linux exchange. A good place
+for this is an extra /export/share partition.</P>
+<P>Please Note: If you abort during the Solaris installation,
+the MBR of your hard disk may already be overwritten and you
+may not be able to boot from the hard disk at all.</P>
+<H2><A NAME="ss4.2">4.2 Web-Start</A>
+</H2>
+
+<P>I couldn't get Web-Start to work at all. Please mail me if
+you have any experience using it.</P>
+<P>However, once Solaris was installed, I had no problems
+adding web-start-packages</P>
+<H2><A NAME="ss4.3">4.3 Getting GNU-tools</A>
+</H2>
+
+<P>Solaris standard installation doesn't even have a
+<CODE>less</CODE> command. Some people recommend getting the
+Redhat Package Manager (RPM) for Solaris, but the standard
+packaging tool will usually do it. You can find many nice
+packages at 
+<A HREF="http://www.sunfreeware.com">http://www.sunfreeware.com</A>
+The standard packages can be used with
+<CODE>pkgadd&nbsp;&lt;package&gt;</CODE>, and the web-start
+packages with
+<CODE>java&nbsp;&lt;packagewithoutclassextension&gt;</CODE></P>
+<H2><A NAME="boot"></A> <A NAME="s5">5. Boot managing</A></H2>
+
+<H2><A NAME="ss5.1">5.1 Using the Solaris boot manager</A>
+</H2>
+
+<P>When booting, the Solaris boot manager gives you all 4
+primary partitions for choosing which to boot from. If you had
+your boot loader installed on the boot sector of a primary
+partition, everything should be fine. Just boot from this
+partition, and Linux should come up.</P>
+<H2><A NAME="ss5.2">5.2 Using lilo</A>
+</H2>
+
+<P>Now you have lilo as a secondary boot loader, but you want
+it to be your primary boot loader again? No Problem. Lilo
+can easily chain boot Solaris. Just add the appropriate
+<CODE>other=</CODE> lines to your lilo.conf</P>
+<P>For testing, you should add the Solaris chain loading to
+the lilo in your boot sector first. Then try chain loading
+lilo, Solaris, lilo, Solaris, ... until you have enough of
+it. If this works, you should be able to put lilo back into
+the MBR again.</P>
+<P>However, Solaris might have messed up your partition
+table. This has happened on my system after installation of
+Solaris&nbsp;8. Lilo doesn't like the new partition, nor does
+fdisk. I had no problems with Solaris&nbsp;7</P>
+<H2><A NAME="ss5.3">5.3 Using grub</A>
+</H2>
+
+<P>Unfortunately, I have no experience with grub booting
+Solaris. If you do, please mail me!</P>
+<H2><A NAME="sharing"></A> <A NAME="s6">6. Sharing data</A></H2>
+
+<H2><A NAME="ss6.1">6.1 Using a shared partition</A>
+</H2>
+
+<P>If you have build your kernel with Sun disk label support
+and UFS support as mentioned in section 
+<A HREF="#kernel">building your new kernel</A>, you are now able to
+mount your Solaris partitions. During boot up, you should get
+something similar to: 
+<PRE>
+  hda: [PTBL] [523/255/63] hda1 hda2 &lt; hda5 hda6 hda7 hda8 &gt; hda3 &lt;Polaris: [s0]
+  hda9 [s1] hda10 [s2] hda11 [s3] hda12 [s6] hda13 [s7] hda14 &gt;
+</PRE>
+
+Meaning (in this case): partition 3 (<CODE>hda3</CODE>) is a
+Solaris partition with 6 slices (s0,s1,s2,s3,s6,s7). They
+are mapped to Linux devices <CODE>hda9</CODE> to <CODE>hda14</CODE>.</P>
+<P>Try mounting your Solaris
+partitions. When mounting UFS partitions, you always have to
+add an <CODE>-oufstype=</CODE> argument, in this case
+<CODE>-oufstype=sunx86</CODE>. So the command to mount a
+partition is something like:
+<PRE>
+  mount -oufstype=sunx86 /dev/hda14 /mnt
+</PRE>
+
+Now, test your partition. <EM>Please note: The write support
+on UFS partitions is very experimental. Please don't trust
+any data you write on your UFS partitions!</EM></P>
+<P>If you want your Solaris partitions automatically mounted
+at boot time, you can add a line like
+<PRE>
+  /dev/hda14 /solaris ufs ufstype=sunx86 0 0
+</PRE>
+
+to your /etc/fstab</P>
+<H2><A NAME="ss6.2">6.2 Alternative ways</A>
+</H2>
+
+<P>And, of course there are always other ways of sharing
+data:
+<DL>
+<DT><B>Floppy disk</B><DD>
+<P>I don't know which floppy disk file systems are supported by
+Solaris. Do you? Mail me.</P>
+<DT><B>Network</B><DD>
+<P>Solaris knows NFS. Linux knows NFS. This might actually
+be the best way of sharing data</P>
+</DL>
+</P>
+<H2><A NAME="s7">7. Running foreign binaries</A></H2>
+
+<H2><A NAME="ss7.1">7.1 Linux binaries on Solaris</A>
+</H2>
+
+<P>Is supposed to work using a program called ``lxrun''. I
+haven't got around to testing it yet. See the Solaris
+web site for more information.</P>
+<H2><A NAME="ss7.2">7.2 Solaris binaries on Linux</A>
+</H2>
+
+<P>Are as far as I know unsupported</P>
+<H2><A NAME="s8">8. Finding additional info</A></H2>
+
+<P>Here are some URI that might help you:
+<UL>
+<LI>
+<A HREF="http://www.sunfreeware.com">Sun Freeware</A><BR>
+ My first stop for Solaris
+resources. Has many GNU-tools in binary format ready to
+install.</LI>
+<LI>
+<A HREF="http://www.sun.com">Sun Microsystems</A><BR>
+ 
+Suns official web page</LI>
+<LI>
+<A HREF="http://www.sun.com/Solaris">Solaris Homepage</A></LI>
+<LI> 
+<A HREF="http://soldc.sun.com/support/drivers/hcl/index.html">Solaris Hardware Compatibility List (HCL)</A></LI>
+<LI>
+<A HREF="http://docs.sun.com">Solaris Online Documentation</A></LI>
+<LI>
+<A HREF="http://www.xslt.de">My Website</A><BR>
+You will always find the newest version of this document
+somewhere on this page</LI>
+</UL>
+</P>
+<H2><A NAME="s9">9. Credits and legal stuff</A></H2>
+
+<H2><A NAME="ss9.1">9.1 Credits</A>
+</H2>
+
+<P>Thanks to Marcel Meyer for beta testing this HOWTO while
+installing Solaris on his machine</P>
+<H2><A NAME="ss9.2">9.2 Questions, comments, suggestions</A>
+</H2>
+
+<P>Are
+always welcome. You can reach me via e-mail at
+<A HREF="mailto:max.berger@xslt.de">max.berger@xslt.de</A></P>
+<H2><A NAME="legal"></A> <A NAME="ss9.3">9.3 License</A>
+</H2>
+
+<P>This document is copyrighted &copy; by Max Berger. You may
+use and/or modify it according to the Linux Documentation
+Project License (LDPL) found at 
+<A HREF="http://www.linuxdoc.org/COPYRIGHT.html">http://www.linuxdoc.org/COPYRIGHT.html</A>. </P>
+<P>According to the license you don't have to tell me, but I'd
+very much like to know when you modify and/or republish this
+document.</P>
+<P>Although the information given in this document is believed
+to be correct, the author will accept no liability for the
+content of this document. Use the tips and examples given
+herein at your own risk.</P>
+</BODY>
+</HTML>

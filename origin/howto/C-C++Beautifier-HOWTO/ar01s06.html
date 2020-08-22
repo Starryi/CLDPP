@@ -1,0 +1,402 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1"><title>6.  Beautifiers For SGML and XML</title><link rel="stylesheet" type="text/css" href="style.css"><meta name="generator" content="DocBook XSL Stylesheets V1.79.1"><link rel="home" href="index.html" title="C-C++ Beautifier HOW-TO"><link rel="up" href="index.html" title="C-C++ Beautifier HOW-TO"><link rel="prev" href="ar01s05.html" title="5.  Beautifiers for other Languages"><link rel="next" href="ar01s07.html" title="7.  Related URLs"></head><body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF"><div class="navheader"><table width="100%" summary="Navigation header"><tr><th colspan="3" align="center">6. 
+      Beautifiers For SGML and XML 
+    </th></tr><tr><td width="20%" align="left"><a accesskey="p" href="ar01s05.html">Prev</a> </td><th width="60%" align="center"> </th><td width="20%" align="right"> <a accesskey="n" href="ar01s07.html">Next</a></td></tr></table><hr></div><div class="sect1"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="beautifier_sgml"></a>6. 
+      Beautifiers For SGML and XML 
+    </h2></div></div></div><p>
+      To beautify SGML and XML use one of these perl scripts. I used perl 
+      script from Kevin and it works fine for me. 
+    </p><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="sgml_indenter_kevin"></a>6.1. 
+        SGML Auto-Indenter By Kevin 
+      </h3></div></div></div><p>
+        This script was originally written by Kevin M. Dunn 
+        <a class="ulink" href="mailto:%20%20kdunn@hsc.edu%20%20" target="_top">
+          kdunn@hsc.edu 
+        </a>
+        Department of Chemistry Hampden-Sydney College HSC, VA 23943 (804) 
+        223-6181 (804) 223-6374 (Fax). And this script here was modified and 
+        enhanced by Al Dev alavoor[AT]yahoo.com. 
+      </p><p>
+        Several people have discussed the use of Tidy to indent sgml and xml 
+        sources, but does not work for SGML documents, as Tidy did not 
+        recognize the entities. Rather than fix Tidy, here is the perl script 
+        to indent anything with sgml-type tags. Only non-empty tags are 
+        indented, and text is justified at 80 characters/line (easily 
+        changed). 
+      </p><p>
+        Known problems: will break line-specific enviroments. So far, the 
+        script is quite general--it does not recognize specific tags and so 
+        could be used for any xml or sgml, not just docbook. Is there any way 
+        to recognize literal text independent of DTD? Leading whitespace, for 
+        example? Trailing whitespace? Or I could indent tags only, and leave 
+        all non-tag text unjustified and unindented. 
+      </p><p>
+        </p><pre class="programlisting">
+#!/usr/bin/perl -w
+#
+# sb: the sgml beautifier
+# indents non-empty sgml tags
+# usage: sb filename or sb &lt; filename or | sb
+# author: Kevin M. Dunn (kdunn@hsc.edu), Modified by Al Dev (alavoor[AT]yahoo.com)
+# license: anyone is free to use this for any purpose whatever
+#
+use strict;
+use diagnostics;
+	  
+sub separate_tags 
+{
+	@_ &lt; 1 ?  die "\nInsufficient args .. " : 0 ;
+	my ($tmpfile) = @_;
+	my ($current_line);
+	open(FILETMP, "&gt;$tmpfile");
+	while (&lt;&gt;)
+	{
+		$current_line = $_;
+		#if ($current_line =~ /^\s+$/)
+		if ($current_line eq "\n")
+		{
+			# Pad spaces to distinguish/identify this line with other newlines
+			# so that this line is printed and not bypassed in indent_tags()
+			$current_line = "\t  " . $current_line;  # Prepend with spaces
+			#print "\ndone padding\n";
+			#sleep 5;
+		}
+		#$_ =~ s/^\s+//;  # Left trim the leading white spaces - ltrim
+		#$_ =~ s/\s+$//;  # Right trim the trailing white spaces - rtrim
+		$current_line =~ s/&lt;/\n&lt;/g;  # Put newline before start of tag "&lt;"
+		$current_line =~ s/&gt;/&gt;\n/g;  # Put newline after end of tag "&gt;"
+		print FILETMP "$current_line";
+	}
+	close(FILETMP);
+}
+	  
+sub get_tags 
+{
+	@_ &lt; 1 ?  die "\nInsufficient args .. " : 0 ;
+	my ($tmpfile) = @_;
+	open(FILETMP, "$tmpfile");
+	my ($word);
+	while (&lt;FILETMP&gt;)
+	{
+		$word = $_;
+		$word =~ s/[&gt; ].*//; 
+		chomp($word);
+		if ( $word =~ /^&lt;\/.*/ )
+		{
+			$sgb::tag2{$word} = 1; # here the word has something like '&lt;/TITLE'
+			$word =~ s/\///;  
+			$sgb::tag1{$word} = 1; # here the word has something like '&lt;TITLE'
+		}
+	}
+}
+	  
+sub indent_tags 
+{
+	@_ &lt; 1 ?  die "\nInsufficient args .. " : 0 ;
+	my ($tmpfile) = @_;
+	my $jl = 80; #text will be justified to 80 characters/line
+	my $nl = 0;
+	my $sp = 0;
+	my @space;
+	$space[0] = "";
+	  
+	my $newline = ""; # hack to prevent extraneous blank first line
+	  
+	open(FILETMP, "$tmpfile");
+	my ($current_line, $word, $saveword);
+	while (&lt;FILETMP&gt;)
+	{
+		chomp($_); # avoid \n on last field
+		$current_line = $_;
+		$word = $current_line;
+		$word =~ s/[&gt; ].*//;  # truncate trailing "&gt; " and spaces therafter
+		if ( $sgb::tag1{$word} )
+		{
+			$saveword = $word;
+			print "\n$space[$sp]$current_line";
+			$nl = $jl; # force new line on next line of input
+			$sp++;
+			if ( ! $space[$sp] )
+			{
+				$space[$sp] = $space[$sp-1] . "  ";
+			}
+		}
+		elsif ( $sgb::tag2{$word} )
+		{
+			$saveword = $word;
+			$sp--;
+			# If the tag is &lt;ProgramListing&gt; then do not justify...
+			if (lc($word) eq "&lt;/programlisting")
+			{
+				print "$current_line";
+			}
+			else
+			{
+				print "\n$space[$sp]$current_line";
+			}
+			$nl = $jl; # force new line on next line of input
+		}
+		elsif ( $word =~ /&lt;.*/ ) 
+		{
+			$saveword = $word;
+			print "$newline$space[$sp]$current_line";
+			$newline = "\n"; # hack to prevent extraneous blank first line
+			$nl = $jl; # force new line on next line of input
+		}
+		elsif ( length($current_line) &gt; 0 ) 
+		{
+			# If the tag is &lt;ProgramListing&gt; then do not justify...
+			if (lc($saveword) eq "&lt;programlisting")
+			{
+				#print "\nthe tag1 word is $saveword----eof \n";
+				#print "$newline$space[$sp]$current_line";
+				# DO NOT put any tabs or spaces, because repeated running of this program
+				# on same file will keep putting tabs or spaces.
+				print "$newline$current_line";  
+				$newline = "\n"; # hack to prevent extraneous blank first line
+				$nl = $jl; # force new line on next line of input
+			}
+			else
+			{
+				$nl = justify($jl, $nl, $sp, $current_line, @space);
+			}
+		}
+	}
+}
+	  
+sub justify 
+{
+	@_ &lt; 4 ?  die "\nInsufficient args .. " : 0 ;
+	my ($jl, $nl, $sp, $current_line, @space) = @_;
+	  
+	my @words = split;
+	my $nw = @words;
+	for (my $i = 0; $i &lt; $nw; $i++ )
+	{
+		$sgb::ll += length($words[$i]) + 1 + $nl; # line length if this word is added
+		if ($sgb::ll &lt; $jl) # if short enough, print it
+		{ 
+			print "$words[$i] ";
+			$nl = 0;
+		}
+		else # if line is too long, start a new one
+		{ 
+			print "\n$space[$sp]$words[$i] ";
+			$nl = 0;
+			$sgb::ll = length($space[$sp] . $words[$i]) + 1;
+		}
+	}
+	return $nl;
+}
+	  
+$sgb::ll = 0; # global var
+my $tmpfile = "$$.tmp";
+separate_tags($tmpfile);
+get_tags($tmpfile);
+indent_tags($tmpfile);
+unlink ("$tmpfile"); # remove temporary file
+print "\n"; # add final line to output
+	  
+        </pre><p>
+      </p></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="sgml_indenter_hector"></a>6.2. 
+        SGML Auto-Indenter By Hector 
+      </h3></div></div></div><p>
+        Download from 
+        <a class="ulink" href="http://www.olea.org/tmp/indent-sgml-xml" target="_top">
+          "http://www.olea.org/tmp/indent-sgml-xml" 
+        </a>
+        . The author is at 
+        <a class="ulink" href="mailto:%20%20hector@debian.org%20%20" target="_top">
+          hector@debian.org 
+        </a>
+        And this script here was modified and enhanced by Al Dev 
+        alavoor[AT]yahoo.com. 
+      </p><p>
+        The program below uses the XML::Parser. Read the online manual page 
+        with 'man XML::Parser::Expat' and also 'man XML::Parser'. 
+      </p><p>
+      </p><p>
+        </p><pre class="programlisting">
+#!/usr/bin/perl -w 
+#
+	  
+# Author: Hector (hector@debian.org). Modified by Al Dev (alavoor[AT]yahoo.com)
+	  
+# For documentation please see 'man XML::Parser::Expat' and 
+# also see 'man XML::Parser'
+	  
+use diagnostics;
+use XML::Parser::Expat;
+	  
+$|=1;
+	  
+if ( !$ARGV[0] ) 
+{
+       print "Argument missing\n";
+       exit 1;
+}
+	  
+$inline_tags = "acronym|ulink|link|citetitle|firstname|surname|application|guimenu|guisubmenu|guimenuitem|menuchoice|interface|guilabel|guibutton|glossterm|systemitem|filename|xref|emphasis|keycap|markup|email|command|inlinegraphic|entry|email|screeninfo|graphic";
+$one_line = "title|member";
+	  
+$todo = "";
+$temp = "";
+$ancho = "  ";
+$indentacion = 0;
+	  
+#open IN , "&lt;$ARGV[0]";
+#my $todo = join ('', &lt;IN&gt;);
+#close (IN);
+	  
+$parser = new XML::Parser::Expat;
+$parser-&gt;setHandlers('Start'   =&gt; \&amp;inicio,
+                     'End'     =&gt; \&amp;fin,
+		     		 'Char'    =&gt; \&amp;cadena,
+	             	 'Comment' =&gt; \&amp;comentario);
+	  
+open(FOO, "$ARGV[0]") or die "Couldn't open";
+	  
+# If you get this type of error:
+# syntax error at line 1, column 0, byte 0 at ../sgml-beautifier-indentar.pl line 37
+# Then edit input file $ARGV[0] and change put this line -
+# 	&lt;?xml version="1.0" encoding="utf-8"?&gt;
+$parser-&gt;parse(*FOO);
+close(FOO);
+	  
+	  
+$todo =~ s/\n+/\n/gm;
+$todo =~ s/\n *\n/\n/gm;
+print "$todo\n";
+	  
+exit 1;
+	  
+sub inicio
+{
+	my ($p, $el, %atts) = @_;
+	my $tag = "&lt;$el";
+	foreach my $key ( sort %atts)
+	{
+		if ( $atts{$key} )
+		{
+			$tag .= " $key=\"$atts{$key}\"";
+		}
+	}
+	$tag .= "&gt;";
+	  
+	if ( !($el =~ /$inline_tags|$one_line/) )
+	{
+		$temp = &amp;indentar ($temp, $indentacion);
+		if ( $temp ) {
+			$todo .= "$temp\n";
+		}
+		my $pad = $ancho x $indentacion;
+		$todo .= "$pad$tag\n";
+		$temp = "";
+		$indentacion++;
+	}
+	else
+	{
+		$temp .= $tag;
+	}
+}
+	  
+sub fin
+{
+	my ($p, $el) = @_;
+	my $tag = "&lt;/$el&gt;";
+	if ( !($el =~ /$inline_tags/) )
+	{
+		$temp = &amp;indentar ($temp, $indentacion);
+		$temp =~ s/\n$// ;
+		$todo .= "$temp";
+		if ( !($el =~ /$one_line/) )
+		{
+			$indentacion--;
+			if ( !($todo =~ /\n$/) ) {
+				$todo .= "\n";
+			}
+			my $pad = $ancho x $indentacion;
+			$todo .= "$pad";
+			#$indentacion--;
+		}
+		$todo .= "$tag\n";
+		$temp = "";
+		#		$indentacion++;
+	}
+	else
+	{
+		$temp .= "$tag";
+	}
+}
+	  
+sub cadena
+{
+	my ($p, $str) = @_;
+	$str =~ s/ +/ /g;
+	#$str =~ s/^ //;
+	#$str =~ s/ $//;
+	$temp .= "$str";
+}
+	  
+sub comentario
+{
+	my ($p, $str) = @_;
+	$todo .= "&lt;!--\n $str \n--&gt;\n";
+}
+		
+																	    
+sub indentar ()
+{
+	my $linea = $_[0] ;
+	#	print ("Indentacion es $_[1]\nLinea $_[0]\n");
+	my $indentacion = $_[1];
+	my $cantidad = 75 - ( $indentacion * length($ancho));
+	my $pad = $ancho x $indentacion;
+	
+	my $temp = &amp;cortar_linea ( $linea, $cantidad);
+	$temp =~ s/\n/\n$pad/g;
+	$temp =~ s/^ //;
+	my $resultado = "$pad$temp\n";
+	return $resultado;
+}
+	  
+sub cortar_linea ()
+{
+	my $linea = $_[0];
+	#$linea =~ s/\n/ \n/;
+	$linea .= " ";
+	my $cantidad = $_[1];
+	$temp = "";
+	$temp2 = "";
+	#print "Llega $linea\n";
+	while ( $linea =~ /(.+?) / )
+	{
+		if ( (length ($temp) + length ($+)) &lt;= $cantidad )
+		{
+			$temp .= "$+ ";
+			$linea = $';
+		}
+		elsif ( length ($+) &gt;= $cantidad ) 
+		{
+			$linea = $';
+			$temp2 .= "$temp\n$+";
+			$temp = "";
+		}
+		else
+		{
+			$temp2 .= "$temp\n";
+			$temp = "$+ ";
+			$linea = $';
+		}
+	}
+	$temp2 .= "$temp\n";
+	$temp2 =~ s/\n$//;
+	$temp2 =~ s/ $//;
+	#	print "Sale\n##$temp2##\n";
+	return $temp2;
+}
+        </pre><p>
+      </p></div></div><div class="navfooter"><hr><table width="100%" summary="Navigation footer"><tr><td width="40%" align="left"><a accesskey="p" href="ar01s05.html">Prev</a> </td><td width="20%" align="center"> </td><td width="40%" align="right"> <a accesskey="n" href="ar01s07.html">Next</a></td></tr><tr><td width="40%" align="left" valign="top">5. 
+      Beautifiers for other Languages 
+     </td><td width="20%" align="center"><a accesskey="h" href="index.html">Home</a></td><td width="40%" align="right" valign="top"> 7. 
+      Related URLs 
+    </td></tr></table></div></body></html>

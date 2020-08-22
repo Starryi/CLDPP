@@ -1,0 +1,246 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 3.2 Final//EN">
+<HTML>
+<HEAD>
+ <META NAME="GENERATOR" CONTENT="LinuxDoc-Tools 0.9.72">
+ <TITLE>X11-big-cursor MINIHOWTO</TITLE>
+</HEAD>
+<BODY>
+<H1>X11-big-cursor MINIHOWTO</H1>
+
+<H2>How to use enlarged mouse cursors with the X window system</H2>
+<H2>
+<A HREF="mailto:joerg.schneider@ira.uka.de">J&ouml;rg Schneider</A></H2>v2, 11 August 1997
+<HR>
+<EM>This document describes how to use enlarged mouse cursors with the X
+window system.</EM>
+<HR>
+<H2><A NAME="top"></A> <A NAME="s1">1. Introduction</A></H2>
+
+<P>There are several reasons why the standard X mouse cursors are hard to
+track for some people: 
+<UL>
+<LI> when running X on a notebook with low contrast LCD</LI>
+<LI> on normal screens when using high resolution, 1600x1280 e.&nbsp;g.</LI>
+<LI> for visually impaired persons even on normal hardware</LI>
+</UL>
+</P>
+<P>In all cases it might help to use enlarged mouse cursors. Ideally this
+job should be done by a single X program that automatically enlarges
+every mouse cursor.</P>
+<P>To my knowledge there is no simple way to write a utility like this,
+because the X protocol has no provision to query mouse cursors. For
+more details see section 
+<A HREF="#tech">Technical discussion</A> below. </P>
+<P>If we aim for a less general goal, though, something can be done: </P>
+<P>There is a set of standard mouse cursors that can be found in the
+cursor font (try <CODE>xfd -fn cursor</CODE> to look at it). Most programs use
+these mouse cursors and the key idea is to replace the standard cursor
+font with an enlarged version. </P>
+
+<H2><A NAME="s2">2. About this document</A></H2>
+
+<P>The motivation for this MINIHOWTO was a visually impaired co-student
+who asked me how to enlarge the mouse cursor under X. After I found
+out how this can be done, I wrote an initial version of this
+document. The knowledge about the method described here does not seem
+to be common, so I decided to share it and submitted this document as
+a Linux MINIHOWTO, despite the fact that it is
+<EM>not specific to Linux at all</EM>. As all other MINIHOWTOs it can be
+found in the home of of the 
+<A HREF="http://sunsite.unc.edu/LDP/HOWTO/">Linux Documentation Project (LDP)</A>.</P>
+<P>The 
+<A HREF="http://i11www.ira.uka.de/~schneid/X11-big-cursor/master/">master</A> of
+this document is maintained in the SGML/linuxdoc format. This makes it
+possible to automatically provide versions in the following formats
+(which can be found in the same place as the master): html, text,
+LaTeX, DVI, PostScript, GNU info.</P>
+<P>
+<A HREF="mailto:shinobu@emichan.rim.or.jp">Shinobu Miyata</A> has
+done a Japanese translation of this MINIHOWTO. It can be found in 
+<A HREF="http://i11www.ira.uka.de/~schneid/jp/X11-big-cursor/">http://i11www.ira.uka.de/~schneid/jp/X11-big-cursor/</A>.</P>
+
+<H2><A NAME="howto"></A> <A NAME="s3">3. How to do it</A></H2>
+
+<P>Follow the steps detailed below. If you don't want to get and compile
+the bdfresize package yourself, you can skip to step 3 and download a
+magnified font instead of creating it.
+<OL>
+<LI> get cursor.bdf, the source of the cursor font, from some X
+distribution, e.&nbsp;g. from 
+<A HREF="ftp://ftp.x.org/pub/R6.3/xc/fonts/bdf/misc/cursor.bdf">ftp://ftp.x.org/pub/R6.3/xc/fonts/bdf/misc/cursor.bdf</A> (if you don't 
+find it there try an archie search or get it from 
+<A HREF="http://i11www.ira.uka.de/~schneid/X11-big-cursor/cursor.bdf">my copy</A>).  </LI>
+<LI> get, compile and install the bdfresize package from
+<A HREF="ftp://ftp.cs.titech.ac.jp/X11/contrib/Local/bdfresize-1.4.tar.Z">ftp://ftp.cs.titech.ac.jp/X11/contrib/Local/bdfresize-1.4.tar.Z</A>
+(or from 
+<A HREF="http://i11www.ira.uka.de/~schneid/X11-big-cursor/bdfresize-1.4.tar.gz">my copy</A>):
+<PRE>
+     zcat bdfresize-1.4.tar.Z  | tar xf -
+     cd bdfresize-1.4
+     xmkmf
+     make
+     
+</PRE>
+
+On Linux you probably have to use:
+<PRE>
+     make CCOPTIONS='-include /usr/include/bsd/bsd.h' clean all
+     
+</PRE>
+</LI>
+<LI> create a directory and install a magnified cursor font in it
+(magnification factor 2 in this example):
+
+<PRE>
+     mkdir $HOME/fonts
+     bdfresize -f 2 cursor.bdf | bdftopcf >$HOME/fonts/cursor2.pcf
+     mkfontdir $HOME/fonts
+     
+</PRE>
+
+     
+I have prepared some 
+<A HREF="http://i11www.ira.uka.de/~schneid/X11-big-cursor/fonts/">cursor fonts</A>
+with the following magnification factors: 1.5, 2, 2.5, 3, 4, 5,
+6, 7, 8 and 16. You can download one of them an copy it to
+<CODE>$HOME/fonts</CODE> if you don't want to use bdfresize.
+</LI>
+<LI> modify your <CODE>.xinitrc</CODE> or <CODE>.xsession</CODE> file: before
+any X client (that uses cursors) is started the following
+commands must  be executed: 
+
+<PRE>
+     xset +fp $HOME/fonts
+     xsetroot -cursor_name X_cursor
+     
+</PRE>
+
+</LI>
+<LI> leave your X session and restart.</LI>
+</OL>
+</P>
+<P>That's it&mdash;now all mouse cursors should have doubled in size. </P>
+
+
+<H2><A NAME="notes"></A> <A NAME="s4">4. Notes and limitations</A></H2>
+
+<P>
+<UL>
+<LI> X servers may have a limit for the maximum cursor
+size, especially if they use a hardware implementation for the mouse
+cursor. Others do not have such a limit. E.&nbsp;g. XF86_S3&nbsp;3.3
+works even with a 512x512 mouse cursor (rather slowly).</LI>
+<LI> The magnified cursor font must have the same name as the original
+font (the <EM>font name</EM> must be <CODE>cursor</CODE>, <EM>file name</EM> does not 
+matter)&mdash;that is no problem as <CODE>bdfresize</CODE> does not change
+the font name. </LI>
+<LI> The directory with the new cursor font must be placed before the
+directory with the standard cursor font in the the font path&mdash;this
+is accomplished with <CODE>xset +fp</CODE> (as opposed to
+<CODE>xset fp+</CODE>).</LI>
+<LI> Changes in <CODE>$HOME/fonts/</CODE> will be visible only
+after the command <CODE>mkfontdir $HOME/fonts; xset fp rehash</CODE> 
+and only in newly
+started X clients (more exactly: for newly created cursors).</LI>
+<LI> <CODE>xset +fp path</CODE> may not work on a X-Terminal. In this case
+a font server (see the section 
+<A HREF="#fontserver">How to use a fontserver</A>)
+can be used if supported by the X-Terminal or some
+other method to install the font on the X-Terminal (this can
+generally only be done by your system administrator).</LI>
+<LI> The same approach can be used for <CODE>olcursor</CODE> and
+<CODE>decw$cursor</CODE> fonts and any other cursor font you may
+encounter.</LI>
+<LI> Cursor fonts produced by bdfresize don't look smooth,
+especially at larger magnification factors. It would be nice if
+someone could create better looking handcrafted version at
+some common sizes.</LI>
+</UL>
+</P>
+
+<H2><A NAME="tech"></A> <A NAME="s5">5. Technical discussion</A></H2>
+
+<P>Is it possible to write a X program that enlarges cursors
+automatically?</P>
+<P>
+<DL>
+<DT><B>(Partial) solution 1</B><DD>
+<P>Use the XTestCompareCursor from the XTEST
+extension. For all windows that the mouse pointer enters compare the
+cursor of this window with a set of `known' cursors (e.&nbsp;g. from
+the cursor font). If the cursor is found, replace it with an enlarged
+version, otherwise either leave it alone or substitute a standard
+cursor. This will only work where the XTest extension is available.</P>
+
+<DT><B>Solution 2</B><DD>
+<P>Write a proxy X server that relays all client requests
+unchanged to the real X server, except that it intercepts all requests
+corresponing to the <CODE>XCreate*Cursor</CODE> Xlib
+functions. <CODE>XCreate*Cursor</CODE> requests should be modified to use
+an enlarged cursor. </P>
+<P>This proxy server simulates a new display, e.&nbsp;g. <CODE>:1</CODE>. All
+clients that connect to this display (e.&nbsp;g. <CODE>xterm -display
+:1</CODE>) are displayed on the real server (normally <CODE>:0</CODE>) and their
+mouse cursors are enlarged automatically. The mouse cursors of clients
+that connect to <CODE>:0</CODE> will remain <EM>unchanged</EM>.</P>
+</DL>
+</P>
+
+<H2><A NAME="ideas"></A> <A NAME="s6">6. Other ideas how to make the mouse cursor more visible</A></H2>
+
+<P>Here are some ideas for rather simple X programs that might make
+mouse cursors easier to track.</P>
+<P>
+<UL>
+<LI> When a hot key is pressed display something (big cursor, small
+window, shaped window) at pointer position for 0.5s.</LI>
+<LI> use XRecolorCursor to change the mouse cursor color every 0.1s</LI>
+</UL>
+</P>
+<P>A more demanding project would be <B>mouse trails</B> &agrave; la
+windoze, i.&nbsp;e. when the mouse is moved and the mouse cursor needs
+to be drawn in a different position, then the old mouse cursor does
+not disappear at once, but after a short delay. Mouse trails would be
+probably best implemented in a X server, but it might be feasible to
+do it as a X client, or better as a proxy server (see section 
+<A HREF="#tech">Technical discussion</A> for details).</P>
+
+<H2><A NAME="info"></A> <A NAME="s7">7. Related info</A></H2>
+
+<H2><A NAME="fontserver"></A> <A NAME="ss7.1">7.1 How to use a font server</A>
+</H2>
+
+<P>A font server is a net service that provides a set of X11 fonts
+with a simple protocol. It can be queried which fonts it provides and
+will supply the font bitmap data on request.</P>
+<P>You might want to use a font server to provide the X server with a
+modified cursor font, instead of telling it where to find the font on
+the file system. </P>
+<P>This method is especially handy if you use several machines that don't
+share a common file system or if you use X terminals that support
+the font server protocol. </P>
+<P>A font server program and associated tools comes with the X11R5+
+distribution (AFAIK). </P>
+
+<H3><A NAME="fsconfig"></A> Setting up a font server</H3>
+
+<P>Read the manual pages <EM>fs(1)</EM>, <EM>fslsfonts(1)</EM> (or
+<EM>xfs(1)</EM>, <EM>xfslsfonts(1)</EM> under X11R6) and try it&mdash;it isn't
+hard. Say, you are running the server on host <CODE>some.host.edu</CODE>
+on port 7100. You can test the setup with the command </P>
+<P><CODE>fslsfonts -server some.host.edu:7100</CODE></P>
+<P>To actually use the server issue the command </P>
+<P><CODE>xset +fp tcp/some.host.edu:7100</CODE></P>
+<P>which should return without an error message.</P>
+
+
+<H2><A NAME="getbdf"></A> <A NAME="ss7.2">7.2 How to get the bdf source for some font</A>
+</H2>
+
+<P>If you have set up a font server simply use <CODE>fstobdf</CODE> which
+comes with the font server.</P>
+<P>Alternatively you may try <CODE>getbdf</CODE> which can dump any installed
+X11 font to a bdf file. </P>
+
+</BODY>
+</HTML>

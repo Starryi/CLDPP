@@ -1,0 +1,355 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1"><title>5. Software and Tools</title><link rel="stylesheet" type="text/css" href="style.css"><meta name="generator" content="DocBook XSL Stylesheets V1.79.1"><link rel="home" href="index.html" title="Traffic Control HOWTO"><link rel="up" href="index.html" title="Traffic Control HOWTO"><link rel="prev" href="ar01s04.html" title="4. Components of Linux Traffic Control"><link rel="next" href="ar01s06.html" title="6. Classless Queuing Disciplines (qdiscs)"></head><body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF"><div class="navheader"><table width="100%" summary="Navigation header"><tr><th colspan="3" align="center">5. Software and Tools</th></tr><tr><td width="20%" align="left"><a accesskey="p" href="ar01s04.html">Prev</a> </td><th width="60%" align="center"> </th><td width="20%" align="right"> <a accesskey="n" href="ar01s06.html">Next</a></td></tr></table><hr></div><div class="section"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="software"></a>5. Software and Tools</h2></div></div></div><p>
+  </p><div class="section"><div class="titlepage"><div><div><h3 class="title"><a name="s-kernel"></a>5.1. Kernel requirements</h3></div></div></div><p>
+      Many distributions provide kernels with modular or monolithic support
+      for traffic control (Quality of Service).  Custom kernels may not
+      already provide support (modular or not) for the required features.  If
+      not, this is a very brief listing of the required kernel options.
+    </p><p>
+      The user who has little or no experience compiling a kernel is
+      recommended to <a class="ulink" href="http://tldp.org/HOWTO/Kernel-HOWTO/" target="_top">Kernel
+         HOWTO</a>.  Experienced kernel compilers should
+      be able to determine which of the below options apply to the desired
+      configuration, after reading a bit more about traffic control and
+      planning.
+    </p><div class="example"><a name="ex-s-kernel-options"></a><p class="title"><b>Example 1. Kernel compilation options
+        <a href="#ftn.idm803" class="footnote" name="idm803"><sup class="footnote">[8]</sup></a>
+      </b></p><div class="example-contents"><pre class="programlisting">
+#
+# QoS and/or fair queueing
+#
+CONFIG_NET_SCHED=y
+CONFIG_NET_SCH_CBQ=m
+CONFIG_NET_SCH_HTB=m
+CONFIG_NET_SCH_CSZ=m
+CONFIG_NET_SCH_PRIO=m
+CONFIG_NET_SCH_RED=m
+CONFIG_NET_SCH_SFQ=m
+CONFIG_NET_SCH_TEQL=m
+CONFIG_NET_SCH_TBF=m
+CONFIG_NET_SCH_GRED=m
+CONFIG_NET_SCH_DSMARK=m
+CONFIG_NET_SCH_INGRESS=m
+CONFIG_NET_QOS=y
+CONFIG_NET_ESTIMATOR=y
+CONFIG_NET_CLS=y
+CONFIG_NET_CLS_TCINDEX=m
+CONFIG_NET_CLS_ROUTE4=m
+CONFIG_NET_CLS_ROUTE=y
+CONFIG_NET_CLS_FW=m
+CONFIG_NET_CLS_U32=m
+CONFIG_NET_CLS_RSVP=m
+CONFIG_NET_CLS_RSVP6=m
+CONFIG_NET_CLS_POLICE=y
+      </pre></div></div><br class="example-break"><p>
+      A kernel compiled with the above set of options will provide modular
+      support for almost everything discussed in this documentation.  The user
+      may need to <span class="command"><strong>modprobe
+      <em class="replaceable"><code>module</code></em></strong></span> before using a given
+      feature.  Again, the confused user is recommended to the
+      <a class="ulink" href="http://tldp.org/HOWTO/Kernel-HOWTO/" target="_top">Kernel
+         HOWTO</a>, as this document cannot adequately address questions
+      about the use of the Linux kernel.
+    </p></div><div class="section"><div class="titlepage"><div><div><h3 class="title"><a name="s-iproute2"></a>5.2. <span class="command"><strong>iproute2</strong></span> tools (<span class="command"><strong>tc</strong></span>)</h3></div></div></div><p>
+      <span class="command"><strong>iproute2</strong></span> is a suite of command line utilities which
+      manipulate kernel structures for IP networking
+      configuration on a machine.  For technical documentation on these tools,
+      see the <a class="ulink" href="http://linux-ip.net/gl/ip-cref/" target="_top">iproute2
+         documentation</a> and for a more expository discussion, the
+      documentation at <a class="ulink" href="http://linux-ip.net/" target="_top">linux-ip.net</a>.  Of the tools in the <span class="command"><strong>iproute2</strong></span>
+      package, the binary <span class="command"><strong>tc</strong></span> is the only one used for traffic control.  This
+      HOWTO will ignore the other tools in the suite.
+    </p><a name="s-iproute2-tc"></a><p>
+      Because it interacts with the kernel to direct the creation, deletion
+      and modification of traffic control structures, the <span class="command"><strong>tc</strong></span> binary needs to
+      be compiled with support for all of the <a class="link" href="ar01s04.html#c-qdisc" title="4.1. qdisc"><code class="constant">qdisc</code></a>s you wish to use.
+      In particular, the HTB qdisc is not supported yet in the upstream
+      <span class="command"><strong>iproute2</strong></span> package.  See
+      <a class="xref" href="ar01s07.html#qc-htb" title="7.1. HTB, Hierarchical Token Bucket">Section 7.1, &#8220;HTB, Hierarchical Token Bucket&#8221;</a> for more information.
+    </p><p>
+      The <span class="command"><strong>tc</strong></span> tool performs all of the configuration of the kernel structures
+      required to support traffic control.  As a result of its many uses, the
+      command syntax can be described (at best) as arcane.  The utility takes
+      as its first non-option argument one of three Linux traffic control
+      components, <a class="link" href="ar01s04.html#c-qdisc" title="4.1. qdisc"><code class="constant">qdisc</code></a>, <a class="link" href="ar01s04.html#c-class" title="4.2. class"><code class="constant">class</code></a> or <a class="link" href="ar01s04.html#c-filter" title="4.3. filter"><code class="constant">filter</code></a>.
+    </p><div class="example"><a name="ex-s-iproute2-tc"></a><p class="title"><b>Example 2. <span class="command">tc</span> command usage</b></p><div class="example-contents"><pre class="programlisting">
+<code class="prompt">[root@leander]# </code><strong class="userinput"><code>tc</code></strong>
+<code class="computeroutput">Usage: tc [ OPTIONS ] OBJECT { COMMAND | help }
+where  OBJECT := { qdisc | class | filter }
+       OPTIONS := { -s[tatistics] | -d[etails] | -r[aw] }</code>
+      </pre></div></div><br class="example-break"><p>
+      Each object accepts further and different options, and will be
+      incompletely described and documented below.  The hints in the examples
+      below are designed to introduce the vagaries of <span class="command"><strong>tc</strong></span> command line
+      syntax.  For more examples, consult the <a class="ulink" href="http://lartc.org/howto/" target="_top">LARTC HOWTO</a>.  For even
+      better understanding, consult the kernel and <span class="command"><strong>iproute2</strong></span> code.
+    </p><div class="example"><a name="ex-s-iproute2-tc-qdisc"></a><p class="title"><b>Example 3. <span class="command">tc</span> <a class="link" href="ar01s04.html#c-qdisc" title="4.1. qdisc"><code class="constant">qdisc</code></a></b></p><div class="example-contents"><pre class="programlisting">
+<code class="prompt">[root@leander]# </code><strong class="userinput"><code>tc qdisc add    \</code></strong> <a class="co" name="ex-s-itcq-tc" href="ar01s05.html#ex-s-itcq-tc-text"><span><img src="images/callouts/1.png" alt="1" border="0"></span></a>
+<code class="prompt">&gt; </code><strong class="userinput"><code>                 dev eth0     \</code></strong> <a class="co" name="ex-s-itcq-dev" href="ar01s05.html#ex-s-itcq-dev-text"><span><img src="images/callouts/2.png" alt="2" border="0"></span></a>
+<code class="prompt">&gt; </code><strong class="userinput"><code>                 root         \</code></strong> <a class="co" name="ex-s-itcq-root" href="ar01s05.html#ex-s-itcq-root-text"><span><img src="images/callouts/3.png" alt="3" border="0"></span></a>
+<code class="prompt">&gt; </code><strong class="userinput"><code>                 handle 1:0   \</code></strong> <a class="co" name="ex-s-itcq-handle" href="ar01s05.html#ex-s-itcq-handle-text"><span><img src="images/callouts/4.png" alt="4" border="0"></span></a>
+<code class="prompt">&gt; </code><strong class="userinput"><code>                 htb</code></strong>            <a class="co" name="ex-s-itcq-qdisc" href="ar01s05.html#ex-s-itcq-qdisc-text"><span><img src="images/callouts/5.png" alt="5" border="0"></span></a>
+      </pre><div class="calloutlist"><table border="0" summary="Callout list"><tr><td width="5%" valign="top" align="left"><p><a name="ex-s-itcq-tc-text"></a><a href="#ex-s-itcq-tc"><span><img src="images/callouts/1.png" alt="1" border="0"></span></a> </p></td><td valign="top" align="left"><p>
+            Add a queuing discipline.  The verb could also be
+            <code class="constant">del</code>.
+          </p></td></tr><tr><td width="5%" valign="top" align="left"><p><a name="ex-s-itcq-dev-text"></a><a href="#ex-s-itcq-dev"><span><img src="images/callouts/2.png" alt="2" border="0"></span></a> </p></td><td valign="top" align="left"><p>
+            Specify the device onto which we are attaching the new queuing
+            discipline.
+          </p></td></tr><tr><td width="5%" valign="top" align="left"><p><a name="ex-s-itcq-root-text"></a><a href="#ex-s-itcq-root"><span><img src="images/callouts/3.png" alt="3" border="0"></span></a> </p></td><td valign="top" align="left"><p>
+            This means <span class="quote">&#8220;<span class="quote">egress</span>&#8221;</span> to <span class="command"><strong>tc</strong></span>.  The word
+            <code class="constant">root</code> must be used, however.  Another
+            qdisc with limited functionality, the <code class="constant">ingress</code> qdisc can be
+            attached to the same device.
+          </p></td></tr><tr><td width="5%" valign="top" align="left"><p><a name="ex-s-itcq-handle-text"></a><a href="#ex-s-itcq-handle"><span><img src="images/callouts/4.png" alt="4" border="0"></span></a> </p></td><td valign="top" align="left"><p>
+            The <a class="link" href="ar01s04.html#c-handle" title="4.7. handle"><code class="constant">handle</code></a> is a user-specified number of the form
+            <em class="replaceable"><code>major</code></em>:<em class="replaceable"><code>minor</code></em>.
+            The minor number for any queueing discipline handle must always be
+            zero (0).  An acceptable shorthand for a <a class="link" href="ar01s04.html#c-qdisc" title="4.1. qdisc"><code class="constant">qdisc</code></a> handle is
+            the syntax "1:", where the minor number is assumed to be zero (0)
+            if not specified.
+          </p></td></tr><tr><td width="5%" valign="top" align="left"><p><a name="ex-s-itcq-qdisc-text"></a><a href="#ex-s-itcq-qdisc"><span><img src="images/callouts/5.png" alt="5" border="0"></span></a> </p></td><td valign="top" align="left"><p>
+            This is the queuing discipline to attach, HTB in this
+            example.  Queuing discipline specific parameters will follow this.
+            In the example here, we add no qdisc-specific parameters.
+          </p></td></tr></table></div></div></div><br class="example-break"><p>
+      Above was the simplest use of the <span class="command"><strong>tc</strong></span> utility for adding a queuing
+      discipline to a device.  Here's an example of the use of <span class="command"><strong>tc</strong></span> to add a
+      class to an existing parent class.
+    </p><div class="example"><a name="ex-s-iproute2-tc-class"></a><p class="title"><b>Example 4. <span class="command">tc</span> <a class="link" href="ar01s04.html#c-class" title="4.2. class"><code class="constant">class</code></a></b></p><div class="example-contents"><pre class="programlisting">
+<code class="prompt">[root@leander]# </code><strong class="userinput"><code>tc class add    \</code></strong> <a class="co" name="ex-s-itcc-tc" href="ar01s05.html#ex-s-itcc-tc-text"><span><img src="images/callouts/1.png" alt="1" border="0"></span></a>
+<code class="prompt">&gt; </code><strong class="userinput"><code>                 dev eth0     \</code></strong> <a class="co" name="ex-s-itcc-dev" href="ar01s05.html#ex-s-itcc-dev-text"><span><img src="images/callouts/2.png" alt="2" border="0"></span></a>
+<code class="prompt">&gt; </code><strong class="userinput"><code>                 parent 1:1   \</code></strong> <a class="co" name="ex-s-itcc-parent" href="ar01s05.html#ex-s-itcc-parent-text"><span><img src="images/callouts/3.png" alt="3" border="0"></span></a>
+<code class="prompt">&gt; </code><strong class="userinput"><code>                 classid 1:6  \</code></strong> <a class="co" name="ex-s-itcc-classid" href="ar01s05.html#ex-s-itcc-classid-text"><span><img src="images/callouts/4.png" alt="4" border="0"></span></a>
+<code class="prompt">&gt; </code><strong class="userinput"><code>                 htb          \</code></strong> <a class="co" name="ex-s-itcc-classtype" href="ar01s05.html#ex-s-itcc-classtype-text"><span><img src="images/callouts/5.png" alt="5" border="0"></span></a>
+<code class="prompt">&gt; </code><strong class="userinput"><code>                 rate 256kbit \</code></strong> <a class="co" name="ex-s-itcc-htb-rate" href="ar01s05.html#ex-s-itcc-htb-only-text"><span><img src="images/callouts/6.png" alt="6" border="0"></span></a>
+<code class="prompt">&gt; </code><strong class="userinput"><code>                 ceil 512kbit</code></strong>   <a class="co" name="ex-s-itcc-htb-ceil" href="ar01s05.html#ex-s-itcc-htb-only-text"><span><img src="images/callouts/7.png" alt="7" border="0"></span></a>
+      </pre><div class="calloutlist"><table border="0" summary="Callout list"><tr><td width="5%" valign="top" align="left"><p><a name="ex-s-itcc-tc-text"></a><a href="#ex-s-itcc-tc"><span><img src="images/callouts/1.png" alt="1" border="0"></span></a> </p></td><td valign="top" align="left"><p>
+             Add a class. The verb could also be <code class="constant">del</code>.
+          </p></td></tr><tr><td width="5%" valign="top" align="left"><p><a name="ex-s-itcc-dev-text"></a><a href="#ex-s-itcc-dev"><span><img src="images/callouts/2.png" alt="2" border="0"></span></a> </p></td><td valign="top" align="left"><p>
+            Specify the device onto which we are attaching the new class.
+          </p></td></tr><tr><td width="5%" valign="top" align="left"><p><a name="ex-s-itcc-parent-text"></a><a href="#ex-s-itcc-parent"><span><img src="images/callouts/3.png" alt="3" border="0"></span></a> </p></td><td valign="top" align="left"><p>
+            Specify the parent <a class="link" href="ar01s04.html#c-handle" title="4.7. handle"><code class="constant">handle</code></a> to which we are attaching the new class.
+          </p></td></tr><tr><td width="5%" valign="top" align="left"><p><a name="ex-s-itcc-classid-text"></a><a href="#ex-s-itcc-classid"><span><img src="images/callouts/4.png" alt="4" border="0"></span></a> </p></td><td valign="top" align="left"><p>
+            This is a unique <a class="link" href="ar01s04.html#c-handle" title="4.7. handle"><code class="constant">handle</code></a>
+            (<em class="replaceable"><code>major</code></em>:<em class="replaceable"><code>minor</code></em>)
+            identifying this class.  The minor number must be any non-zero (0)
+            number.
+          </p></td></tr><tr><td width="5%" valign="top" align="left"><p><a name="ex-s-itcc-classtype-text"></a><a href="#ex-s-itcc-classtype"><span><img src="images/callouts/5.png" alt="5" border="0"></span></a> </p></td><td valign="top" align="left"><p>
+            Both of the <a class="link" href="ar01s07.html" title="7. Classful Queuing Disciplines (qdiscs)">classful qdiscs</a> require that any children classes be
+            classes of the same type as the parent.  Thus an HTB qdisc
+            will contain HTB classes.
+          </p></td></tr><tr><td width="5%" valign="top" align="left"><p><a name="ex-s-itcc-htb-only-text"></a><a href="#ex-s-itcc-htb-rate"><span><img src="images/callouts/6.png" alt="6" border="0"></span></a> <a href="#ex-s-itcc-htb-ceil"><span><img src="images/callouts/7.png" alt="7" border="0"></span></a> </p></td><td valign="top" align="left"><p>
+            This is a class specific parameter.  Consult
+            <a class="xref" href="ar01s07.html#qc-htb" title="7.1. HTB, Hierarchical Token Bucket">Section 7.1, &#8220;HTB, Hierarchical Token Bucket&#8221;</a> for more detail on these parameters.
+          </p></td></tr></table></div></div></div><br class="example-break"><p>
+    </p><div class="example"><a name="ex-s-iproute2-tc-filter"></a><p class="title"><b>Example 5. <span class="command">tc</span> <a class="link" href="ar01s04.html#c-filter" title="4.3. filter"><code class="constant">filter</code></a></b></p><div class="example-contents"><pre class="programlisting">
+<code class="prompt">[root@leander]# </code><strong class="userinput"><code>tc filter add               \</code></strong> <a class="co" name="ex-s-itcf-tc" href="ar01s05.html#ex-s-itcf-tc-text"><span><img src="images/callouts/1.png" alt="1" border="0"></span></a>
+<code class="prompt">&gt; </code><strong class="userinput"><code>                 dev eth0                 \</code></strong> <a class="co" name="ex-s-itcf-dev" href="ar01s05.html#ex-s-itcf-dev-text"><span><img src="images/callouts/2.png" alt="2" border="0"></span></a>
+<code class="prompt">&gt; </code><strong class="userinput"><code>                 parent 1:0               \</code></strong> <a class="co" name="ex-s-itcf-parent" href="ar01s05.html#ex-s-itcf-parent-text"><span><img src="images/callouts/3.png" alt="3" border="0"></span></a>
+<code class="prompt">&gt; </code><strong class="userinput"><code>                 protocol ip              \</code></strong> <a class="co" name="ex-s-itcf-protocol" href="ar01s05.html#ex-s-itcf-protocol-text"><span><img src="images/callouts/4.png" alt="4" border="0"></span></a>
+<code class="prompt">&gt; </code><strong class="userinput"><code>                 prio 5                   \</code></strong> <a class="co" name="ex-s-itcf-prio" href="ar01s05.html#ex-s-itcf-prio-text"><span><img src="images/callouts/5.png" alt="5" border="0"></span></a>
+<code class="prompt">&gt; </code><strong class="userinput"><code>                 u32                      \</code></strong> <a class="co" name="ex-s-itcf-classifier" href="ar01s05.html#ex-s-itcf-classifier-text"><span><img src="images/callouts/6.png" alt="6" border="0"></span></a>
+<code class="prompt">&gt; </code><strong class="userinput"><code>                 match ip port 22 0xffff  \</code></strong> <a class="co" name="ex-s-itcf-match-port" href="ar01s05.html#ex-s-itcf-match-text"><span><img src="images/callouts/7.png" alt="7" border="0"></span></a>
+<code class="prompt">&gt; </code><strong class="userinput"><code>                 match ip tos 0x10 0xff   \</code></strong> <a class="co" name="ex-s-itcf-match-tos" href="ar01s05.html#ex-s-itcf-match-text"><span><img src="images/callouts/8.png" alt="8" border="0"></span></a>
+<code class="prompt">&gt; </code><strong class="userinput"><code>                 flowid 1:6               \</code></strong> <a class="co" name="ex-s-itcf-flowid" href="ar01s05.html#ex-s-itcf-flowid-text"><span><img src="images/callouts/9.png" alt="9" border="0"></span></a>
+<code class="prompt">&gt; </code><strong class="userinput"><code>                 police                   \</code></strong> <a class="co" name="ex-s-itcf-police" href="ar01s05.html#ex-s-itcf-police-text"><span><img src="images/callouts/10.png" alt="10" border="0"></span></a>
+<code class="prompt">&gt; </code><strong class="userinput"><code>                 rate 32000bps            \</code></strong> <a class="co" name="ex-s-itcf-prate" href="ar01s05.html#ex-s-itcf-prate-text"><span><img src="images/callouts/11.png" alt="11" border="0"></span></a>
+<code class="prompt">&gt; </code><strong class="userinput"><code>                 burst 10240              \</code></strong> <a class="co" name="ex-s-itcf-burst" href="ar01s05.html#ex-s-itcf-burst-text"><span><img src="images/callouts/12.png" alt="12" border="0"></span></a>
+<code class="prompt">&gt; </code><strong class="userinput"><code>                 mpu 0                    \</code></strong> <a class="co" name="ex-s-itcf-mpu" href="ar01s05.html#ex-s-itcf-mpu-text"><span><img src="images/callouts/13.png" alt="13" border="0"></span></a>
+<code class="prompt">&gt; </code><strong class="userinput"><code>                 action drop/continue</code></strong>       <a class="co" name="ex-s-itcf-action" href="ar01s05.html#ex-s-itcf-action-text"><span><img src="images/callouts/14.png" alt="14" border="0"></span></a>
+      </pre><div class="calloutlist"><table border="0" summary="Callout list"><tr><td width="5%" valign="top" align="left"><p><a name="ex-s-itcf-tc-text"></a><a href="#ex-s-itcf-tc"><span><img src="images/callouts/1.png" alt="1" border="0"></span></a> </p></td><td valign="top" align="left"><p>
+            Add a filter.  The verb could also be <code class="constant">del</code>.
+          </p></td></tr><tr><td width="5%" valign="top" align="left"><p><a name="ex-s-itcf-dev-text"></a><a href="#ex-s-itcf-dev"><span><img src="images/callouts/2.png" alt="2" border="0"></span></a> </p></td><td valign="top" align="left"><p>
+            Specify the device onto which we are attaching the new filter.
+          </p></td></tr><tr><td width="5%" valign="top" align="left"><p><a name="ex-s-itcf-parent-text"></a><a href="#ex-s-itcf-parent"><span><img src="images/callouts/3.png" alt="3" border="0"></span></a> </p></td><td valign="top" align="left"><p>
+            Specify the parent handle to which we are attaching the new
+            filter.
+          </p></td></tr><tr><td width="5%" valign="top" align="left"><p><a name="ex-s-itcf-protocol-text"></a><a href="#ex-s-itcf-protocol"><span><img src="images/callouts/4.png" alt="4" border="0"></span></a> </p></td><td valign="top" align="left"><p>
+            This parameter is required.  It's use should be obvious, although
+            I don't know more.
+          </p></td></tr><tr><td width="5%" valign="top" align="left"><p><a name="ex-s-itcf-prio-text"></a><a href="#ex-s-itcf-prio"><span><img src="images/callouts/5.png" alt="5" border="0"></span></a> </p></td><td valign="top" align="left"><p>
+            The <em class="parameter"><code>prio</code></em> parameter allows a given filter to
+            be preferred above another.  The <em class="parameter"><code>pref</code></em> is a
+            synonym.
+          </p></td></tr><tr><td width="5%" valign="top" align="left"><p><a name="ex-s-itcf-classifier-text"></a><a href="#ex-s-itcf-classifier"><span><img src="images/callouts/6.png" alt="6" border="0"></span></a> </p></td><td valign="top" align="left"><p>
+            This is a <a class="link" href="ar01s04.html#c-classifier" title="4.4. classifier"><code class="constant">classifier</code></a>, and is a required phrase in every
+            <span class="command"><strong>tc</strong></span> <a class="link" href="ar01s04.html#c-filter" title="4.3. filter"><code class="constant">filter</code></a> command.
+          </p></td></tr><tr><td width="5%" valign="top" align="left"><p><a name="ex-s-itcf-match-text"></a><a href="#ex-s-itcf-match-port"><span><img src="images/callouts/7.png" alt="7" border="0"></span></a> <a href="#ex-s-itcf-match-tos"><span><img src="images/callouts/8.png" alt="8" border="0"></span></a> </p></td><td valign="top" align="left"><p>
+            These are parameters to the classifier.  In this case, packets
+            with a type of service flag (indicating interactive usage) and
+            matching port 22 will be selected by this statement.
+          </p></td></tr><tr><td width="5%" valign="top" align="left"><p><a name="ex-s-itcf-flowid-text"></a><a href="#ex-s-itcf-flowid"><span><img src="images/callouts/9.png" alt="9" border="0"></span></a> </p></td><td valign="top" align="left"><p>
+            The <em class="parameter"><code>flowid</code></em> specifies the <a class="link" href="ar01s04.html#c-handle" title="4.7. handle"><code class="constant">handle</code></a> of
+            the target class (or qdisc) to which a matching filter should send
+            its selected packets.
+          </p></td></tr><tr><td width="5%" valign="top" align="left"><p><a name="ex-s-itcf-police-text"></a><a href="#ex-s-itcf-police"><span><img src="images/callouts/10.png" alt="10" border="0"></span></a> </p></td><td valign="top" align="left"><p>
+            This is the <a class="link" href="ar01s04.html#c-police" title="4.5. policer"><code class="constant">policer</code></a>, and is an optional phrase in every
+            <span class="command"><strong>tc</strong></span> <a class="link" href="ar01s04.html#c-filter" title="4.3. filter"><code class="constant">filter</code></a> command.
+          </p></td></tr><tr><td width="5%" valign="top" align="left"><p><a name="ex-s-itcf-prate-text"></a><a href="#ex-s-itcf-prate"><span><img src="images/callouts/11.png" alt="11" border="0"></span></a> </p></td><td valign="top" align="left"><p>
+            The policer will perform one action above this rate, and another
+            action below (see
+            <a class="xref" href="ar01s05.html#ex-s-itcf-action-text">action parameter</a>).
+          </p></td></tr><tr><td width="5%" valign="top" align="left"><p><a name="ex-s-itcf-burst-text"></a><a href="#ex-s-itcf-burst"><span><img src="images/callouts/12.png" alt="12" border="0"></span></a> </p></td><td valign="top" align="left"><p>
+            The <em class="parameter"><code>burst</code></em> is an exact analog to <em class="parameter"><code>burst</code></em> in
+            <a class="link" href="ar01s07.html#qc-htb" title="7.1. HTB, Hierarchical Token Bucket">HTB</a> (<em class="parameter"><code>burst</code></em> is a <a class="link" href="ar01s02.html#o-buckets">buckets</a> concept).
+          </p></td></tr><tr><td width="5%" valign="top" align="left"><p><a name="ex-s-itcf-mpu-text"></a><a href="#ex-s-itcf-mpu"><span><img src="images/callouts/13.png" alt="13" border="0"></span></a> </p></td><td valign="top" align="left"><p>
+            The minimum policed unit.  To count all traffic, use an
+            <em class="parameter"><code>mpu</code></em> of zero (0).
+          </p></td></tr><tr><td width="5%" valign="top" align="left"><p><a name="ex-s-itcf-action-text"></a><a href="#ex-s-itcf-action"><span><img src="images/callouts/14.png" alt="14" border="0"></span></a> </p></td><td valign="top" align="left"><p>
+            The <em class="parameter"><code>action</code></em> indicates what should be done if
+            the <em class="parameter"><code>rate</code></em> based on the attributes of the policer.  The
+            first word specifies the action to take if the policer has been
+            exceeded.  The second word specifies action to take otherwise.
+          </p></td></tr></table></div></div></div><br class="example-break"><p>
+      As evidenced above, the <span class="command"><strong>tc</strong></span> command line utility has an arcane and
+      complex syntax, even for simple operations such as these examples show.
+      It should come as no surprised to the reader that there exists an easier
+      way to configure Linux traffic control.  See the next section,
+      <a class="xref" href="ar01s05.html#s-tcng" title="5.3. tcng, Traffic Control Next Generation">Section 5.3, &#8220;<span class="command"><strong>tcng</strong></span>, Traffic Control Next Generation&#8221;</a>.
+    </p></div><div class="section"><div class="titlepage"><div><div><h3 class="title"><a name="s-tcng"></a>5.3. <span class="command"><strong>tcng</strong></span>, Traffic Control Next Generation</h3></div></div></div><p>
+      FIXME; sing the praises of tcng.  See also <a class="ulink" href="http://tldp.org/HOWTO/Traffic-Control-tcng-HTB-HOWTO/" target="_top">
+           Traffic Control using tcng and HTB HOWTO</a> and
+      <a class="ulink" href="http://linux-ip.net/gl/tcng/" target="_top">tcng
+         documentation</a>.
+    </p><p>
+      Traffic control next generation (hereafter, <span class="command"><strong>tcng</strong></span>) provides all of the
+      power of traffic control under Linux with twenty percent of the
+      headache.
+    </p><p>
+    </p></div><div class="section"><div class="titlepage"><div><div><h3 class="title"><a name="s-netfilter"></a>5.4. Netfilter</h3></div></div></div><p>
+         Netfilter is a framework provided by the Linux kernel that allows various networking-related operations to be implemented in the form of customized handlers. Netfilter offers various functions and operations for packet filtering, network address translation, and port translation, which provide the functionality required for directing packets through a network, as well as for providing ability to prohibit packets from reaching sensitive locations within a computer network.
+      </p><p>
+          Netfilter represents a set of hooks inside the Linux kernel, allowing specific kernel modules to register callback functions with the kernel's networking stack. Those functions, usually applied to the traffic in form of filtering and modification rules, are called for every packet that traverses the respective hook within the networking stack.
+      </p><div class="section"><div class="titlepage"><div><div><h4 class="title"><a name="s-iptables"></a>5.4.1. <code class="constant">iptables</code></h4></div></div></div><p>
+              iptables is a user-space application program that allows a system administrator to configure the tables provided by the Linux kernel firewall (implemented as different Netfilter modules) and the chains and rules it stores. Different kernel modules and programs are currently used for different protocols; iptables applies to IPv4, ip6tables to IPv6, arptables to ARP, and ebtables to Ethernet frames.
+          </p><p>
+              iptables requires elevated privileges to operate and must be executed by user root, otherwise it fails to function. On most Linux systems, iptables is installed as /usr/sbin/iptables and documented in its man pages, which can be opened using man iptables when installed. It may also be found in /sbin/iptables, but since iptables is more like a service rather than an "essential binary", the preferred location remains /usr/sbin.
+          </p><p>
+              The term iptables is also commonly used to inclusively refer to the kernel-level components. x_tables is the name of the kernel module carrying the shared code portion used by all four modules that also provides the API used for extensions; subsequently, Xtables is more or less used to refer to the entire firewall (v4, v6, arp, and eb) architecture.
+          </p><p>
+              Xtables allows the system administrator to define tables containing chains of rules for the treatment of packets. Each table is associated with a different kind of packet processing. Packets are processed by sequentially traversing the rules in chains. A rule in a chain can cause a goto or jump to another chain, and this can be repeated to whatever level of nesting is desired. (A jump is like a &#8220;call&#8221;, i.e. the point that was jumped from is remembered.) Every network packet arriving at or leaving from the computer traverses at least one chain.
+          </p><div class="mediaobject"><a name="img-Figure5"></a><object type="image/svg+xml" data="images/Figure5.svg"></object><div class="caption"><p><span class="command"><strong>Figure 5: </strong></span><span class="emphasis"><em>Packet flow paths. Packets start at a given box and will flow along a certain path, depending on the circumstances.</em></span>
+                  </p></div></div><p>
+              The origin of the packet determines which chain it traverses initially. There are five predefined chains (mapping to the five available Netfilter hooks, see figure 5), though a table may not have all chains.
+          </p><div class="mediaobject"><a name="img-Figure6"></a><object type="image/svg+xml" data="images/Figure6.svg"></object><div class="caption"><p><span class="command"><strong>Figure 6: </strong></span><span class="emphasis"><em>netfilter&#8217;s hook</em></span>
+                  </p></div></div><p>
+              Predefined chains have a policy, for example DROP, which is applied to the packet if it reaches the end of the chain. The system administrator can create as many other chains as desired. These chains have no policy; if a packet reaches the end of the chain it is returned to the chain which called it. A chain may be empty.
+          </p><div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem"><p>
+                      <code class="constant">PREROUTING:</code> Packets will enter this chain before a routing decision is made (point 1 in Figure 6).
+                  </p></li><li class="listitem"><p>
+                      <code class="constant">INPUT:</code> Packet is going to be locally delivered. It does not have anything to do with processes having an opened socket; local delivery is controlled by the "local-delivery" routing table: ip route show table local (point 2 Figure 6).
+                  </p></li><li class="listitem"><p>
+                      <code class="constant">FORWARD:</code> All packets that have been routed and were not for local delivery will traverse this chain (point 3 in Figure 6).
+                  </p></li><li class="listitem"><p>
+                      <code class="constant">OUTPUT:</code> Packets sent from the machine itself will be visiting this chain (point 5 in Figure 6)
+                  </p></li><li class="listitem"><p>
+                      <code class="constant">POSTROUTING:</code> Routing decision has been made. Packets enter this chain just before handing them off to the hardware (point 4 in Figure 6).
+                  </p></li></ul></div><p>
+              Each rule in a chain contains the specification of which packets it matches. It may also contain a target (used for extensions) or verdict (one of the built-in decisions). As a packet traverses a chain, each rule in turn is examined. If a rule does not match the packet, the packet is passed to the next rule. If a rule does match the packet, the rule takes the action indicated by the target/verdict, which may result in the packet being allowed to continue along the chain or it may not. Matches make up the large part of rulesets, as they contain the conditions packets are tested for. These can happen for about any layer in the OSI model, as with e.g. the --mac-source and -p tcp --dport parameters, and there are also protocol-independent matches, such as -m time.
+          </p><p>
+              The packet continues to traverse the chain until either
+          </p><div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem"><p>
+                      a rule matches the packet and decides the ultimate fate of the packet, for example by calling one of the <code class="constant">ACCEPT</code> or <code class="constant">DROP</code>, or a module returning such an ultimate fate; or
+                  </p></li><li class="listitem"><p>
+                      a rule calls the <code class="constant">RETURN</code> verdict, in which case processing returns to the calling chain; or
+                  </p></li><li class="listitem"><p>
+                     the end of the chain is reached; traversal either continues in the parent chain (as if RETURN was used), or the base chain policy, which is an ultimate fate, is used.
+                  </p></li></ul></div><p>
+              Targets also return a verdict like ACCEPT (NAT modules will do this) or DROP (e.g. the REJECT module), but may also imply CONTINUE (e.g. the LOG module; CONTINUE is an internal name) to continue with the next rule as if no target/verdict was specified at all.
+          </p></div></div><div class="section"><div class="titlepage"><div><div><h3 class="title"><a name="s-imq"></a>5.5. IMQ, Intermediate Queuing device</h3></div></div></div><p>
+        The Intermediate queueing device is not a qdisc but its usage is tightly bound to qdiscs. Within linux, qdiscs are attached to network devices and everything that is queued to the device is first queued to the qdisc and then to driver queue. From this concept, two limitations arise:
+    </p><div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem"><p>
+                Only egress shaping is possible (an ingress qdisc exists, but its possibilities are very limited compared to classful qdiscs, as seen before).
+            </p></li><li class="listitem"><p>
+                A qdisc can only see traffic of one interface, global limitations can't be placed.
+            </p></li></ul></div><p>
+      IMQ is there to help solve those two limitations. In short, you can put everything you choose in a qdisc. Specially marked packets get intercepted in netfilter NF_IP_PRE_ROUTING and NF_IP_POST_ROUTING hooks and pass through the qdisc attached to an imq device. An iptables target is used for marking the packets.
+    </p><p>
+        This enables you to do ingress shaping as you can just mark packets coming in from somewhere and/or treat interfaces as classes to set global limits. You can also do lots of other stuff like just putting your http traffic in a qdisc, put new connection requests in a qdisc, exc.
+    </p><div class="section"><div class="titlepage"><div><div><h4 class="title"><a name="s-sample-configuration"></a>5.5.1. Sample configuration</h4></div></div></div><p>
+            The first thing that might come to mind is use ingress shaping to give yourself a high guaranteed bandwidth. Configuration is just like with any other interface:
+        </p><pre class="programlisting">
+tc qdisc add dev imq0 root handle 1: htb default 20
+
+tc class add dev imq0 parent 1: classid 1:1 htb rate 2mbit burst 15k
+
+tc class add dev imq0 parent 1:1 classid 1:10 htb rate 1mbit
+tc class add dev imq0 parent 1:1 classid 1:20 htb rate 1mbit
+
+tc qdisc add dev imq0 parent 1:10 handle 10: pfifo
+tc qdisc add dev imq0 parent 1:20 handle 20: sfq
+        </pre><pre class="programlisting">
+tc filter add dev imq0 parent 10:0 protocol ip prio 1 u32 match \ ip dst 10.0.0.230/32 flowid 1:10
+        </pre><p>
+            In this example u32 is used for classification. Other classifiers should work as expected. Next traffic has to be selected and marked to be enqueued to imq0.
+        </p><pre class="programlisting">
+iptables -t mangle -A PREROUTING -i eth0 -j IMQ --todev 0
+
+ip link set imq0 up
+        </pre><p>
+            The IMQ iptables targets is valid in the PREROUTING and POSTROUTING chains of the mangle table. It's syntax is
+        </p><pre class="programlisting">
+IMQ [ --todev n ]	n : number of imq device
+        </pre><p>
+            An ip6tables target is also provided.
+        </p><p>
+            Please note traffic is not enqueued when the target is hit but afterwards. The exact location where traffic enters the imq device depends on the direction of the traffic (in/out). These are the predefined netfilter hooks used by iptables:
+        </p><pre class="programlisting">
+enum nf_ip_hook_priorities {
+            NF_IP_PRI_FIRST = INT_MIN,
+            NF_IP_PRI_CONNTRACK = -200,
+            NF_IP_PRI_MANGLE = -150,
+            NF_IP_PRI_NAT_DST = -100,
+            NF_IP_PRI_FILTER = 0,
+            NF_IP_PRI_NAT_SRC = 100,
+            NF_IP_PRI_LAST = INT_MAX,
+            };
+        </pre><p>
+            For ingress traffic, imq registers itself with NF_IP_PRI_MANGLE + 1 priority which means packets enter the imq device directly after the mangle PREROUTING chain has been passed.
+        </p><p>
+          For egress imq uses NF_IP_PRI_LAST which honours the fact that packets dropped by the filter table won't occupy bandwidth.
+        </p></div></div><div class="section"><div class="titlepage"><div><div><h3 class="title"><a name="s-ethtool"></a>5.6. <code class="constant">ethtool,</code> Driver Queue</h3></div></div></div><p>
+ The ethtool command is used to control the driver queue size for Ethernet devices. ethtool also provides low level interface statistics as well as the ability to enable and disable IP stack and driver features.
+    </p><p>
+        The -g flag to ethtool displays the driver queue (ring) parameters (see Figure 1) :
+    </p><pre class="programlisting">
+$ethtool -g eth0
+
+    Ring parameters for eth0:
+    Pre-set maximums:
+    RX:        16384
+    RX Mini:    0
+    RX Jumbo:    0
+    TX:        16384
+    Current hardware settings:
+    RX:        512
+    RX Mini:    0
+    RX Jumbo:    0
+    TX:        256
+    </pre><p>
+        You can see from the above output that the driver for this NIC defaults to 256 descriptors in the transmission queue. It was often recommended to reduce the size of the driver queue in order to reduce latency. With the introduction of BQL (assuming your NIC driver supports it) there is no longer any reason to modify the driver queue size (see the below for how to configure BQL).
+    </p><p>
+        Ethtool also allows you to manage optimization features such as <a class="link" href="ar01s02.html#o-huge-packet" title="2.9.1. Huge Packets from the Stack">TSO, UFO and GSO</a>. The -k flag displays the current offload settings and -K modifies them.
+    </p><pre class="programlisting">
+$ethtool -k eth0
+
+    Offload parameters for eth0:
+    rx-checksumming: off
+    tx-checksumming: off
+    scatter-gather: off
+    tcp-segmentation-offload: off
+    udp-fragmentation-offload: off
+    generic-segmentation-offload: off
+    generic-receive-offload: on
+    large-receive-offload: off
+    rx-vlan-offload: off
+    tx-vlan-offload: off
+    ntuple-filters: off
+    receive-hashing: off
+    </pre><p>
+        Since <a class="link" href="ar01s02.html#o-huge-packet" title="2.9.1. Huge Packets from the Stack">TSO, GSO, UFO</a> and GRO greatly increase the number of bytes which can be queued in the driver queue you should disable these optimizations if you want to optimize for latency over throughput. It&#8217;s doubtful you will notice any CPU impact or throughput decrease when disabling these features unless the system is handling very high data rates.
+    </p></div><div class="footnotes"><br><hr style="width:100; text-align:left;margin-left: 0"><div id="ftn.idm803" class="footnote"><p><a href="#idm803" class="para"><sup class="para">[8] </sup></a>
+            The options listed in this example are taken from a 2.4.20 kernel
+            source tree.  The exact options may differ slightly from kernel
+            release to kernel release depending on patches and new schedulers
+            and classifiers.
+          </p></div></div></div><div class="navfooter"><hr><table width="100%" summary="Navigation footer"><tr><td width="40%" align="left"><a accesskey="p" href="ar01s04.html">Prev</a> </td><td width="20%" align="center"> </td><td width="40%" align="right"> <a accesskey="n" href="ar01s06.html">Next</a></td></tr><tr><td width="40%" align="left" valign="top">4. Components of Linux Traffic Control </td><td width="20%" align="center"><a accesskey="h" href="index.html">Home</a></td><td width="40%" align="right" valign="top"> 6. Classless Queuing Disciplines (<code class="constant">qdisc</code>s)</td></tr></table></div></body></html>

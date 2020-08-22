@@ -1,0 +1,103 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1"><title>2. Routing to Locally Connected Networks</title><link rel="stylesheet" type="text/css" href="style.css"><meta name="generator" content="DocBook XSL Stylesheets V1.79.1"><meta name="keywords" content="linux, ip, iproute2, ifconfig, firewall, ARP, NAT, route, routing, route selection, routing selection, network administration"><link rel="home" href="index.html" title="Guide to IP Layer Network Administration with Linux"><link rel="up" href="ch04.html" title="Chapter 4. IP Routing"><link rel="prev" href="ch04s01.html" title="1. Introduction to Linux Routing"><link rel="next" href="ch04s03.html" title="3. Sending Packets Through a Gateway"></head><body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF"><div class="navheader"><table width="100%" summary="Navigation header"><tr><th colspan="3" align="center">2. Routing to Locally Connected Networks</th></tr><tr><td width="20%" align="left"><a accesskey="p" href="ch04s01.html">Prev</a> </td><th width="60%" align="center">Chapter 4. IP Routing</th><td width="20%" align="right"> <a accesskey="n" href="ch04s03.html">Next</a></td></tr></table><hr></div><div class="section"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="routing-local"></a>2. Routing to Locally Connected Networks</h2></div></div></div><a class="indexterm" name="idm1603"></a><p>
+      Any IP network is defined by two sets of numbers: network address and
+      netmask.  By convention, there are two ways to represent these two
+      numbers.  Netmask notation is the convention and tradition in IP
+      networking
+      although the more succinct CIDR notation is gaining popularity.
+    </p><p>
+      In the
+      <a class="link" href="apa.html" title="Appendix A. An Example Network and Description">example network</a>, <code class="systemitem">isolde</code> has
+      IP address 192.168.100.17.
+      In CIDR notation, <code class="systemitem">isolde</code>'s address is 192.168.100.17/24, and in
+      traditional netmask notation, 192.168.100.17/255.255.255.0.
+      Any of the
+      <a class="link" href="aphs01.html" title="1. ipcalc and other IP addressing calculators">IP calculators</a>, confirms that the
+      first usable IP address is 192.168.100.1 and the last usable IP address
+      is 192.168.100.254.
+      Importantly, the IP network address, 192.168.100.0/24, is reachable
+      through the directly connected Ethernet interface (refer to
+      <a class="link" href="ch04s01.html#list-routing-intro">classification 2</a>).
+      Therefore, <code class="systemitem">isolde</code> should be able to reach any IP address in
+      this range directly on the locally connected Ethernet segment.
+    </p><p>
+      Below is the routing table for <code class="systemitem">isolde</code>, first shown with the
+      conventional <span class="command"><strong>route -n</strong></span> output
+      <a href="#ftn.idm1617" class="footnote" name="idm1617"><sup class="footnote">[16]</sup></a>
+      and then with the
+      <span class="command"><strong>ip route show</strong></span>
+      <a href="#ftn.idm1622" class="footnote" name="idm1622"><sup class="footnote">[17]</sup></a>
+      command.  Each of these tools conveys
+      the same routing table and operates on the same kernel routing table.
+      For more on the routing table displayed in
+      <a class="xref" href="ch04s02.html#ex-routing-local" title="Example 4.3. Identifying the locally connected networks with route">Example 4.3, &#8220;Identifying the locally connected networks with
+        <span class="command">route</span>&#8221;</a>, consult
+      <a class="xref" href="ch04s08.html#routing-table-main" title="8.3. The Main Routing Table">Section 8.3, &#8220;The Main Routing Table&#8221;</a>.
+    </p><div class="example"><a name="ex-routing-local"></a><p class="title"><b>Example 4.3. Identifying the locally connected networks with
+        <span class="command">route</span></b></p><div class="example-contents"><pre class="programlisting">
+<code class="prompt">[root@isolde]# </code><strong class="userinput"><code>route -n</code></strong>
+<code class="computeroutput">Kernel IP routing table
+Destination     Gateway         Genmask         Flags Metric Ref    Use Iface
+192.168.100.0   0.0.0.0         255.255.255.0   U     0      0        0 eth0
+127.0.0.0       0.0.0.0         255.0.0.0       U     0      0        0 lo
+0.0.0.0         192.168.100.254 0.0.0.0         UG    0      0        0 eth0</code>
+<code class="prompt">[root@isolde]# </code><strong class="userinput"><code>ip route show</code></strong>
+<code class="computeroutput">192.168.100.0/24 dev eth0  scope link 
+127.0.0.0/8 dev lo  scope link 
+default via 192.168.100.254 dev eth0</code>
+      </pre></div></div><br class="example-break"><p>
+      In the above example, the locally reachable destination is
+      192.168.100.0/255.255.255.0 which can also be written 192.168.100.0/24
+      as in <span class="command"><strong>ip route show</strong></span>.  In classful networking
+      terms, the network to which <code class="systemitem">isolde</code> is directly connected is called a
+      class C sized network.
+    </p><p>
+      When a process on <code class="systemitem">isolde</code> needs to send a packet to another
+      machine on the locally connected network, packets will be sent from
+      192.168.100.17 (<code class="systemitem">isolde</code>'s IP).  The kernel will consult
+      the routing table to determine the route and the source address to use
+      when sending this packet.
+      Assuming the destination is 192.168.100.32, the kernel will find that
+      192.168.100.32 falls inside the IP address range 192.168.100.0/24 and
+      will select this route for the outbound packet.  For further details on
+      source address selection, see
+      <a class="xref" href="ch04s06.html" title="6. Source Address Selection">Section 6, &#8220;Source Address Selection&#8221;</a>.  The source address on the
+      outbound packet conveys vital information to the host receiving the
+      packet.  In order for the packet to be able to return, <code class="systemitem">isolde</code> has to
+      use an IP address that is locally available, 192.168.100.32 has to have
+      a route to <code class="systemitem">isolde</code> and neither host must block the packet.
+    </p><p>
+      The packet will be sent to the locally connected network segment
+      directly, because <code class="systemitem">isolde</code> interprets from the routing table 
+      that 192.168.100.32 is directly reachable through the physical network
+      connection on eth0.
+    </p><p>
+      Occasionally, a machine will be directly connected to two different
+      IP networks on the same device.
+      The routing table will show that both networks are reachable through
+      the same physical device.  For more on this topic, see
+      <a class="xref" href="ch09s02.html" title="2. Multiple IP Networks on one Ethernet Segment">Section 2, &#8220;Multiple IP Networks on one Ethernet Segment&#8221;</a>.  Similarly, multi-homed hosts will
+      have routes for all locally connected networks through the
+      locally-connected network interface.  For more on this sort of
+      configuration, see
+      <a class="xref" href="ch09s06.html" title="6. Multihomed Hosts">Section 6, &#8220;Multihomed Hosts&#8221;</a>.
+    </p><p>
+      This covers the classification of IP destinations which are available on
+      a locally connected network.  This highlights the importance of an
+      accurate netmask and network address.  The next section will cover
+      IP ranges which are neither locally hosted 
+      nor fall in the range of the locally reachable networks. These
+      destinations must be reached through a router.
+    </p><div class="footnotes"><br><hr style="width:100; text-align:left;margin-left: 0"><div id="ftn.idm1617" class="footnote"><p><a href="#idm1617" class="para"><sup class="para">[16] </sup></a>
+          The <span class="command"><strong>route -n</strong></span> output can also be produced with
+          <span class="command"><strong>netstat -rn</strong></span> and is commonly used by
+          admininstrators who rely on platform independent behaviour across
+          heterogeneous Unix and Unix-like systems.  This traditional
+          routing table output uses conventional netmask notation to
+          denote network size.
+        </p></div><div id="ftn.idm1622" class="footnote"><p><a href="#idm1622" class="para"><sup class="para">[17] </sup></a>
+          Refer to the
+          <a class="link" href="apds02.html" title="2. ip route"><span class="command"><strong>ip route</strong></span></a>
+          section for a fuller discussion of this linux specific tool.
+          The routing table output from <span class="command"><strong>ip route</strong></span> uses
+          exclusively CIDR notation.
+        </p></div></div></div><div class="navfooter"><hr><table width="100%" summary="Navigation footer"><tr><td width="40%" align="left"><a accesskey="p" href="ch04s01.html">Prev</a> </td><td width="20%" align="center"><a accesskey="u" href="ch04.html">Up</a></td><td width="40%" align="right"> <a accesskey="n" href="ch04s03.html">Next</a></td></tr><tr><td width="40%" align="left" valign="top">1. Introduction to Linux Routing </td><td width="20%" align="center"><a accesskey="h" href="index.html">Home</a></td><td width="40%" align="right" valign="top"> 3. Sending Packets Through a Gateway</td></tr></table></div></body></html>

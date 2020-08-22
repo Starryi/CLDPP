@@ -1,0 +1,54 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1"><title>17. Serial printers under lpd</title><link rel="stylesheet" type="text/css" href="style.css"><meta name="generator" content="DocBook XSL Stylesheets V1.79.1"><link rel="home" href="index.html" title="The Printing HOWTO"><link rel="up" href="index.html" title="The Printing HOWTO"><link rel="prev" href="ar01s16.html" title="16. On-screen previewing of printable things."><link rel="next" href="ar01s18.html" title="18. What's missing?"></head><body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF"><div class="navheader"><table width="100%" summary="Navigation header"><tr><th colspan="3" align="center">17. Serial printers under lpd</th></tr><tr><td width="20%" align="left"><a accesskey="p" href="ar01s16.html">Prev</a> </td><th width="60%" align="center"> </th><td width="20%" align="right"> <a accesskey="n" href="ar01s18.html">Next</a></td></tr></table><hr></div><div class="sect1"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="serial"></a>17. Serial printers under lpd</h2></div></div></div><a class="indexterm" name="idm2234"></a><p>Serial printers are rather tricky under lpd.</p><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="serial-printcap"></a>17.1. Setting up in printcap</h3></div></div></div><p>Lpd provides five attributes which you can set in<span class="emphasis"><em>/etc/printcap</em></span> to control all the settings of
+the serial port a printer is on.  Read the <span class="emphasis"><em><a class="ulink" href="http://www.linuxprinting.org/man/printcap.5.html" target="_top">printcap</a></em></span> man page and note the meanings of<span class="emphasis"><em>br#</em></span>, <span class="emphasis"><em>fc#</em></span>,<span class="emphasis"><em>xc#</em></span>, <span class="emphasis"><em>fs#</em></span> and<span class="emphasis"><em>xs#</em></span>.  The last four of these attributes
+are bitmaps indicating the settings for use the port.  The<span class="emphasis"><em>br#</em></span> attribute is simply the baud rate, eg
+    `<code class="literal">br#9600</code>'.</p><p>It is very easy to translate from <a class="ulink" href="http://www.linuxprinting.org/man/stty.1.html" target="_top">stty</a> settings to printcap flag settings. If you need to,
+see the man page for stty now.</p><p>Use stty to set up the printer port so that you can cat a file to
+it and have it print correctly. Here's what `<span class="emphasis"><em>stty
+    -a</em></span>' looks like for my printer port:</p><pre class="screen">
+dina:/usr/users/andy/work/lpd/lpd# stty -a &lt; /dev/ttyS2
+speed 9600 baud; rows 0; columns 0; line = 0;
+intr = ^C; quit = ^\; erase = ^?; kill = ^U; eof = ^D; eol = &lt;undef&gt;;
+eol2 = &lt;undef&gt;; start = ^Q; stop = ^S; susp = ^Z; rprnt = ^R; werase = ^W;
+lnext = ^V; min = 1; time = 0;
+-parenb -parodd cs8 hupcl -cstopb cread -clocal -crtscts
+-ignbrk -brkint -ignpar -parmrk -inpck -istrip -inlcr 
+-igncr -icrnl ixon -ixoff -iuclc -ixany -imaxbel
+-opost -olcuc -ocrnl -onlcr -onocr -onlret -ofill -ofdel nl0 cr0 tab0 
+bs0 vt0 ff0
+-isig -icanon -iexten -echo -echoe -echok -echonl -noflsh -xcase
+-tostop -echoprt -echoctl -echoke</pre><p>
+
+The only changes between this and the way the port is initialized
+at bootup are <code class="literal">-clocal</code>, <code class="literal">-crtscts</code>, and <code class="literal">ixon</code>. Your port may well be different
+depending on how your printer does flow control.</p><p>You actually use stty in a somewhat odd way.  Since stty operates
+on the terminal connected to it's standard input, you use it to
+manipulate a given serial port by using the `<code class="literal">&lt;</code>' character as above.</p><p>Once you have your stty settings right, so that `<span class="emphasis"><em>cat
+file &gt; /dev/ttyS2</em></span>' (in my case) sends the file to
+the printer, look at the file
+    /usr/src/linux/include/asm-i386/termbits.h. This contains a lot of
+    #defines and a few structs (You may wish to cat this file to
+the printer (you do have that working, right?) and use it as
+scratch paper).  Go to the section that starts out</p><p>
+</p><pre class="screen">/* c_cflag bit meaning */
+#define CBAUD   0000017</pre><p>This section lists the meaning of the <span class="emphasis"><em>fc#</em></span>
+and <span class="emphasis"><em>fs#</em></span> bits. You will notice that the
+names there (after the baud rates) match up with one of the lines
+of stty output. Didn't I say this was going to be easy?</p><p>Note which of those settings are preceded with a - in your stty
+output. Sum up all those numbers (they are octal). This represents
+the bits you want to clear, so the result is your<span class="emphasis"><em>fc#</em></span> capability.  Of course, remember that
+you will be setting bits directly after you clear, so you can just
+use `<code class="literal">fc#0177777</code>' (I do).</p><p>Now do the same for those settings (listed in this section) which
+do not have a - before them in your stty output. In my example the
+important ones are CS8 (0000060), HUPCL (0002000), and CREAD
+    (0000200). Also note the flags for your baud rate (mine is
+0000015). Add those all up, and in my example you get
+0002275. This goes in your <span class="emphasis"><em>fs#</em></span> capability
+    (`<code class="literal">fs#02275</code>' works fine in my
+example).</p><p>Do the same with set and clear for the next section of the include
+file, "c_lflag bits". In my case I didn't have to set
+anything, so I just use `<code class="literal">xc#0157777</code>' and `<code class="literal">xs#0</code>'.</p></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="idm2276"></a>17.2. Older serial printers that drop characters</h3></div></div></div><p>Jon Luckey points out that some older serial printers with
+ten-cent serial interfaces and small buffers<span class="emphasis"><em>really</em></span> mean stop when they say so with flow
+control.  He found that disabling the FIFO in his Linux box's
+16550 serial port with <code class="literal"><a class="ulink" href="http://www.linuxprinting.org/man/setserial.8.html" target="_top">setserial</a></code> corrected the problem of dropped
+characters (you apparently just specify the UART type as an 8250
+to do this).</p></div></div><div class="navfooter"><hr><table width="100%" summary="Navigation footer"><tr><td width="40%" align="left"><a accesskey="p" href="ar01s16.html">Prev</a> </td><td width="20%" align="center"> </td><td width="40%" align="right"> <a accesskey="n" href="ar01s18.html">Next</a></td></tr><tr><td width="40%" align="left" valign="top">16. On-screen previewing of printable things. </td><td width="20%" align="center"><a accesskey="h" href="index.html">Home</a></td><td width="40%" align="right" valign="top"> 18. What's missing?</td></tr></table></div></body></html>

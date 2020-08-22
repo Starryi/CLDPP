@@ -1,0 +1,519 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1"><title>7. Classful Queuing Disciplines (qdiscs)</title><link rel="stylesheet" type="text/css" href="style.css"><meta name="generator" content="DocBook XSL Stylesheets V1.79.1"><link rel="home" href="index.html" title="Traffic Control HOWTO"><link rel="up" href="index.html" title="Traffic Control HOWTO"><link rel="prev" href="ar01s06.html" title="6. Classless Queuing Disciplines (qdiscs)"><link rel="next" href="ar01s08.html" title="8. Rules, Guidelines and Approaches"></head><body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF"><div class="navheader"><table width="100%" summary="Navigation header"><tr><th colspan="3" align="center">7. Classful Queuing Disciplines (<code class="constant">qdisc</code>s)</th></tr><tr><td width="20%" align="left"><a accesskey="p" href="ar01s06.html">Prev</a> </td><th width="60%" align="center"> </th><td width="20%" align="right"> <a accesskey="n" href="ar01s08.html">Next</a></td></tr></table><hr></div><div class="section"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="classful-qdiscs"></a>7. Classful Queuing Disciplines (<a class="link" href="ar01s04.html#c-qdisc" title="4.1. qdisc"><code class="constant">qdisc</code></a>s)</h2></div></div></div><p>
+    The flexibility and control of Linux traffic control can be unleashed
+    through the agency of the classful qdiscs.  Remember that the classful
+    queuing disciplines can have filters attached to them, allowing packets to
+    be directed to particular classes and subqueues.
+  </p><p>
+    There are several common terms to describe classes directly attached to
+    the <code class="constant">root</code> qdisc and terminal classes.  Classess attached to the
+    <code class="constant">root</code> qdisc are known as root classes, and more generically inner
+    classes.  Any terminal class in a particular queuing discipline is known
+    as a leaf class by analogy to the tree structure of the classes.  Besides
+    the use of figurative language depicting the structure as a tree, the
+    language of family relationships is also quite common.
+  </p><div class="section"><div class="titlepage"><div><div><h3 class="title"><a name="qc-htb"></a>7.1. HTB, Hierarchical Token Bucket</h3></div></div></div><p>
+        HTB is meant as a more understandable and intuitive replacement for the CBQ (<a class="link" href="ar01s07.html#qc-cbq" title="7.4. CBQ, Class Based Queuing (CBQ)">see chapter 7.4</a>) qdisc in Linux. Both CBQ and HTB help you to control the use of the outbound bandwidth on a given link. Both allow you to use one physical link to simulate several slower links and to send  different  kinds  oftraffic  on different simulated links. In both cases, you have to specify how to divide the physical link into simulated  links  and  how  to decide which simulated link to use for a given packet to be sent.
+    </p><p>
+      HTB uses the concepts of tokens and buckets
+      along with the class-based system and <a class="link" href="ar01s04.html#c-filter" title="4.3. filter"><code class="constant">filter</code></a>s to allow for
+      complex and granular control over traffic.  With a complex
+      <a class="link" href="ar01s07.html#qc-htb-borrowing" title="7.1.3. Borrowing">borrowing model</a>, HTB can perform a variety of sophisticated
+      traffic control techniques.  One of the easiest ways to use HTB
+      immediately is that of <a class="link" href="ar01s07.html#qc-htb-borrowing" title="7.1.3. Borrowing">shaping</a>.
+    </p><p>
+      By understanding <a class="link" href="ar01s02.html#o-tokens" title="2.7. Tokens and buckets">tokens</a> and <a class="link" href="ar01s02.html#o-buckets">buckets</a> or by grasping
+      the function of <a class="link" href="ar01s06.html#qs-tbf" title="6.7. TBF, Token Bucket Filter">TBF</a>, HTB should be merely a logical
+      step.  This queuing discipline allows the user to define the
+      characteristics of the tokens and bucket used and allows the user to
+      nest these buckets in an arbitrary fashion.  When coupled with a
+      <a class="link" href="ar01s03.html#e-classifying" title="3.3. Classifying">classifying</a> scheme, traffic can be controlled in a very
+      granular fashion.
+    </p><p>
+    </p><p>
+      Below is example output of the syntax for HTB on the command line
+      with the <a class="link" href="ar01s05.html#s-iproute2-tc"><span class="command"><strong>tc</strong></span></a> tool.  Although the syntax for <a class="link" href="ar01s05.html#s-tcng" title="5.3. tcng, Traffic Control Next Generation"><span class="command"><strong>tcng</strong></span></a> is a
+      language of its own, the rules for HTB are the same.
+    </p><div class="example"><a name="ex-qc-htb-usage"></a><p class="title"><b>Example 11. <span class="command">tc</span> usage for HTB</b></p><div class="example-contents"><pre class="programlisting">
+Usage: ... qdisc add ... htb [default N] [r2q N]
+ default  minor id of class to which unclassified packets are sent {0}
+ r2q      DRR quantums are computed as rate in Bps/r2q {10}
+ debug    string of 16 numbers each 0-3 {0}
+
+... class add ... htb rate R1 burst B1 [prio P] [slot S] [pslot PS]
+                      [ceil R2] [cburst B2] [mtu MTU] [quantum Q]
+ rate     rate allocated to this class (class can still borrow)
+ burst    max bytes burst which can be accumulated during idle period {computed}
+ ceil     definite upper class rate (no borrows) {rate}
+ cburst   burst but for ceil {computed}
+ mtu      max packet size we create rate map for {1600}
+ prio     priority of leaf; lower are served first {0}
+ quantum  how much bytes to serve from leaf at once {use r2q}
+
+TC HTB version 3.3
+      </pre></div></div><br class="example-break"><p>
+    </p><div class="section"><div class="titlepage"><div><div><h4 class="title"><a name="qc-htb-software"></a>7.1.1. Software requirements</h4></div></div></div><p>
+        Unlike almost all of the other software discussed, HTB is a
+        newer queuing discipline and your distribution may not have all of the
+        tools and capability you need to use HTB.  The kernel must
+        support HTB; kernel version 2.4.20 and later support it in the
+        stock distribution, although earlier kernel versions require patching.
+        To enable userland support for HTB, see <a class="ulink" href="http://luxik.cdi.cz/~devik/qos/htb/" target="_top">HTB</a> for an
+        <span class="command"><strong>iproute2</strong></span> patch to <span class="command"><strong>tc</strong></span>.
+      </p></div><div class="section"><div class="titlepage"><div><div><h4 class="title"><a name="qc-htb-shaping"></a>7.1.2. Shaping</h4></div></div></div><p>
+        One of the most common applications of HTB involves shaping
+        transmitted traffic to a specific rate.
+      </p><p>
+        All shaping occurs in leaf classes.  No shaping occurs in inner or
+        root classes as they only exist to suggest how the
+        <a class="link" href="ar01s07.html#qc-htb-borrowing" title="7.1.3. Borrowing">borrowing model</a> should distribute available tokens.
+      </p><p>
+      </p><p>
+      </p></div><div class="section"><div class="titlepage"><div><div><h4 class="title"><a name="qc-htb-borrowing"></a>7.1.3. Borrowing</h4></div></div></div><p>
+        A fundamental part of the HTB qdisc is the borrowing mechanism.
+        Children classes borrow tokens from their parents once they have
+        exceeded <a class="link" href="ar01s07.html#vl-qc-htb-params-rate"><em class="parameter"><code>rate</code></em></a>.  A child class will continue to
+        attempt to borrow until it reaches <a class="link" href="ar01s07.html#vl-qc-htb-params-ceil"><em class="parameter"><code>ceil</code></em></a>, at which
+        point it will begin to queue packets for transmission until more
+        tokens/ctokens are available.  As there are only two primary types of
+        classes which can be created with HTB the following table and
+        diagram identify the various possible states and the behaviour of the
+        borrowing mechanisms.
+      </p><p>
+      </p><div class="table"><a name="tb-qc-htb-borrowing"></a><p class="title"><b>Table 2. HTB class states and potential actions taken</b></p><div class="table-contents"><table class="table" summary="HTB class states and potential actions taken" border="1"><colgroup><col><col><col><col></colgroup><thead><tr><th align="left">type of class</th><th align="left">class state</th><th align="left">HTB internal state</th><th align="left">action taken</th></tr></thead><tbody><tr><td align="left">leaf</td><td align="left">&lt; <em class="parameter"><code>rate</code></em></td><td align="left"><em class="parameter"><code>HTB_CAN_SEND</code></em></td><td align="left">
+                Leaf class will dequeue queued bytes up
+                to available tokens (no more than burst packets)
+              </td></tr><tr><td align="left">leaf</td><td align="left">&gt; <em class="parameter"><code>rate</code></em>, &lt; <em class="parameter"><code>ceil</code></em></td><td align="left"><em class="parameter"><code>HTB_MAY_BORROW</code></em></td><td align="left">
+                Leaf class will attempt to borrow tokens/ctokens from
+                parent class.  If tokens are available, they will be lent in
+                <em class="parameter"><code>quantum</code></em> increments and the leaf class will dequeue up
+                to <em class="parameter"><code>cburst</code></em> bytes
+              </td></tr><tr><td align="left">leaf</td><td align="left">&gt; <em class="parameter"><code>ceil</code></em></td><td align="left"><em class="parameter"><code>HTB_CANT_SEND</code></em></td><td align="left">
+                No packets will be dequeued.  This will cause packet
+                delay and will increase latency to meet the desired
+                rate.
+              </td></tr><tr><td align="left">inner, root</td><td align="left">&lt; <em class="parameter"><code>rate</code></em></td><td align="left"><em class="parameter"><code>HTB_CAN_SEND</code></em></td><td align="left">
+                Inner class will lend tokens to children.
+              </td></tr><tr><td align="left">inner, root</td><td align="left">&gt; <em class="parameter"><code>rate</code></em>, &lt; <em class="parameter"><code>ceil</code></em></td><td align="left"><em class="parameter"><code>HTB_MAY_BORROW</code></em></td><td align="left">
+                Inner class will attempt to borrow tokens/ctokens from
+                parent class, lending them to competing children in
+                <em class="parameter"><code>quantum</code></em> increments per request.
+              </td></tr><tr><td align="left">inner, root</td><td align="left">&gt; <em class="parameter"><code>ceil</code></em></td><td align="left"><em class="parameter"><code>HTB_CANT_SEND</code></em></td><td align="left">
+                Inner class will not attempt to borrow from its parent
+                and will not lend tokens/ctokens to children classes.
+              </td></tr></tbody></table></div></div><br class="table-break"><p>
+        This diagram identifies the flow of borrowed tokens and the manner in
+        which tokens are charged to parent classes.  In order for the
+        borrowing model to work, each class must have an accurate count of the
+        number of tokens used by itself and all of its children.  For this
+        reason, any token used in a child or leaf class is charged to each
+        parent class until the root class is reached.
+      </p><p>
+        Any child class which wishes to borrow a token will request a token
+        from its parent class, which if it is also over its <em class="parameter"><code>rate</code></em> will
+        request to borrow from its parent class until either a token is
+        located or the root class is reached.  So the borrowing of tokens
+        flows toward the leaf classes and the charging of the usage of tokens
+        flows toward the root class.
+      </p><div class="mediaobject"><a name="img-qc-htb-borrow"></a><object type="image/svg+xml" data="images/htb-borrow.svg"></object><div class="caption"><p><span class="command"><strong>Figure 11:</strong></span> <span class="emphasis"><em>Hierarchical Token Bucket (HTB)</em></span></p></div></div><p>
+        Note in this diagram that there are several HTB root classes.
+        Each of these root classes can simulate a virtual circuit.
+      </p></div><div class="section"><div class="titlepage"><div><div><h4 class="title"><a name="qc-htb-params"></a>7.1.4. HTB class parameters</h4></div></div></div><p>
+      </p><div class="variablelist"><a name="vl-qc-htb-params"></a><dl class="variablelist"><dt><a name="vl-qc-htb-params-default"></a><span class="term"><em class="parameter"><code>default</code></em></span></dt><dd><p>
+              An optional parameter with every HTB <a class="link" href="ar01s04.html#c-qdisc" title="4.1. qdisc"><code class="constant">qdisc</code></a> object,
+              the default <em class="parameter"><code>default</code></em> is 0, which cause any unclassified
+              traffic to be dequeued at hardware speed, completely bypassing
+              any of the classes attached to the <code class="constant">root</code> qdisc.
+            </p></dd><dt><a name="vl-qc-htb-params-rate"></a><span class="term"><em class="parameter"><code>rate</code></em></span></dt><dd><p>
+              Used to set the minimum desired speed to which to limit
+              transmitted traffic.  This can be considered the equivalent of a
+              committed information rate (<acronym class="acronym">CIR</acronym>), or the
+              guaranteed bandwidth for a given leaf class.
+            </p></dd><dt><a name="vl-qc-htb-params-ceil"></a><span class="term"><em class="parameter"><code>ceil</code></em></span></dt><dd><p>
+              Used to set the maximum desired speed to which to limit the
+              transmitted traffic.  The borrowing model should illustrate how
+              this parameter is used.  This can be considered the equivalent
+              of <span class="quote">&#8220;<span class="quote">burstable bandwidth</span>&#8221;</span>.
+            </p></dd><dt><a name="vl-qc-htb-params-burst"></a><span class="term"><em class="parameter"><code>burst</code></em></span></dt><dd><p>
+              This is the size of the <a class="link" href="ar01s07.html#vl-qc-htb-params-rate"><em class="parameter"><code>rate</code></em></a> bucket (see
+              <a class="xref" href="ar01s02.html#o-buckets">Tokens and buckets</a>).  HTB will dequeue
+              <em class="parameter"><code>burst</code></em> bytes before awaiting the arrival of more
+              tokens.
+            </p></dd><dt><a name="vl-qc-htb-params-cburst"></a><span class="term"><em class="parameter"><code>cburst</code></em></span></dt><dd><p>
+              This is the size of the <a class="link" href="ar01s07.html#vl-qc-htb-params-ceil"><em class="parameter"><code>ceil</code></em></a> bucket (see
+              <a class="xref" href="ar01s02.html#o-buckets">Tokens and buckets</a>).  HTB will dequeue
+              <em class="parameter"><code>cburst</code></em> bytes before awaiting the arrival of more
+              ctokens.
+            </p></dd><dt><a name="vl-qc-htb-params-quantum"></a><span class="term"><em class="parameter"><code>quantum</code></em></span></dt><dd><p>
+              This is a key parameter used by HTB to control borrowing.
+              Normally, the correct <em class="parameter"><code>quantum</code></em> is calculated by
+              HTB, not specified by the user.  Tweaking this parameter
+              can have tremendous effects on borrowing and shaping under
+              contention, because it is used both to split traffic between
+              children classes over <a class="link" href="ar01s07.html#vl-qc-htb-params-rate"><em class="parameter"><code>rate</code></em></a> (but below
+              <a class="link" href="ar01s07.html#vl-qc-htb-params-ceil"><em class="parameter"><code>ceil</code></em></a>) and to transmit packets from these same
+              classes.
+            </p></dd><dt><a name="vl-qc-htb-params-r2q"></a><span class="term"><em class="parameter"><code>r2q</code></em></span></dt><dd><p>
+              Also, usually calculated for the user, <em class="parameter"><code>r2q</code></em> is a hint to
+              HTB to help determine the optimal <a class="link" href="ar01s07.html#vl-qc-htb-params-quantum"><em class="parameter"><code>quantum</code></em></a>
+              for a particular class.
+            </p></dd><dt><a name="vl-qc-htb-params-mtu"></a><span class="term"><em class="parameter"><code>mtu</code></em></span></dt><dd><p>
+            </p></dd><dt><a name="vl-qc-htb-params-prio"></a><span class="term"><em class="parameter"><code>prio</code></em></span></dt><dd><p>
+                In the round-robin process, classes  with  the  lowest  priority field are tried for packets first. Mandatory field.
+            </p></dd><dt><a name="vl-qc-htb-params-parent"></a><span class="term"><em class="parameter"><code>prio</code></em></span></dt><dd><p>
+                    Place of this class within the hierarchy. If  attached directly to a qdisc and not to another class, minor can be omitted. Mandatory field.
+                </p></dd><dt><a name="vl-qc-htb-params-classid"></a><span class="term"><em class="parameter"><code>prio</code></em></span></dt><dd><p>
+                    Like qdiscs, classes can be named.  The major number must be equal to the major number of the qdisc to which it belongs. Optional, but needed if this class is going to have children.
+                </p></dd></dl></div><p>
+      </p></div><div class="section"><div class="titlepage"><div><div><h4 class="title"><a name="qc-htb-params-root"></a>7.1.5. HTB root parameters</h4></div></div></div><p>
+            The root of a HTB qdisc class tree has the following parameters:
+        </p><div class="variablelist"><a name="vl-qc-htb-params-root"></a><dl class="variablelist"><dt><a name="vl-qc-htb-params-root-parent"></a><span class="term"><code class="constant">parent major:minor | root</code></span></dt><dd><p>
+                        This mandatory parameter determines the place of the HTB instance, either at the root of an interface or within an existing class.
+                    </p></dd><dt><a name="vl-qc-htb-params-root-handle"></a><span class="term"><code class="constant">handle major:</code></span></dt><dd><p>
+                       Like all other qdiscs, the HTB can be assigned a handle. Should consist only of a major number, followed by a colon. Optional, but very useful if classes will be generated within this qdisc.
+                    </p></dd><dt><a name="vl-qc-htb-params-root-default"></a><span class="term"><code class="constant">default minor-id</code></span></dt><dd><p>
+                        Unclassified traffic gets sent to the class with this minor-id.
+                    </p></dd></dl></div></div><div class="section"><div class="titlepage"><div><div><h4 class="title"><a name="qc-htb-rules"></a>7.1.6. Rules</h4></div></div></div><p>
+        Below are some general guidelines to using HTB culled from
+        <a class="ulink" href="http://www.docum.org/docum.org/" target="_top">http://www.docum.org/docum.org/</a> and the <a class="ulink" href="http://www.spinics.net/lists/lartc/" target="_top">(new) LARTC 
+         mailing list</a> (see also the
+        <a class="ulink" href="http://mailman.ds9a.nl/mailman/listinfo/lartc/" target="_top">(old) LARTC
+         mailing list archive</a>).  These rules are
+        simply a recommendation for beginners to maximize the benefit of
+        HTB until gaining a better understanding of the practical
+        application of HTB.
+      </p><p>
+      </p><div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem"><p>
+            Shaping with HTB occurs only in leaf classes.  See also
+            <a class="xref" href="ar01s07.html#qc-htb-shaping" title="7.1.2. Shaping">Section 7.1.2, &#8220;Shaping&#8221;</a>.
+          </p></li><li class="listitem"><p>
+            Because HTB does not shape in any class except the leaf
+            class, the sum of the <em class="parameter"><code>rate</code></em>s of leaf classes should not
+            exceed the <em class="parameter"><code>ceil</code></em> of a parent class.  Ideally, the sum of
+            the <em class="parameter"><code>rate</code></em>s of the children classes would match the
+            <em class="parameter"><code>rate</code></em> of the parent class, allowing the parent class to
+            distribute leftover bandwidth (<em class="parameter"><code>ceil</code></em> - <em class="parameter"><code>rate</code></em>) among
+            the children classes.
+          </p><p>
+            This key concept in employing HTB bears repeating.  Only
+            leaf classes actually shape packets; packets are only delayed in
+            these leaf classes.  The inner classes (all the way up to the root
+            class) exist to define how borrowing/lending occurs (see also
+            <a class="xref" href="ar01s07.html#qc-htb-borrowing" title="7.1.3. Borrowing">Section 7.1.3, &#8220;Borrowing&#8221;</a>).
+          </p></li><li class="listitem"><p>
+            The <em class="parameter"><code>quantum</code></em> is only  only used when a class is over
+            <em class="parameter"><code>rate</code></em> but below <em class="parameter"><code>ceil</code></em>.
+          </p></li><li class="listitem"><p>
+            The <em class="parameter"><code>quantum</code></em> should be set at MTU or higher.  HTB
+            will dequeue a single packet at least per service opportunity even
+            if <em class="parameter"><code>quantum</code></em> is too small.  In such a case, it will not be
+            able to calculate accurately the real bandwidth consumed
+            <a href="#ftn.idm1853" class="footnote" name="idm1853"><sup class="footnote">[9]</sup></a>.
+          </p></li><li class="listitem"><p>
+            Parent classes lend tokens to children in increments of
+            <em class="parameter"><code>quantum</code></em>, so for maximum granularity and most
+            instantaneously evenly distributed bandwidth, <em class="parameter"><code>quantum</code></em>
+            should be as low as possible while still no less than MTU.
+          </p></li><li class="listitem"><p>
+            A distinction between tokens and ctokens is only meaningful in a
+            leaf class, because non-leaf classes only lend tokens to child
+            classes.
+          </p></li><li class="listitem"><p>
+            HTB borrowing could more accurately be described as
+            <span class="quote">&#8220;<span class="quote">using</span>&#8221;</span>.
+          </p></li></ul></div><p>
+      </p></div><div class="section"><div class="titlepage"><div><div><h4 class="title"><a name="qc-htb-classification"></a>7.1.7. Classification</h4></div></div></div><p>
+            Like see before, within the one HTB instance many classes may exist. Each of these classes contains another qdisc, by default <a class="link" href="ar01s06.html#qs-fifo" title="6.1. FIFO, First-In First-Out (pfifo and bfifo)">tc-pfifo</a>.When enqueueing a packet, HTB starts at the root and uses various methods to determine which class should receive the data. In the absence of uncommon configuration options, the process is rather easy.  At each node we look for an instruction,  and  then  go  to  the class  the  instruction  refers  us  to. If the class found is a barren leaf-node (without children), we enqueue the packet there. If it is not yet a leaf node, we do the whole thing over again starting from that node.
+        </p><p>
+            The following actions are performed, in order at each node we visit, until one sends us to another node, or terminates the process.
+        </p><div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem"><p>
+                    Consult filters attached to the class. If sent to a leafnode, we are done.  Otherwise, restart.
+                </p></li><li class="listitem"><p>
+                    If none of the above returned with an  instruction,  enqueue  at this node.
+                </p></li></ul></div><p>
+            This algorithm makes sure that a packet always ends up somewhere, even while you are busy building your configuration.
+        </p></div></div><div class="section"><div class="titlepage"><div><div><h3 class="title"><a name="qc-hfsc"></a>7.2. HFSC, Hierarchical Fair Service Curve</h3></div></div></div><p>
+      The HFSC classful qdisc balances delay-sensitive traffic against
+      throughput sensitive traffic.  In a congested or backlogged state, the
+      HFSC queuing discipline interleaves the delay-sensitive traffic when
+      required according service curve definitions.  Read about the Linux
+      implementation in German, <a class="ulink" href="http://klaus.geekserver.net/hfsc/hfsc.html" target="_top">HFSC
+           Scheduling mit Linux</a> or read a
+      translation into English, <a class="ulink" href="http://linux-ip.net/tc/hfsc.en/" target="_top">HFSC Scheduling
+          with Linux</a>.  The original
+      research article, <a class="ulink" href="http://acm.org/sigcomm/sigcomm97/program.html#ab011" target="_top">A
+         Hierarchical Fair Service Curve Algorithm For Link-Sharing, Real-Time
+         and Priority Services</a>, also remains available.
+    </p><p>
+      This section will be completed at a later date.
+    </p></div><div class="section"><div class="titlepage"><div><div><h3 class="title"><a name="qc-prio"></a>7.3. PRIO, priority scheduler</h3></div></div></div><p>
+      The PRIO classful qdisc works on a very simple precept.  When it
+      is ready to dequeue a packet, the first class is checked for a packet.
+      If there's a packet, it gets dequeued.  If there's no packet, then the
+      next class is checked, until the queuing mechanism has no more classes
+      to check. PRIO is a scheduler and never delays packets - it is a work-conserving  qdisc, though the qdiscs contained in the classes may not be
+    </p><div class="section"><div class="titlepage"><div><div><h4 class="title"><a name="qc-prio-algorithm"></a>7.3.1. Algorithm</h4></div></div></div><p>
+        On creation with <span class="command"><strong>tc qdisc add</strong></span>, a fixed number of
+        bands is created.  Each band is a class, although is not possible to
+        add classes with <span class="command"><strong>tc class add</strong></span>.  The number of bands
+        to be created is fixed at the creation of the qdisc itself.
+    </p><p>
+        When dequeueing packets, band 0 is always checked first.  If it
+        has no packet to dequeue, then PRIO will try band 1, and so
+        onwards.  Maximum reliability packets should therefore go to band 0,
+        minimum delay to band 1 and the rest to band 2.
+    </p><p>
+        As the PRIO qdisc itself will have minor number 0, band 0 is  actually major:1, band 1 is major:2, etc. For major, substitute the major number assigned to the qdisc on 'tc qdisc add' with the handle parameter.
+    </p></div><div class="section"><div class="titlepage"><div><div><h4 class="title"><a name="qc-prio-synopsis"></a>7.3.2. Synopsis</h4></div></div></div><pre class="programlisting">
+$ tc qdisc ... dev dev ( parent classid | root) [ handle major: ] prio [bands bands ] [ priomap band band band...  ] [ estimator interval time&#8208;constant ]
+        </pre></div><div class="section"><div class="titlepage"><div><div><h4 class="title"><a name="qc-prio-classification"></a>7.3.3. Classification</h4></div></div></div><p>
+            Three methods are available to determine the target band in which a packet will be enqueued.
+        </p><div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem"><p>
+                <span class="emphasis"><em>From userspace</em></span>, a process with
+                sufficient privileges can encode the destination class
+                directly with SO_PRIORITY.
+            </p></li><li class="listitem"><p>
+                <span class="emphasis"><em>Programmatically</em></span>, a <span class="command"><strong>tc filter</strong></span>
+                attached to the root qdisc can point any traffic directly to a
+                class.
+            </p></li><li class="listitem"><p>
+                And, typically, <span class="emphasis"><em>with reference to the priomap</em></span>, a packet's
+                priority, is derived from the Type of Service
+                (<acronym class="acronym">ToS</acronym>) assigned to the packet.
+            </p></li></ul></div><p>
+            Only the priomap is specific to this qdisc.
+        </p></div><div class="section"><div class="titlepage"><div><div><h4 class="title"><a name="qc-prio-parameters"></a>7.3.4. Configurable parameters</h4></div></div></div><div class="variablelist"><dl class="variablelist"><dt><span class="term">bands</span></dt><dd><p>
+                  total number of distinct bands. If changed from the default of 3, priomap must be updated as well.
+                </p></dd><dt><span class="term">priomap</span></dt><dd><p>
+                  a tc filter attached to the  root  qdisc  can  point  traffic directly to a class
+                </p></dd></dl></div><p>
+          The <span class="emphasis"><em>priomap</em></span> specifies how this qdisc determines
+          how a packet maps to a specific band.  Mapping occurs based on the
+          value of the ToS octet of a packet.
+        </p><pre class="screen">
+   0     1     2     3     4     5     6     7
++-----+-----+-----+-----+-----+-----+-----+-----+
+|   PRECEDENCE    |          ToS          | MBZ |   RFC 791
++-----+-----+-----+-----+-----+-----+-----+-----+
+
+   0     1     2     3     4     5     6     7
++-----+-----+-----+-----+-----+-----+-----+-----+
+|    DiffServ Code Point (DSCP)     |  (unused) |   RFC 2474
++-----+-----+-----+-----+-----+-----+-----+-----+
+        </pre><p>
+          The four ToS bits from the  (the 'ToS field') are defined slightly
+          differently in RFC 791 and RFC 2474.  The later RFC supersedes the
+          definitions of the former, but not all software, systems and
+          terminology have caught up to that change.  So, often packet
+          analysis programs will still refer to Type of Service (ToS) instead
+          of DiffServ Code Point (DSCP).
+        </p><div class="table"><a name="idm1928"></a><p class="title"><b>Table 3. <a class="ulink" href="https://tools.ietf.org/rfc/rfc791.txt" target="_top">RFC 791</a> interpretation of IP ToS header</b></p><div class="table-contents"><table class="table" summary="RFC 791 interpretation of IP ToS header" border="1"><colgroup><col><col><col></colgroup><thead><tr><th>Binary</th><th>Decimal</th><th>Meaning</th></tr></thead><tbody><tr><td>1000</td><td>8</td><td>Minimize delay (md)</td></tr><tr><td>0100</td><td>4</td><td>Maximize throughput (mt)</td></tr><tr><td>0010</td><td>2</td><td>Maximize reliability (mr)</td></tr><tr><td>0001</td><td>1</td><td>Minimize monetary cost (mmc)</td></tr><tr><td>0000</td><td>0</td><td>Normal Service</td></tr></tbody></table></div></div><br class="table-break"><p>
+            As there is 1 bit to the right of these four bits, the actual
+            value of the ToS field is double the value of the ToS bits.
+            Running <span class="command"><strong>tcpdump -v -v</strong></span> shows you the value of
+            the entire ToS field, not just the four bits. It is the value you
+            see in the  first  column  of this table:
+        </p><div class="table"><a name="idm1960"></a><p class="title"><b>Table 4. Mapping ToS value to priomap band</b></p><div class="table-contents"><table class="table" summary="Mapping ToS value to priomap band" border="1"><colgroup><col><col><col><col><col></colgroup><thead><tr><th>ToS Field</th><th>ToS Bits</th><th>Meaning</th><th>Linux Priority</th><th>Band</th></tr></thead><tbody><tr><td>0x0</td><td>0</td><td>Normal Service</td><td>0 Best Effort</td><td>1</td></tr><tr><td>0x2</td><td>1</td><td>Minimize Monetary Cost (mmc)</td><td>1 Filler</td><td>2</td></tr><tr><td>0x4</td><td>2</td><td>Maximize Reliability (mr)</td><td>0 Best Effort</td><td>1</td></tr><tr><td>0x6</td><td>3</td><td>mmc+mr</td><td>0 Best Effort</td><td>1</td></tr><tr><td>0x8</td><td>4</td><td>Maximize Throughput (mt)</td><td>2 Bulk</td><td>2</td></tr><tr><td>0xa</td><td>5</td><td>mmc+mt</td><td>2 Bulk</td><td>2</td></tr><tr><td>0xc</td><td>6</td><td>mr+mt</td><td>2 Bulk</td><td>2</td></tr><tr><td>0xe</td><td>7</td><td>mmc+mr+mt</td><td>2 Bulk</td><td>2</td></tr><tr><td>0x10</td><td>8</td><td>Minimize Delay (md)</td><td>6 Interactive</td><td>0</td></tr><tr><td>0x12</td><td>9</td><td>mmc+md</td><td>6 Interactive</td><td>0</td></tr><tr><td>0x14</td><td>10</td><td>mr+md</td><td>6 Interactive</td><td>0</td></tr><tr><td>0x16</td><td>11</td><td>mmc+mr+md</td><td>6 Interactive</td><td>0</td></tr><tr><td>0x18</td><td>12</td><td>mt+md</td><td>4 Int. Bulk</td><td>1</td></tr><tr><td>0x1a</td><td>13</td><td>mmc+mt+md</td><td>4 Int. Bulk</td><td>1</td></tr><tr><td>0x1c</td><td>14</td><td>mr+mt+md</td><td>4 Int. Bulk</td><td>1</td></tr><tr><td>0x1e</td><td>15</td><td>mmc+mr+mt+md</td><td>4 Int. Bulk</td><td>1</td></tr></tbody></table></div></div><br class="table-break"><p>
+            The second column contains the value of the relevant four ToS bits, followed by their  translated  meaning. For example, 15 stands for a packet wanting Minimal Monetary Cost, Maximum Reliability, Maximum Throughput AND Minimum Delay.
+        </p><p>
+            The fourth column lists the way the Linux kernel interprets the ToS bits, by showing to which Priority they are mapped.
+        </p><p>
+            The last column shows the result of the default priomap. On the command line, the default priomap looks like this:
+        </p><p>
+            1 2 2 2 1 2 0 0 1 1 1 1 1 1 1 1
+        </p><p>
+            This means that priority 4, for example,  gets  mapped  to  band number 1.  The priomap also allows you to list higher priorities (&gt; 7) which do not correspond to ToS mappings, but which are set by other means.
+        </p></div><div class="section"><div class="titlepage"><div><div><h4 class="title"><a name="qc-prio-classes"></a>7.3.5. Classes</h4></div></div></div><p>
+            PRIO classes cannot be configured further - they are automatically created when the PRIO qdisc is attached. Each class however can contain yet a further qdisc.
+        </p></div><div class="section"><div class="titlepage"><div><div><h4 class="title"><a name="qc-prio-bugs"></a>7.3.6. Bugs</h4></div></div></div><p>
+            Large amounts of traffic in the lower bands can cause starvation  of higher  bands. Can be prevented by attaching a shaper to these bands to make sure they cannot dominate the link.
+        </p></div></div><div class="section"><div class="titlepage"><div><div><h3 class="title"><a name="qc-cbq"></a>7.4. CBQ, Class Based Queuing (<acronym class="acronym">CBQ</acronym>)</h3></div></div></div><p>
+      Class Based Queuing (<acronym class="acronym">CBQ</acronym>) is the classic
+      implementation (also called venerable) of a traffic control system.  CBQ
+      is a classful qdisc that implements a rich link sharing hierarchy of
+      classes.  It contains shaping elements as well as prioritizing
+      capabilities.  Shaping is performed by calculating link idle time
+      based on the timing of dequeue events and knowledge of the underlying
+      link layer bandwidth.
+    </p><div class="section"><div class="titlepage"><div><div><h4 class="title"><a name="qc-cbq-shaping"></a>7.4.1. Shaping Algorithm</h4></div></div></div><p>
+            Shaping is done using link idle time calculations, and actions taken if these calculations deviate from set limits.
+        </p><p>
+            When shaping a 10mbit/s connection to 1mbit/s, the link will be idle 90% of the time. If it isn't, it needs to be throttled so that it is idle 90% of the time.
+        </p><p>
+            From the kernel's perspective, this is hard to measure, so CBQ instead computes idle time from the number of microseconds that elapse between requests from the device driver for more data.  Combined with the knowledge of packet sizes, this is used to approximate how full or empty the link is.
+        </p><p>
+            This is rather circumspect and doesn't always arrive at proper results. The physical link bandwidth may be ill defined in case of not-quite-real network devices like PPP over Ethernet or PPTP over TCP/IP. The effective bandwidth in that case is probably determined by the efficiency of pipes to userspace - which not defined.
+        </p><p>
+            During operations, the effective idletime is measured using an exponential weighted moving average (EWMA).  This calculation of activity against idleness values recent packets exponentially more than predecessors.  The EWMA is an effective calculation to deal with the problem that a system is either active or inactive.  For example, the Unix system load average is calculated in the same way.
+        </p><p>
+            The calculated idle time is subtracted from the EWMA measured one, the resulting number is called 'avgidle'. A perfectly loaded link has an avgidle of zero: packets arrive exactly at the calculated interval.
+        </p><p>
+            An overloaded link has a negative avgidle and if it gets too negative, CBQ throttles and is then 'overlimit'. Conversely, an idle link might amass a huge avgidle, which would then allow infinite bandwidths after a few  hours  of silence.  To  prevent this, avgidle is capped at maxidle.
+        </p><p>
+            If  overlimit, in theory, the CBQ could throttle itself for exactly the amount of time that was calculated to pass between packets, and then pass one packet, and throttle again. Due to timer resolution constraints, this may not be feasible, see the minburst parameter below.
+
+        </p></div><div class="section"><div class="titlepage"><div><div><h4 class="title"><a name="qc-cbq-classification"></a>7.4.2. Classification</h4></div></div></div><p>
+            Under one installed CBQ qdisc many classes may exist.  Each of these classes contains another qdisc, by default <a class="link" href="ar01s06.html#qs-fifo" title="6.1. FIFO, First-In First-Out (pfifo and bfifo)">tc-pfifo</a>.
+        </p><p>
+            When enqueueing a packet, CBQ starts at the root and uses various methods to determine which class should receive the data. If a verdict is reached, this process is repeated for the recipient class which might have further means of classifying traffic to its children, if any. CBQ has the following methods available to classify  a  packet  to  any child classes.
+        </p><div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem"><p>
+                    skb&gt;priority  class  encoding.  Can be set from userspace by an application with the SO_PRIORITY setsockopt.  The skb-&gt;priority class encoding  only  applies  if  the  skb-&gt;priority  holds  a major:minor handle of an existing class within  this qdisc.
+                </p></li><li class="listitem"><p>
+                   <span class="emphasis"><em> tc filters attached to the class. </em></span>
+                </p></li><li class="listitem"><p>
+                    <span class="emphasis"><em>The defmap of a class</em></span>, as set with the split and  defmap parameters.  The defmap  may contain instructions for each possible Linux packet priority.
+                </p></li></ul></div><p>
+            Each class also has a level.  Leaf nodes, attached to the bottom of theclass hierarchy, have a level of 0.
+        </p></div><div class="section"><div class="titlepage"><div><div><h4 class="title"><a name="qc-cbq-classification-algorithm"></a>7.4.3. Classification Algorithm</h4></div></div></div><p>
+            Classification is a loop, which terminates when a leaf class is found. At any point the loop may jump to the fallback algorithm. The loop consists of the following steps:
+        </p><div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem"><p>
+                    If the packet is generated locally and has a valid  classid encoded within its skb-&gt;priority, choose it and terminate.
+                </p></li><li class="listitem"><p>
+                    Consult the tc filters, if any, attached to this child. If these return a class which is not a leaf class, restart loop from he class returned.  If it is a leaf, choose it and terminate.
+                </p></li><li class="listitem"><p>
+                    If the tc filters did not return a class, but did return a classid, try to find a class with that id within this qdisc.   Checkif the found class is of a lower level than the current class. If so, and the returned class is not a leaf  node,  restart  the loop at the found class. If it is a leaf node, terminate.  If we found an upward reference to a higher level, enter the  fallback algorithm.
+                </p></li><li class="listitem"><p>
+                    If the tc filters did not return a class, nor a valid reference to one, consider the minor number of the  reference  to  be  the priority. Retrieve a class from the defmap of this class for the priority. If this did not contain a class, consult the defmap of this class for the BEST_EFFORT class. If this is an upward reference, or no BEST_EFFORT class was defined, enter the  fallback algorithm.  If a valid  class  was found, and it is not a leaf node, restart the loop at this class. If it is a leaf, choose it and terminate. If neither the priority distilled from the classid, nor the BEST_EFFORT priority yielded  a  class,  enter  the fallback algorithm.
+                </p></li></ul></div><p>
+            The fallback algorithm resides outside of the loop and is as follows.
+        </p><div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem"><p>
+                    Consult the  defmap of the class at which the jump to fallback occured. If the defmap contains a class for the priority of the class (which is related to the ToS field), choose this class and terminate.
+                </p></li><li class="listitem"><p>
+                    Consult the map for a class for the  BEST_EFFORT  priority.  If found, choose it, and terminate.
+                </p></li><li class="listitem"><p>
+                    Choose the  class at which break out to the fallback algorithm occurred. Terminate.
+                </p></li></ul></div><p>
+            The packet is enqueued to the class which was chosen when either  algorithm  terminated. It is therefore possible for a packet to be enqueued not at a leaf node, but in the middle of the hierarchy.
+        </p></div><div class="section"><div class="titlepage"><div><div><h4 class="title"><a name="qc-cbq-link"></a>7.4.4. Link Sharing Algorithm</h4></div></div></div><p>
+            When dequeuing for sending to the network device, CBQ decides which of its  classes  will be allowed to send. It does so with a Weighted Round Robin process in which each class with packets gets a chance to send in turn.  The WRR  process  starts by asking the highest priority classes (lowest numerically - highest semantically) for packets, and will  continue to do so until they have no more data to offer, in which case the process repeats for lower priorities.
+        </p><p>
+            Each class is not allowed to send at length  though,  they  can  only dequeue a configurable amount of data during each round.
+        </p><p>
+            If a class is about to go overlimit, and it is not bounded it will try to borrow avgidle from siblings that are not isolated.  This process is repeated from the bottom upwards. If a class is unable to borrow enough avgidle to send a packet, it is throttled and not asked  for  a  packet for enough time for the avgidle to increase above zero.
+        </p></div><div class="section"><div class="titlepage"><div><div><h4 class="title"><a name="qc-cbq-root-params"></a>7.4.5. Root Parameters</h4></div></div></div><p>
+        The root qdisc of a CBQ class tree has the following parameters:
+    </p><div class="variablelist"><dl class="variablelist"><dt><span class="term"><code class="constant">parent</code> <em class="replaceable"><code>root</code></em> | <em class="replaceable"><code>major:minor</code></em></span></dt><dd><p>
+                this mandatory parameter determines the place of the CBQ
+                instance, either at the root of an interface or within an
+                existing class.
+            </p></dd><dt><span class="term"><code class="constant">handle</code> <em class="replaceable"><code>major:</code></em></span></dt><dd><p>
+                like all other qdiscs, the CBQ can be assigned a handle.
+                Should consist only of a major number, followed by a colon.
+                This parameter is optional.
+            </p></dd><dt><span class="term"><code class="constant">avpkt</code> <em class="replaceable"><code>bytes</code></em></span></dt><dd><p>
+                for calculations, the average packet size must be known.  It is
+                silently capped at a minimum of 2/3 of the interface MTU.  This
+                parameter is mandatory.
+            </p></dd><dt><span class="term"><code class="constant">bandwidth</code> <em class="replaceable"><code>rate</code></em></span></dt><dd><p>
+                underlying available bandwidth; to determine the idle time,
+                CBQ must know the bandwidth of your A) desired target
+                bandwidth, B) underlying physical interface or C) parent
+                qdisc. This is a vital parameter, more about it later. This
+                parameter is mandatory.
+            </p></dd><dt><span class="term"><code class="constant">cell</code> <em class="replaceable"><code>size</code></em></span></dt><dd><p>
+                the cell size determines the granularity of packet
+                transmission time calculations. Must be an integral power of
+                2, defaults to 8.
+            </p></dd><dt><span class="term"><code class="constant">mpu</code> <em class="replaceable"><code>bytes</code></em></span></dt><dd><p>
+                a zero sized packet may still take time to transmit. This
+                value is the lower cap for packet transmission time
+                calculations - packets smaller than this value are still
+                deemed to have this size.  Defaults to 0.
+            </p></dd><dt><span class="term"><code class="constant">ewma</code> <em class="replaceable"><code>log</code></em></span></dt><dd><p>
+                CBQ calculates idleness using an Exponentially Weighted Moving
+                Average (<acronym class="acronym">EWMA</acronym>) which smooths out
+                measurements easily accommodating short bursts. The
+                <em class="replaceable"><code>log</code></em> value determines how much
+                smoothing occurs.  Lower values imply greater sensitivity.
+                Must be between 0 and 31.  Defaults to 5.
+            </p></dd></dl></div><p>
+        A CBQ qdisc does not shape out of its own accord. It only needs to know certain parameters about the underlying link. Actual shaping is done in classes.
+    </p></div><div class="section"><div class="titlepage"><div><div><h4 class="title"><a name="qc-cbq-class-params"></a>7.4.6. Class Parameters</h4></div></div></div><p>
+        Classes have a lot of parameters to configure their operation.
+    </p><div class="variablelist"><dl class="variablelist"><dt><span class="term"><code class="constant">parent</code> <em class="replaceable"><code>major:minor</code></em></span></dt><dd><p>
+                place of this class within the hierarchy. If attached directly
+                to a qdisc and not to another  class,  minor  can  be
+                omitted.  This parameter is mandatory.
+            </p></dd><dt><span class="term"><code class="constant">classid</code> <em class="replaceable"><code>major:minor</code></em></span></dt><dd><p>
+                like  qdiscs,  classes  can  be  named. The major number must be equal to the major number of the  qdisc  to  which  it  belongs. Optional, but needed if this class is going to have children.
+            </p></dd><dt><span class="term"><code class="constant">weight</code> <em class="replaceable"><code>weightvalue</code></em></span></dt><dd><p>
+                when  dequeuing to the lower layer, classes are tried for
+                traffic in a round-robin fashion. Classes with a higher
+                configured qdisc will generally have more traffic to offer
+                during each round, so it makes sense to allow it to dequeue
+                more traffic. All weights under a class are normalized, so
+                only the ratios matter.  Defaults to the configured rate,
+                unless the priority of this class is maximal, in which case it
+                is set to 1.
+            </p></dd><dt><span class="term"><code class="constant">allot</code> <em class="replaceable"><code>bytes</code></em></span></dt><dd><p>
+                allot specifies how many bytes a qdisc can dequeue during
+                each round of the process.  This parameter is weighted
+                using the renormalized class weight described above.
+            </p></dd><dt><span class="term"><code class="constant">priority</code> <em class="replaceable"><code>priovalue</code></em></span></dt><dd><p>
+                in the round-robin process, classes with the lowest priority
+                field are tried for packets first. This parameter is
+                mandatory.
+            </p></dd><dt><span class="term"><code class="constant">rate</code> <em class="replaceable"><code>bitrate</code></em></span></dt><dd><p>
+                maximum aggregated rate at which this class (children
+                inclusive) can transmit.  The bitrate is specified using the
+                <span class="command"><strong>tc</strong></span> way of specifying rates (e.g.
+                '1544kbit').  This parameter is mandatory.
+            </p></dd><dt><span class="term"><code class="constant">bandwidth</code> <em class="replaceable"><code>bitrate</code></em></span></dt><dd><p>
+                this is different from the bandwidth specified when creating a
+                parent CBQ qdisc.  The CBQ class
+                <code class="constant">bandwidth</code> parameter is only used to
+                determine maxidle and offtime, which, in turn, are only
+                calculated when specifying maxburst or minburst.  Thus, this
+                parameter is only required if specifying
+                <code class="constant">maxburst</code> or
+                <code class="constant">minburst</code>.
+            </p></dd><dt><span class="term"><code class="constant">maxburst</code> <em class="replaceable"><code>packetcount</code></em>, </span><span class="term"></span></dt><dd><p>
+                this number of packets is used to calculate maxidle so that
+                when avgidle  is  at  maxidle,  this number of average packets
+                can be burst before avgidle drops to 0. Set it higher to be
+                more tolerant  of  bursts.  You can't set maxidle directly,
+                only via this parameter.
+                </p></dd><dt><span class="term"><code class="constant">minburst</code> <em class="replaceable"><code>packetcount</code></em></span></dt><dd><p>
+                    as mentioned before, CBQ needs to throttle in case of
+                    overlimit. The  ideal  solution is to do so for exactly
+                    the calculated idle time, and pass 1 packet. However, Unix
+                    kernels generally have  a hard  time  scheduling events
+                    shorter than 10ms, so it is better to throttle for a
+                    longer period, and then pass minburst  packets in one go,
+                    and then sleep minburst times longer. The  time  to  wait
+                    is called the offtime. Higher values of minburst lead to
+                    more accurate shaping in the  long  term,  but  to bigger
+                    bursts at millisecond timescales.
+                </p></dd><dt><span class="term"><code class="constant">minidle</code> <em class="replaceable"><code>microseconds</code></em>, </span><span class="term"></span></dt><dd><p>
+                    <span class="emphasis"><em>minidle:</em></span> if  avgidle is below 0, we are overlimits and need to wait until avgidle will be big enough to send one packet. To prevent a sudden burst from shutting down the link for a prolonged period of time, avgidle is reset to minidle if it gets too low.  Minidle is specified in negative microseconds, so 10 means  that avgidle is capped at -10us.
+                </p></dd><dt><span class="term"><code class="constant">bounded</code> | <code class="constant">borrow</code>, </span><span class="term"></span></dt><dd><p>
+                    identifies a borrowing policy.  Either the class will try
+                    to <code class="constant">borrow</code> bandwidth from its siblings
+                    or it will consider itself <code class="constant">bounded</code>.
+                    Mutually exclusive.
+                </p></dd><dt><span class="term"><code class="constant">isolated</code> | <code class="constant">sharing</code></span></dt><dd><p>
+                    identifies a sharing policy.  Either the class will engage
+                    in a <code class="constant">sharing</code> policy toward its
+                    siblings or it will consider itself
+                    <code class="constant">isolated</code>.  Mutually exclusive.
+                </p></dd><dt><span class="term"></span></dt><dd><p>
+                    <span class="emphasis"><em>split major:minor and defmap bitmap[/bitmap]:</em></span> if consulting filters attached to a class did not  give  a  verdict,  CBQ  can  also  classify  based on the packet's priority. There are 16 priorities available, numbered from 0 to 15. The defmap  specifies  which  priorities  this  class  wants  to receive, specified as a bitmap. The Least Significant Bit corresponds to priority zero. The split parameter tells CBQ at  which class the decision must be made, which should be a (grand)parent of the class you are adding.
+                </p><p>
+                    As an example, 'tc class add ... classid 10:1 cbq .. split  10:0 defmap c0' configures class 10:0 to send packets with priorities  6 and 7 to 10:1.
+                </p><p>
+                    The complimentary configuration would then be: 'tc class add ... classid  10:2 cbq ... split 10:0 defmap 3f' Which would send all packets 0, 1, 2, 3, 4 and 5 to 10:1.
+                </p></dd><dt><span class="term"></span></dt><dd><p>
+                    <span class="emphasis"><em>estimator interval timeconstant:</em></span> CBQ can measure how much bandwidth each class is using, which tc filters  can use to classify packets with. In order to determine the bandwidth it uses a very simple estimator that measures once every  interval  microseconds  how much traffic has passed. This again is a EWMA, for which the time constant can  be  specified, also in microseconds. The time constant corresponds to the sluggishness of the measurement or, conversely, to  the  sensitivity of  the  average to short bursts. Higher values mean less sensitivity.
+                </p></dd></dl></div></div></div><div class="section"><div class="titlepage"><div><div><h3 class="title"><a name="qc-wrr"></a>7.5. WRR, Weighted Round Robin</h3></div></div></div><p>
+          This qdisc is not included in the standard kernels.
+      </p><p>
+          The WRR qdisc distributes bandwidth between its classes using the weighted round robin scheme. That is, like the CBQ qdisc it contains classes into which arbitrary qdiscs can be plugged. All classes which have sufficient demand will get bandwidth proportional to the weights associated with the classes. The weights can be set manually using the tc program. But they can also be made automatically decreasing for classes transferring much data.
+      </p><p>
+          The qdisc has a built-in classifier which assigns packets coming from or sent to different machines to different classes. Either the MAC or IP and either source or destination addresses can be used. The MAC address can only be used when the Linux box is acting as an ethernet bridge, however. The classes are automatically assigned to machines based on the packets seen.
+      </p><p>
+          The qdisc can be very useful at sites where a lot of unrelated individuals share an Internet connection. A set of scripts setting up a relevant behavior for such a site is a central part of the WRR distribution.
+      </p></div><div class="footnotes"><br><hr style="width:100; text-align:left;margin-left: 0"><div id="ftn.idm1853" class="footnote"><p><a href="#idm1853" class="para"><sup class="para">[9] </sup></a>
+                HTB will report bandwidth usage in this scenario
+                incorrectly.  It will calculate the bandwidth used by
+                <em class="parameter"><code>quantum</code></em> instead of the real dequeued packet size.
+                This can skew results quickly.
+              </p></div></div></div><div class="navfooter"><hr><table width="100%" summary="Navigation footer"><tr><td width="40%" align="left"><a accesskey="p" href="ar01s06.html">Prev</a> </td><td width="20%" align="center"> </td><td width="40%" align="right"> <a accesskey="n" href="ar01s08.html">Next</a></td></tr><tr><td width="40%" align="left" valign="top">6. Classless Queuing Disciplines (<code class="constant">qdisc</code>s) </td><td width="20%" align="center"><a accesskey="h" href="index.html">Home</a></td><td width="40%" align="right" valign="top"> 8. Rules, Guidelines and Approaches</td></tr></table></div></body></html>

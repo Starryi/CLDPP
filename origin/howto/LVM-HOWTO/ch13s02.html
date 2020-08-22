@@ -1,0 +1,119 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1"><title>2. Setting up LVM on three SCSI disks with striping</title><link rel="stylesheet" type="text/css" href="style.css"><meta name="generator" content="DocBook XSL Stylesheets V1.79.1"><link rel="home" href="index.html" title="LVM HOWTO"><link rel="up" href="ch13.html" title="Chapter 13. Recipes"><link rel="prev" href="ch13s01.html" title="1. Setting up LVM on three SCSI disks"><link rel="next" href="ch13s03.html" title="3. Add a new disk to a multi-disk SCSI system"></head><body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF"><div class="navheader"><table width="100%" summary="Navigation header"><tr><th colspan="3" align="center">2. Setting up LVM on three SCSI disks with striping</th></tr><tr><td width="20%" align="left"><a accesskey="p" href="ch13s01.html">Prev</a> </td><th width="60%" align="center">Chapter 13. Recipes</th><td width="20%" align="right"> <a accesskey="n" href="ch13s03.html">Next</a></td></tr></table><hr></div><div class="sect1"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="recipethreescsistripe"></a>2. Setting up LVM on three SCSI disks with striping</h2></div></div></div><p>
+        For this recipe, the setup has three SCSI disks that will be put
+        into a logical volume using LVM.  The disks are at /dev/sda,
+        /dev/sdb, and /dev/sdc.
+      </p><div class="note" style="margin-left: 0.5in; margin-right: 0.5in;"><h3 class="title">Note</h3><p>
+          <span class="strong"><strong>
+            It is not currently possible to add a disk to a
+            striped logical volume in LVM 1.  Use LVM 2 with the
+            lvm 2 format metadata if you wish to be able to do
+            so able to do so.
+          </strong></span>
+        </p></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="idm1106"></a>2.1. Preparing the disk partitions</h3></div></div></div><p>
+          Before you can use a disk in a volume group you will have to
+          prepare it:
+        </p><div class="warning" style="margin-left: 0.5in; margin-right: 0.5in;"><h3 class="title">Warning!</h3><p>
+            <span class="strong"><strong>
+              The following will destroy any data on /dev/sda, /dev/sdb,
+              and /dev/sdc
+            </strong></span>
+          </p></div><p>
+          Run pvcreate on the disks:
+          </p><pre class="screen">
+<span class="command"><strong># pvcreate /dev/sda
+# pvcreate /dev/sdb
+# pvcreate /dev/sdc</strong></span>
+          </pre><p>
+          This creates a volume group descriptor area (VGDA) at the start
+          of the disks.
+        </p></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="idm1116"></a>2.2. Setup a Volume Group</h3></div></div></div><div class="orderedlist"><ol class="orderedlist" type="1"><li class="listitem"><p>
+              Create a volume group
+              </p><pre class="screen">
+<span class="command"><strong># vgcreate my_volume_group /dev/sda /dev/sdb /dev/sdc</strong></span>
+              </pre><p>
+            </p></li><li class="listitem"><p>
+              Run vgdisplay to verify volume group
+              </p><pre class="screen">
+<span class="command"><strong># vgdisplay</strong></span>
+<code class="computeroutput">--- Volume Group ---
+VG Name	              my_volume_group
+VG Access             read/write
+VG Status             available/resizable
+VG #                  1
+MAX LV                256
+Cur LV                0
+Open LV               0
+MAX LV Size           255.99 GB
+Max PV                256
+Cur PV                3
+Act PV                3
+VG Size               1.45 GB
+PE Size               4 MB
+Total PE              372
+Alloc PE / Size       0 / 0
+Free  PE / Size       372/ 1.45 GB
+VG UUID               nP2PY5-5TOS-hLx0-FDu0-2a6N-f37x-0BME0Y</code>
+              </pre><p>
+              The most important things to verify are that the first
+              three items are correct and that the VG Size item is the
+              proper size for the amount of space in all four of your
+              disks.
+            </p></li></ol></div></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="idm1128"></a>2.3. Creating the Logical Volume</h3></div></div></div><p>
+          If the volume group looks correct, it is time to create a
+          logical volume on top of the volume group.
+        </p><p>
+          You can make the logical volume any size you like (up to the
+          size of the VG you are creating it on; it is similar to a
+          partition on a non LVM setup).  For this example we will create
+          just a single logical volume of size 1GB on the volume group.
+          The logical volume will be a striped set using for the 4k stripe
+          size.  This should increase the performance of the logical
+          volume.
+          </p><pre class="screen">
+<span class="command"><strong># lvcreate -i3 -I4 -L1G -nmy_logical_volume my_volume_group</strong></span>
+<code class="computeroutput">lvcreate -- rounding 1048576 KB to stripe boundary size 1056768 KB / 258 PE
+lvcreate -- doing automatic backup of "my_volume_group"
+lvcreate -- logical volume "/dev/my_volume_group/my_logical_volume" successfully created</code>
+          </pre><p>
+        </p><div class="note" style="margin-left: 0.5in; margin-right: 0.5in;"><h3 class="title">Note</h3><p>
+            If you create the logical volume with a '-i2' you will only
+            use two of the disks in your volume group.  This is useful if
+            you want to create two logical volumes out of the same
+            physical volume, but we will not touch that in this recipe.
+          </p></div></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="idm1138"></a>2.4. Create the File System</h3></div></div></div><p>
+          Create an ext2 file system on the logical volume
+          </p><pre class="screen">
+<span class="command"><strong># mke2fs /dev/my_volume_group/my_logical_volume</strong></span>
+<code class="computeroutput">mke2fs 1.19, 13-Jul-2000 for EXT2 FS 0.5b, 95/08/09
+Filesystem label=
+OS type: Linux
+Block size=4096 (log=2)
+Fragment size=4096 (log=2)
+132192 inodes, 264192 blocks
+13209 blocks (5.00%) reserved for the super user
+First data block=0
+9 block groups
+32768 blocks per group, 32768 fragments per group
+14688 inodes per group
+Superblock backups stored on blocks:
+        32768, 98304, 163840, 229376
+
+Writing inode tables: done
+Writing superblocks and filesystem accounting information: done</code>
+          </pre><p>
+        </p></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="idm1144"></a>2.5. Test the File System</h3></div></div></div><p>
+          Mount the file system on the logical volume
+          </p><pre class="screen">
+<span class="command"><strong># mount /dev/my_volume_group/my_logical_volume /mnt</strong></span>
+               </pre><p>
+               and check to make sure everything looks correct
+               </p><pre class="screen">
+<span class="command"><strong># df</strong></span>
+<code class="computeroutput">Filesystem           1k-blocks      Used Available Use% Mounted on
+/dev/hda1              1311552    628824    616104  51% /
+/dev/my_volume_group/my_logical_volume
+                       1040132        20    987276   0% /mnt</code>
+          </pre><p>
+          If everything worked properly, you should now have a logical
+          volume mounted at <code class="filename">/mnt</code>.  
+        </p></div></div><div class="navfooter"><hr><table width="100%" summary="Navigation footer"><tr><td width="40%" align="left"><a accesskey="p" href="ch13s01.html">Prev</a> </td><td width="20%" align="center"><a accesskey="u" href="ch13.html">Up</a></td><td width="40%" align="right"> <a accesskey="n" href="ch13s03.html">Next</a></td></tr><tr><td width="40%" align="left" valign="top">1. Setting up LVM on three SCSI disks </td><td width="20%" align="center"><a accesskey="h" href="index.html">Home</a></td><td width="40%" align="right" valign="top"> 3. Add a new disk to a multi-disk SCSI system</td></tr></table></div></body></html>

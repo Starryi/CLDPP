@@ -1,0 +1,1805 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN""http://www.w3.org/TR/html4/loose.dtd">
+<HTML
+><HEAD
+><TITLE
+>Caching PHP-Nuke</TITLE
+><META
+NAME="GENERATOR"
+CONTENT="Modular DocBook HTML Stylesheet Version 1.79"><LINK
+REL="HOME"
+TITLE="PHP-Nuke: Management and Programming"
+HREF="index.html"><LINK
+REL="UP"
+TITLE="Accelerating PHP-Nuke"
+HREF="accelerating-php-nuke.html"><LINK
+REL="PREVIOUS"
+TITLE="Accelerating PHP-Nuke"
+HREF="accelerating-php-nuke.html"><LINK
+REL="NEXT"
+TITLE="Optimizing PHP-Nuke "
+HREF="optimizing-php-nuke.html"></HEAD
+><BODY
+CLASS="SECT1"
+BGCOLOR="#FFFFFF"
+TEXT="#000000"
+LINK="#0000FF"
+VLINK="#840084"
+ALINK="#0000FF"
+><DIV
+CLASS="NAVHEADER"
+><TABLE
+SUMMARY="Header navigation table"
+WIDTH="100%"
+BORDER="0"
+CELLPADDING="0"
+CELLSPACING="0"
+><TR
+><TH
+COLSPAN="3"
+ALIGN="center"
+>PHP-Nuke: Management and Programming</TH
+></TR
+><TR
+><TD
+WIDTH="10%"
+ALIGN="left"
+VALIGN="bottom"
+><A
+HREF="accelerating-php-nuke.html"
+ACCESSKEY="P"
+>Prev</A
+></TD
+><TD
+WIDTH="80%"
+ALIGN="center"
+VALIGN="bottom"
+>Chapter 24. Accelerating PHP-Nuke</TD
+><TD
+WIDTH="10%"
+ALIGN="right"
+VALIGN="bottom"
+><A
+HREF="optimizing-php-nuke.html"
+ACCESSKEY="N"
+>Next</A
+></TD
+></TR
+></TABLE
+><HR
+ALIGN="LEFT"
+WIDTH="100%"></DIV
+><DIV
+CLASS="SECT1"
+><H1
+CLASS="SECT1"
+><A
+NAME="CACHING-PHP-NUKE"
+>24.1. Caching PHP-Nuke</A
+></H1
+><P
+>As in <A
+HREF="http://www.karakas-online.de/forum/viewtopic.php?t=130"
+TARGET="_top"
+>How to accelerate PHP-Nuke</A
+>, we ask ourselves the following questions:</P
+><P
+></P
+><UL
+><LI
+><P
+>Does your index.php, or the other parts of your <SPAN
+CLASS="APPLICATION"
+>PHP-Nuke</SPAN
+> change more often than, say, once in 15 minutes? Maybe not, if you are not logged in.</P
+></LI
+><LI
+><P
+>Do you really need to see a change the very moment you hit the reload button of your browser? For me, if this change is the number of private messages I got, then I might be interested to see the *real* number. But then again, why not the number as of 5 minutes ago? How important is current content for you? How current is current enough for you? 1 minute, 5 minutes, or even 15 minutes? </P
+></LI
+></UL
+><P
+>If you think a little about it, you will realize that maybe it is not absolutely necessary that your <SPAN
+CLASS="APPLICATION"
+>PHP-Nuke</SPAN
+> does all these conections to the database, querying all that data that most probably did not change the last x minutes, each time you display a page.</P
+><P
+><DIV
+CLASS="FIGURE"
+><A
+NAME="FIG-OPTIMIZE-PHP"
+></A
+><P
+><B
+>Figure 24-2.    Optimizing <ACRONYM
+CLASS="ACRONYM"
+>PHP</ACRONYM
+> code execution.
+   </B
+></P
+><DIV
+CLASS="MEDIAOBJECT"
+><P
+><IMG
+SRC="./images/optimize-php.png"><DIV
+CLASS="CAPTION"
+><P
+>Optimizing <ACRONYM
+CLASS="ACRONYM"
+>PHP</ACRONYM
+> code execution.</P
+></DIV
+></P
+></DIV
+></DIV
+></P
+><P
+>Various tests on optimizing <ACRONYM
+CLASS="ACRONYM"
+>PHP</ACRONYM
+> (see, for example, <A
+HREF="http://phplens.com/lens/php-book/optimizing-debugging-php.php"
+TARGET="_top"
+>Optimizing PHP</A
+>) have shown that the biggest time savings in execution time are not achieved through elaborate algorithmic optimization, but rather with an old, well-known technique: caching! The idea behind caching is to avoid repeated execution of the <ACRONYM
+CLASS="ACRONYM"
+>PHP</ACRONYM
+> code, by storing the HTML output in a file, as jpcache (<A
+HREF="caching-php-nuke.html#JPCACHE"
+>Section 24.1.1</A
+>) and Cache-Lite (<A
+HREF="caching-php-nuke.html#CACHE-LITE"
+>Section 24.1.2</A
+>) do, or in shared memory, as Turck MMCache (<A
+HREF="caching-php-nuke.html#TURCK-MMCACHE"
+>Section 24.1.3</A
+>) does. Optimizers, such as the commercial <A
+HREF="http://www.zend.com"
+TARGET="_top"
+>Zend Performance Suite</A
+> and the free Turck MMCache, transform the <ACRONYM
+CLASS="ACRONYM"
+>PHP</ACRONYM
+> code in an intermediate form, an &#8220;opcode&#8221; , which they cache - <A
+HREF="caching-php-nuke.html#FIG-OPTIMIZE-PHP"
+>Figure 24-2</A
+> shows the way these optimizers work. In the following we will examine them in more detail.</P
+><DIV
+CLASS="CAUTION"
+><P
+></P
+><TABLE
+CLASS="CAUTION"
+WIDTH="100%"
+BORDER="0"
+><TR
+><TD
+WIDTH="25"
+ALIGN="CENTER"
+VALIGN="TOP"
+><IMG
+SRC="../images/caution.png"
+HSPACE="5"
+ALT="Caution"></TD
+><TH
+ALIGN="LEFT"
+VALIGN="MIDDLE"
+><B
+>Know what you cache and why!</B
+></TH
+></TR
+><TR
+><TD
+>&nbsp;</TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> 
+If you try to cache the whole index.php page even for registered users, you shouldn't be surprised of the errors and you shouldn't blame it on cache. The cache will just cache what you tell it to, for the time intervall you tell it to.</P
+><P
+>Now, suppose that your users get different output on your index.php page, depending on your settings as an administrator (blocks, modules etc.) and their settings as users. Also suppose that you use a caching mechanism, like the ones we will describe later in this chapter, to cache the whole index.php page. Then we can easily imagine a situation where your user A will not get to see what he should see, but what user B was viewing a few minutes ago. In other words, all users will see user's B cached index.php page, with all the wrong links in it, like "Your Account" with user's B data in the link etc. </P
+><P
+>For this reason, it is absolutely necessary to know what you cache and why you cache it!</P
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="TIP"
+><P
+></P
+><TABLE
+CLASS="TIP"
+WIDTH="100%"
+BORDER="0"
+><TR
+><TD
+WIDTH="25"
+ALIGN="CENTER"
+VALIGN="TOP"
+><IMG
+SRC="../images/tip.png"
+HSPACE="5"
+ALT="Tip"></TD
+><TH
+ALIGN="LEFT"
+VALIGN="MIDDLE"
+><B
+>What to cache for registered users</B
+></TH
+></TR
+><TR
+><TD
+>&nbsp;</TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+> 
+If you want to cache content when it is viewed by registered users too, it will make more sense to cache only individual modules or blocks which (see <A
+HREF="http://www.karakas-online.de/forum/viewtopic.php?p=2006"
+TARGET="_top"
+>Caching strategy with PHP-Nuke</A
+>)</P
+><P
+></P
+><UL
+><LI
+><P
+>take much time to build their content and</P
+></LI
+><LI
+><P
+>their content is independent of the user viewing it.</P
+></LI
+></UL
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="JPCACHE"
+>24.1.1. jpcache</A
+></H2
+><P
+><DIV
+CLASS="FIGURE"
+><A
+NAME="FIG-JPCACHE"
+></A
+><P
+><B
+>Figure 24-3.    Powered by jpcache.
+   </B
+></P
+><DIV
+CLASS="MEDIAOBJECT"
+><P
+><IMG
+SRC="./images/jpcache.png"><DIV
+CLASS="CAPTION"
+><P
+>Powered by jpcache.</P
+></DIV
+></P
+></DIV
+></DIV
+></P
+><P
+>Enter <A
+HREF="http://www.jpcache.com"
+TARGET="_top"
+>jpcache</A
+>: jpcache is a lightweight, full page caching system for PHP, thus reducing server load, as pages are generated less often. It dramatically speeds up serving of your pages, by caching page ouput and returning the chached page instead of compiling the <ACRONYM
+CLASS="ACRONYM"
+>PHP</ACRONYM
+> one. In the following we will describe jpcache installation, configuration and use (see also <A
+HREF="http://www.karakas-online.de/forum/viewtopic.php?t=130"
+TARGET="_top"
+>How to accelerate PHP-Nuke</A
+>):</P
+><DIV
+CLASS="SECT3"
+><H3
+CLASS="SECT3"
+><A
+NAME="JPCACHE-INSTALLATION"
+>24.1.1.1. Installation of jpcache</A
+></H3
+><P
+>Installation is very simple:</P
+><P
+></P
+><UL
+><LI
+><P
+>Download it from the <A
+HREF="http://sourceforge.net/project/showfiles.php?group_id=23902&#38;release_id=173955"
+TARGET="_top"
+>jpcache download page at sourceforge.net</A
+>.</P
+></LI
+><LI
+><P
+>Extract the files in the includes directory of your <SPAN
+CLASS="APPLICATION"
+>PHP-Nuke</SPAN
+>. A folder "jpcache" will be created containing all the necessary files. Change to that folder.</P
+></LI
+><LI
+><P
+>Read the readme file.</P
+></LI
+></UL
+></DIV
+><DIV
+CLASS="SECT3"
+><H3
+CLASS="SECT3"
+><A
+NAME="JPCACHE-CONFIGURATION"
+>24.1.1.2. Configuration of jpcache</A
+></H3
+><P
+></P
+><UL
+><LI
+><P
+>Edit the $includedir variable in the jpcache.php file to reflect the *full* path to the jpcache files:</P
+><TABLE
+BORDER="1"
+BGCOLOR="#E0E0E0"
+WIDTH="90%"
+><TR
+><TD
+><FONT
+COLOR="#000000"
+><PRE
+CLASS="SCREEN"
+>// Set the includedir to the jpcache-directory
+$includedir = "/usr/local/httpd/htdocs/nuke6/html/includes/jpcache";</PRE
+></FONT
+></TD
+></TR
+></TABLE
+></LI
+><LI
+><P
+>Edit the jpcache-config.php file. You basically only need to set the $JPCACHE_TYPE to "file" (remember, we want to avoid database connections):</P
+><TABLE
+BORDER="1"
+BGCOLOR="#E0E0E0"
+WIDTH="90%"
+><TR
+><TD
+><FONT
+COLOR="#000000"
+><PRE
+CLASS="SCREEN"
+>$JPCACHE_TYPE = "file";
+//$JPCACHE_TYPE = "mysql";
+//$JPCACHE_TYPE = "dbm"; -- Not yet</PRE
+></FONT
+></TD
+></TR
+></TABLE
+><P
+>then coment the next block (you don't need it, since you *did* specified the $JPCACHE_TYPE above):</P
+><TABLE
+BORDER="1"
+BGCOLOR="#E0E0E0"
+WIDTH="90%"
+><TR
+><TD
+><FONT
+COLOR="#000000"
+><PRE
+CLASS="SCREEN"
+>// DOH! Strip out this check for performance if you are sure you did set it.
+// if (!isset($JPCACHE_TYPE))
+// {
+// exit("[jpcache-config.php] No JPCACHE_TYPE has been set!");
+// }</PRE
+></FONT
+></TD
+></TR
+></TABLE
+><P
+>Just check the configuration options to see what they do, the defaults are O.K. for me:</P
+><TABLE
+BORDER="1"
+BGCOLOR="#E0E0E0"
+WIDTH="90%"
+><TR
+><TD
+><FONT
+COLOR="#000000"
+><PRE
+CLASS="SCREEN"
+>/**
+* General configuration options. 
+*/
+$JPCACHE_TIME = 900; // Default number of seconds to cache a page
+$JPCACHE_DEBUG = 0; // Turn debugging on/off
+$JPCACHE_IGNORE_DOMAIN= 1; // Ignore domain name in request(single site)
+$JPCACHE_ON = 1; // Turn caching on/off
+$JPCACHE_USE_GZIP = 1; // Whether or not to use GZIP
+$JPCACHE_POST = 0; // Should POST's be cached (default OFF)
+$JPCACHE_GC = 1; // Probability % of garbage collection
+$JPCACHE_GZIP_LEVEL = 9; // GZIPcompressionlevel to use (1=low,9=high)
+$JPCACHE_CLEANKEYS = 0; // Set to 1 to avoid hashing storage-key:
+// you can easily see cachefile-origin.</PRE
+></FONT
+></TD
+></TR
+></TABLE
+></LI
+><LI
+><P
+>Finally, set the directory for the cached files, preferably outside your web server root, say /tmp/jpcache. Create it, set the owner and group equal to the owner and group of your web server and change the permissions to 755 (rwx-r-x-r-x), or even 750 (rwx-r-x----). Then, enter in jpcache-config.php the absolute path  to that cache directory:</P
+><TABLE
+BORDER="1"
+BGCOLOR="#E0E0E0"
+WIDTH="90%"
+><TR
+><TD
+><FONT
+COLOR="#000000"
+><PRE
+CLASS="SCREEN"
+>/**
+* File based caching setting.
+*/
+$JPCACHE_DIR = "/tmp/jpcache"; // Directory where jpcache must store 
+// generated files. Please use a dedicated
+// directory, and make it writable</PRE
+></FONT
+></TD
+></TR
+></TABLE
+></LI
+></UL
+><P
+>That's all! jpcache is now configured correctly. </P
+></DIV
+><DIV
+CLASS="SECT3"
+><H3
+CLASS="SECT3"
+><A
+NAME="JPCACHE-USE"
+>24.1.1.3. How to use jpcache</A
+></H3
+><P
+>To use it, just open the index.php file of your <SPAN
+CLASS="APPLICATION"
+>PHP-Nuke</SPAN
+> and enter the following lines, after the line "require_once("mainfile.php");" (that's important!):</P
+><TABLE
+BORDER="1"
+BGCOLOR="#E0E0E0"
+WIDTH="100%"
+><TR
+><TD
+><FONT
+COLOR="#000000"
+><PRE
+CLASS="SCREEN"
+>require_once("mainfile.php");
+if (!isset($user)) {
+  $cachetimeout=900; 
+} else {
+  $cachetimeout=300;
+}
+require_once "includes/jpcache/jpcache.php";</PRE
+></FONT
+></TD
+></TR
+></TABLE
+><P
+>(I have included the 'require_once("mainfile.php");' line in the code above for your orientation).</P
+><P
+>That's it! You can now tweak the two caching intervalls, 900 and 300 seconds, which apply to non-logged-in and logged-in users respectively. Rethink the questions I asked you in <A
+HREF="caching-php-nuke.html"
+>Section 24.1</A
+> above. <SPAN
+CLASS="INLINEMEDIAOBJECT"
+><IMG
+SRC="./images/icon_wink.png"></SPAN
+></P
+><P
+>A caching intervall of x seconds means that your server will serve you a cached copy of the page, if the cache copy is not older than x seconds. Since non-logged-in users don't get private messages or similar "events", a longer caching intervall is just right for them. Feel free to experiment with these two values, trading actuality of content against serving speed.</P
+><P
+>Enjoy your new, lightning fast PHP-Nuke!</P
+><P
+>Oops...I forgot a crucial detail:</P
+><P
+>You must edit the mainfile.php file too! There, you *must* comment the line</P
+><TABLE
+BORDER="1"
+BGCOLOR="#E0E0E0"
+WIDTH="100%"
+><TR
+><TD
+><FONT
+COLOR="#000000"
+><PRE
+CLASS="SCREEN"
+>ob_start("ob_gzhandler");</PRE
+></FONT
+></TD
+></TR
+></TABLE
+><P
+>as follows:</P
+><TABLE
+BORDER="1"
+BGCOLOR="#E0E0E0"
+WIDTH="100%"
+><TR
+><TD
+><FONT
+COLOR="#000000"
+><PRE
+CLASS="SCREEN"
+># ob_start("ob_gzhandler");</PRE
+></FONT
+></TD
+></TR
+></TABLE
+><P
+>Otherwise, you will be compressing twofold, once from <SPAN
+CLASS="APPLICATION"
+>PHP-Nuke</SPAN
+> with the above line and once with jpcache through the configuration line</P
+><TABLE
+BORDER="1"
+BGCOLOR="#E0E0E0"
+WIDTH="100%"
+><TR
+><TD
+><FONT
+COLOR="#000000"
+><PRE
+CLASS="SCREEN"
+>$JPCACHE_USE_GZIP = 1; // Whether or not to use GZIP</PRE
+></FONT
+></TD
+></TR
+></TABLE
+><P
+>of jpcache-config.php.</P
+><P
+>The other way round, turning off gzip in jpcache and leaving the ob_start("ob_gzhandler") line uncommented in PHP-Nuke, works too. It may even be better to choose this way, if you use Apache and mod_gzip (a common configuration).</P
+><DIV
+CLASS="TIP"
+><P
+></P
+><TABLE
+CLASS="TIP"
+WIDTH="100%"
+BORDER="0"
+><TR
+><TD
+WIDTH="25"
+ALIGN="CENTER"
+VALIGN="TOP"
+><IMG
+SRC="../images/tip.png"
+HSPACE="5"
+ALT="Tip"></TD
+><TH
+ALIGN="LEFT"
+VALIGN="MIDDLE"
+><B
+>How to test if caching is working</B
+></TH
+></TR
+><TR
+><TD
+>&nbsp;</TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+>You can check if you are doing it right, by trying to cache a block that just echoes the current time. If the cached block displays the same time again and again after reloading (for some time interval equal to the "cache interval"), then  caching is working!</P
+><P
+>If it displays the current time (which is changing after every reloading), then caching is NOT working! In this case, most probably no files are being written into the cache directory you specified. Most of the time, this will be a permissions problem: check that the web server has write and execute permissions on the cache directory! See <A
+HREF="http://www.karakas-online.de/forum/viewtopic.php?t=130"
+TARGET="_top"
+>How to accelerate PHP-Nuke</A
+>.</P
+></TD
+></TR
+></TABLE
+></DIV
+></DIV
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="CACHE-LITE"
+>24.1.2. Cache-Lite</A
+></H2
+><P
+><DIV
+CLASS="FIGURE"
+><A
+NAME="FIG-PEAR"
+></A
+><P
+><B
+>Figure 24-4.    Cache-Lite is powered by PEAR.
+   </B
+></P
+><DIV
+CLASS="MEDIAOBJECT"
+><P
+><IMG
+SRC="./images/pear.png"><DIV
+CLASS="CAPTION"
+><P
+>Cache-Lite is powered by PEAR.</P
+></DIV
+></P
+></DIV
+></DIV
+></P
+><P
+>After reading the above, you may ask yourself if this is all we can do to accelerate <SPAN
+CLASS="APPLICATION"
+>PHP-Nuke</SPAN
+> with caching - and the answer is: of course not!</P
+><P
+>jpcache (<A
+HREF="caching-php-nuke.html#JPCACHE"
+>Section 24.1.1</A
+>) enables caching of the whole page. Remember, we edited index.php to set a different cache expiration time for logged and not logged-in users. The idea behind this was that a user that is not logged in will not have access to most of the dynamic features of PHP-Nuke, thus making caching of the whole page for longer intervalls an acceptable compromise between freshness of content and speed of page generation.</P
+><P
+>But how about our logged-in users? Wouldn't it be nice if we could at least cache some <SPAN
+CLASS="APPLICATION"
+>PHP-Nuke</SPAN
+> blocks we know they don't change that often? This is indeed possible with <A
+HREF="http://pear.php.net/package-info.php?pacid=99"
+TARGET="_top"
+>Cache-Lite</A
+>  of the <A
+HREF="http://pear.php.net"
+TARGET="_top"
+>PEAR  library</A
+> from <ACRONYM
+CLASS="ACRONYM"
+>PHP</ACRONYM
+>.</P
+><DIV
+CLASS="SECT3"
+><H3
+CLASS="SECT3"
+><A
+NAME="CACHE-LITE-INSTALLATION"
+>24.1.2.1. Installation of Cache-Lite</A
+></H3
+><P
+>Download Cache-Lite  and extract it in the includes folder of your <SPAN
+CLASS="APPLICATION"
+>PHP-Nuke</SPAN
+> installation. </P
+><P
+>If your <ACRONYM
+CLASS="ACRONYM"
+>PHP</ACRONYM
+> does not include the PEAR library, you will need to download download the base PEAR package  too. Extract only the PEAR.php file and put it in the same folder as mainfile.php, i.e. your <SPAN
+CLASS="APPLICATION"
+>PHP-Nuke</SPAN
+> base folder. </P
+><P
+>Cache-Lite needs the PEAR.php file for its error-handling, so you may not notice that you need it until some error occurs. <SPAN
+CLASS="INLINEMEDIAOBJECT"
+><IMG
+SRC="./images/icon_wink.png"></SPAN
+></P
+><P
+>If your <ACRONYM
+CLASS="ACRONYM"
+>PHP</ACRONYM
+> installation includes PEAR, you don't need to bother installing PEAR.php anywhere - it is already there, at the right place. But if your ISP does not include it, the above PEAR.php will do the trick.</P
+><P
+>That's all! You are now ready to use Cache-Lite.</P
+></DIV
+><DIV
+CLASS="SECT3"
+><H3
+CLASS="SECT3"
+><A
+NAME="CACHE-LITE-USE"
+>24.1.2.2. How to use Cache-Lite</A
+></H3
+><P
+>Cache-Lite can easily be used to cache a <ACRONYM
+CLASS="ACRONYM"
+>PHP</ACRONYM
+> variable. The easiest application of this is to cache the $content variable of a block that does not change very often - and this is the majority of <SPAN
+CLASS="APPLICATION"
+>PHP-Nuke</SPAN
+> blocks! </P
+><P
+>To use Cache-Lite in a <SPAN
+CLASS="APPLICATION"
+>PHP-Nuke</SPAN
+> block, open that block in your editor and put the following code (see <A
+HREF="http://www.karakas-online.de/forum/viewtopic.php?t=130"
+TARGET="_top"
+>How to accelerate PHP-Nuke</A
+>):</P
+><TABLE
+BORDER="1"
+BGCOLOR="#E0E0E0"
+WIDTH="100%"
+><TR
+><TD
+><FONT
+COLOR="#000000"
+><PRE
+CLASS="SCREEN"
+>// include the Cache-Lite package
+require_once("includes/Cache_Lite/Lite.php");
+// set some variables
+$options = array(
+  "cacheDir" =&#62; "/tmp/Cache_Lite/",
+  "lifeTime" =&#62; 900
+);
+// create a Cache_Lite object
+$objCache = new Cache_Lite($options);
+// test if there exists a valid cache,
+// the &#60;acronym&#62;ID&#60;/acronym&#62; will be the basename of the block
+$fileid = basename($blockfile,".php");
+if ($content = $objCache-&#62;get($fileid)) {
+// add a message indicating this is cached output
+  $content .= "\n[cached with ID=$fileid]";
+}
+else
+{
+// do the block's work here...</PRE
+></FONT
+></TD
+></TR
+></TABLE
+><P
+><EM
+>after the lines</EM
+></P
+><TABLE
+BORDER="1"
+BGCOLOR="#E0E0E0"
+WIDTH="100%"
+><TR
+><TD
+><FONT
+COLOR="#000000"
+><PRE
+CLASS="SCREEN"
+>if (eregi("block-XXXXXXX.php",$PHP_SELF)) {
+  Header("Location: index.php");
+  die();
+}</PRE
+></FONT
+></TD
+></TR
+></TABLE
+><P
+>What does the inserted code do?</P
+><P
+></P
+><UL
+><LI
+><P
+>It includes Cache-Lite. Note that in this example, Cache_Lite is a symbolic link to the actual directory the Lite.php file is in. I created this symbolic link myself, as I did not want to put a version-specific directory name in my code - I would have to change it each time I would upgrade Cache-Lite, this way I will only need to change the symbolic link to show to the right directory.</P
+></LI
+><LI
+><P
+>It first sets the path to the cache directory, in this case /tmp/Cache_Lite/. The directory must exist and must be writable and readable by the web server.</P
+></LI
+><LI
+><P
+>Sets the cache expiration time intervall for the object we are going to cache, in this case to 900 seconds.</P
+></LI
+><LI
+><P
+>Creates a cache object with the above settings.</P
+></LI
+><LI
+><P
+>Uses a computed "file id" as a key to identify the cached object (the cached $content variable). I have decided to use the basename of the <SPAN
+CLASS="APPLICATION"
+>PHP-Nuke</SPAN
+> block , i.e. the filename of the block without the ".php" ending, as the key for the $content variable. This way I don't have to change my code each time I insert the above lines in a new block. The $key will be computed automatically and will be the basename of the block file. Since in <SPAN
+CLASS="APPLICATION"
+>PHP-Nuke</SPAN
+> blocks are guaranteed to have distinct names, this is a good choice.</P
+><P
+>$blockfile is a variable that is computed by <SPAN
+CLASS="APPLICATION"
+>PHP-Nuke</SPAN
+> in mainfile.php, in function blocks():</P
+><TABLE
+BORDER="1"
+BGCOLOR="#E0E0E0"
+WIDTH="90%"
+><TR
+><TD
+><FONT
+COLOR="#000000"
+><PRE
+CLASS="SCREEN"
+>$sql = "SELECT bid, bkey, title, content, url, blockfile, view FROM ".$prefix."_blocks
+WHERE bposition='$pos' AND active='1' $querylang ORDER BY weight ASC";
+$result = $db-&#62;sql_query($sql);
+while($row = $db-&#62;sql_fetchrow($result)) {
+    $bid = $row[bid];
+    $title = $row[title];
+    $content = $row[content];
+    $url = $row[url];
+    $blockfile = $row[blockfile];</PRE
+></FONT
+></TD
+></TR
+></TABLE
+><P
+>The value of $blockfile is then passed through to the individual block: it is passed to function render_blocks() (in mainfile.php again), which in turn renders the block using the blockfileinc() function. </P
+><DIV
+CLASS="TIP"
+><P
+></P
+><TABLE
+CLASS="TIP"
+WIDTH="90%"
+BORDER="0"
+><TR
+><TD
+WIDTH="25"
+ALIGN="CENTER"
+VALIGN="TOP"
+><IMG
+SRC="../images/tip.png"
+HSPACE="5"
+ALT="Tip"></TD
+><TH
+ALIGN="LEFT"
+VALIGN="MIDDLE"
+><B
+>What to do if the cache <ACRONYM
+CLASS="ACRONYM"
+>ID</ACRONYM
+> is empty</B
+></TH
+></TR
+><TR
+><TD
+>&nbsp;</TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+>Looking at the blockfileinc() function in mainfile.php, you can see that it uses the functions themecenterbox(() and themesidebox() for blocks that don't have a filename - and, of course, it does not  pass the (empty) blockfile parameter. Thus, if you see that the above code for the block prints an empty cache ID, then you will know that you are using a block without a filename (see <A
+HREF="http://www.karakas-online.de/forum/viewtopic.php?p=1893"
+TARGET="_top"
+>empty cache <ACRONYM
+CLASS="ACRONYM"
+>ID</ACRONYM
+> and Cache-Lite</A
+>).</P
+><P
+>The quick solution is to explicitly set the fileid variable to some arbitrary value in you block code. However, you should check to find out why your block does not posess a filename (e.g. it could be an RSS block - we describe these in <A
+HREF="administration-functions.html"
+>Section 7.1</A
+> and <A
+HREF="administration-functions.html#FIG-BLOCKS"
+>Figure 7-7</A
+>).</P
+></TD
+></TR
+></TABLE
+></DIV
+></LI
+><LI
+><P
+>If a valid cached copy of the object identified by the key exists, it is fetched and fed into the $content variable of the block. I issue an echo to print the cache <ACRONYM
+CLASS="ACRONYM"
+>ID</ACRONYM
+> (the key) in this case, just for the start, to give me some idea of how (and if at all) this works. Of course, you can comment the echo later.</P
+></LI
+><LI
+><P
+>In case the cache misses the object (or expiration time is over), you wil have to compute $content from scratch. Put your normal code here.</P
+></LI
+></UL
+><P
+>Of course, we are not done yet - after we compute $content in our block, we will want to cache it for future use. <SPAN
+CLASS="INLINEMEDIAOBJECT"
+><IMG
+SRC="./images/icon_wink.png"></SPAN
+></P
+><P
+>Thus, after the end of your computations and before you close the block with "?&#62;", put the following to instruct Cache-Lite to cache your $content:</P
+><TABLE
+BORDER="1"
+BGCOLOR="#E0E0E0"
+WIDTH="100%"
+><TR
+><TD
+><FONT
+COLOR="#000000"
+><PRE
+CLASS="SCREEN"
+>// ...and save it in the cache for future use
+$objCache-&#62;save($content, $fileid);
+}</PRE
+></FONT
+></TD
+></TR
+></TABLE
+><P
+>This closes the IF-statement we opened with the previous block of lines. It caches the $content variable in our cache object, using as identifier the file <ACRONYM
+CLASS="ACRONYM"
+>ID</ACRONYM
+> we derived from the block's filename. You have to put these two blocks of lines in every <SPAN
+CLASS="APPLICATION"
+>PHP-Nuke</SPAN
+> block you plan to cache, but the work is worth it!</P
+><P
+>The complete code for your cached block should thus look like:</P
+><TABLE
+BORDER="1"
+BGCOLOR="#E0E0E0"
+WIDTH="100%"
+><TR
+><TD
+><FONT
+COLOR="#000000"
+><PRE
+CLASS="SCREEN"
+>&#60;?php
+if (eregi("block-XXXXXXX.php",$PHP_SELF)) {
+    Header("Location: index.php");
+    die();
+}
+// include the Cache-Lite package
+require_once("includes/Cache_Lite/Lite.php");
+// set some variables
+$options = array(
+  "cacheDir" =&#62; "/tmp/Cache_Lite/",
+  "lifeTime" =&#62; 900
+);
+// create a Cache_Lite object
+$objCache = new Cache_Lite($options);
+// test if there exists a valid cache,
+// the &#60;acronym&#62;ID&#60;/acronym&#62; will be the basename of the block
+$fileid = basename($blockfile,".php");
+if ($content = $objCache-&#62;get($fileid)) {
+  // add a message indicating this is cached output
+  $content .= "\n[cached with ID=$fileid]";
+}
+else
+{
+  // do the whole work here...
+-------&#62; Your original code goes here &#60;-------
+  // ...and save it in the cache for future use
+  $objCache-&#62;save($content, $fileid);
+}
+?&#62;</PRE
+></FONT
+></TD
+></TR
+></TABLE
+><P
+>If something goes wrong and your block is not being cached, check the following (<A
+HREF="http://www.karakas-online.de/forum/viewtopic.php?t=130"
+TARGET="_top"
+>How to accelerate PHP-Nuke</A
+>):</P
+><P
+></P
+><UL
+><LI
+><P
+>Do you have the PEAR.php?</P
+></LI
+><LI
+><P
+>Where did you install the Lite.php file? </P
+></LI
+><LI
+><P
+>Did you install it in includes/Cache_Lite/Lite.php, as I suggested?</P
+></LI
+><LI
+><P
+>Did you enter the right path to Lite.php in the block you are trying to cache?</P
+></LI
+><LI
+><P
+>Did you follow my example for a cached block above?</P
+></LI
+><LI
+><P
+>If you did, do you have the right path in the line</P
+><TABLE
+BORDER="1"
+BGCOLOR="#E0E0E0"
+WIDTH="90%"
+><TR
+><TD
+><FONT
+COLOR="#000000"
+><PRE
+CLASS="SCREEN"
+>require_once("includes/Cache_Lite/Lite.php");</PRE
+></FONT
+></TD
+></TR
+></TABLE
+><P
+>of that example?</P
+></LI
+></UL
+><P
+>For a more in-depth tutorial on Cache-Lite, see <A
+HREF="http://www.devshed.com/Server_Side/PHP/PHP_Cache_Lite"
+TARGET="_top"
+>Caching With <ACRONYM
+CLASS="ACRONYM"
+>PHP</ACRONYM
+> Cache_Lite</A
+>.</P
+><P
+>You can use both jpcache and Cache-Lite together in a cache strategy that caches the whole page with jpcache when a user is not logged-in, but caches the least changing blocks (probably most of them) with Cache-Lite when he is. Such a strategy allows enough flexibility and room for experimentation and brings a considerable acceleration to your PHP-Nuke, without, on the other hand, requiring any access to the internals of your <ACRONYM
+CLASS="ACRONYM"
+>PHP</ACRONYM
+> installation - something that you will need, if you want to try the ultimate approach to caching , which we will present you in <A
+HREF="caching-php-nuke.html#TURCK-MMCACHE"
+>Section 24.1.3</A
+>.</P
+></DIV
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="TURCK-MMCACHE"
+>24.1.3. Turck MMCache</A
+></H2
+><P
+><DIV
+CLASS="FIGURE"
+><A
+NAME="FIG-MMCACHE"
+></A
+><P
+><B
+>Figure 24-5.    Turck MMCache.
+   </B
+></P
+><DIV
+CLASS="MEDIAOBJECT"
+><P
+><IMG
+SRC="./images/mmcache.png"><DIV
+CLASS="CAPTION"
+><P
+>Turck MMCache.</P
+></DIV
+></P
+></DIV
+></DIV
+></P
+><P
+>As we know, <ACRONYM
+CLASS="ACRONYM"
+>PHP</ACRONYM
+> is an interpreted language. The <ACRONYM
+CLASS="ACRONYM"
+>PHP</ACRONYM
+> interpreter compiles your scripts each time you call them. However, the <ACRONYM
+CLASS="ACRONYM"
+>PHP</ACRONYM
+> code itself may not change that often in your scripts. Having to compile the code on each call wastes your CPU's time. That's where the idea of caching the <ACRONYM
+CLASS="ACRONYM"
+>PHP</ACRONYM
+> code (and not only the HTML content) comes in (see <A
+HREF="http://www.karakas-online.de/forum/viewtopic.php?t=130"
+TARGET="_top"
+>How to accelerate PHP-Nuke</A
+>). </P
+><P
+>The idea of <ACRONYM
+CLASS="ACRONYM"
+>PHP</ACRONYM
+> code caching lies in the basis of many commercial <ACRONYM
+CLASS="ACRONYM"
+>PHP</ACRONYM
+> accelerators, like </P
+><P
+></P
+><UL
+><LI
+><P
+><A
+HREF="http://www.zend.com"
+TARGET="_top"
+>Zend Performance Suite</A
+> </P
+></LI
+><LI
+><P
+><A
+HREF="http://www.php-accelerator.co.uk"
+TARGET="_top"
+>PHP Accelerator</A
+> </P
+></LI
+><LI
+><P
+><A
+HREF="http://apc.communityconnect.com"
+TARGET="_top"
+>Alternative <ACRONYM
+CLASS="ACRONYM"
+>PHP</ACRONYM
+> Cache</A
+> </P
+></LI
+><LI
+><P
+><A
+HREF="http://www.bwcache.bware.it"
+TARGET="_top"
+>AfterBurner Cache</A
+> </P
+></LI
+></UL
+><P
+>Hopefully, there is a free open source alternative: <A
+HREF="http://www.turcksoft.com/en/e_mmc.htm"
+TARGET="_top"
+>Turck MMCache</A
+>, a product under the GPL Licence. </P
+><P
+>Turck MMCache is a free open source <ACRONYM
+CLASS="ACRONYM"
+>PHP</ACRONYM
+> accelerator, optimizer, encoder and dynamic content cache for <ACRONYM
+CLASS="ACRONYM"
+>PHP</ACRONYM
+>. It increases performance of <ACRONYM
+CLASS="ACRONYM"
+>PHP</ACRONYM
+> scripts by caching them in compiled state, so that the overhead of compiling is almost completely eliminated. Also it uses some optimizations to speed up execution of <ACRONYM
+CLASS="ACRONYM"
+>PHP</ACRONYM
+> scripts. Turck MMCache typically reduces server load and increases the speed of your <ACRONYM
+CLASS="ACRONYM"
+>PHP</ACRONYM
+> code by 1-10 times!</P
+><P
+>Download the newest version (currently 2.4.6) from the <A
+HREF="http://sourceforge.net/project/showfiles.php?group_id=69426"
+TARGET="_top"
+>Turck MMCache download page at Sourceforge</A
+>. There are precompiled binaries for Windows, as well as source packages for <SPAN
+CLASS="PRODUCTNAME"
+>Linux</SPAN
+> and other operating systems.</P
+><P
+>Before you rush and download it though, let me bring to your attention that the approach taken by a code accelerator like MMCache requires that you install it as a so-called "PHP extension". You will also be configuring options like the amount of shared memory that you want allocated to MMCache, in order to use it for caching. These steps are normally beyond the reach of mass hosting accounts on ISPs, so you may be out of luck. However, if you own the web server, or have administration access to it, then MMCache is for you - rush to the download page and get it!</P
+><DIV
+CLASS="SECT3"
+><H3
+CLASS="SECT3"
+><A
+NAME="TURCK-MMCACHE-INSTALLATION"
+>24.1.3.1. Installation of Turck MMCache</A
+></H3
+><P
+>In the following, I will describe the installation process of Turck MMCache for Linux:</P
+><P
+></P
+><UL
+><LI
+><P
+>Login as root.</P
+></LI
+><LI
+><P
+>Change to a directory that is appropriate for holding source code. In Linux, this is /usr/src:</P
+><TABLE
+BORDER="1"
+BGCOLOR="#E0E0E0"
+WIDTH="90%"
+><TR
+><TD
+><FONT
+COLOR="#000000"
+><PRE
+CLASS="SCREEN"
+>cd /usr/src</PRE
+></FONT
+></TD
+></TR
+></TABLE
+></LI
+><LI
+><P
+>Extract the package:</P
+><TABLE
+BORDER="1"
+BGCOLOR="#E0E0E0"
+WIDTH="90%"
+><TR
+><TD
+><FONT
+COLOR="#000000"
+><PRE
+CLASS="SCREEN"
+>tar -xzvf /usr/cdimage/source/turck-mmcache-2.4.6.tar.gz</PRE
+></FONT
+></TD
+></TR
+></TABLE
+></LI
+><LI
+><P
+>It creates an folder with all files. Change to that folder:</P
+><TABLE
+BORDER="1"
+BGCOLOR="#E0E0E0"
+WIDTH="90%"
+><TR
+><TD
+><FONT
+COLOR="#000000"
+><PRE
+CLASS="SCREEN"
+>cd turck-mmcache-2.4.6</PRE
+></FONT
+></TD
+></TR
+></TABLE
+></LI
+><LI
+><P
+>Find the place where the phpize program is installed on your system. For this, type:</P
+><TABLE
+BORDER="1"
+BGCOLOR="#E0E0E0"
+WIDTH="90%"
+><TR
+><TD
+><FONT
+COLOR="#000000"
+><PRE
+CLASS="SCREEN"
+>which phpize</PRE
+></FONT
+></TD
+></TR
+></TABLE
+></LI
+><LI
+><P
+>Mine is on /usr/bin, as you can see from the output:</P
+><TABLE
+BORDER="1"
+BGCOLOR="#E0E0E0"
+WIDTH="90%"
+><TR
+><TD
+><FONT
+COLOR="#000000"
+><PRE
+CLASS="SCREEN"
+># which phpize
+/usr/bin/phpize</PRE
+></FONT
+></TD
+></TR
+></TABLE
+></LI
+><LI
+><P
+>so what is before the "/bin" is my PHP_PREFIX. In this case &#8220;/usr&#8221;. Type the following:</P
+><TABLE
+BORDER="1"
+BGCOLOR="#E0E0E0"
+WIDTH="90%"
+><TR
+><TD
+><FONT
+COLOR="#000000"
+><PRE
+CLASS="SCREEN"
+>export PHP_PREFIX="/usr"
+$PHP_PREFIX/bin/phpize</PRE
+></FONT
+></TD
+></TR
+></TABLE
+><P
+>You get the output:</P
+><TABLE
+BORDER="1"
+BGCOLOR="#E0E0E0"
+WIDTH="90%"
+><TR
+><TD
+><FONT
+COLOR="#000000"
+><PRE
+CLASS="SCREEN"
+>autoheader: `config.h.in' is created
+You should update your `aclocal.m4' by running aclocal.</PRE
+></FONT
+></TD
+></TR
+></TABLE
+><P
+>so you run</P
+><TABLE
+BORDER="1"
+BGCOLOR="#E0E0E0"
+WIDTH="90%"
+><TR
+><TD
+><FONT
+COLOR="#000000"
+><PRE
+CLASS="SCREEN"
+>aclocal</PRE
+></FONT
+></TD
+></TR
+></TABLE
+></LI
+><LI
+><P
+>Now you are ready to create the Makefile with the configure script:</P
+><TABLE
+BORDER="1"
+BGCOLOR="#E0E0E0"
+WIDTH="90%"
+><TR
+><TD
+><FONT
+COLOR="#000000"
+><PRE
+CLASS="SCREEN"
+>./configure --enable-mmcache=shared --with-php-config=$PHP_PREFIX/bin/php-config</PRE
+></FONT
+></TD
+></TR
+></TABLE
+></LI
+><LI
+><P
+>After that, the Makefile is there and you can do (you must be root for the last step)</P
+><TABLE
+BORDER="1"
+BGCOLOR="#E0E0E0"
+WIDTH="90%"
+><TR
+><TD
+><FONT
+COLOR="#000000"
+><PRE
+CLASS="SCREEN"
+>make
+make install</PRE
+></FONT
+></TD
+></TR
+></TABLE
+></LI
+></UL
+><P
+>This will finish installation of Turck MMCache on your server.</P
+></DIV
+><DIV
+CLASS="SECT3"
+><H3
+CLASS="SECT3"
+><A
+NAME="TURCK-MMCACHE-CONFIGURATION"
+>24.1.3.2. Configuration of Turck MMCache</A
+></H3
+><P
+>After installation, you need to configure MMCache:</P
+><P
+>Open the php.ini file (/etc/php.ini), find the "extensions" section and put the following there:</P
+><TABLE
+BORDER="1"
+BGCOLOR="#E0E0E0"
+WIDTH="100%"
+><TR
+><TD
+><FONT
+COLOR="#000000"
+><PRE
+CLASS="SCREEN"
+>[extension section]
+... various other extensions
+extension="mmcache.so"
+mmcache.shm_size="16"
+mmcache.cache_dir="/tmp/mmcache"
+mmcache.enable="1"
+mmcache.optimizer="1"
+mmcache.check_mtime="1"
+mmcache.debug="0"
+mmcache.filter=""
+mmcache.shm_max="0"
+mmcache.shm_ttl="0"
+mmcache.shm_prune_period="0"
+mmcache.shm_only="0"
+mmcache.compress="0"
+; end of extension section</PRE
+></FONT
+></TD
+></TR
+></TABLE
+><P
+>MMCache uses shared memory for caching, as opposed to disk space. This is a reason why it is so fast. The mmcache.shm_size option defines how much shared memory (in MBytes) it should use for caching.</P
+><P
+>Again, you need a cache directory too, which is what mmcache.cache_dir is for. Again, the cache directory should be writable and readable by your web server.</P
+><P
+>You can read about the other options in the <A
+HREF="http://www.turcksoft.com/en/e_mmc.htm"
+TARGET="_top"
+>Turck MMCache Homepage</A
+>. For our purposes, you can leave them at their values as in the example above.</P
+><P
+>This completes the configuration of MMCache. We still have to talk about its use - but that's easy, see the next section. <SPAN
+CLASS="INLINEMEDIAOBJECT"
+><IMG
+SRC="./images/icon_wink.png"></SPAN
+> </P
+><DIV
+CLASS="TIP"
+><P
+></P
+><TABLE
+CLASS="TIP"
+WIDTH="100%"
+BORDER="0"
+><TR
+><TD
+WIDTH="25"
+ALIGN="CENTER"
+VALIGN="TOP"
+><IMG
+SRC="../images/tip.png"
+HSPACE="5"
+ALT="Tip"></TD
+><TH
+ALIGN="LEFT"
+VALIGN="MIDDLE"
+><B
+>Turck MMCache on a virtual server</B
+></TH
+></TR
+><TR
+><TD
+>&nbsp;</TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+>Question: I am on a virtual server and should not interfere with the other domains hosted there. How do I configure MMCache in this situation?</P
+><P
+>Answer: Compile MMCache and put it into the extensions directory. Configure php.ini to utilize the extension but set mmcache.optimizer, .compress and .enable all to FALSE.</P
+><P
+>Then a .htaccess file (see <A
+HREF="htaccess-file.html"
+>Section 25.4</A
+>) in your own webspace and use:</P
+><TABLE
+BORDER="1"
+BGCOLOR="#E0E0E0"
+WIDTH="100%"
+><TR
+><TD
+><FONT
+COLOR="#000000"
+><PRE
+CLASS="SCREEN"
+>php_value 'mmcache.enable' '1'
+php_value 'mmcache.optimizer' '1'
+php_value 'mmcache.compress' 1'</PRE
+></FONT
+></TD
+></TR
+></TABLE
+><P
+>This should do the trick.</P
+></TD
+></TR
+></TABLE
+></DIV
+></DIV
+><DIV
+CLASS="SECT3"
+><H3
+CLASS="SECT3"
+><A
+NAME="TURCK-MMCACHE-USE"
+>24.1.3.3. How to use Turck MMCache</A
+></H3
+><P
+>By following the configuartion steps above, MMCache already works for you: it compiles <ACRONYM
+CLASS="ACRONYM"
+>PHP</ACRONYM
+> code and caches it. Whenever a script's code changes, it recompiles it and caches it again. You should already see a noticeable improvement in your response times because of this.</P
+><P
+>But there is more you can do with MMCache: you can cache a whole page, like with jpcache (<A
+HREF="caching-php-nuke.html#JPCACHE"
+>Section 24.1.1</A
+>), or individual parts of them, like with Cache-Lite (<A
+HREF="caching-php-nuke.html#CACHE-LITE"
+>Section 24.1.2</A
+>). Since jpcache uses disk space for caching the whole page, you can replace it by MMCache's functionality, which uses shared memory and could thus be up to 5 times faster. Here's how you do it (see <A
+HREF="http://www.karakas-online.de/forum/viewtopic.php?t=130"
+TARGET="_top"
+>How to accelerate PHP-Nuke</A
+>):</P
+><P
+>Open the index.php file and change the code we put there for jpcache (see a previous post) as follows:</P
+><TABLE
+BORDER="1"
+BGCOLOR="#E0E0E0"
+WIDTH="100%"
+><TR
+><TD
+><FONT
+COLOR="#000000"
+><PRE
+CLASS="SCREEN"
+>require_once("mainfile.php");
+if (!isset($user)) {
+  $cachetimeout=900;
+  mmcache_cache_page($_SERVER['PHP_SELF'].'?GET='.serialize($_GET), $cachetimeout);
+} else {
+  $cachetimeout=-1;
+}
+# require_once "includes/jpcache/jpcache.php";</PRE
+></FONT
+></TD
+></TR
+></TABLE
+><P
+>As you can see, we commented the jpcache inclusion line and put a call to mmcache_cache_page with the same cache timeout. This will do exactly what jpcache was doing previously - cache the whole page in case the user is not logged-in and leave it uncached in case he is, so that Cache-Lite can cache parts of it. But due to the shared memory implementation, we are going the get an extra speed kick out of it. <SPAN
+CLASS="INLINEMEDIAOBJECT"
+><IMG
+SRC="./images/icon_cool.png"></SPAN
+></P
+><P
+>mmcache_cache_page is only one of many MMCache functions you can use in your blocks and modules to speed up things. Some other interesting ones are:</P
+><P
+></P
+><UL
+><LI
+><P
+>mmcache_set_session_handlers(): install the MMCache session handlers. Since <ACRONYM
+CLASS="ACRONYM"
+>PHP</ACRONYM
+> 4.2.0 you can install MMCache session handlers in "php.ini" by</P
+><TABLE
+BORDER="1"
+BGCOLOR="#E0E0E0"
+WIDTH="90%"
+><TR
+><TD
+><FONT
+COLOR="#000000"
+><PRE
+CLASS="SCREEN"
+>session.save_handler=mmcache</PRE
+></FONT
+></TD
+></TR
+></TABLE
+></LI
+><LI
+><P
+>mmcache_cache_output($key, $eval_code, $ttl=0): caches the output of $eval_code in shared memory for $ttl seconds. Output can be removed from cache by calling mmcach_rm() with the same $key. For Example:</P
+><TABLE
+BORDER="1"
+BGCOLOR="#E0E0E0"
+WIDTH="90%"
+><TR
+><TD
+><FONT
+COLOR="#000000"
+><PRE
+CLASS="SCREEN"
+>&#60;?php mmcache_cache_output('test', 'echo time(); phpinfo();', 30); ?&#62;</PRE
+></FONT
+></TD
+></TR
+></TABLE
+></LI
+><LI
+><P
+>mmcache_cache_result($key, $eval_code, $ttl=0): caches the result of $eval_code in shared memory for $ttl seconds. Result can be removed from cache by calling mmcach_rm() with the same $key. For Example:</P
+><TABLE
+BORDER="1"
+BGCOLOR="#E0E0E0"
+WIDTH="90%"
+><TR
+><TD
+><FONT
+COLOR="#000000"
+><PRE
+CLASS="SCREEN"
+>&#60;?php mmcache_cache_output('test', 'time()." Hello";', 30); ?&#62;</PRE
+></FONT
+></TD
+></TR
+></TABLE
+></LI
+></UL
+><P
+>There are other uses of MMCache, like its use as an encoder to hide your precious <ACRONYM
+CLASS="ACRONYM"
+>PHP</ACRONYM
+> scripts from the spying eyes of competitors - but we are talking open source here, aren't we? <SPAN
+CLASS="INLINEMEDIAOBJECT"
+><IMG
+SRC="./images/icon_wink.png"></SPAN
+> </P
+></DIV
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="CACHING-PHP-NUKE-CONCLUSION"
+>24.1.4. Caching PHP-Nuke: Conclusion</A
+></H2
+><P
+>We have seen three approaches to <SPAN
+CLASS="APPLICATION"
+>PHP-Nuke</SPAN
+> acceleration in the previous sections:</P
+><P
+></P
+><UL
+><LI
+><P
+>jpcache (see <A
+HREF="caching-php-nuke.html#JPCACHE"
+>Section 24.1.1</A
+>) can cache and compress a whole page - on disk.</P
+></LI
+><LI
+><P
+>Cache-Lite (see <A
+HREF="caching-php-nuke.html#CACHE-LITE"
+>Section 24.1.2</A
+>) can cache and compress a whole page or individual <SPAN
+CLASS="APPLICATION"
+>PHP-Nuke</SPAN
+> blocks, modules, variables - on disk (or shared memory too? FIXME: someone please correct me here!).</P
+></LI
+><LI
+><P
+>Turck MMCache (see <A
+HREF="caching-php-nuke.html#TURCK-MMCACHE"
+>Section 24.1.3</A
+>) can cache and compress all of the above, plus can do encoding - all in shared memory!</P
+></LI
+></UL
+><P
+>So which tool is the right one for you?</P
+><P
+>There are a lot of combinations one could try there and without serious testing it is not easy to answer this question definitely. However, from what we have seen already in the previous posts, we can derive some strategies (see also <A
+HREF="http://www.karakas-online.de/forum/viewtopic.php?t=130"
+TARGET="_top"
+>How to accelerate PHP-Nuke</A
+>):</P
+><P
+></P
+><UL
+><LI
+><P
+>If you don't have administration access to your web server, you are left with jpcache and Cache-Lite. Use a combination of them as outlined above, caching whole pages with jpcache and individual blocks/modules with Cache-Lite. It's a strategic decision when to use which one - one you will have to make yourself.</P
+></LI
+><LI
+><P
+>If you do have administration access to your web server, MMCache is the way to go. You can use it to cache <ACRONYM
+CLASS="ACRONYM"
+>PHP</ACRONYM
+> code and - optionally - a whole page content or just part of it. Whether you should prefer Cache-Lite for the latter, or decide to use MMCache, is something that probably only tests can show.</P
+></LI
+><LI
+><P
+>Ease of deployment can also play a role: with MMCache, you add a line, with Cache-Lite a whole block of lines, to each <SPAN
+CLASS="APPLICATION"
+>PHP-Nuke</SPAN
+> module or block you wish to cache. On the other hand, Cache-Lite may live up to its name and prove itself to be really lightweight in some (or all) situations. Again, you wll have to test.</P
+></LI
+></UL
+></DIV
+></DIV
+><DIV
+CLASS="NAVFOOTER"
+><HR
+ALIGN="LEFT"
+WIDTH="100%"><TABLE
+SUMMARY="Footer navigation table"
+WIDTH="100%"
+BORDER="0"
+CELLPADDING="0"
+CELLSPACING="0"
+><TR
+><TD
+WIDTH="33%"
+ALIGN="left"
+VALIGN="top"
+><A
+HREF="accelerating-php-nuke.html"
+ACCESSKEY="P"
+>Prev</A
+></TD
+><TD
+WIDTH="34%"
+ALIGN="center"
+VALIGN="top"
+><A
+HREF="index.html"
+ACCESSKEY="H"
+>Home</A
+></TD
+><TD
+WIDTH="33%"
+ALIGN="right"
+VALIGN="top"
+><A
+HREF="optimizing-php-nuke.html"
+ACCESSKEY="N"
+>Next</A
+></TD
+></TR
+><TR
+><TD
+WIDTH="33%"
+ALIGN="left"
+VALIGN="top"
+>Accelerating PHP-Nuke</TD
+><TD
+WIDTH="34%"
+ALIGN="center"
+VALIGN="top"
+><A
+HREF="accelerating-php-nuke.html"
+ACCESSKEY="U"
+>Up</A
+></TD
+><TD
+WIDTH="33%"
+ALIGN="right"
+VALIGN="top"
+>Optimizing <SPAN
+CLASS="APPLICATION"
+>PHP-Nuke</SPAN
+></TD
+></TR
+></TABLE
+></DIV
+></BODY
+></HTML
+>

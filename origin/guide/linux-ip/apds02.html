@@ -1,0 +1,667 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1"><title>2. ip route</title><link rel="stylesheet" type="text/css" href="style.css"><meta name="generator" content="DocBook XSL Stylesheets V1.79.1"><meta name="keywords" content="linux, ip, iproute2, ifconfig, firewall, ARP, NAT, route, routing, route selection, routing selection, network administration"><link rel="home" href="index.html" title="Guide to IP Layer Network Administration with Linux"><link rel="up" href="apd.html" title="Appendix D. IP Route Management"><link rel="prev" href="apds01.html" title="1. route"><link rel="next" href="apds03.html" title="3. ip rule"></head><body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF"><div class="navheader"><table width="100%" summary="Navigation header"><tr><th colspan="3" align="center">2. <span class="command"><strong>ip route</strong></span></th></tr><tr><td width="20%" align="left"><a accesskey="p" href="apds01.html">Prev</a> </td><th width="60%" align="center">Appendix D. IP Route Management</th><td width="20%" align="right"> <a accesskey="n" href="apds03.html">Next</a></td></tr></table><hr></div><div class="section"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="tools-ip-route"></a>2. <span class="command"><strong>ip route</strong></span></h2></div></div></div><p>
+        Another part of the <span class="command"><strong>iproute2</strong></span> suite of tools for IP
+        management, <span class="command"><strong>ip route</strong></span> provides management tools for
+        manipulating any of the routing tables.  Operations
+        include
+        <a class="link" href="apds02.html#tools-ip-route-show" title="2.1. Displaying a routing table with ip route show">displaying routes</a> or the
+        <a class="link" href="apds02.html#tools-ip-route-show-cache" title="2.2. Displaying the routing cache with ip route show cache">routing cache</a>,
+        <a class="link" href="apds02.html#tools-ip-route-add" title="2.3. Using ip route add to populate a routing table">adding routes</a>,
+        <a class="link" href="apds02.html#tools-ip-route-del" title="2.6. Removing routes with ip route del">deleting routes</a>,
+        <a class="link" href="apds02.html#tools-ip-route-change" title="2.7. Altering existing routes with ip route change">modifying existing routes</a>, and
+        <a class="link" href="apds02.html#tools-ip-route-get" title="2.8. Programmatically fetching route information with ip route get">fetching a route</a> and
+        <a class="link" href="apds02.html#tools-ip-route-flush" title="2.9. Clearing routing tables with ip route flush">clearing an entire routing table or
+        the routing cache</a>.
+      </p><p>
+        One thing to keep in mind when using the <span class="command"><strong>ip route</strong></span>
+        is that you can operate on any of the 255 routing tables with this
+        command.  Where the <a class="link" href="apds01.html" title="1. route"><span class="command"><strong>route</strong></span></a>
+        command operated only on the main routing table (table 254), the
+        <span class="command"><strong>ip route</strong></span> command operates by default on the main
+        routing table, but can be easily coaxed into using other tables with
+        the <code class="option">table</code> parameter.
+      </p><p>
+        Fortunately, as mentioned earlier, the <span class="command"><strong>iproute2</strong></span>
+        suite of tools does not rely on DNS for any operation so, the
+        ubiquitous <code class="option">-n</code> switch in previous examples will not be
+        required in any example here.
+      </p><p>
+        All operations with the <span class="command"><strong>ip route</strong></span> command are
+        atomic, so each command will return either <code class="computeroutput">RTNETLINK
+        answers: No such process</code> in the case of an error, or
+        nothing in the face of success.  The <code class="option">-s</code> switch which
+        provides additional statistical information when reporting link layer
+        information will only provide additional information when reporting on
+        the state of the <a class="link" href="apds02.html#tools-ip-route-show-cache" title="2.2. Displaying the routing cache with ip route show cache">routing
+        cache</a> or <a class="link" href="apds02.html#tools-ip-route-get" title="2.8. Programmatically fetching route information with ip route get">fetching a specific
+        route</a>..
+      </p><p>
+        The <span class="command"><strong>ip route</strong></span> utility when used in conjunction with
+        the <a class="link" href="apds03.html" title="3. ip rule"><span class="command"><strong>ip rule</strong></span></a>
+        utility can create stateless NAT tables.  It can even manipulate the
+        local routing table, a routing table used for traffic bound for
+        broadcast addresses and IP addresses hosted on the machine itself.
+      </p><p>
+        In order to understand the context in which this tool runs, you need
+        to understand some of the basics of IP routing, so if you have read
+        the above introduction to the <span class="command"><strong>ip route</strong></span> tool, and
+        are confused, you may want to read <a class="xref" href="ch04.html" title="Chapter 4. IP Routing">Chapter 4, <i>IP Routing</i></a> and 
+        grasp some of the concepts of IP routing (with linux) before
+        continuing here. 
+      </p><div class="section"><div class="titlepage"><div><div><h3 class="title"><a name="tools-ip-route-show"></a>2.1. Displaying a routing table with <span class="command"><strong>ip route
+          show</strong></span></h3></div></div></div><p>
+          In its simplest form, <span class="command"><strong>ip route</strong></span> can be used to
+          display the main routing table output.  The output of this command
+          is significantly different from the output of the <a class="link" href="apds01.html#tools-route-show" title="1.1. Displaying the routing table with route"><span class="command"><strong>route</strong></span></a>.  For
+          comparison, let's look at the output of both <span class="command"><strong>route
+          -n</strong></span> and <span class="command"><strong>ip route show</strong></span>.
+        </p><div class="example"><a name="ex-tools-ip-route-show-main"></a><p class="title"><b>Example D.11. Viewing the main routing table with <span class="command">ip route
+            show</span></b></p><div class="example-contents"><pre class="programlisting">
+<code class="prompt">[root@tristan]# </code><strong class="userinput"><code>route -n</code></strong>
+<code class="computeroutput">Kernel IP routing table
+Destination     Gateway         Genmask         Flags Metric Ref    Use Iface
+192.168.99.0    0.0.0.0         255.255.255.0   U     0      0        0 eth0
+127.0.0.0       0.0.0.0         255.0.0.0       U     0      0        0 lo
+0.0.0.0         192.168.99.254  0.0.0.0         UG    0      0        0 eth0</code>
+<code class="prompt">[root@tristan]# </code><strong class="userinput"><code>ip route show</code></strong>
+<code class="computeroutput">192.168.99.0/24 dev eth0  scope link 
+127.0.0.0/8 dev lo  scope link 
+default via 192.168.99.254 dev eth0</code>
+          </pre></div></div><br class="example-break"><p>
+          If you are accustomed to the <span class="command"><strong>route</strong></span> output format,
+          the <span class="command"><strong>ip route</strong></span> output can seem terse.  The
+          same basic information is displayed, however.  As with our former
+          example, let's ignore the 127.0.0.0/8 loopback route for the moment.
+          This is a required route for any IPs hosted on the loopback
+          interface.  We are far more interested in the other two routes.
+        </p><p>
+          The network 192.168.99.0/24 is available on eth0 with a scope of
+          link, which means that the network is valid and reachable through
+          this device (eth0).  Refer to <a class="xref" href="apcs02.html#tb-tools-ip-addr-scope" title="Table C.2. IP Scope under ip address">Table C.2, &#8220;IP Scope under <span class="command">ip address</span>&#8221;</a>
+          for definitions of possible scopes.  As long as link remains good on
+          that device, we should be able to reach any IP address inside of
+          192.168.99.0/24 through the eth0 interface.
+        </p><p>
+          Finally, our all-important default route is expressed in the routing
+          table with the word default.  Note that any destination which is
+          reachable through a gateway appears in the routing table output with
+          the keyword <code class="option">via</code>.  This final line matches
+          semantically with the final line of output from <span class="command"><strong>route
+          -n</strong></span> above.
+        </p><p>
+          Now, let's have a look at the local routing table, which we can't
+          see with <span class="command"><strong>route</strong></span>.  To be fair, it is usually
+          completely unnecessary to view and/or manipulate the local routing
+          table, which is why <span class="command"><strong>route</strong></span> provides no way to
+          access this information.
+        </p><div class="example"><a name="ex-tools-ip-route-show-local"></a><p class="title"><b>Example D.12. Viewing the local routing table with <span class="command">ip route show
+            table local</span></b></p><div class="example-contents"><pre class="programlisting">
+<code class="prompt">[root@tristan]# </code><strong class="userinput"><code>ip route show table local</code></strong>
+<code class="computeroutput">local 192.168.99.35 dev eth0  proto kernel  scope host  src 192.168.99.35 
+broadcast 127.255.255.255 dev lo  proto kernel  scope link  src 127.0.0.1 
+broadcast 192.168.99.255 dev eth0  proto kernel  scope link  src 192.168.99.35 
+broadcast 127.0.0.0 dev lo  proto kernel  scope link  src 127.0.0.1 
+local 127.0.0.1 dev lo  proto kernel  scope host  src 127.0.0.1 
+local 127.0.0.0/8 dev lo  proto kernel  scope host  src 127.0.0.1</code>
+          </pre></div></div><br class="example-break"><p>
+          This gives us a good deal of information about the IP networks to
+          which the machine is directly connected, and an inside look into the 
+          way that the routing tables treat special addresses like broadcast
+          addresses and locally configured addresses.
+        </p><p>
+          The first field in this output tells us whether the route is for a
+          broadcast address or an IP address or range locally hosted on this
+          machine.  Subsequent fields inform us through which device the
+          destination is reachable, and notably (in this table) that the
+          kernel has added these routes as part of bringing up the IP layer
+          interfaces.
+        </p><p>
+          For each IP hosted on the machine, it makes sense that the machine
+          should restrict accessiblity to that IP or IP range to itself only.
+          This explains why, in <a class="xref" href="apds02.html#ex-tools-ip-route-show-local" title="Example D.12. Viewing the local routing table with ip route show table local">Example D.12, &#8220;Viewing the local routing table with <span class="command">ip route show
+            table local</span>&#8221;</a>,
+          192.168.99.35 has a host scope.  Because <code class="systemitem">tristan</code> hosts this IP, there's no
+          reason for the packet to be routed off the box.  Similarly, a
+          destination of localhost (127.0.0.1) does not need to be forwarded
+          off this machine.  In each of these cases, the scope has been set to
+          host.
+        </p><p>
+          For broadcast addresses, which are intended for any listeners who
+          happen to share the IP network, the destination only makes sense as
+          for a scope of devices connected to the same link layer
+          <a href="#ftn.idm4932" class="footnote" name="idm4932"><sup class="footnote">[49]</sup></a>.
+        </p><p>
+          The final characteristic available to us in each line of the local
+          routing table output is the <code class="option">src</code> keyword.  This is
+          treated as a hint to the kernel about what IP address to select for
+          a source address on outgoing packets on this interface.  Naturally,
+          this is most commonly used (and abused) on multi-homed hosts,
+          although almost every machine out there uses this hint for
+          connections to localhost
+          <a href="#ftn.idm4936" class="footnote" name="idm4936"><sup class="footnote">[50]</sup></a>.
+        </p><p>
+          Now that we have inspected the main routing table and the local
+          routing table, let's see how easy it is to look at any one of the
+          other routing tables.  This is as simple as specifying the table by
+          its name in <code class="filename">/etc/iproute2/rt_tables</code> or by
+          number.  There are a few reserved table identifiers in this file,
+          but the other table numbers between 1 and 252 are available for the
+          user.  Please note that this example is for demonstration only and
+          has no intrinsic value other than showing the use of the
+          <code class="option">table</code> parameter.
+        </p><div class="example"><a name="ex-tools-ip-route-show-table"></a><p class="title"><b>Example D.13. Viewing a routing table with <span class="command">ip route
+            show table</span></b></p><div class="example-contents"><pre class="programlisting">
+<code class="prompt">[root@tristan]# </code><strong class="userinput"><code>ip route show table special</code></strong>
+<code class="computeroutput">Error: argument "special" is wrong: table id value is invalid
+</code>
+<code class="prompt">[root@tristan]# </code><strong class="userinput"><code>echo 7 special &gt;&gt; /etc/iproute2/rt_tables</code></strong>
+<code class="prompt">[root@tristan]# </code><strong class="userinput"><code>ip route show table special</code></strong>
+<code class="prompt">[root@tristan]# </code><strong class="userinput"><code>ip route add table special default via 192.168.99.254</code></strong>
+<code class="prompt">[root@tristan]# </code><strong class="userinput"><code>ip route show table special</code></strong>
+<code class="computeroutput">default via 192.168.99.254 dev eth0</code>
+          </pre></div></div><br class="example-break"><p>
+          In the above example you get a first glance at how to add a route to
+          a table other than the main routing table, but what we are really
+          interested in is the final command and output.  In
+          <a class="xref" href="apds02.html#ex-tools-ip-route-show-table" title="Example D.13. Viewing a routing table with ip route show table">Example D.13, &#8220;Viewing a routing table with <span class="command">ip route
+            show table</span>&#8221;</a>, we have identified table 7
+          by the name "special" and have added a route to this table.  The
+          command <strong class="userinput"><code>ip route show table special</code></strong> shows us
+          routing table number 7 from the kernel.
+        </p><p>
+          <span class="command"><strong>ip route</strong></span> consults
+          <code class="filename">/etc/iproute2/rt_tables</code> for a table identifier.
+          If it finds no identifier, it complains that it cannot find a
+          reference to such a table.  If a table identifier is found, then the
+          corresponding routing table is displayed.
+        </p><p>
+          The use of multiple routing tables can make a router very complex,
+          very quickly.  Using names instead of numbers for these tables can
+          assist in the management of this complexity.  For further discussion
+          on managing multiple routing tables and some issues of handling
+          them see <a class="xref" href="ch10s03.html" title="3. Using the Routing Policy Database and Multiple Routing Tables">Section 3, &#8220;Using the Routing Policy Database and Multiple Routing
+      Tables&#8221;</a>.
+        </p></div><div class="section"><div class="titlepage"><div><div><h3 class="title"><a name="tools-ip-route-show-cache"></a>2.2. Displaying the routing cache with <span class="command"><strong>ip route
+          show cache</strong></span></h3></div></div></div><p>
+          The routing cache is used by the kernel as a lookup table analogous
+          to a quick reference card.  It's faster for the kernel to refer to
+          the cache (internally implemented as a hash table) for a recently
+          used route than to lookup the destination address again.  Routes
+          existing in the route cache are periodically expired.
+        </p><p>
+          The routing cache can be displayed in all its glory with <span class="command"><strong>ip
+          route show cache</strong></span>, which provides a detailed view of recent
+          destination IP addresses and salient characteristics about those
+          destinations.  On routers, masquerading boxen and firewalls, the
+          routing cache can become very large.  Instead of viewing the entire
+          routing cache even on a workstation, we'll select a particular
+          destination from the routing cache to examine.
+        </p><div class="example"><a name="ex-tools-ip-route-show-cache"></a><p class="title"><b>Example D.14. Displaying the routing cache with <span class="command">ip route
+            show cache</span></b></p><div class="example-contents"><pre class="programlisting">
+<code class="prompt">[root@tristan]# </code><strong class="userinput"><code>ip route show cache 192.168.100.17</code></strong>
+<code class="computeroutput">192.168.100.17 from 192.168.99.35 via 192.168.99.254 dev eth0 
+    cache  mtu 1500 rtt 18ms rttvar 15ms cwnd 15 advmss 1460
+192.168.100.17 via 192.168.99.254 dev eth0  src 192.168.99.35 
+    cache  mtu 1500 advmss 1460</code>
+          </pre></div></div><br class="example-break"><p>
+          FIXME!  I don't know how to explain rtt, rttvar, and cwnd, even
+          after reading Alexey's comments in the iproute2 documentation!
+          Not only that, I'm not sure why there are two entries!
+        </p><p>
+          The output in <a class="xref" href="apds02.html#ex-tools-ip-route-show-cache" title="Example D.14. Displaying the routing cache with ip route show cache">Example D.14, &#8220;Displaying the routing cache with <span class="command">ip route
+            show cache</span>&#8221;</a>
+          summarizes the reachability of the destination 192.168.100.17 from
+          192.168.99.35.  The first line of each entry provides some important
+          information for us:  the destination IP, the source IP, the gateway
+          through which the destination is reachable, and the interface
+          through which packets were routed.  Together, these data
+          identify a route entry in the cache.
+        </p><p>
+          Characteristics of that route
+          are summarized in the second line of each entry.  For the route
+          between <code class="systemitem">tristan</code> and
+          <code class="systemitem">isolde</code>, we see that Path
+          MTU discovery has identified 1500 bytes as the maximum packet size
+          from end to end.  The maximum segment size (MSS) of data is 1460
+          bytes.  Although this is not usually of any but the most casual of
+          interest, it can be helpful diagnostic information.
+        </p><p>
+          If you are a die-hard fan of statistics, and can't get enough
+          information about the routing on your machine, you can always
+          throw the <code class="option">-s</code> switch.
+        </p><div class="example"><a name="ex-tools-ip-route-show-cache-stats"></a><p class="title"><b>Example D.15. Displaying statistics from the routing cache with
+            <span class="command">ip -s route show cache</span></b></p><div class="example-contents"><pre class="programlisting">
+<code class="prompt">[root@tristan]# </code><strong class="userinput"><code>ip -s route show cache 192.168.100.17</code></strong>
+<code class="computeroutput">192.168.100.17 from 192.168.99.35 via 192.168.99.254 dev eth0 
+    cache  users 1 used 326 age 12sec mtu 1500 rtt 72ms rttvar 22ms cwnd 2 advmss 1460
+192.168.100.17 via 192.168.99.254 dev eth0  src 192.168.99.35 
+    cache  users 1 used 326 age 12sec mtu 1500 advmss 1460</code>
+          </pre></div></div><br class="example-break"><p>
+          With this output, you'll get just a bit more information about the
+          routes.  The most interesting datum is usually the "used" field,
+          which indicates the number of times this route has been accessed in
+          the routing cache.  This can give you a very good idea of how many
+          times a particular route has been used.  The age field is used by
+          the kernel to decide when to expire a cache entry.  The age is reset
+          every time the route is accessed
+          <a href="#ftn.idm4994" class="footnote" name="idm4994"><sup class="footnote">[51]</sup></a>.
+        </p><p>
+          In sum, you can use the routing cache to learn a good deal about
+          remote IP destinations and some of the characteristics of the
+          network path to those destinations.
+        </p></div><div class="section"><div class="titlepage"><div><div><h3 class="title"><a name="tools-ip-route-add"></a>2.3. Using <span class="command"><strong>ip route add</strong></span> to populate a routing
+          table</h3></div></div></div><p>
+          <span class="command"><strong>ip route add</strong></span> is a used to populate a
+          routing table.  Although you can use <a class="link" href="apds01.html#tools-route-add" title="1.4. Creating a static route with route add"><span class="command"><strong>route add</strong></span></a> to do
+          the same thing, <span class="command"><strong>ip route add</strong></span> offers a large
+          number of options that are not possible with the venerable
+          <span class="command"><strong>route</strong></span> command.
+          After we have looked at some simple examples, we'll discuss more
+          complex routes with <span class="command"><strong>ip route</strong></span>.
+        </p><p>
+          In <a class="xref" href="apds01.html" title="1. route">Section 1, &#8220;<span class="command"><strong>route</strong></span>&#8221;</a>, we used two classic examples of
+          adding a network route (to our service provider's network from )
+          and a host route.  Let's look at the
+          difference in syntax with the <span class="command"><strong>ip route</strong></span> command.
+        </p><div class="example"><a name="ex-tools-ip-route-add-net"></a><p class="title"><b>Example D.16. Adding a static route to a network with <span class="command">route
+            add</span>, cf. <a class="xref" href="apds01.html#ex-tools-route-add-net" title="Example D.4. Adding a static route to a network route add">Example D.4, &#8220;Adding a static route to a network <span class="command">route add</span>&#8221;</a></b></p><div class="example-contents"><pre class="programlisting">
+<code class="prompt">[root@masq-gw]# </code><strong class="userinput"><code>ip route add 10.38.0.0/16 via 192.168.100.1</code></strong>
+          </pre></div></div><br class="example-break"><p>
+          This is one of the simplest examples of the syntax of the
+          <span class="command"><strong>ip route</strong></span>.  As you may recall, you can only add a
+          route to a destination network through a gateway that is itself
+          already reachable.  In this case,
+          <code class="systemitem">masq-gw</code> already knows a
+          route to 192.168.100.1
+          (<code class="systemitem">service-router</code>).  Now
+          any packets bound for 10.38.0.0/16 will be forwarded to
+          192.168.100.1.
+        </p><p>
+          Other interesting examples of this command involve the use of
+          <code class="option">prohibit</code> and <code class="option">from</code>.  Use of the
+          <code class="option">prohibit</code> will cause the router to report that the
+          requested destination is unreachable.  If you know a netblock that
+          hosts a service you are not interested in allowing your users to
+          access, this is an effective way to block the outbound connection
+          attempts.
+        </p><p>
+          Let's look at an example of <a class="link" href="apgs05.html" title="5. tcpdump"><span class="command"><strong>tcpdump</strong></span></a> output
+          which shows the <code class="option">prohibit</code> route in action.
+        </p><div class="example"><a name="ex-tools-ip-route-add-prohibit"></a><p class="title"><b>Example D.17. Adding a <code class="option">prohibit</code> route with <span class="command">route
+            add</span></b></p><div class="example-contents"><pre class="programlisting">
+<code class="prompt">[root@masq-gw]# </code><strong class="userinput"><code>ip route add prohibit 209.10.26.51</code></strong>
+<code class="prompt">[root@tristan]# </code><strong class="userinput"><code>ssh 209.10.26.51</code></strong>
+<code class="computeroutput">ssh: connect to address 209.10.26.51 port 22: No route to host</code>
+<code class="prompt">[root@masq-gw]# </code><strong class="userinput"><code>tcpdump -nnq -i eth2</code></strong>
+<code class="computeroutput">tcpdump: listening on eth2
+22:13:13.740406 192.168.99.35.51973 &gt; 209.10.26.51.22: tcp 0 (DF)
+22:13:13.740714 192.168.99.254 &gt; 192.168.99.35: icmp: host 209.10.26.51 unreachable - admin prohibited filter [tos 0xc0]</code>
+          </pre></div></div><br class="example-break"><p>
+          Compare the ICMP packet returned to the sender in this case with the
+          <a class="link" href="ch07s06.html#ex-pf-iptables-reject" title="Example 7.1. Blocking a destination and using the REJECT target, cf. Example D.17, &#8220;Adding a prohibit route with route add&#8221;">ICMP packet returned</a> if
+          you used <span class="command"><strong>iptables</strong></span> and the <code class="option">REJECT</code>
+          target
+          <a href="#ftn.idm5051" class="footnote" name="idm5051"><sup class="footnote">[52]</sup></a>.
+          Although the net effect is identical (the user is unable
+          to reach the intended destinatioan), the user gets two different
+          error messages.  With an <span class="command"><strong>iptables</strong></span>
+          <code class="option">REJECT</code>, the user sees <code class="computeroutput">Connection
+          refused</code>, where the user sees <code class="computeroutput">No
+          route to host</code> with the use of
+          <code class="option">prohibit</code>.  These are but two of the options for
+          controlling outbound access from your network.
+        </p><p>
+          Supposing you don't want to block access to this particular host for
+          all of your users, the <code class="option">from</code> option comes to your
+          aid.
+        </p><div class="example"><a name="ex-tools-ip-route-add-from"></a><p class="title"><b>Example D.18. Using <code class="option">from</code> in a routing command with
+            <span class="command">route add</span></b></p><div class="example-contents"><pre class="programlisting">
+<code class="prompt">[root@masq-gw]# </code><strong class="userinput"><code>ip route add prohibit 209.10.26.51 from 192.168.99.35</code></strong>
+          </pre></div></div><br class="example-break"><p>
+          Now, you have effectively blocked the source IP 192.168.99.35 from
+          reaching 209.10.26.51.  Any packets matching this source and
+          destination address will match this route.  In this case,
+          <code class="systemitem">masq-gw</code> will generate an
+          ICMP error message indicating that the destination is
+          administratively unreachable.
+        </p><p>
+          If you are still following along here, you can see that the options
+          for identifying particular routes are many and multi-faceted.  The
+          <code class="option">src</code> option provides a hint to the kernel for source
+          address selection.  When you are working with multiple routing
+          tables and different classes of traffic, you can ease your
+          administrative burden, by hosting several
+          different IPs on your linux machine and setting the source address
+          differently, depending on the type of traffic.
+        </p><p>
+          In the example below, let's assume that our masquerading host also
+          runs a DNS resolver for the internal network and we have selected
+          all of the outbound DNS packets to be routed according to table 7
+          <a href="#ftn.idm5074" class="footnote" name="idm5074"><sup class="footnote">[53]</sup></a>.
+          Now, any packet which originates on this box (or is masqueraded
+          through this table) will have its source IP set to 205.254.211.198.
+        </p><div class="example"><a name="ex-tools-ip-route-add-src"></a><p class="title"><b>Example D.19. Using <code class="option">src</code> in a routing command with
+            <span class="command">route add</span></b></p><div class="example-contents"><pre class="programlisting">
+<code class="prompt">[root@masq-gw]# </code><strong class="userinput"><code>ip route add default via 205.254.211.254 src 205.254.211.198 table 7</code></strong>
+          </pre></div></div><br class="example-break"><p>
+          FIXME!!  I have nothing to say about <code class="option">nexthop</code> yet,
+          because I have never used it, this goes for
+          <code class="option">equalize</code> and <code class="option">onlink</code> as well.  If
+          anybody has some examples s/he would like to contribute, I'd love to
+          hear.
+        </p><p>
+          There are other options to the <span class="command"><strong>ip route add</strong></span>
+          documented in Alexey's thorough <span class="command"><strong>iproute2</strong></span>
+          documentation.  For further research, I'd suggested acquiring and
+          reading this manual.
+        </p></div><div class="section"><div class="titlepage"><div><div><h3 class="title"><a name="tools-ip-route-add-default"></a>2.4. Adding a default route with <span class="command"><strong>ip route add
+          default</strong></span></h3></div></div></div><p>
+          Naturally, one of the most important routes on a machine is its
+          default route.  Adding a default route is one of the simplest
+          operations with <span class="command"><strong>ip route</strong></span>.
+        </p><p>
+          We need exactly one piece of information in order to set the default
+          route on a machine.  This is the IP address of the gateway.  The
+          syntax of the command is extremely simple and aside from the use of
+          the <code class="option">via</code> instead of <code class="option">gw</code>, it is
+          almost the same command as the equivalent <span class="command"><strong>route
+          -n</strong></span>.
+        </p><div class="example"><a name="ex-tools-ip-route-add-default"></a><p class="title"><b>Example D.20. Setting the default route with <span class="command">ip route add default</span></b></p><div class="example-contents"><pre class="programlisting">
+<code class="prompt">[root@tristan]# </code><strong class="userinput"><code>ip route add default via 192.168.99.254</code></strong>
+          </pre></div></div><br class="example-break"></div><div class="section"><div class="titlepage"><div><div><h3 class="title"><a name="tools-ip-route-add-nat"></a>2.5. Setting up NAT with <span class="command"><strong>ip route add nat</strong></span></h3></div></div></div><p>
+          Be sure to see <a class="xref" href="ch05.html" title="Chapter 5. Network Address Translation (NAT)">Chapter 5, <i>Network Address Translation (NAT)</i></a> for a full treatment of the
+          issues involved in network address translation (NAT).  If you are
+          here to learn a bit more about how to set up NAT in your network,
+          then you should know that the <span class="command"><strong>ip route add nat</strong></span> is
+          only half of the solution.  You must understand that performing NAT
+          with <span class="command"><strong>iproute2</strong></span> involves one component to rewrite
+          the inbound packet (<span class="command"><strong>ip route add nat</strong></span>), and
+          another command to rewrite the outbound packet (<a class="link" href="apds03.html#tools-ip-rule-add-nat" title="3.4. ip rule add nat"><span class="command"><strong>ip rule add
+          nat</strong></span></a>).  If you only get half of the system in place,
+          your NAT will only work halfway--or not at all, depending on how you
+          define "work".
+        </p><p>
+          Alexey documents clearly in the appendix to the
+          <span class="command"><strong>iproute2</strong></span> manual that the NAT provided by the
+          <span class="command"><strong>iproute2</strong></span> suite is stateless.  This is distinctly
+          unlike NAT with netfilter.  Refer to <a class="xref" href="ch05s05.html" title="5. Destination NAT with netfilter (DNAT)">Section 5, &#8220;Destination NAT with netfilter (DNAT)&#8221;</a> and
+          <a class="xref" href="ch08s03.html" title="3. Netfilter Connection Tracking">Section 3, &#8220;Netfilter Connection Tracking&#8221;</a>
+          for a better look at the connection tracking and network address
+          translation support available under netfilter.
+        </p><p>
+          The <span class="command"><strong>ip route add nat</strong></span> command is used to rewrite
+          the destination address of a packet from one IP or range to another
+          IP or range.  The <span class="command"><strong>iproute2</strong></span> tools can only operate
+          on the entire IP packet.  There is no provision directly within the
+          <span class="command"><strong>iproute2</strong></span> suite to support conditional rewriting
+          based on the destination port of a UDP datagram or TCP segment.
+          It's the whole packet, every packet, and nothing but the packet
+          <a href="#ftn.idm5125" class="footnote" name="idm5125"><sup class="footnote">[54]</sup></a>.
+        </p><div class="example"><a name="ex-tools-ip-route-nat-simple"></a><p class="title"><b>Example D.21. Creating a NAT route for a single IP with <span class="command">ip route add
+            nat</span></b></p><div class="example-contents"><pre class="programlisting">
+<code class="prompt">[root@masq-gw]# </code><strong class="userinput"><code>ip route add nat 205.254.211.17 via 192.168.100.17</code></strong>
+<code class="prompt">[root@masq-gw]# </code><strong class="userinput"><code>ip route show table local | grep ^nat</code></strong>
+<code class="computeroutput">nat 205.254.211.17 via 192.168.100.17  scope host</code>
+          </pre></div></div><br class="example-break"><p>
+          The route entry we have just made tells the kernel to rewrite any
+          inbound packet bound for 205.254.211.17 to 192.168.100.17.  The
+          actual rewriting of the packet occurs at the routing stage of the
+          packets trip through the kernel.  This is an important detail,
+          illuminated more fully in
+          <a class="xref" href="ch05s04.html" title="4. Stateless NAT and Packet Filtering">Section 4, &#8220;Stateless NAT and Packet Filtering&#8221;</a>.
+        </p><p>
+          Not only can <span class="command"><strong>iproute2</strong></span> support network address
+          translation for single IPs, but also for entire network ranges.  The
+          syntax is substantially similar to the syntax above, but uses a
+          CIDR network address instead of a single IP.
+        </p><div class="example"><a name="ex-tools-ip-route-nat-network"></a><p class="title"><b>Example D.22. Creating a NAT route for an entire network with <span class="command">ip
+            route add nat</span></b></p><div class="example-contents"><pre class="programlisting">
+<code class="prompt">[root@masq-gw]# </code><strong class="userinput"><code>ip route add nat 205.254.211.32/29 via 192.168.100.32</code></strong>
+<code class="prompt">[root@masq-gw]# </code><strong class="userinput"><code>ip route show table local | grep ^nat</code></strong>
+<code class="computeroutput">nat 205.254.211.32/29 via 192.168.100.32  scope host</code>
+          </pre></div></div><br class="example-break"><p>
+          In this example, we are adding a route for an entire network.  Any
+          IP packets which come to us destined for any address between
+          205.254.211.32 and 205.254.211.39 will be rewritten to the
+          corresponding address in the range 192.168.100.32 through
+          192.168.100.39.  This is a shorthand way to specify multiple
+          translations with CIDR notation.
+        </p><p>
+          Again, this is only one half of the story for NAT with
+          <span class="command"><strong>iproute2</strong></span>.  Please be certain to read 
+          the section below for usage information on <a class="link" href="apds03.html#tools-ip-rule-add-nat" title="3.4. ip rule add nat"><span class="command"><strong>ip rule add
+          nat</strong></span></a>, in addition to <a class="xref" href="ch05.html" title="Chapter 5. Network Address Translation (NAT)">Chapter 5, <i>Network Address Translation (NAT)</i></a> which
+          will provide fuller documentation for NAT support under linux.
+          Don't forget to use <a class="link" href="apds02.html#tools-ip-route-flush-cache" title="2.10. ip route flush cache"><span class="command"><strong>ip route flush
+          cache</strong></span></a> after you add NAT routes and
+          the corresponding NAT rules
+          <a href="#ftn.idm5161" class="footnote" name="idm5161"><sup class="footnote">[55]</sup></a>.
+        </p></div><div class="section"><div class="titlepage"><div><div><h3 class="title"><a name="tools-ip-route-del"></a>2.6. Removing routes with <span class="command"><strong>ip route del</strong></span></h3></div></div></div><p>
+          The <span class="command"><strong>ip route del</strong></span> takes exactly the same syntax as
+          the <a class="link" href="apds02.html#tools-ip-route-add" title="2.3. Using ip route add to populate a routing table"><span class="command"><strong>ip route
+          add</strong></span></a> command, so if you have familiarized yourself
+          with the syntax, this should be a snap.
+        </p><p>
+          It is, in fact, almost trivial to delete routes on the command line
+          with <span class="command"><strong>ip route del</strong></span>.  You can simply identify the
+          route you wish to remove with <a class="link" href="apds02.html#tools-ip-route-show" title="2.1. Displaying a routing table with ip route show"><span class="command"><strong>ip route show</strong></span></a>
+          command and append the output line verbatim to <span class="command"><strong>ip route
+          del</strong></span>.
+        </p><div class="example"><a name="ex-tools-ip-route-del"></a><p class="title"><b>Example D.23. Removing routes with <span class="command">ip route del</span>
+          <a href="#ftn.idm5180" class="footnote" name="idm5180"><sup class="footnote">[56]</sup></a>
+          </b></p><div class="example-contents"><pre class="programlisting">
+<code class="prompt">[root@masq-gw]# </code><strong class="userinput"><code>ip route show</code></strong>
+<code class="computeroutput">192.168.100.0/30 dev eth3  scope link
+205.254.211.0/24 dev eth1  scope link
+192.168.100.0/24 dev eth0  scope link
+192.168.99.0/24 dev eth0  scope link
+192.168.98.0/24 via 192.168.99.1 dev eth0
+10.38.0.0/16 via 192.168.100.1 dev eth3
+127.0.0.0/8 dev lo  scope link 
+default via 205.254.211.254 dev eth1</code>
+<code class="prompt">[root@masq-gw]# </code><strong class="userinput"><code>ip route del 10.38.0.0/16 via 192.168.100.1 dev eth3</code></strong>
+          </pre></div></div><br class="example-break"><p>
+          We identified the network route to 10.38.0.0/16 as the route we
+          wished to remove, and simply appended the description of the route
+          to our <span class="command"><strong>ip route del</strong></span> command.
+        </p><p>
+          This command can be used to remove routes such as broadcast routes
+          and routes to locally hosted IPs in addition to manipulation of
+          any of the other routing tables.  This means that you can cause some
+          very strange problems on your machine by inadvertently removing
+          routes, especially routes to locally hosted IP addresses.
+        </p></div><div class="section"><div class="titlepage"><div><div><h3 class="title"><a name="tools-ip-route-change"></a>2.7. Altering existing routes with <span class="command"><strong>ip route
+          change</strong></span></h3></div></div></div><p>
+          Occasionally, you'll want to remove a route and replace it with
+          another one.  Fortunately, this can be done atomically with
+          <span class="command"><strong>ip route change</strong></span>.
+        </p><p>
+          Let's change the default route on tristan with this command.
+        </p><div class="example"><a name="ex-tools-ip-route-change"></a><p class="title"><b>Example D.24. Altering existing routes with <span class="command">ip route
+            change</span></b></p><div class="example-contents"><pre class="programlisting">
+<code class="prompt">[root@tristan]# </code><strong class="userinput"><code>ip route change default via 192.168.99.113 dev eth0</code></strong>
+<code class="prompt">[root@tristan]# </code><strong class="userinput"><code>ip route show</code></strong>
+<code class="computeroutput">192.168.99.0/24 dev eth0  scope link 
+127.0.0.0/8 dev lo  scope link 
+default via 192.168.99.113 dev eth0</code>
+          </pre></div></div><br class="example-break"><p>
+          If you do use the <span class="command"><strong>ip route change</strong></span> command, you
+          should be aware that it does not communicate a routing table state
+          change to the routing cache, so here is another good place to get in
+          the habit of using <a class="link" href="apds02.html#tools-ip-route-flush-cache" title="2.10. ip route flush cache"><span class="command"><strong>ip route flush
+          cache</strong></span></a>.
+        </p><p>
+          There's not much more to say about the use of this command.  If you
+          don't want to use an <a class="link" href="apds02.html#tools-ip-route-del" title="2.6. Removing routes with ip route del"><span class="command"><strong>ip route del</strong></span></a>
+          immediately followed by an <a class="link" href="apds02.html#tools-ip-route-add" title="2.3. Using ip route add to populate a routing table"><span class="command"><strong>ip route add</strong></span></a>
+          you can use <span class="command"><strong>ip route change</strong></span>.
+        </p></div><div class="section"><div class="titlepage"><div><div><h3 class="title"><a name="tools-ip-route-get"></a>2.8. Programmatically fetching route information with <span class="command"><strong>ip
+          route get</strong></span></h3></div></div></div><p>
+          When configuring routing tables, it is not always sufficient to
+          search for the destination manually.  Especially with large routing
+          tables, this can become a rather boring and time-consuming endeavor.
+          Fortunately, <span class="command"><strong>ip route get</strong></span> elegantly solves the
+          problem.  By simulating a request for the specified destination,
+          <span class="command"><strong>ip route get</strong></span> causes the routing selection
+          algorithm to be run.  When this is complete, it prints out the
+          resulting path to the destination.  In one sense, this is almost
+          equivalent to sending an ICMP echo request packet and then using
+          <a class="link" href="apds02.html#tools-ip-route-show-cache" title="2.2. Displaying the routing cache with ip route show cache"><span class="command"><strong>ip route show
+          cache</strong></span></a>.
+        </p><div class="example"><a name="ex-tools-ip-route-get"></a><p class="title"><b>Example D.25. Testing routing tables with <span class="command">ip route
+            get</span></b></p><div class="example-contents"><pre class="programlisting">
+<code class="prompt">[root@tristan]# </code><strong class="userinput"><code>ip -s route get 127.0.0.1/32</code></strong>
+<code class="computeroutput">ip -s route get 127.0.0.1/32
+local 127.0.0.1 dev lo  src 127.0.0.1 
+    cache &lt;local&gt;  users 1 used 1 mtu 16436 advmss 16396</code>
+<code class="prompt">[root@tristan]# </code><strong class="userinput"><code>ip -s route get 127.0.0.1/32</code></strong>
+<code class="computeroutput">local 127.0.0.1 dev lo  src 127.0.0.1 
+    cache &lt;local&gt;  users 1 used 2 mtu 16436 advmss 16396</code>
+          </pre></div></div><br class="example-break"><p>
+          For casual use, <span class="command"><strong>ip route get</strong></span> is an invaluable
+          tool.  An obvious side effect of using <span class="command"><strong>ip route
+          get</strong></span> the increase in the usage count of every touched entry
+          in the routing cache.  While this is no problem, it will alter the
+          count of packets which have used that particular route.  If you are
+          using <span class="command"><strong>ip</strong></span> to count outbound packets (people have
+          done it!) you should be cautious with this command.
+        </p></div><div class="section"><div class="titlepage"><div><div><h3 class="title"><a name="tools-ip-route-flush"></a>2.9. Clearing routing tables with <span class="command"><strong>ip route
+          flush</strong></span></h3></div></div></div><p>
+          The <code class="option">flush</code> option, when used with <span class="command"><strong>ip
+          route</strong></span> empties a routing table or removes the route for a
+          particular destination.  In <a class="xref" href="apds02.html#ex-tools-ip-route-flush" title="Example D.26. Removing a specific route and emptying a routing table with ip route flush">Example D.26, &#8220;Removing a specific route and emptying a routing table with
+            <span class="command">ip route flush</span>&#8221;</a>,
+          we'll first remove a route for a destination network using
+          <span class="command"><strong>ip route flush</strong></span>, and then we'll remove all of the
+          routes in the main routing table with one command.
+        </p><p>
+          If you do not wish to delete routes by hand, you can quickly
+          empty all of the routes in a table by specifying a table identifier
+          to the <span class="command"><strong>ip route flush</strong></span> command.
+        </p><div class="example"><a name="ex-tools-ip-route-flush"></a><p class="title"><b>Example D.26. Removing a specific route and emptying a routing table with
+            <span class="command">ip route flush</span></b></p><div class="example-contents"><pre class="programlisting">
+<code class="prompt">[root@masq-gw]# </code><strong class="userinput"><code>ip route flush</code></strong>
+<code class="computeroutput">"ip route flush" requires arguments</code>
+<code class="prompt">[root@masq-gw]# </code><strong class="userinput"><code>ip route flush 10.38</code></strong>
+<code class="computeroutput">Nothing to flush.</code>
+<code class="prompt">[root@masq-gw]# </code><strong class="userinput"><code>ip route flush 10.38.0.0/16</code></strong>
+<code class="prompt">[root@masq-gw]# </code><strong class="userinput"><code>ip route show</code></strong>
+<code class="computeroutput">192.168.100.0/30 dev eth3  scope link
+205.254.211.0/24 dev eth1  scope link
+192.168.100.0/24 dev eth0  scope link
+192.168.99.0/24 dev eth0  scope link
+192.168.98.0/24 via 192.168.99.1 dev eth0
+127.0.0.0/8 dev lo  scope link 
+default via 205.254.211.254 dev eth1</code>
+<code class="prompt">[root@masq-gw]# </code><strong class="userinput"><code>ip route flush table main</code></strong>
+<code class="prompt">[root@masq-gw]# </code><strong class="userinput"><code>ip route show</code></strong>
+<code class="prompt">[root@masq-gw]# </code>
+          </pre></div></div><br class="example-break"><p>
+          Note that you should exercise caution when using <span class="command"><strong>ip route
+          flush table</strong></span> because you can easily destroy your own route
+          to the machine by specifying the main routing table or a routing
+          table that is used to send packets to your workstation.  Naturally,
+          this is not a problem if you are connected to the machine via a
+          serial, modem, console, or other out of band connection.
+        </p></div><div class="section"><div class="titlepage"><div><div><h3 class="title"><a name="tools-ip-route-flush-cache"></a>2.10. <span class="command"><strong>ip route flush cache</strong></span></h3></div></div></div><p>
+          Above, in <a class="xref" href="apds02.html#tools-ip-route-show-cache" title="2.2. Displaying the routing cache with ip route show cache">Section 2.2, &#8220;Displaying the routing cache with <span class="command"><strong>ip route
+          show cache</strong></span>&#8221;</a>, we looked at
+          the contents of the routing cache, a hash table in the kernel which
+          contains recently used routes.  To quote John S. Denker, you
+          should not forget to use <span class="command"><strong>ip route flush cache</strong></span>
+          after you have changed the routing tables; "otherwise changes will
+          take effect only after some maddeningly irreproducible delay."
+          <a href="#ftn.idm5279" class="footnote" name="idm5279"><sup class="footnote">[57]</sup></a>
+        </p><p>
+          Since the kernel refers to the routing cache before fetching a new
+          route from the routing tables, <span class="command"><strong>ip route flush
+          cache</strong></span> empties the cache of any data.  Now when the kernel
+          goes to the routing cache to locate the best route to a destination,
+          it finds the cache empty.  Next, it traverses the routing policy
+          database and routing tables.  When the kernel finds the route, it
+          will enter the newly fetched destination into the routing cache.
+        </p><div class="example"><a name="ex-tools-ip-route-flush-cache"></a><p class="title"><b>Example D.27. Emptying the routing cache with <span class="command">ip route flush
+            cache</span></b></p><div class="example-contents"><pre class="programlisting">
+<code class="prompt">[root@tristan]# </code><strong class="userinput"><code>ip route show cache</code></strong>
+<code class="computeroutput">local 127.0.0.1 from 127.0.0.1 tos 0x10 dev lo 
+    cache &lt;local&gt;  mtu 16436 advmss 16396
+local 127.0.0.1 from 127.0.0.1 dev lo 
+    cache &lt;local&gt;  mtu 16436 advmss 16396
+192.168.100.17 from 192.168.99.35 via 192.168.99.254 dev eth0 
+    cache  mtu 1500 rtt 18ms rttvar 15ms cwnd 15 advmss 1460
+192.168.100.17 via 192.168.99.254 dev eth0  src 192.168.99.35 
+    cache  mtu 1500 advmss 1460</code>
+<code class="prompt">[root@tristan]# </code><strong class="userinput"><code>ip route flush cache</code></strong>
+<code class="prompt">[root@tristan]# </code><strong class="userinput"><code>ip route show cache</code></strong>
+<code class="prompt">[root@tristan]# </code><strong class="userinput"><code>ip route show cache</code></strong>
+<code class="computeroutput">local 127.0.0.1 from 127.0.0.1 tos 0x10 dev lo 
+    cache &lt;local&gt;  mtu 16436 advmss 16396
+local 127.0.0.1 from 127.0.0.1 dev lo 
+    cache &lt;local&gt;  mtu 16436 advmss 16396</code>
+          </pre></div></div><br class="example-break"><p>
+          When making routing changes to a linux box, you can save yourself
+          some troubleshooting time (and confusion) by getting in the habit of
+          finishing your routing commands with <span class="command"><strong>ip route flush
+          cache</strong></span>.
+        </p></div><div class="section"><div class="titlepage"><div><div><h3 class="title"><a name="tools-ip-route-summary"></a>2.11. Summary of the use of <span class="command"><strong>ip route</strong></span></h3></div></div></div><p>
+          With this overview of the use of the <span class="command"><strong>ip route</strong></span>
+          utility, you should be ready to step into some advanced territory to
+          harness multiple routing tables, take advantage of special types of
+          routes, use network address translation, and gather detailed
+          statistics on the usage of your routing tables.
+        </p></div><div class="footnotes"><br><hr style="width:100; text-align:left;margin-left: 0"><div id="ftn.idm4932" class="footnote"><p><a href="#idm4932" class="para"><sup class="para">[49] </sup></a>
+              I'm going to specifically neglect a discussion of bridging and
+              broadcast addresses for now.  Let's assume a simple Ethernet
+              where the entire IP network is on one hub or switch.
+            </p></div><div id="ftn.idm4936" class="footnote"><p><a href="#idm4936" class="para"><sup class="para">[50] </sup></a>
+              When a user initiates a connection to localhost (let's say
+              localhost:25, where a private SMTP server is listening), the
+              connection could, of course, come from the IP assigned to any of
+              the Ethernet interfaces. It makes the most sense, however, for the
+              source IP to be set to 127.0.0.1, since the connection is
+              actually initiated from on the local machine.  Some services
+              running on a local machine rely on the loopback interface and
+              will restrict incoming connections to source addresses of
+              127.0.0.1.  Frankly, I find this quite sensible for services
+              which are not intended for public use.
+            </p></div><div id="ftn.idm4994" class="footnote"><p><a href="#idm4994" class="para"><sup class="para">[51] </sup></a>
+              Be wary of using
+              <a class="link" href="apds02.html#tools-ip-route-get" title="2.8. Programmatically fetching route information with ip route get"><span class="command"><strong>ip route
+              get</strong></span></a> and <span class="command"><strong>ip route show cache</strong></span>
+              because <span class="command"><strong>ip route get</strong></span>
+              implicitly causes a route lookup to be performed, thus
+              increasing the used counter on the route, and resetting the age.
+              This will alter the statistics reported by <span class="command"><strong>ip -s route
+              show cache</strong></span>.
+            </p></div><div id="ftn.idm5051" class="footnote"><p><a href="#idm5051" class="para"><sup class="para">[52] </sup></a>
+              Please note that I in the cross-referenced example I have used
+              <span class="command"><strong>iptables</strong></span>.  The same behaviour should be
+              expected with <span class="command"><strong>ipchains</strong></span>. (Anybody have any
+              proof?)
+            </p></div><div id="ftn.idm5074" class="footnote"><p><a href="#idm5074" class="para"><sup class="para">[53] </sup></a>
+              If you wonder how this kind of magic is accomplished, you'll
+              want to read <a class="xref" href="ch10s03.html#adv-routing-fwmark" title="3.2. Using fwmark for Policy Routing">Section 3.2, &#8220;Using fwmark for Policy Routing&#8221;</a>.
+            </p></div><div id="ftn.idm5125" class="footnote"><p><a href="#idm5125" class="para"><sup class="para">[54] </sup></a>
+              This should not lead you into believing it cannot be done.  This
+              is linux after all!  By routing via fwmark, and using the
+              <code class="option">--mark</code> option to <span class="command"><strong>ipchains</strong></span> or
+              the MARK target and <code class="option">--set-mark</code> option in
+              <span class="command"><strong>iptables</strong></span>, you can perform conditional routing
+              based on characteristics and contents of the packet.
+            </p></div><div id="ftn.idm5161" class="footnote"><p><a href="#idm5161" class="para"><sup class="para">[55] </sup></a>
+              You can always use my
+              <a class="link" href="ch11s02.html#ex-sc-nat" title="Example 11.3. Static NAT SysV initialization script">SysV initialization script</a>
+              and
+              <a class="link" href="ch11s02.html#ex-sc-static-nat" title="Example 11.4. Static NAT configuration file">configuration file</a>
+              instead of entering your own commands, however, it is
+              always important to understand the tool you are using.
+            </p></div><div id="ftn.idm5180" class="footnote"><p><a href="#idm5180" class="para"><sup class="para">[56] </sup></a>
+              Please note that this is the same routing table as is shown in
+              the <a class="xref" href="apds01.html#ex-tools-route-show-complex" title="Example D.2. Viewing a complex routing table with route">Example D.2, &#8220;Viewing a complex routing table with <span class="command">route</span>&#8221;</a>, which
+              displays the output from <span class="command"><strong>route -n</strong></span> on
+              <code class="systemitem">masq-gw</code>.
+            </p></div><div id="ftn.idm5279" class="footnote"><p><a href="#idm5279" class="para"><sup class="para">[57] </sup></a>
+              See this remark in his
+              <a class="ulink" href="http://www.quintillion.com/moat/ipsec+routing/iproute2.html" target="_top">documentation</a>
+              of a workaround with FreeS/WAN and iproute2 to approximate more
+              RFC-like SPD behaviour for a linux IPSec tunnel.
+            </p></div></div></div><div class="navfooter"><hr><table width="100%" summary="Navigation footer"><tr><td width="40%" align="left"><a accesskey="p" href="apds01.html">Prev</a> </td><td width="20%" align="center"><a accesskey="u" href="apd.html">Up</a></td><td width="40%" align="right"> <a accesskey="n" href="apds03.html">Next</a></td></tr><tr><td width="40%" align="left" valign="top">1. <span class="command"><strong>route</strong></span> </td><td width="20%" align="center"><a accesskey="h" href="index.html">Home</a></td><td width="40%" align="right" valign="top"> 3. <span class="command"><strong>ip rule</strong></span></td></tr></table></div></body></html>

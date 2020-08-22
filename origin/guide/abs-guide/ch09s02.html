@@ -1,0 +1,137 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1"><title>2. Typing variables: declare or typeset</title><link rel="stylesheet" type="text/css" href="style.css"><meta name="generator" content="DocBook XSL Stylesheets V1.79.1"><link rel="home" href="index.html" title="Advanced Bash-Scripting Guide"><link rel="up" href="ch09.html" title="Chapter 9. Another Look at Variables"><link rel="prev" href="ch09s01.html" title="1. Internal Variables"><link rel="next" href="ch09s03.html" title="3. $RANDOM: generate random integer"></head><body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF"><div class="navheader"><table width="100%" summary="Navigation header"><tr><th colspan="3" align="center">2. Typing variables: <span class="command"><strong>declare</strong></span> or
+	  <span class="command"><strong>typeset</strong></span></th></tr><tr><td width="20%" align="left"><a accesskey="p" href="ch09s01.html">Prev</a> </td><th width="60%" align="center">Chapter 9. Another Look at Variables</th><td width="20%" align="right"> <a accesskey="n" href="ch09s03.html">Next</a></td></tr></table><hr></div><div class="sect1"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="declareref"></a>2. Typing variables: <span class="command"><strong>declare</strong></span> or
+	  <span class="command"><strong>typeset</strong></span></h2></div></div></div><a class="indexterm" name="idm5672"></a><a class="indexterm" name="idm5674"></a><a class="indexterm" name="idm5676"></a><a class="indexterm" name="idm5679"></a><p><a name="declare1ref"></a></p><p>The <em class="firstterm">declare</em> or
+	  <em class="firstterm">typeset</em> <a class="link" href="ch15.html#builtinref">builtins</a>, which are exact synonyms,
+	  permit modifying the properties of variables. This is
+	  a very weak form of the <em class="firstterm">typing</em>
+
+	    <a href="#ftn.idm5689" class="footnote" name="idm5689"><sup class="footnote">[46]</sup></a>
+
+	  available in certain programming languages. The
+	  <em class="firstterm">declare</em> command is specific to version
+	  2 or later of Bash. The <em class="firstterm">typeset</em> command
+	  also works in ksh scripts.</p><div class="variablelist"><a name="declareopsref"></a><p class="title"><b><a name="declareopsref1"></a>declare/typeset options</b></p><dl class="variablelist"><dt><span class="term"><span class="token">-r</span>
+	    <em class="replaceable"><code>readonly</code></em></span></dt><dd><p>(<strong class="userinput"><code>declare -r var1</code></strong> works the same as
+		<strong class="userinput"><code>readonly var1</code></strong>)</p><p>This is the rough equivalent of the <span class="command"><strong>C</strong></span>
+		<em class="firstterm">const</em> type qualifier. An attempt
+		to change the value of a <em class="firstterm">readonly</em>
+		variable fails with an error message.</p><pre class="programlisting">declare -r var1=1
+echo "var1 = $var1"   # var1 = 1
+
+(( var1++ ))          # x.sh: line 4: var1: readonly variable</pre><p>
+              </p></dd><dt><span class="term"><span class="token">-i</span> <em class="replaceable"><code>integer</code></em></span></dt><dd><pre class="programlisting">declare -i number
+# The script will treat subsequent occurrences of "number" as an integer.		
+
+number=3
+echo "Number = $number"     # Number = 3
+
+number=three
+echo "Number = $number"     # Number = 0
+# Tries to evaluate the string "three" as an integer.</pre><p>Certain arithmetic operations are permitted
+		for declared integer variables without the need
+		for <a class="link" href="ch16s02.html#exprref">expr</a> or <a class="link" href="ch15.html#letref">let</a>.</p><pre class="programlisting">n=6/3
+echo "n = $n"       # n = 6/3
+
+declare -i n
+n=6/3
+echo "n = $n"       # n = 2</pre></dd><dt><span class="term"><a name="arraydeclare"></a><span class="token">-a</span>
+	    <em class="replaceable"><code>array</code></em></span></dt><dd><pre class="programlisting">declare -a indices</pre><p>The variable <em class="parameter"><code>indices</code></em> will be treated as
+		an <a class="link" href="ch27.html#arrayref">array</a>.</p></dd><dt><span class="term"><span class="token">-f</span> <em class="replaceable"><code>function(s)</code></em></span></dt><dd><pre class="programlisting">declare -f</pre><p>A <strong class="userinput"><code>declare -f</code></strong> line with no
+		arguments in a script causes a listing of all the
+		<a class="link" href="ch24.html#functionref">functions</a> previously
+		defined in that script.</p><pre class="programlisting">declare -f function_name</pre><p>A <strong class="userinput"><code>declare -f function_name</code></strong>
+		in a script lists just the function named.</p></dd><dt><span class="term"><span class="token">-x</span> <a class="link" href="ch15.html#exportref">export</a></span></dt><dd><pre class="programlisting">declare -x var3</pre><p>This declares a variable as available for exporting outside the
+		environment of the script itself.</p></dd><dt><span class="term">-x var=$value</span></dt><dd><pre class="programlisting">declare -x var3=373</pre><p>The <span class="command"><strong>declare</strong></span> command permits
+		  assigning a value to a variable in the same statement
+		  as setting its properties.</p></dd></dl></div><div class="example"><a name="ex20"></a><p class="title"><b>Example 9.10. Using <em class="firstterm">declare</em> to type variables</b></p><div class="example-contents"><pre class="programlisting">#!/bin/bash
+
+func1 ()
+{
+  echo This is a function.
+}
+
+declare -f        # Lists the function above.
+
+echo
+
+declare -i var1   # var1 is an integer.
+var1=2367
+echo "var1 declared as $var1"
+var1=var1+1       # Integer declaration eliminates the need for 'let'.
+echo "var1 incremented by 1 is $var1."
+# Attempt to change variable declared as integer.
+echo "Attempting to change var1 to floating point value, 2367.1."
+var1=2367.1       # Results in error message, with no change to variable.
+echo "var1 is still $var1"
+
+echo
+
+declare -r var2=13.36         # 'declare' permits setting a variable property
+                              #+ and simultaneously assigning it a value.
+echo "var2 declared as $var2" # Attempt to change readonly variable.
+var2=13.37                    # Generates error message, and exit from script.
+
+echo "var2 is still $var2"    # This line will not execute.
+
+exit 0                        # Script will not exit here.
+</pre></div></div><br class="example-break"><div class="caution" style="margin-left: 0.5in; margin-right: 0.5in;"><h3 class="title">Caution</h3><p>Using the <em class="firstterm">declare</em> builtin
+	  restricts the <a class="link" href="ch21.html#scoperef">scope</a>
+	  of a variable.
+
+
+	  </p><pre class="programlisting">foo ()
+{
+FOO="bar"
+}
+
+bar ()
+{
+foo
+echo $FOO
+}
+
+bar   # Prints bar.</pre><p>However . . .
+
+	  </p><pre class="programlisting">foo (){
+declare FOO="bar"
+}
+
+bar ()
+{
+foo
+echo $FOO
+}
+
+bar  # Prints nothing.
+
+
+# Thank you, Michael Iatrou, for pointing this out.</pre></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="declare2x"></a>2.1. Another use for <em class="firstterm">declare</em></h3></div></div></div><p>The <em class="firstterm">declare</em> command can be
+	     helpful in identifying variables, <a class="link" href="ch04s04.html#envref">environmental</a> or otherwise.
+	     This can be especially useful with <a class="link" href="ch27.html#arrayref">arrays</a>.</p><p>
+	      </p><pre class="screen"><code class="prompt">bash$ </code><strong class="userinput"><code>declare | grep HOME</code></strong>
+<code class="computeroutput">HOME=/home/bozo</code>
+
+
+<code class="prompt">bash$ </code><strong class="userinput"><code>zzy=68</code></strong>
+<code class="prompt">bash$ </code><strong class="userinput"><code>declare | grep zzy</code></strong>
+<code class="computeroutput">zzy=68</code>
+
+
+<code class="prompt">bash$ </code><strong class="userinput"><code>Colors=([0]="purple" [1]="reddish-orange" [2]="light green")</code></strong>
+<code class="prompt">bash$ </code><strong class="userinput"><code>echo ${Colors[@]}</code></strong>
+<code class="computeroutput">purple reddish-orange light green</code>
+<code class="prompt">bash$ </code><strong class="userinput"><code>declare | grep Colors</code></strong>
+<code class="computeroutput">Colors=([0]="purple" [1]="reddish-orange" [2]="light green")</code>
+	     </pre><p>
+	   </p></div><div class="footnotes"><br><hr style="width:100; text-align:left;margin-left: 0"><div id="ftn.idm5689" class="footnote"><p><a href="#idm5689" class="para"><sup class="para">[46] </sup></a><a name="typingref"></a>In this context,
+	    <em class="firstterm">typing</em>
+	    a variable means to classify it and restrict its properties.
+	    For example, a variable <em class="firstterm">declared</em>
+	    or <em class="firstterm">typed</em> as an integer
+	    is no longer available for <a class="link" href="apb.html#stringopstab">string
+	    operations</a>.</p><pre class="programlisting">declare -i intvar
+
+intvar=23
+echo "$intvar"   # 23
+intvar=stringval
+echo "$intvar"   # 0</pre></div></div></div><div class="navfooter"><hr><table width="100%" summary="Navigation footer"><tr><td width="40%" align="left"><a accesskey="p" href="ch09s01.html">Prev</a> </td><td width="20%" align="center"><a accesskey="u" href="ch09.html">Up</a></td><td width="40%" align="right"> <a accesskey="n" href="ch09s03.html">Next</a></td></tr><tr><td width="40%" align="left" valign="top">1. Internal Variables </td><td width="20%" align="center"><a accesskey="h" href="index.html">Home</a></td><td width="40%" align="right" valign="top"> 3. $RANDOM: generate random integer</td></tr></table></div></body></html>

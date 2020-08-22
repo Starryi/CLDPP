@@ -1,0 +1,228 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1"><title>4. Creating and using squashed file systems</title><link rel="stylesheet" type="text/css" href="style.css"><meta name="generator" content="DocBook XSL Stylesheets V1.79.1"><meta name="keywords" content="linux, squashfs, squashed, squash, compressed, filesystem, kernel, embedded, tiny"><link rel="home" href="index.html" title="SquashFS HOWTO"><link rel="up" href="index.html" title="SquashFS HOWTO"><link rel="prev" href="ar01s03.html" title="3. The SquashFS tools exposed"><link rel="next" href="ar01s05.html" title="5. Acknowledgements"></head><body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF"><div class="navheader"><table width="100%" summary="Navigation header"><tr><th colspan="3" align="center">4. Creating and using squashed file systems</th></tr><tr><td width="20%" align="left"><a accesskey="p" href="ar01s03.html">Prev</a> </td><th width="60%" align="center"> </th><td width="20%" align="right"> <a accesskey="n" href="ar01s05.html">Next</a></td></tr></table><hr></div><div class="sect1"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="creatingandusing"></a>4. Creating and using squashed file systems</h2></div></div></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="creating"></a>4.1. Basic steps</h3></div></div></div><p>
+In order to create a squashed file system out of a single directory 
+(say, <code class="filename">/some/dir</code>), and output it to a regular file 
+(thus, producing a file system image), you need to say only one magic phrase:
+</p><pre class="programlisting">
+	bash# mksquashfs /some/dir dir.sqsh
+</pre><p>
+<span class="command"><strong>mksquashfs</strong></span> will perform the squashing and print the resulting 
+number of inodes and size of data written, as well as the average compression ratio. 
+Now you have your <code class="filename">/some/dir</code> directory image in the
+<code class="filename">dir.sqsh</code> file. You can now use the <span class="command"><strong>mount</strong></span> command 
+to mount it using a loopback device:
+</p><pre class="programlisting">
+	bash# mkdir /mnt/dir
+	bash# mount dir.sqsh /mnt/dir -t squashfs -o loop
+</pre><p>
+To check if you have what's expected:
+</p><pre class="programlisting">
+	bash# ls /mnt/dir
+</pre><p>
+If you want to output the file system directly into a device (say, your floppy at 
+<code class="filename">/dev/fd0</code>):
+</p><pre class="programlisting">
+	bash# mksquashfs /some/dir /dev/fd0
+</pre><p>
+Then just <span class="command"><strong>mount</strong></span> the device:
+</p><pre class="programlisting">
+	bash# mount /dev/fd0 /mnt/floppy -t squashfs
+</pre><p>
+And check if it's okay:
+</p><pre class="programlisting">
+	bash# ls /mnt/floppy
+</pre></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="squashing"></a>4.2. Squashing file systems</h3></div></div></div><p>
+Operations described here correspond to most cases where a read-only compressed file 
+system can be used, whether you want it to be on a block device or in a file. This 
+could be anything from large FTP/HTTP-served archives that don't change often, to 
+having a squashed <code class="filename">/usr</code> partition and anything alike
+with these. 
+</p><div class="sect3"><div class="titlepage"><div><div><h4 class="title"><a name="squashing-ex1"></a>4.2.1. Example 1</h4></div></div></div><p>
+Let's suppose you have a <code class="filename">/var/arch</code> directory with lots of files and
+that you want to turn it into a squashed file system and keep it on your root partition
+as a file (it will be a file system image that you will mount via a loopback device).
+The operations needed to perform are as follows.
+</p><p>
+Squash the directory, then mount it via loopback to test it:
+</p><pre class="programlisting">
+	bash# mksquashfs /var/arch /var/arch.sqsh
+	bash# mkdir /mnt/tmp
+	bash# mount /var/arch.sqsh /mnt/tmp -t squashfs -o loop
+	bash# ls /mnt/tmp
+</pre><p>
+If everything is as expected, make this file system mount automatically at boot time by
+adding this line to your <code class="filename">/etc/fstab</code>:
+</p><pre class="programlisting">
+	/var/arch.sqsh	/var/arch	squashfs	ro,defaults	0 0
+</pre><p>
+Unmount the file system from the temporary mount point, and mount using it's fstab entry:
+</p><pre class="programlisting">
+	bash# umount /mnt/tmp
+	bash# mount /var/arch
+</pre><p>
+Now just ensure that everything works fine:
+</p><pre class="programlisting">
+	bash# ls /var/arch
+</pre></div><div class="sect3"><div class="titlepage"><div><div><h4 class="title"><a name="squashing-ex2"></a>4.2.2. Example 2</h4></div></div></div><p>
+Say you have two hard disk partitions, <code class="filename">/dev/hda6</code> (which
+is empty) and <code class="filename">/dev/hda7</code> (which is bigger than <code class="filename">/dev/hda6</code>,
+mounted at <code class="filename">/var/arch</code>, contains some data and is full). Now, say you want to squash the <code class="filename">/dev/hda7</code> file system and move it to <code class="filename">/dev/hda6</code>, 
+then use <code class="filename">/dev/hda7</code> for some other purposes. We will suppose you have
+the following line in <code class="filename">/etc/fstab</code> (<span class="command"><strong>reiserfs</strong></span> is just an example file system
+used on <code class="filename">/dev/hda7</code>):
+</p><pre class="programlisting">
+	/dev/hda7	/var/arch	reiserfs	defaults	0 0
+</pre><p>
+In the same fashion as with the previous example:
+</p><pre class="programlisting">
+	bash# mksquashfs /var/arch /var/arch.sqsh
+	bash# mkdir /mnt/tmp
+	bash# mount /var/arch.sqsh /mnt/tmp -t squashfs -o loop
+	bash# ls /mnt/tmp
+</pre><p>
+If everything went fine, unmount <code class="filename">/dev/hda7</code> (if needed) and 
+use <span class="command"><strong>dd</strong></span> to copy <code class="filename">/var/arch.sqsh</code>
+to <code class="filename">/dev/hda6</code>:
+</p><pre class="programlisting">
+	bash# umount /dev/hda7
+	bash# dd if=/var/arch.sqsh of=/dev/hda6
+</pre><p>
+Now change the line in <code class="filename">/etc/fstab</code> for <code class="filename">/dev/hda7</code> to:
+</p><pre class="programlisting">
+	/dev/hda6	/var/arch	squashfs	ro,defaults	0 0
+</pre><p>
+Mount the new file system and check to see if all went fine:
+</p><pre class="programlisting">
+	bash# mount /var/arch
+	bash# ls /var/arch
+</pre><p>
+Don't forget to erase the unneeded file system image:
+</p><pre class="programlisting">
+	bash# rm /var/arch.sqsh
+</pre></div></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="tinyemb"></a>4.3. Creating tiny/embedded systems</h3></div></div></div><p>
+By saying "tiny/embedded", I mean Linux systems that are being built for
+booting from floppy disks, IDE/USB flash disks, iso9660 CD-ROMs, small-sized hard drives and the like.
+Whether you want to have your whole root file system on a single media (a single partition, a single floppy),
+or have a modular system (several floppies or disk partitions), the procedure is almost identical.
+Creating such Linux systems themselves is out of scope of this HOWTO - there are dedicated HOWTOs and guides
+for this (like the <span class="emphasis"><em>Bootdisk HOWTO</em></span> and <span class="emphasis"><em>Linux From Scratch</em></span> - visit
+<a class="ulink" href="http://www.tldp.org" target="_top">www.tldp.org</a> to retrieve these documents).
+</p><div class="sect3"><div class="titlepage"><div><div><h4 class="title"><a name="sqflash"></a>4.3.1. Squashed file systems on floppy/flash/hard disks</h4></div></div></div><p>
+In order to use SquashFS for creating Linux systems on small disks, you just have to follow
+the usual steps for creating a minimal system, performing the following operations
+at respective points:
+</p><div class="orderedlist"><ol class="orderedlist" type="1"><li class="listitem"><p>
+When developing a kernel for your system, make sure you enable SquashFS support
+so it can mount squashed file systems
+</p></li><li class="listitem"><p>
+Use <span class="command"><strong>mksquashfs</strong></span> for creating read-only initial ram disks and/or root and/or other file systems
+</p></li><li class="listitem"><p>
+Don't forget to set file system types to <code class="filename">squashfs</code> in <code class="filename">/etc/fstab</code>
+and/or the startup scripts of your system for mounting squashed file systems
+</p></li></ol></div><p>
+<span class="emphasis"><em>Floppy example</em></span>. Let's say you have your floppy system tree at
+<code class="filename">/home/user/floppylinux</code> and you want to place the root file system on one
+floppy and <code class="filename">/usr</code> on another. What you should do is:
+</p><pre class="programlisting">
+	bash# cd /home/user
+	bash# mksquashfs floppylinux root.sqsh -e usr
+	bash# mksquashfs floppylinux/usr usr.sqsh
+</pre><p>
+<span class="emphasis"><em>Note 1</em></span>: you can see here how we use the <span class="command"><strong>-e</strong></span>
+option to exclude the <code class="filename">/usr</code> directory for root file system's image.
+</p><p>
+<span class="emphasis"><em>Note 2</em></span>: don't forget to specify <code class="filename">squashfs</code> in your root disk's
+<code class="filename">/etc/fstab</code> or startup scripts when mounting the <code class="filename">/usr</code> file system.
+</p><p>
+Insert a root disk in your 3.5" floppy drive (I assume you have a lilo or grub on it, and, thus, a file system exists on this floppy,
+and the root file system will reside under the <code class="filename">/boot</code> directory of this file system):
+</p><pre class="programlisting">
+	bash# mount /mnt/floppy
+	bash# cp root.sqsh /mnt/floppy/boot
+</pre><p>
+When done, unmount the root floppy, change the floppy to a <code class="filename">/usr</code> disk and use <span class="command"><strong>dd</strong></span> to
+transfer the <code class="filename">usr</code> file system:
+</p><pre class="programlisting">
+	bash# dd if=usr.sqsh of=/dev/fd0
+</pre></div><div class="sect3"><div class="titlepage"><div><div><h4 class="title"><a name="sqfloppy"></a>4.3.2. Squashed file systems on CD-ROMs</h4></div></div></div><p>
+With SquashFS, you can compress large file systems that
+will be used in live CDs (just as an example). For this purpose SquashFS is also used with UnionFS.
+
+</p><div class="orderedlist"><ol class="orderedlist" type="1"><li class="listitem"><p>
+Enable SquashFS in the linux kernel of the target system
+</p></li><li class="listitem"><p>
+Create a squashed root file system
+</p></li><li class="listitem"><p>
+Modify the <code class="filename">/etc/fstab</code> or startup scripts of the target system
+to mount the squashd file system when you need it
+</p></li></ol></div><p>
+
+If you create a root file system out of a running Linux system,
+use the <span class="command"><strong>-e</strong></span> option for <span class="command"><strong>mksquashfs</strong></span> to exclude
+all pseudo-filesystems such as <code class="filename">/proc</code>, <code class="filename">/sys</code>
+(on linux kernels after 2.5.x) and <code class="filename">/dev</code> 
+(when using DevFS). Also, don't forget to add the file system image itself that is
+being created with <span class="command"><strong>mksquashfs</strong></span> (I think you know the reasons
+for these exclusions).
+
+</p></div></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="sqwrite"></a>4.4. Making it writeble</h3></div></div></div><p>
+As mentioned, another interesting use for <span class="command"><strong>SquashFS</strong></span> is with <span class="command"><strong>Unionfs</strong></span> filesystem, which 
+provides <span class="emphasis"><em>copy-on-write</em></span> semantics for the read-only file systems, enahancing the possibilities. (For unionfs you can 
+look at <a class="ulink" href="http://www.filesystems.org/project-unionfs.html" target="_top">http://www.filesystems.org/project-unionfs.html</a>)
+</p><p>
+Just to make an example, you may want to make your /home/user squashed, to compress and backup your files without losing the possibility to apply changes or writing new files.
+</p><p>
+Create the <code class="filename">ro.fs</code> squashed file system and the <code class="filename">rw.fs</code> dir.
+</p><pre class="programlisting">
+bash# mksquashfs /home/user1 ro.fs
+bash# mkdir /home/rw.fs
+</pre><p>
+Mount the squashed ro.fs file system using the loopback device 
+</p><pre class="programlisting">
+bash# mount -t squashfs ro.fs /mnt -o loop
+</pre><p>
+mount the unionfs file system, that makes <code class="filename">/mnt</code> and <code class="filename">/home/rw.fs</code> apparently merged under <code class="filename">/home/user1</code> location.
+</p><pre class="programlisting">
+bash# cd /home
+bash# mount -t unionfs -o dirs=rw.fs=rw:/mnt=ro unionfs user1
+</pre><p>
+As you can see, now you can create new files in /home/user1.
+</p><pre class="programlisting">
+bash# cd /home/user1
+bash# touch file1
+bash# ls
+</pre><p>
+umount the unionfs and the squashfs file systems and list the content of /home/user1 and /home/rw.fs dir
+</p><pre class="programlisting">
+bash# cd ..
+bash# umount /home/user1
+bash# umount /mnt
+
+bash# ls /home/user1
+bash# ls /home/rw.fs 
+
+</pre><p>
+You can see that the new <code class="filename">file1</code> was created in <code class="filename">/home/rw.fs</code> 
+</p><p>
+When you want to add the new created files to the <span class="emphasis"><em>stable</em></span> and <span class="emphasis"><em>compressed</em></span> squashed file system, you have to add them to the exsisting one. 
+</p><pre class="programlisting">
+bash# mksquashfs /home/rw.fs /home/ro.fs
+</pre><p>
+Now, to mount your squashed user home directory at system startup, you
+can do as follow:
+</p><p>
+Make squashfs and unionfs modules loaded at boot time.
+</p><pre class="programlisting">
+bash# echo squashfs &gt;&gt; /etc/modules
+bash# echo unionfs &gt;&gt; /etc/modules
+</pre><p>
+Change the owner of the writeble branch to match user1.
+</p><pre class="programlisting">
+chown user1 /home/rw.fs
+</pre><p>
+Add these lines to /etc/fstab file to mount squashfs and unionfs 
+at boot time.
+</p><pre class="programlisting">
+...
+/home/ro.fs  /mnt squashfs loop 0 0
+unionfs /home/user1 unionfs dirs=/home/rw.fs=rw:/mnt=ro 0 0
+</pre></div></div><div class="navfooter"><hr><table width="100%" summary="Navigation footer"><tr><td width="40%" align="left"><a accesskey="p" href="ar01s03.html">Prev</a> </td><td width="20%" align="center"> </td><td width="40%" align="right"> <a accesskey="n" href="ar01s05.html">Next</a></td></tr><tr><td width="40%" align="left" valign="top">3. The SquashFS tools exposed </td><td width="20%" align="center"><a accesskey="h" href="index.html">Home</a></td><td width="40%" align="right" valign="top"> 5. Acknowledgements</td></tr></table></div></body></html>

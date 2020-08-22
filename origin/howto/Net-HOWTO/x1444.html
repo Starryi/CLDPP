@@ -1,0 +1,352 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN""http://www.w3.org/TR/html4/loose.dtd">
+<HTML
+><HEAD
+><TITLE
+>DHCP Server Setup for Linux</TITLE
+><META
+NAME="GENERATOR"
+CONTENT="Modular DocBook HTML Stylesheet Version 1.79"><LINK
+REL="HOME"
+TITLE="Linux Networking HOWTO"
+HREF="index.html"><LINK
+REL="UP"
+TITLE="DHCP and DHCPD"
+HREF="c1433.html"><LINK
+REL="PREVIOUS"
+TITLE="DHCP Client Setup for users of LinuxConf"
+HREF="x1438.html"><LINK
+REL="NEXT"
+TITLE="Advanced Networking with Kernel 2.2"
+HREF="c1505.html"></HEAD
+><BODY
+CLASS="SECT1"
+BGCOLOR="#FFFFFF"
+TEXT="#000000"
+LINK="#0000FF"
+VLINK="#840084"
+ALINK="#0000FF"
+><DIV
+CLASS="NAVHEADER"
+><TABLE
+SUMMARY="Header navigation table"
+WIDTH="100%"
+BORDER="0"
+CELLPADDING="0"
+CELLSPACING="0"
+><TR
+><TH
+COLSPAN="3"
+ALIGN="center"
+><A
+HREF="http://www.linuxports.com/"
+TARGET="_top"
+>Linux Networking HOWTO</A
+></TH
+></TR
+><TR
+><TD
+WIDTH="10%"
+ALIGN="left"
+VALIGN="bottom"
+><A
+HREF="x1438.html"
+ACCESSKEY="P"
+>Prev</A
+></TD
+><TD
+WIDTH="80%"
+ALIGN="center"
+VALIGN="bottom"
+>Chapter 8. DHCP and DHCPD</TD
+><TD
+WIDTH="10%"
+ALIGN="right"
+VALIGN="bottom"
+><A
+HREF="c1505.html"
+ACCESSKEY="N"
+>Next</A
+></TD
+></TR
+></TABLE
+><HR
+ALIGN="LEFT"
+WIDTH="100%"></DIV
+><DIV
+CLASS="SECT1"
+><H1
+CLASS="SECT1"
+><A
+NAME="AEN1444"
+>8.2. DHCP Server Setup for Linux</A
+></H1
+><P
+><EM
+>Retrieve DHCPD (if your machine does not already have it installed).</EM
+>
+<A
+HREF="ftp://ftp.isc.org/isc/dhcp/"
+TARGET="_top"
+>Get DHCPD</A
+></P
+><P
+><EM
+><EM
+>Quick Note: MAKE SURE YOU HAVE MULTICAST ENABLED IN THE KERNEL.</EM
+></EM
+></P
+><P
+><EM
+>If there is not a binary distribution for your version of linux, then you will
+have to compile DHCPD.</EM
+></P
+><P
+>Edit your /etc/rc.d/rc.local to reflect an addition of a route for
+255.255.255.255.</P
+><P
+><EM
+><EM
+>Quoted from DHCPd README:</EM
+></EM
+></P
+><P
+>In order for dhcpd to work correctly with picky DHCP clients (e.g.,
+Windows 95), it must be able to send packets with an IP destination
+address of 255.255.255.255.  Unfortunately, Linux insists on changing
+255.255.255.255 into the local subnet broadcast address (in this case,
+the address would be 192.5.5.223).  This results in a DHCP protocol violation. While
+many DHCP clients don't notice the problem, some (e.g., all Microsoft
+DHCP clients) will recognize the violation.  Clients that have this problem will appear not to
+see DHCPOFFER messages from the server.</P
+><P
+>Type the following as root:</P
+><P
+>route add -host 255.255.255.255 dev eth0</P
+><P
+>If the message appears:</P
+><P
+>255.255.255.255: Unknown host</P
+><P
+>Try adding the following entry to your /etc/hosts file:</P
+><P
+>255.255.255.255 dhcp</P
+><P
+>Then, try:</P
+><P
+>route add -host dhcp dev eth0</P
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN1467"
+>8.2.1. Options for DHCPD</A
+></H2
+><P
+>Now you need to configure DHCPd. In order to do this, you will have to
+create or edit /etc/dhcpd.conf. There is a graphical interface for
+dhcpd configuration under <A
+HREF="http://www.solucorp.qc.ca"
+TARGET="_top"
+>linuxconf</A
+>. This makes configuring and managing DHCPD extremely
+simple.</P
+><P
+>If you want to configure it by hand, you should follow instructions below. I suggest
+configuring it by hand at least once. It will help in the diagnostics that
+a GUI can't provide. Unfortunately Micrsoft doesn't believe this!</P
+><P
+>The simplest way to assign IP addresses is to assign them randomly.
+A sample configuration file that shows this type of setup is displayed below:</P
+><P
+><TABLE
+BORDER="1"
+BGCOLOR="#E0E0E0"
+WIDTH="100%"
+><TR
+><TD
+><FONT
+COLOR="#000000"
+><PRE
+CLASS="SCREEN"
+># Sample /etc/dhcpd.conf
+# (add your comments here)
+default-lease-time 1200;
+max-lease-time 9200;
+option subnet-mask 255.255.255.0;
+option broadcast-address 192.168.1.255;
+option routers 192.168.1.254;
+option domain-name-servers 192.168.1.1, 192.168.1.2;
+option domain-name "mydomain.org";
+subnet 192.168.1.0 netmask 255.255.255.0 {
+range 192.168.1.10 192.168.1.100;
+range 192.168.1.150 192.168.1.200;
+}</PRE
+></FONT
+></TD
+></TR
+></TABLE
+></P
+><P
+>This will allow the  DHCP server to assign the  client an IP address
+from the range 192.168.1.10-192.168.1.100  or  192.168.1.150-192.168.1.200.</P
+><P
+>If the client doesn't request a longer time frame, then the DHCP server
+will lease an IP address for 1200 seconds. Otherwise, the maximum (allowed) lease
+the server will allow is 9200 seconds. The server sends the following
+parameters to the client:</P
+><P
+>Use 255.255.255.0 as your subnet mask
+Use 192.168.1.255 as your broadcast address
+Use 192.168.1.254 as your default gateway
+USE 192.168.1.1 and  192.168.1.2 as your DNS servers.</P
+><P
+>If you specify a WINS server for your Windows clients, you need
+to include the following option in the dhcpd.conf file:</P
+><P
+>option netbios-name-servers 192.168.1.1;</P
+><P
+>You can also assign specific IP addresses based on the clients' ethernet
+<EM
+>MAC</EM
+> address as follows:</P
+><P
+><TABLE
+BORDER="1"
+BGCOLOR="#E0E0E0"
+WIDTH="100%"
+><TR
+><TD
+><FONT
+COLOR="#000000"
+><PRE
+CLASS="SCREEN"
+>  host haagen {
+     hardware ethernet 08:00:2b:4c:59:23;
+     fixed-address 192.168.1.222;
+}</PRE
+></FONT
+></TD
+></TR
+></TABLE
+></P
+><P
+>This will assign IP address 192.168.1.222 to a client with the ethernet
+<EM
+>MAC</EM
+> address of 08:00:2b:4c:59:23.</P
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN1486"
+>8.2.2. Starting the server</A
+></H2
+><P
+>In most cases the DHCP installation doesn't create a "dhcpd.leases" file.
+Before you start the server, you must create an empty file:</P
+><P
+><EM
+>touch /var/state/dhcp/dhcpd.leases</EM
+></P
+><P
+>To start the DHCP server, simply type (or include in the bootup scripts):</P
+><P
+><EM
+> /usr/sbin/dhcpd</EM
+></P
+><P
+>This will start dhcpd on eth0 device. If you need to start it on
+another device, simply supply it on the command line as shown below:</P
+><P
+><EM
+> /usr/sbin/dhcpd eth1</EM
+></P
+><P
+>If you wish to test the configuration for any oddities, you can start
+dhcpd with the debugging mode. Typing the command below will allow you
+to see exactly what is going on with the server.</P
+><P
+><EM
+>  /usr/sbin/dhcpd -d -f</EM
+></P
+><P
+><EM
+>Boot up a client</EM
+>.Take a look at the console of the server.
+You will see a number of debugging messages appear on the screen.</P
+><P
+><EM
+><EM
+>Your done</EM
+></EM
+></P
+></DIV
+></DIV
+><DIV
+CLASS="NAVFOOTER"
+><HR
+ALIGN="LEFT"
+WIDTH="100%"><TABLE
+SUMMARY="Footer navigation table"
+WIDTH="100%"
+BORDER="0"
+CELLPADDING="0"
+CELLSPACING="0"
+><TR
+><TD
+WIDTH="33%"
+ALIGN="left"
+VALIGN="top"
+><A
+HREF="x1438.html"
+ACCESSKEY="P"
+>Prev</A
+></TD
+><TD
+WIDTH="34%"
+ALIGN="center"
+VALIGN="top"
+><A
+HREF="index.html"
+ACCESSKEY="H"
+>Home</A
+></TD
+><TD
+WIDTH="33%"
+ALIGN="right"
+VALIGN="top"
+><A
+HREF="c1505.html"
+ACCESSKEY="N"
+>Next</A
+></TD
+></TR
+><TR
+><TD
+WIDTH="33%"
+ALIGN="left"
+VALIGN="top"
+>DHCP Client Setup for users of LinuxConf</TD
+><TD
+WIDTH="34%"
+ALIGN="center"
+VALIGN="top"
+><A
+HREF="c1433.html"
+ACCESSKEY="U"
+>Up</A
+></TD
+><TD
+WIDTH="33%"
+ALIGN="right"
+VALIGN="top"
+>Advanced Networking with Kernel 2.2</TD
+></TR
+></TABLE
+></DIV
+></BODY
+></HTML
+>

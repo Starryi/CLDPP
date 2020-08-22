@@ -1,0 +1,215 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1"><title>2. Procedure</title><link rel="stylesheet" type="text/css" href="style.css"><meta name="generator" content="DocBook XSL Stylesheets V1.79.1"><link rel="home" href="index.html" title="CDServer-HOWTO"><link rel="up" href="index.html" title="CDServer-HOWTO"><link rel="prev" href="ar01s01.html" title="1. Introduction"><link rel="next" href="ar01s03.html" title="3. Adding Support for More Loop Devices"></head><body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF"><div class="navheader"><table width="100%" summary="Navigation header"><tr><th colspan="3" align="center">2. Procedure</th></tr><tr><td width="20%" align="left"><a accesskey="p" href="ar01s01.html">Prev</a> </td><th width="60%" align="center"> </th><td width="20%" align="right"> <a accesskey="n" href="ar01s03.html">Next</a></td></tr></table><hr></div><div class="sect1"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="procedure"></a>2. Procedure</h2></div></div></div><p>
+<span class="emphasis"><em>Summary of Steps</em></span>
+</p><a class="indexterm" name="idm223"></a><div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem"><p>
+Create a large partition to hold the CD Image Files.
+</p></li><li class="listitem"><p>
+Copy the CD to an image file using the <span class="command"><strong>dd</strong></span> command.
+</p></li><li class="listitem"><p>
+Mount the CD image file within the directory tree.
+</p></li><li class="listitem"><p>
+	Share the directory on the network using <span class="application">Samba</span>, 
+	<span class="application"><acronym class="acronym">NFS</acronym></span>, etc.
+</p></li></ul></div><p>
+	Also, make sure you've read <a class="xref" href="ar01s01.html" title="1. Introduction">Section 1, &#8220;Introduction&#8221;</a> and 
+	<a class="xref" href="ar01s01.html#needed" title="1.2. Things You'll Need">Section 1.2, &#8220;Things You'll Need&#8221;</a>.
+</p><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="createimage"></a>2.1. Creating the ISO Images</h3></div></div></div><a class="indexterm" name="idm243"></a><p>
+Choose (or create) a file system with the largest available disk
+space on it.  Keep in mind that CD-ROM's can hold around 640MB of data,
+so if you want to share 8 full CD's on your network,
+you'll need 5.1GB of space available.
+</p><p>
+Login as root or "su" to root.
+</p><p>
+</p><pre class="screen">
+<code class="prompt">bash#</code> <span class="command"><strong>df -h</strong></span>
+
+<code class="computeroutput">
+Filesystem            Size  Used Avail Use% Mounted on
+/dev/hda5             1.4G   82M  1.3G   6% /
+/dev/hda1              15M  827k   14M   6% /boot
+/dev/hda7             2.4G 1008M  1.3G  43% /usr
+/dev/hda8            23.6G 11.7G 11.7G  50% /home
+</code>
+</pre><p>
+</p><p>
+	Here the <code class="filename">/home</code> filesystem has the most available space, 
+	so it is the most suitable filesystem to use for dumping the CD images to.
+</p><p>
+
+</p><pre class="screen">
+<code class="prompt">bash#</code> <span class="command"><strong>cd /home</strong></span>
+<code class="prompt">bash#</code> <span class="command"><strong>mkdir image</strong></span>
+<code class="prompt">bash#</code> <span class="command"><strong>cd image</strong></span>
+</pre><p>
+ 
+</p><p>
+Now, copy the CD to an <acronym class="acronym">ISO</acronym> image.  You must know the device name 
+of your CD-ROM drive (usually <code class="filename">/dev/cdrom</code>, 
+it could be <code class="filename">/dev/scd0</code> for 
+SCSI CD-ROM's) I'll use the Mandrake distribution CD-ROM as an Example:
+</p><p>
+
+</p><pre class="screen">
+<code class="prompt">bash#</code> <span class="command"><strong>dd if=/dev/cdrom of=mndrk81.iso</strong></span>
+</pre><p>
+
+</p><div class="variablelist"><dl class="variablelist"><dt><span class="term">Note</span></dt><dd><p>
+	The <span class="quote">&#8220;<span class="quote">if=</span>&#8221;</span> is the input file, the <span class="quote">&#8220;<span class="quote">of=</span>&#8221;</span> is the output file.  You 
+	should see a message stating the number of records in and number of 
+	records out.</p><p>If you see i/o errors, they will most likely be due to
+	the lead-in and lead-out runoutblocks on the CD. If the number
+	of records in and number of records out do not match you may have a problem, 
+	otherwise the image will most
+	likely be alright, but you can never know if the errors happened while
+	reading the <acronym class="acronym">ISO</acronym> part of the CD or not (due to dust or scratches on the
+	CD).</p><p>Other utilities to read CD's exist, like <span class="command"><strong>readcd</strong></span> or
+		<span class="command"><strong>sdd</strong></span>.</p><p>More information about making 1:1 copies of CD's 
+	exists in the [<span class="citation">CD-Writing-HOWTO</span>], see <a class="xref" href="ar01s01.html#reading" title="1.3. Suggested Reading and References">Section 1.3, &#8220;Suggested Reading and References&#8221;</a>.
+	</p></dd></dl></div><p>
+<span class="emphasis"><em>My thanks to Giblhauser Carl Michael for the runoutblock information.</em></span>
+</p></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="mountimage"></a>2.2. Mounting the ISO Images</h3></div></div></div><a class="indexterm" name="idm289"></a><p>
+The next step is to mount the <acronym class="acronym">ISO</acronym> image file.  Let's create 
+a directory under <code class="filename">/mnt</code> to place the mounted file.
+</p><p>
+
+</p><pre class="screen">
+<code class="prompt">bash#</code> <span class="command"><strong>cd /mnt</strong></span>
+<code class="prompt">bash#</code> <span class="command"><strong>mkdir iso</strong></span>
+<code class="prompt">bash#</code> <span class="command"><strong>cd iso</strong></span>
+<code class="prompt">bash#</code> <span class="command"><strong>mkdir mndrk81</strong></span>
+</pre><p>
+
+</p><p>
+Now mount the <acronym class="acronym">ISO</acronym> image file to this newly created directory
+</p><p>
+
+</p><pre class="screen">
+<code class="prompt">bash#</code> <span class="command"><strong>mount -o loop,unhide -t iso9660 -r /home/image/mndrk81.iso /mnt/iso/mndrk81</strong></span>
+</pre><p>
+
+</p><div class="variablelist"><dl class="variablelist"><dt><span class="term">Note</span></dt><dd><p>
+	The <span class="quote">&#8220;<span class="quote">-o loop</span>&#8221;</span> means use the option that mounts a file as a block 
+	device.  The unhide option shows hidden files. The <span class="quote">&#8220;<span class="quote">-t iso9660</span>&#8221;</span> means 
+	that the file is in the iso9660 CD-ROM format.  The <span class="quote">&#8220;<span class="quote">-r</span>&#8221;</span> means to mount read-only.
+</p></dd></dl></div><p>
+	<span class="emphasis"><em>Thanks to Amar Chaouche for pointing out the unhide option for the mount command.</em></span>
+</p><p>
+Now you can:
+</p><p>
+
+</p><pre class="screen">
+<code class="prompt">bash#</code> <span class="command"><strong>cd mndrk81</strong></span>
+<code class="prompt">bash#</code> <span class="command"><strong>ls -al</strong></span>
+</pre><p>
+
+</p><p>
+	You should see a listing (<span class="command"><strong>ls</strong></span>) of the files and directories that are on 
+	the actual CD (only now they're inside the <acronym class="acronym">ISO</acronym> image file, and that's what you're 
+	currently looking at!)
+</p></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="systemrestart"></a>2.3. Mounting the Image upon System Restart</h3></div></div></div><a class="indexterm" name="idm332"></a><p>
+Now that we've manually mounted the image, and made sure it works, 
+an entry needs to made in the <code class="filename">/etc/fstab</code> file so that the image is 
+remounted on the next system startup.  It's important to make the 
+entry AFTER the entry for the parent filesystem, e.g. 
+<code class="filename">/home</code> (I use <span class="command"><strong>vim</strong></span>, 
+but <span class="command"><strong>emacs</strong></span>, <span class="command"><strong>joe</strong></span>, <span class="command"><strong>pico</strong></span> 
+or <span class="command"><strong>jed</strong></span> will work just as well):
+</p><p>
+</p><pre class="screen">
+<code class="prompt">bash#</code> <span class="command"><strong>vim /etc/fstab</strong></span>
+</pre><p>
+</p><p>
+After the line that looks like the following (or whichever filesystem you've placed your images):
+</p><p>
+</p><pre class="screen">
+/dev/hda8 /home ext2 defaults 1 2
+</pre><p>
+</p><p>
+Insert the following line with your text editor:
+</p><p>
+</p><pre class="screen">
+/home/image/mndrk81.iso /mnt/iso/mndrk81 iso9660 ro,loop,auto,unhide 0 0
+</pre><p>
+</p></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="sharing"></a>2.4. Sharing it on a Windows Network using Samba</h3></div></div></div><a class="indexterm" name="idm354"></a><p>
+You'll need to have Samba installed and working to perform the next 
+steps (that's outside the scope of this instruction, see <a class="xref" href="ar01s01.html#reading" title="1.3. Suggested Reading and References">Section 1.3, &#8220;Suggested Reading and References&#8221;</a>).  If it's not 
+yet installed, consult your Linux distribution's instructions for 
+installing the Samba package.  Or you can visit the Samba website 
+at <a class="ulink" href="http://us1.samba.org/samba/samba.html" target="_top">http://us1.samba.org/samba/samba.html</a> 
+	for installation instructions, 
+binaries, and/or the source code.
+</p><p>
+To share your mounted CD's on a windows network, simply create 
+a stanza in the <code class="filename">/etc/smb.conf</code> file similar to the following:
+</p><p>
+</p><pre class="screen">
+[cdimages]
+  comment = All Shared CD Images
+  path = /mnt/iso
+  public = yes
+  writable = no
+</pre><p>
+</p><p>
+	This will share all the subdirectories under the 
+	<code class="filename">/mnt/iso</code> directory 
+on the network.  To mount the share to a local drive (in this case 
+the I: drive), bring up an MS-DOS Prompt on the Windows machine and 
+type the following:
+</p><p>
+</p><pre class="screen">
+<code class="prompt">C:\&gt;</code> <span class="command"><strong>net use I: \\yourlinuxmachine\cdimages</strong></span>
+</pre><p>
+</p><p>
+Each CD image will now appear as a subdirectory on the I: drive of 
+your Windows machine.
+</p><p>
+To mount ONLY the Mandrake CD image to a drive letter (we'll use M:, 
+the root drive of which, will correspond exactly to the CD as if it 
+was just inserted in the CD-ROM drive), create the following stanza 
+in the <code class="filename">/etc/smb.conf</code> file.
+</p><p>
+</p><pre class="screen">
+[mndrk81]
+  comment = Mandrake Linux 8.1
+  path = /mnt/iso/mndrk81
+  public = yes
+  writable = no
+</pre><p>
+</p><p>
+Then, at your MS-DOS Prompt, mount it with the following command:
+</p><p>
+</p><pre class="screen">
+<code class="prompt">C:\&gt;</code> <span class="command"><strong>net use m: \\yourlinuxmachine\mndrk81</strong></span>
+</pre><p>
+</p><div class="variablelist"><dl class="variablelist"><dt><span class="term"><span class="emphasis"><em>Warning</em></span></span></dt><dd><p>
+<span class="emphasis"><em>
+The Samba smb.conf file stanzas presented here are 
+simplified, and not secure.  Many more options exist for 
+a Samba share which limit who can mount the shares, control how 
+user authentication is performed, and whether the share is even 
+browseable through Network Neighborhood on the Windows machines.
+</em></span>
+</p></dd></dl></div></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="nfs"></a>2.5. Sharing the Images on a Unix network using NFS</h3></div></div></div><a class="indexterm" name="idm388"></a><p>
+Make sure that NFS is running and configured correctly on 
+your Linux machine, then add the following to the <code class="filename">/etc/exports</code> 
+file using your own preferred options:
+</p><p>
+</p><pre class="screen">
+# sample /etc/exports file
+       /mnt/iso            (ro,insecure,nohide,all_squash)
+</pre><p>
+</p><div class="variablelist"><dl class="variablelist"><dt><span class="term">Note</span></dt><dd><p>
+The nohide option will allow you to mount a parent directory, without
+explicitly mounting all exported subdirectories beneath it.  
+</p></dd></dl></div><p>
+Now try running:
+</p><p>
+</p><pre class="screen">
+<code class="prompt">bash#</code> <span class="command"><strong>exportfs -r</strong></span>
+</pre><p>
+</p><p>
+This should re-export everything in your <code class="filename">/etc/exports</code> file.
+</p><p>
+	Now, when typing <span class="quote">&#8220;<span class="quote"><span class="command"><strong>showmount -e <em class="replaceable"><code>yourlinuxmachine</code></em></strong></span></span>&#8221;</span> 
+	you should see that the <code class="filename">/mnt/iso</code> directory is included in the exports list.
+</p></div></div><div class="navfooter"><hr><table width="100%" summary="Navigation footer"><tr><td width="40%" align="left"><a accesskey="p" href="ar01s01.html">Prev</a> </td><td width="20%" align="center"> </td><td width="40%" align="right"> <a accesskey="n" href="ar01s03.html">Next</a></td></tr><tr><td width="40%" align="left" valign="top">1. Introduction </td><td width="20%" align="center"><a accesskey="h" href="index.html">Home</a></td><td width="40%" align="right" valign="top"> 3. Adding Support for More Loop Devices </td></tr></table></div></body></html>

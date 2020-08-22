@@ -1,0 +1,51 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1"><title>2. Sharing LVM volumes</title><link rel="stylesheet" type="text/css" href="style.css"><meta name="generator" content="DocBook XSL Stylesheets V1.79.1"><link rel="home" href="index.html" title="LVM HOWTO"><link rel="up" href="apa.html" title="Appendix A. Dangerous Operations"><link rel="prev" href="apas01.html" title="1. Restoring the VG UUIDs using uuid_fixer"><link rel="next" href="apb.html" title="Appendix B. Reporting Errors and Bugs"></head><body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF"><div class="navheader"><table width="100%" summary="Navigation header"><tr><th colspan="3" align="center">2. Sharing LVM volumes</th></tr><tr><td width="20%" align="left"><a accesskey="p" href="apas01.html">Prev</a> </td><th width="60%" align="center">Appendix A. Dangerous Operations</th><td width="20%" align="right"> <a accesskey="n" href="apb.html">Next</a></td></tr></table><hr></div><div class="sect1"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="sharinglvm1"></a>2. Sharing LVM volumes</h2></div></div></div><div class="warning" style="margin-left: 0.5in; margin-right: 0.5in;"><h3 class="title">LVM is not cluster aware</h3><p>
+          Be very careful doing this, LVM is not currently cluster-aware
+          and it is very easy to lose all your data.
+        </p></div><p>  
+        If you have a fibre-channel or shared-SCSI environment where more
+        than one machine has physical access to a set of disks then you can
+        use LVM to divide these disks up into logical volumes. If you want
+        to share data you should really be looking at 
+        <a class="ulink" href="http://www.sistina.com/gfs" target="_top">GFS</a> or other
+        cluster filesystems.
+      </p><p>
+        The key thing to remember when sharing volumes is that all the LVM
+        administration must be done on one node only and that all other
+        nodes must have LVM shut down before changing anything on the admin
+        node.  Then, when the changes have been made, it is necessary to
+        run vgscan on the other nodes before reloading the volume groups.
+        Also, unless you are running a cluster-aware filesystem (such as
+        GFS) or application on the volume, only one node can mount each
+        filesystem.  It is up to you, as system administrator to enforce
+        this, LVM will not stop you corrupting your data.
+      </p><p>
+        The startup sequence of each node is the same as for a single-node
+        setup with
+        </p><pre class="screen">
+vgscan
+vgchange -ay
+        </pre><p>
+        in the startup scripts.
+      </p><p>
+        If you need to do <span class="strong"><strong>any</strong></span> changes to
+        the LVM metadata (regardless of whether it affects volumes mounted
+        on other nodes) you must go through the following sequence. In the
+        steps below ``admin node'' is any arbitrarily chosen node in the
+        cluster.
+        </p><pre class="screen">
+Admin node                   Other nodes
+----------                   -----------
+                             Close all Logical volumes (umount)
+                             vgchange -an
+&lt;make changes, eg lvextend&gt;
+                             vgscan
+                             vgchange -ay
+        </pre><p>
+      </p><div class="note" style="margin-left: 0.5in; margin-right: 0.5in;"><h3 class="title">VGs should be active on the admin node</h3><p>
+          You do not need to, nor should you, unload the VGs on
+          the admin node, so this can be the node with the highest uptime
+          requirement.
+        </p></div><p>
+        I'll say it again:  <span class="strong"><strong>Be very careful doing
+          this</strong></span>
+      </p></div><div class="navfooter"><hr><table width="100%" summary="Navigation footer"><tr><td width="40%" align="left"><a accesskey="p" href="apas01.html">Prev</a> </td><td width="20%" align="center"><a accesskey="u" href="apa.html">Up</a></td><td width="40%" align="right"> <a accesskey="n" href="apb.html">Next</a></td></tr><tr><td width="40%" align="left" valign="top">1. Restoring the VG UUIDs using uuid_fixer </td><td width="20%" align="center"><a accesskey="h" href="index.html">Home</a></td><td width="40%" align="right" valign="top"> Appendix B. Reporting Errors and Bugs</td></tr></table></div></body></html>

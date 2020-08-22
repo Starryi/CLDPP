@@ -1,0 +1,104 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1"><title>3. Configuring an ASE Server</title><link rel="stylesheet" type="text/css" href="style.css"><meta name="generator" content="DocBook XSL Stylesheets V1.79.1"><link rel="home" href="index.html" title="Sybase Adaptive Server Enterprise / SQL Server HOWTO"><link rel="up" href="index.html" title="Sybase Adaptive Server Enterprise / SQL Server HOWTO"><link rel="prev" href="ar01s02.html" title="2. Installation"><link rel="next" href="ar01s04.html" title="4. Basic Usage"></head><body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF"><div class="navheader"><table width="100%" summary="Navigation header"><tr><th colspan="3" align="center">3. Configuring an ASE Server</th></tr><tr><td width="20%" align="left"><a accesskey="p" href="ar01s02.html">Prev</a> </td><th width="60%" align="center"> </th><td width="20%" align="right"> <a accesskey="n" href="ar01s04.html">Next</a></td></tr></table><hr></div><div class="sect1"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="config"></a>3. Configuring an ASE Server</h2></div></div></div><p>
+So far we have copied the software into the file system, now we will do the actual setup of a database server. First we need to make sure the sybase user is set up properly, then we can start the configuration utilities and enter the correct settings there.
+</p><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="idm263"></a>3.1. Pre-Configuration steps</h3></div></div></div><p>
+</p><div class="orderedlist"><ol class="orderedlist" type="1"><li class="listitem"><p>
+To begin with, read the <code class="filename">LICENSE</code> file if it exists. Once you agree with this, continue down this list.
+</p></li><li class="listitem"><p>
+There are some useful steps done by the installation scripts in the RPM packages that you may want to do by hand if you installed with extra RPM switches or used alien. One is that directories in ASE 12.5 get shortcuts created with shorter names. ASE-12_5 gets a symlink named ASE, OCS-12_5 has a symlink named OCS. You can set these up yourself to save some typing later.
+</p><pre class="screen">
+bash$ cd /opt/sybase
+bash$ ln -s SYBASE_ASE ASE
+bash$ ln -s SYBASE_OCS OCS
+bash$ ln -s shared-1_0 shared
+bash$ ln -s SYSAM-1_0 SYSAM
+</pre><p>
+</p></li><li class="listitem"><p>
+Change the installation to be owned by the sybase user.
+</p><pre class="screen">
+bash$ su - root
+bash# chown -R sybase.sybase /opt/sybase
+bash# chmod -R ug+w /opt/sybase
+</pre><p>
+This is more or less what the <code class="filename">sybinstall.sh</code> script does for you. In SQL Server 11.0.3.3 there is a script which attempts to set all permissions right, <code class="filename">$SYBASE/install/setperm_all</code>
+</p></li><li class="listitem"><p>
+Make sure you allow ASE to allocate the necessary amount of shared memory. Your current maximum is what you find from <span class="command"><strong>ipcs -lm</strong></span> (in KiloBytes) or <span class="command"><strong>cat /proc/sys/kernel/shmmax</strong></span> (in bytes) or <span class="command"><strong>sysctl kernel.shmmax</strong></span> (in bytes). This can be set with
+</p><pre class="screen">
+<span class="command"><strong>sysctl -w kernel.shmmax=<em class="replaceable"><code>[number of bytes]</code></em></strong></span></pre><p>
+or by directly 
+</p><pre class="screen"><span class="command"><strong>echo <em class="replaceable"><code>[number of bytes]</code></em> &gt; /proc/sys/kernel/shmmax</strong></span></pre><p>
+as root. Make sure this is permanently changed on every reboot by either inserting a line in <code class="filename">/etc/sysctl.conf</code> or place the echo command in a rc startup file (such as rc.local) as the Sybase documentation says. Depending upon the version, here is the memory requirements for ASE:
+
+</p><div class="table"><a name="idm290"></a><p class="title"><b>Table 3. ASE Memory Requirements</b></p><div class="table-contents"><table class="table" summary="ASE Memory Requirements" border="1"><colgroup><col align="left" class="col1"><col align="left" class="col2"><col align="left" class="col3"><col align="left" class="col4"></colgroup><thead><tr><th align="left">Version</th><th align="left">Minimum Memory</th><th align="left">shmmax</th><th align="left">"total memory"</th></tr></thead><tbody><tr><td align="left">11.0.3.3</td><td align="right">&#732;15 MB</td><td align="right">15360000 bytes</td><td align="right">7500 2K pages</td></tr><tr><td align="left">11.9.2.x</td><td align="right">32 MB</td><td align="right">33554432 bytes</td><td align="right">16384 2K pages</td></tr><tr><td align="left">12.5.0.x</td><td align="right">50 MB</td><td align="right">52428800 bytes</td><td align="right">25600 2K pages</td></tr></tbody></table></div></div><p><br class="table-break">
+
+</p></li><li class="listitem"><p>
+Make sure the sybase user has all relevant environment variables set correctly.
+</p><div class="table"><a name="idm321"></a><p class="title"><b>Table 4. Sybase environment variables</b></p><div class="table-contents"><table class="table" summary="Sybase environment variables" border="1"><colgroup><col align="left" class="col1"><col align="left" class="col2"><col align="left" class="col3"></colgroup><thead><tr><th align="left">Version</th><th align="left">Variable</th><th align="left">Set to</th></tr></thead><tbody><tr><td align="left">11.0.3.3 and 11.9.2.x</td><td class="auto-generated"> </td><td class="auto-generated"> </td></tr><tr><td class="auto-generated"> </td><td align="left">$LANG</td><td align="left">Must not be set!</td></tr><tr><td class="auto-generated"> </td><td align="left">$LC_ALL</td><td align="left">"default"</td></tr><tr><td class="auto-generated"> </td><td align="left">$SYBASE</td><td align="left">Top-level of installation, default is /opt/sybase/</td></tr><tr><td class="auto-generated"> </td><td align="left">$PATH</td><td align="left">Add /opt/sybase/bin to the start of the existing $PATH</td></tr><tr><td class="auto-generated"> </td><td align="left">$LD_LIBRARY_PATH</td><td align="left">Add /opt/sybase/lib to the start of the existing $LD_LIBRARY_PATH</td></tr><tr><td class="auto-generated"> </td><td align="left">$SYBPLATFORM</td><td align="left">"linux"</td></tr><tr><td align="left">12.5.0.x</td><td align="left">All of the above plus</td><td class="auto-generated"> </td></tr><tr><td class="auto-generated"> </td><td align="left">$SYBASE_ASE</td><td align="left">Subdirectory (not full path) to the ASE part of the installation</td></tr><tr><td class="auto-generated"> </td><td align="left">$SYBASE_OCS</td><td align="left">Subdirectory (not full path) to the Open Client / Open Server part of the installation</td></tr></tbody></table></div></div><p><br class="table-break">
+Create a script with all environment variables that you can source in, or modify startup files such as <code class="filename">.cshrc</code> or <code class="filename">.profile</code>. Here are the needed settings:
+</p><p>
+sh/bash/ksh type shells
+</p><pre class="screen">
+unset LANG
+export LC_ALL="default"
+export SYBASE="/opt/sybase/"
+export PATH="$SYBASE/bin:$SYBASE/$SYBASE_ASE/bin:$SYBASE/$SYBASE_OCS/bin:
+$SYBASE/$SYBASE_SYSAM/bin:$PATH"
+export LD_LIBRARY_PATH="$SYBASE/lib:$SYBASE/$SYBASE_ASE/lib:$SYBASE/$SYBASE_OCS/lib:
+$LD_LIBRARY_PATH"
+export SYBPLATFORM="linux"
+export SYBASE_ASE="ASE"
+export SYBASE_OCS="OCS"
+export SYBASE_FTS="FTS"
+export SYBASE_SYSAM="SYSAM"
+</pre><p>
+csh/tcsh type shells
+</p><pre class="screen">
+unsetenv LANG
+setenv LC_ALL default
+setenv SYBASE /opt/sybase/
+setenv PATH $SYBASE/bin:$SYBASE/$SYBASE_ASE/bin:$SYBASE/$SYBASE_OCS/bin:
+$SYBASE/$SYBASE_SYSAM/bin:$PATH
+setenv LD_LIBRARY_PATH=$SYBASE/lib:$SYBASE/$SYBASE_ASE/lib:$SYBASE/$SYBASE_OCS/lib:
+$LD_LIBRARY_PATH
+setenv SYBPLATFORM=linux
+setenv SYBASE_ASE ASE
+setenv SYBASE_OCS OCS
+setenv SYBASE_FTS FTS
+setenv SYBASE_SYSAM SYSAM
+</pre><p>
+</p></li><li class="listitem"><p>
+Prepare the data area.
+</p></li></ol></div><p>
+</p></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="idm369"></a>3.2. Preparing the Data Area</h3></div></div></div><p>
+Since the file system for the software is now prepared, we can decide where to locate the data storage used to hold the data inserted into the databases. The first decision is whether to use raw devices or file system. Traditionally, raw devices were used. You had to partition a disk and set a certain label to have it recognized as raw. Linux didn't have this previously and the Sybase virtual devices were instead written to files in a file system.
+</p><p>
+So, what is the difference between these approaches and when should you choose each? Unfortunately, it is one of the areas where the answer is a very clear and unambiguos "it depends". Raw devices were introduced first with kernel patches and then included in the 2.4 series. You use the command <span class="command"><strong>raw</strong></span> to create bindings between partitions and the <code class="filename">/dev/raw<em class="replaceable"><code>n</code></em></code> devices. This means that you will need to have a free partition on a disk. Changing this later can also be difficult. The advantages of raw devices are that you know exactly where on disk they are located - you can place them on the fastest cylinders if you like. Writes to the raw devices will be unbuffered, they will go directly to disk. In case of a failure (such as power outage, disk controller failure or process crash) the finished writes are guaranteed to be on disk instead of only having been written to a buffer waiting for the disk to be ready. Also, the ASE server will to asynchronous I/O on these devices. It can queue a series of I/O instead of having to do a single I/O, wait for it to finish and then do the next operation. While the I/O result is pending, the ASE server will perform other work. With a virtual device written to a file on a file system (ext2, ext3 and Reiserfs are all supported), the writes will normally be done to the file system buffers. The actual file may be located anywhere on the partition and may not be contiguous. Note that there is no need for a journalling file system since these will only log the changes to the inode, not the contents of the data blocks. The Sybase ASE transaction log will do exactly this kind of "journalling" of the data modifications for you. The buffering means that reading data not held in ASE cache may take place from the file system buffer instead of having to read it from disk, thereby speeding up these. However, writes will probably take longer time to finish since they have to pass through the file system driver layer. In order to have safe writes to file system devices you can configure ASE to open the device using the O_DSYNC flag, which will cause writes to be flushed to disc immediately when writing.
+</p><p>
+In ASE 11.0.3.3 ESD #6 there is support for raw devices. This will need certain patches shipped in the GPL directory, one for raw device access, one for KAIO. There are instructions for how to apply these to the kernels and distributions that were current at the time.
+</p><p>
+In 11.9.2.x it was decided not to include any experimental raw device support before the Linux kernel officially included and supported this. In order to guarantee safe writes, the O_DSYNC flag is always enabled by default. You can globally disable this with traceflag 1625; add -T1625 as a parameter to the RUN_SERVER file.
+</p><p>
+In ASE 12.5.0.x there was a change starting in 12.5.0.2 where the server is now compiled to use the kernel 2.4 functionality. That means you can create raw devices on OS level and configure ASE to use these without any special patches. If you prefer file system devices, you can set the O_DSYNC flag to be used with the <em class="parameter"><code>dsync=true</code></em> parameter when creating the device with <span class="command"><strong>disk init</strong></span>, or the <span class="command"><strong>sp_deviceattr</strong></span> stored procedure to modify it later.
+</p></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="idm382"></a>3.3. Starting the Configuration</h3></div></div></div><p>
+To configure a SQL Server 11.0.3.3 you log in as the sybase user and start the <span class="command"><strong>sybinit</strong></span> utility. You can run this in a console, make changes and hit <span class="keycap"><strong>Ctrl</strong></span>+<span class="keysym">A</span> for "accept" and <span class="keycap"><strong>Ctrl</strong></span>+<span class="keysym">X</span> to go back to the previous menu.
+</p><p>
+In ASE 11.9.2.x and 12.5.0.x, you normally use the <span class="command"><strong>srvbuild</strong></span> command, but you will need an X server to display it. For those not using X, an option is to use the shell script "sybinit4ever", available on the web from SyPron, see the 3rd party utilities section later. This will give you a classic sybinit menu interface to the configuration process. An alternative from Sybase is the <span class="command"><strong>srvbuildres</strong></span> utility which uses a resource file containing all configuration options which you can edit with your settings, these options are  described in an appendix of the Installation Guide. 
+</p><p>
+The exact entries for configuring a server are described in more detail in the /opt/sybase/doc/howto/howto-ase-quickstart.html file from the ASE 11.0.3.3 documentation RPM, and in the "Configuration Guide for UNIX" for the newer versions. The information you will need for all versions are:
+</p><div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem"><p>
+IP address of the interface which ASE will listen on. Use the network IP of the machine or 127.0.0.1 if you are only going to accept local connections.
+</p></li><li class="listitem"><p>
+TCP port which ASE will listen on. Choose any port not in use. Port 2025 was used before, 4100 is the current default. Use 1433 if you are trying to trick applications into believing this is an MS SQL Server.
+</p></li><li class="listitem"><p>
+Path to the master device (raw device or file).
+</p></li><li class="listitem"><p>
+Path to the sybsystemprocs device (raw device or file).
+</p></li><li class="listitem"><p>
+Character set and sort order for your data (you want to get this right the first time, changing it later involves copying all data out to files and load them back in). ISO_1 character set should be sufficient for most purposes. Unicode is only supported in the 12.5.0.x releases.
+</p></li><li class="listitem"><p>
+Logical server name - this is just a placeholder to identify an ASE instance. In the examples I have named the server SYBASE.
+</p></li></ul></div><p>
+</p><p>
+Once you have decided on these settings, start the configuration program. If you use <span class="command"><strong>srvbuild</strong></span>, you will need to set your $DISPLAY variable correctly. Type in the requested settings and let the configuration utility build the server. Some parts of this, such as creating the database devices and loading the system stored procedures, will take time. Once the process has finished, you server should have been built and be up and running, ready for requests.
+</p></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="idm411"></a>3.4. Finishing Off</h3></div></div></div><p>
+If you want automatic startup and shutdown, consider the rc.sybase script a good start. You can copy this to where all your other startup scripts are and create the correct start and stop links from your runlevel directories.
+</p></div></div><div class="navfooter"><hr><table width="100%" summary="Navigation footer"><tr><td width="40%" align="left"><a accesskey="p" href="ar01s02.html">Prev</a> </td><td width="20%" align="center"> </td><td width="40%" align="right"> <a accesskey="n" href="ar01s04.html">Next</a></td></tr><tr><td width="40%" align="left" valign="top">2. Installation </td><td width="20%" align="center"><a accesskey="h" href="index.html">Home</a></td><td width="40%" align="right" valign="top"> 4. Basic Usage</td></tr></table></div></body></html>

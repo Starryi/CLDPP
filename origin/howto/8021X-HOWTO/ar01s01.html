@@ -1,0 +1,277 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1"><title>1. Introduction</title><link rel="stylesheet" type="text/css" href="style.css"><meta name="generator" content="DocBook XSL Stylesheets V1.79.1"><link rel="home" href="index.html" title="802.1X Port-Based Authentication HOWTO"><link rel="up" href="index.html" title="802.1X Port-Based Authentication HOWTO"><link rel="prev" href="index.html" title="802.1X Port-Based Authentication HOWTO"><link rel="next" href="ar01s02.html" title="2. Obtaining Certificates"></head><body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF"><div class="navheader"><table width="100%" summary="Navigation header"><tr><th colspan="3" align="center">1. Introduction</th></tr><tr><td width="20%" align="left"><a accesskey="p" href="index.html">Prev</a> </td><th width="60%" align="center"> </th><td width="20%" align="right"> <a accesskey="n" href="ar01s02.html">Next</a></td></tr></table><hr></div><div class="sect1"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="intro"></a>1. Introduction</h2></div></div></div><p>
+  This document describes the software and procedures to set up and use <a class="ulink" href="http://standards.ieee.org/getieee802/download/802.1X-2001.pdf" target="_top">802.1X: 
+  Port-Based Network Access Control</a> using <a class="ulink" href="http://www.open1x.org" target="_top"><span class="application">Xsupplicant</span></a>
+  with PEAP (PEAP/MS-CHAPv2) as authentication method and <a class="ulink" href="http://www.freeradius.org/" target="_top"><span class="application">FreeRADIUS</span></a>
+  as back-end authentication server.
+  </p><p>
+  If another authentication mechanism than PEAP is preferred, e.g.,
+  EAP-TLS or EAP-TTLS, only a small number of configuration options
+  needs to be changed. PEAP/MS-CHAPv2 are also supported by Windows XP
+  SP1/Windows 2000 SP3.
+  </p><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="what8021x"></a>1.1. What is 802.1X?</h3></div></div></div><p>The 802.1X-2001 standard states:</p><p>
+  <span class="quote">&#8220;<span class="quote">Port-based network access control makes use of the physical
+  access characteristics of IEEE 802 LAN infrastructures in order to
+  provide a means of <span class="emphasis"><em>authenticating</em></span> and
+  <span class="emphasis"><em>authorizing</em></span> devices attached 
+  to a LAN port that has point-to-point connection characteristics,
+  and of <span class="emphasis"><em>preventing access</em></span> to that port in cases
+  which the authentication and authorization fails. A port in this
+  context is a single point of attachment to the LAN
+  infrastructure.</span>&#8221;</span> --- 802.1X-2001, page 1.
+  </p><div class="mediaobject" align="center"><a name="p8021x"></a><table border="0" summary="manufactured viewport for HTML img" style="cellpadding: 0; cellspacing: 0;" width="550"><tr><td align="center"><img src="images/8021X-Overview.png" align="middle" width="550" alt="802.1X"></td></tr></table><div class="caption"><p>Figure 802.1X: A wireless node must be authenticated before it
+    can gain access to other LAN resources.</p></div></div><div class="orderedlist"><ol class="orderedlist" type="1"><li class="listitem"><p>
+    When a new wireless node (WN) requests access to a LAN resource,
+    the access point (AP) asks for the WN's identity. <span class="emphasis"><em>No
+    other traffic than EAP is allowed before the WN is authenticated
+    (the <span class="quote">&#8220;<span class="quote">port</span>&#8221;</span> is closed).</em></span> 
+    </p><p>
+    The wireless node that requests authentication is often called
+    <span class="emphasis"><em>Supplicant</em></span>, although it is more correct to
+    say that the wireless node <span class="emphasis"><em>contains</em></span> a
+    Supplicant. The Supplicant is responsible for responding to
+    Authenticator data that will establish its credentials. The same
+    goes for the access point; the 
+    <span class="emphasis"><em>Authenticator is</em></span> not the access point. Rather,
+    the access point contains an Authenticator. The Authenticator does
+    not even need to be in the access point; it can be an external
+    component.
+    </p><p>
+    EAP, which is the protocol used for authentication, was originally
+    used for dial-up PPP. The identity was the username, and either
+    PAP or CHAP authentication [<a class="ulink" href="http://www.ietf.org/rfc/rfc1994.txt" target="_top">RFC1994</a>] was
+    used to check the user's password. Since the identity is sent in
+    clear (not encrypted), a malicious sniffer may learn the user's
+    identity. <span class="quote">&#8220;<span class="quote">Identity hiding</span>&#8221;</span> is therefore used; the
+    real identity is not sent before the encrypted TLS tunnel is up.
+    </p></li><li class="listitem"><p>
+    After the identity has been sent, the authentication process
+    begins. The protocol used between the Supplicant and the
+    Authenticator is EAP, or, more correctly, EAP encapsulation over
+    LAN (EAPOL). The Authenticator re-encapsulates the EAP messages to
+    RADIUS format, and passes them to the Authentication Server. 
+    </p><p>
+    During authentication, the Authenticator just relays packets
+    between the Supplicant and the Authentication Server. When the
+    authentication process finishes, the Authentication Server sends a
+    success message (or failure, if the authentication
+    failed).<span class="emphasis"><em> The Authenticator then opens the
+    <span class="quote">&#8220;<span class="quote">port</span>&#8221;</span> for the Supplicant.</em></span> 
+    </p></li><li class="listitem"><p>
+    After a successful authentication, the Supplicant is granted
+    access to other LAN resources/Internet.
+    </p></li></ol></div><p>
+  See figure <a class="link" href="ar01s01.html#p8021x">802.1X</a> for explanation.
+  </p><p>
+  Why is it called <span class="quote">&#8220;<span class="quote">port</span>&#8221;</span>-based authentication? The
+  Authenticator deals with <span class="emphasis"><em>controlled</em></span> and
+  <span class="emphasis"><em>uncontrolled</em></span> ports. Both the controlled and the
+  uncontrolled port are logical entities (virtual ports), but use the
+  same physical connection to the LAN (same point of attachment).
+  </p><div class="mediaobject" align="center"><a name="port"></a><table border="0" summary="manufactured viewport for HTML img" style="cellpadding: 0; cellspacing: 0;" width="550"><tr><td align="center"><img src="images/8021X-Ports.png" align="middle" width="550" alt="802.1X (un)controlled port"></td></tr></table><div class="caption"><p>Figure port: The authorization state of the controlled
+    port.</p></div></div><p>
+  Before authentication, only the uncontrolled port is
+  <span class="quote">&#8220;<span class="quote">open</span>&#8221;</span>. The only traffic allowed is EAPOL; see
+  Authenticator System 1 on figure <a class="link" href="ar01s01.html#port">port</a>. After the Supplicant has been
+  authenticated, the controlled port is opened, and access to other LAN
+  resources are granted; see Authenticator System 2 on figure <a class="link" href="ar01s01.html#port">port</a>.
+  </p><p>
+  802.1X plays a major role in the new IEEE wireless standard 802.11i.
+  </p></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="what80211i"></a>1.2. What is 802.11i?</h3></div></div></div><div class="sect3"><div class="titlepage"><div><div><h4 class="title"><a name="WEP"></a>1.2.1. WEP</h4></div></div></div><p>
+     Wired Equivalent Privacy (WEP), which is part of the original
+     802.11 standard, should provide confidentiality. Unfortunately WEP
+     is poorly designed and easily cracked. There is no authentication
+     mechanism, only a weak form of access control (must have the
+     shared key to communicate). Read more <a class="ulink" href="http://www.isaac.cs.berkeley.edu/isaac/wep-faq.html" target="_top">here</a>.
+     </p><p>
+     As a response to WEP broken security, IEEE has come up with
+     a new wireless security standard named 802.11i. 802.1X plays a
+     major role in this new standard.
+     </p></div><div class="sect3"><div class="titlepage"><div><div><h4 class="title"><a name="RSN"></a>1.2.2. 802.11i</h4></div></div></div><p>
+     The new security standard, 802.11i, which was ratified in June
+     2004, fixes all WEP weaknesses. It is divided into three main
+     categories:
+     </p><div class="orderedlist"><ol class="orderedlist" type="1"><li class="listitem"><p>
+     <span class="emphasis"><em>Temporary Key Integrity Protocol (TKIP)</em></span> is
+     a short-term solution that fixes all WEP weaknesses. TKIP can be
+     used with old 802.11 equipment (after a driver/firmware upgrade)
+     and provides integrity and confidentiality.
+     </p></li><li class="listitem"><p>
+     <span class="emphasis"><em>Counter Mode with CBC-MAC Protocol (CCMP) [<a class="ulink" href="http://www.ietf.org/rfc/rfc3610.txt" target="_top">RFC2610</a>]</em></span>
+     is a new protocol, designed from ground up. It uses AES [<a class="ulink" href="http://csrc.nist.gov/publications/fips/fips197/fips-197.pdf" target="_top">FIPS
+     197</a>] as its cryptographic algorithm, and, since this is
+     more CPU intensive than RC4 (used in WEP and TKIP), new 802.11
+     hardware may be required. Some drivers can implement CCMP in
+     software. CCMP provides integrity and confidentiality. 
+     </p></li><li class="listitem"><p>
+     <span class="emphasis"><em>802.1X Port-Based Network Access Control:</em></span>
+     Either when using TKIP or CCMP, 802.1X is used for
+     authentication.
+     </p></li></ol></div><p>
+     In addition, an optional encryption method called <span class="quote">&#8220;<span class="quote">Wireless
+     Robust Authentication Protocol</span>&#8221;</span> (WRAP) may be used instead
+     of CCMP. WRAP was the original AES-based proposal for 802.11i, but
+     was replaced by CCMP since it became plagued by property
+     encumbrances. Support for WRAP is optional, but CCMP support is
+     mandatory in 802.11i. 
+     </p><p>
+     802.11i also has an extended key derivation/management,
+     described next.
+     </p></div><div class="sect3"><div class="titlepage"><div><div><h4 class="title"><a name="Key"></a>1.2.3. Key Management</h4></div></div></div><div class="sect4"><div class="titlepage"><div><div><h5 class="title"><a name="DynKey"></a>1.2.3.1. Dynamic key exchange and management</h5></div></div></div><p>
+   To enforce a security policy using encryption and integrity
+   algorithms, keys must be obtained. Fortunately, 802.11i implements
+   a key derivation/management regime. See figure <a class="link" href="ar01s01.html#keyman">KM</a>.
+   </p><div class="mediaobject" align="center"><a name="keyman"></a><table border="0" summary="manufactured viewport for HTML img" style="cellpadding: 0; cellspacing: 0;" width="550"><tr><td align="center"><img src="images/8021X-KeyManagement.png" align="middle" width="550" alt="802.1X Key Management"></td></tr></table><div class="caption"><p>Figure KM: Key management and distribution in 802.11i.</p></div></div><div class="orderedlist"><ol class="orderedlist" type="1"><li class="listitem"><p>
+   When the Supplicant (WN) and Authentication Server (AS)
+   authenticate, one of the last messages sent from AS, given that
+   authentication was successful, is a <span class="emphasis"><em>Master Key
+   (MK)</em></span>. After it has been sent, the MK is known only to the
+   WN and the AS. The MK is bound to this session between the WN and
+   the AS.
+   </p></li><li class="listitem"><p>
+   Both the WN and the AS derive a new key, called the
+   <span class="emphasis"><em>Pairwise Master Key (PMK)</em></span>, from the Master
+   Key.
+   </p></li><li class="listitem"><p>
+   The PMK is then moved from the AS to the Authenticator (AP). Only
+   the WN and the AS can derive the PMK, else the AP could 
+   make access-control decisions instead of the AS. The PMK is a fresh
+   symmetric key bound to this session between the WN and the AP. 
+   </p></li><li class="listitem"><p>
+   PMK and a 4-way handshake are used between the WN and the AP to
+   derive, bind, and verify a <span class="emphasis"><em>Pairwise Transient Key
+   (PTK)</em></span>. The PTK is a collection of operational keys:
+   </p><div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem"><p>
+     <span class="emphasis"><em>Key Confirmation Key (KCK)</em></span>, as the name
+     implies, is  used to prove the posession of the PMK and to bind
+     the PMK to the AP.
+     </p></li><li class="listitem"><p>
+     <span class="emphasis"><em>Key Encryption Key (KEK)</em></span> is used to
+     distributed the Group Transient Key (GTK). Described below.
+     </p></li><li class="listitem"><p>
+     <span class="emphasis"><em>Temporal Key 1 &amp; 2 (TK1/TK2)</em></span> are used
+     for encryption. Usage of TK1 and TK2 is ciphersuite-specific.
+     </p></li></ul></div><p>
+   </p><p>
+   See figure <a class="link" href="ar01s01.html#pkh">PKH</a> for a overview of the
+   Pairwise Key Hierarchy.
+   </p></li><li class="listitem"><p>
+   The KEK and a 4-way group handshake are then used to send the
+   <span class="emphasis"><em>Group Transient Key (GTK)</em></span> from the AP to the
+   WN. The GTK is a shared key among all Supplicants connected to the
+   same Authenticator, and is used to secure multicast/broadcast
+   traffic.
+   </p></li></ol></div><div class="mediaobject" align="center"><a name="pkh"></a><table border="0" summary="manufactured viewport for HTML img" style="cellpadding: 0; cellspacing: 0;" width="550"><tr><td align="center"><img src="images/8021X-KeyHierarchy.png" align="middle" width="550" alt="Pairwise Key Hierarchy"></td></tr></table><div class="caption"><p>Figure PKH: Pairwise Key Hierarchy</p></div></div></div><div class="sect4"><div class="titlepage"><div><div><h5 class="title"><a name="PSK"></a>1.2.3.2. Pre-shared Key</h5></div></div></div><p>
+   For small office / home office (SOHO), ad-hoc networks or home
+   usage, a pre-shared key (PSK) may be used. When using PSK, the whole
+   802.1X authentication process is elided. This has also been called
+   <span class="quote">&#8220;<span class="quote">WPA Personal</span>&#8221;</span> (WPA-PSK), whereas WPA using EAP (and
+   RADIUS) is <span class="quote">&#8220;<span class="quote">WPA Enterprise</span>&#8221;</span> or just
+   <span class="quote">&#8220;<span class="quote">WPA</span>&#8221;</span>.
+   </p><p>
+   The 256-bit PSK is generated from a given password using PBKDFv2
+   from [<a class="ulink" href="http://www.ietf.org/rfc/rfc2898.txt" target="_top">RFC2898</a>], and is
+   used as the Master Key (MK) described in the key management regime
+   above. It can be one single PSK for the whole network (insecure), or
+   one PSK per Supplicant (more secure). 
+   </p></div></div><div class="sect3"><div class="titlepage"><div><div><h4 class="title"><a name="WPA"></a>1.2.4. TSN (WPA) / RSN (WPA2)</h4></div></div></div><p>
+     The industry didn't have time to wait until the 802.11i standard
+     was completed. They wanted the WEP issues fixed now! <a class="ulink" href="http://www.wi-fi.org/" target="_top">Wi-Fi Alliance</a> felt the
+     pressure, took a <span class="quote">&#8220;<span class="quote">snapshot</span>&#8221;</span> of the standard
+     (based on draft 3), and called it <span class="emphasis"><em>Wi-Fi Protected Access
+     (WPA)</em></span>. One requirement was that existing 802.11
+     equipment could be used with WPA, so WPA is basically TKIP +
+     802.1X.
+     </p><p>
+     WPA is not the long term solution. To get a <span class="emphasis"><em>Robust
+     Secure Network (RSN)</em></span>, the hardware must support and use
+     CCMP. RSN is basically CCMP + 802.1X.
+     </p><p>
+     RSN, which uses TKIP instead of CCMP, is also called Transition
+     Security Network (TSN). RSN may also be called WPA2, so that the
+     market don't get confused.
+     </p><p>
+     Confused?
+     </p><p>
+     Basically: 
+
+     </p><div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem"><p>TSN = TKIP + 802.1X = WPA(1)</p></li><li class="listitem"><p>RSN = CCMP + 802.1X = WPA2</p></li></ul></div><p>
+
+     In addition comes key management, as described in the previous
+     section.
+     </p></div></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="EAP"></a>1.3. What is EAP?</h3></div></div></div><p>
+   Extensible Authentication Protocol (EAP) [<a class="ulink" href="http://www.ietf.org/rfc/rfc3748.txt" target="_top">RFC 3748</a>] is just
+   the transport protocol optimized for authentication, not the
+   authentication method itself:
+   </p><p>
+   <span class="quote">&#8220;<span class="quote">
+   [EAP is] an authentication framework which supports multiple
+   authentication methods. EAP typically runs directly over data link
+   layers such as Point-to-Point Protocol (PPP) or IEEE 802, without
+   requiring IP. EAP provides its own support for duplicate
+   elimination and retransmission, but is reliant on lower layer
+   ordering guarantees. Fragmentation is not supported within EAP
+   itself; however, individual EAP methods may support this.</span>&#8221;</span>
+   --- RFC 3748, page 3 
+   </p></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="auth"></a>1.4. EAP authentication methods</h3></div></div></div><p>
+    Since 802.1X is using EAP, multiple different authentication
+    schemes may be added, including smart cards, Kerberos, public key,
+    one time passwords, and others. 
+    </p><p>
+    Some of the most-used EAP authentication mechanism are listed
+    below. A full list of registered EAP authentication types is
+    available at IANA: <a class="ulink" href="http://www.iana.org/assignments/eap-numbers" target="_top">http://www.iana.org/assignments/eap-numbers</a>.
+    </p><div class="warning" style="margin-left: 0.5in; margin-right: 0.5in;"><h3 class="title">Warning</h3><p>
+    Not all authentication mechanisms are considered secure!
+    </p></div><div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem"><p>
+    <span class="emphasis"><em>EAP-MD5:</em></span> MD5-Challenge requires
+    username/password, and is equivalent to the PPP CHAP protocol
+    [<a class="ulink" href="http://www.ietf.org/rfc/rfc1994.txt" target="_top">RFC1994</a>]. This
+    method does not provide dictionary attack resistance, mutual
+    authentication, or key derivation, and has therefore little use in a
+    wireless authentication enviroment.
+    </p></li><li class="listitem"><p>
+    <span class="emphasis"><em>Lightweight EAP (LEAP):</em></span> A username/password
+    combination is sent to a Authentication Server (RADIUS) for
+    authentication. Leap is a proprietary protocol developed by
+    Cisco, and is not considered secure. Cisco is phasing out LEAP in
+    favor of PEAP. The closest thing to a published standard can be
+    found <a class="ulink" href="http://lists.cistron.nl/pipermail/cistron-radius/2001-September/002042.html" target="_top">here</a>. 
+    </p></li><li class="listitem"><p>
+    <span class="emphasis"><em>EAP-TLS:</em></span> Creates a TLS session within EAP,
+    between the Supplicant and the Authentication Server. Both the
+    server and the client(s) need a valid (x509) certificate, and
+    therefore a PKI. This method provides authentication both
+    ways. EAP-TLS is described in [<a class="ulink" href="http://www.ietf.org/rfc/rfc2716.txt" target="_top">RFC2716</a>].
+    </p></li><li class="listitem"><p>
+    <span class="emphasis"><em>EAP-TTLS:</em></span> Sets up a encrypted TLS-tunnel for
+    safe transport of authentication data. Within the TLS tunnel,
+    (any) other authentication methods may be used. Developed by Funk
+    Software and Meetinghouse, and is currently an IETF draft.
+    </p></li><li class="listitem"><p>
+    <span class="emphasis"><em>Protected EAP (PEAP):</em></span> Uses, as EAP-TTLS, an
+    encrypted TLS-tunnel. Supplicant certificates for both EAP-TTLS
+    and EAP-PEAP are optional, but server (AS) certificates are
+    required. Developed by Microsoft, Cisco, and RSA Security, and is
+    currently an IETF draft. 
+    </p></li><li class="listitem"><p>
+    <span class="emphasis"><em>EAP-MSCHAPv2:</em></span> Requires username/password, and
+    is basically an EAP encapsulation of MS-CHAP-v2 [<a class="ulink" href="http://www.ietf.org/rfc/rfc2759.txt" target="_top">RFC2759</a>].
+    Usually used inside of a PEAP-encrypted tunnel. Developed by
+    Microsoft, and is currently an IETF draft.
+    </p></li></ul></div></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="AAA"></a>1.5. What is RADIUS?</h3></div></div></div><p>
+    Remote Authentication Dial-In User Service (RADIUS) is defined in
+    [<a class="ulink" href="http://www.ietf.org/rfc/rfc2865.txt" target="_top">RFC2865</a>]
+    (with friends), and was primarily used by ISPs who authenticated
+    username and password before the user got authorized to use the
+    ISP's network.
+    </p><p>
+    802.1X does not specify what kind of back-end authentication
+    server must be present, but RADIUS is the "de-facto" back-end
+    authentication server used in 802.1X.
+    </p><p>
+    There are not many AAA protocols available, but both RADIUS and
+    DIAMETER [<a class="ulink" href="http://www.ietf.org/rfc/rfc3588.txt" target="_top">RFC3588</a>]
+    (including their extensions) conform to full AAA support. AAA
+    stands for Authentication, Authorization, and Accounting (<a class="ulink" href="http://www.ietf.org/html.charters/aaa-charter.html" target="_top">IETF's
+    AAA Working Group</a>).
+    </p></div></div><div class="navfooter"><hr><table width="100%" summary="Navigation footer"><tr><td width="40%" align="left"><a accesskey="p" href="index.html">Prev</a> </td><td width="20%" align="center"> </td><td width="40%" align="right"> <a accesskey="n" href="ar01s02.html">Next</a></td></tr><tr><td width="40%" align="left" valign="top">802.1X Port-Based Authentication HOWTO </td><td width="20%" align="center"><a accesskey="h" href="index.html">Home</a></td><td width="40%" align="right" valign="top"> 2. Obtaining Certificates</td></tr></table></div></body></html>

@@ -1,0 +1,359 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN""http://www.w3.org/TR/html4/loose.dtd">
+<HTML
+><HEAD
+><TITLE
+>How to repair a corrupt table</TITLE
+><META
+NAME="GENERATOR"
+CONTENT="Modular DocBook HTML Stylesheet Version 1.79"><LINK
+REL="HOME"
+TITLE="PHP-Nuke: Management and Programming"
+HREF="index.html"><LINK
+REL="UP"
+TITLE="How to solve common probems with PHP-Nuke"
+HREF="solve-common-problems-php-nuke.html"><LINK
+REL="PREVIOUS"
+TITLE="How to solve common probems with PHP-Nuke"
+HREF="solve-common-problems-php-nuke.html"><LINK
+REL="NEXT"
+TITLE="How to restore PHP-Nuke from backup"
+HREF="restore-php-nuke-from-backup.html"></HEAD
+><BODY
+CLASS="SECT1"
+BGCOLOR="#FFFFFF"
+TEXT="#000000"
+LINK="#0000FF"
+VLINK="#840084"
+ALINK="#0000FF"
+><DIV
+CLASS="NAVHEADER"
+><TABLE
+SUMMARY="Header navigation table"
+WIDTH="100%"
+BORDER="0"
+CELLPADDING="0"
+CELLSPACING="0"
+><TR
+><TH
+COLSPAN="3"
+ALIGN="center"
+>PHP-Nuke: Management and Programming</TH
+></TR
+><TR
+><TD
+WIDTH="10%"
+ALIGN="left"
+VALIGN="bottom"
+><A
+HREF="solve-common-problems-php-nuke.html"
+ACCESSKEY="P"
+>Prev</A
+></TD
+><TD
+WIDTH="80%"
+ALIGN="center"
+VALIGN="bottom"
+>Chapter 26. How to solve common probems with PHP-Nuke</TD
+><TD
+WIDTH="10%"
+ALIGN="right"
+VALIGN="bottom"
+><A
+HREF="restore-php-nuke-from-backup.html"
+ACCESSKEY="N"
+>Next</A
+></TD
+></TR
+></TABLE
+><HR
+ALIGN="LEFT"
+WIDTH="100%"></DIV
+><DIV
+CLASS="SECT1"
+><H1
+CLASS="SECT1"
+><A
+NAME="REPAIR-CORRUPT-TABLE"
+>26.1. How to repair a corrupt table</A
+></H1
+><TABLE
+BORDER="0"
+WIDTH="100%"
+CELLSPACING="0"
+CELLPADDING="0"
+CLASS="EPIGRAPH"
+><TR
+><TD
+WIDTH="45%"
+>&nbsp;</TD
+><TD
+WIDTH="45%"
+ALIGN="LEFT"
+VALIGN="TOP"
+><I
+><P
+><I
+>Three things are certain: Death, taxes and lost data. Guess which has occurred.</I
+></P
+></I
+></TD
+></TR
+></TABLE
+><P
+>Occasionally, under circumstances involving high load on the server, multiple INSERTs and UPDATEs, coupled with many SELECTs (see <A
+HREF="sql-syntax.html"
+>Section 28.5</A
+> for the syntax of SQL code), or hardware failure (oh yes...whenever possible, blame the hardware! <SPAN
+CLASS="INLINEMEDIAOBJECT"
+><IMG
+SRC="./images/icon_wink.png"></SPAN
+>), your database server may corrupt a table. This is something it shouldn't happen, but of course this doesn't help you if it does. According to the MySQL manual on <A
+HREF="http://www.mysql.com/doc/en/Corrupted_MyISAM_tables.html"
+TARGET="_top"
+>Corrupted MyISAM Tables</A
+>, you can  get corrupted tables if some of the following things happens:</P
+><P
+></P
+><UL
+><LI
+><P
+>The mysqld process being killed in the middle of a write.</P
+></LI
+><LI
+><P
+>Unexpected shutdown of the computer (for example, if the computer is turned off).</P
+></LI
+><LI
+><P
+>A hardware error.</P
+></LI
+><LI
+><P
+>You are using an external program (like myisamchk) on a live table.</P
+></LI
+><LI
+><P
+>A software bug in the MySQL or MyISAM code.</P
+></LI
+></UL
+><P
+>and the typical symptoms for a corrupt table are:</P
+><P
+></P
+><UL
+><LI
+><P
+>You get the error </P
+><TABLE
+BORDER="1"
+BGCOLOR="#E0E0E0"
+WIDTH="90%"
+><TR
+><TD
+><FONT
+COLOR="#000000"
+><PRE
+CLASS="SCREEN"
+>Incorrect key file for table: '...'. Try to repair it</PRE
+></FONT
+></TD
+></TR
+></TABLE
+><P
+>while selecting data from the table.</P
+></LI
+><LI
+><P
+>Queries don't find rows in the table or return incomplete data.</P
+></LI
+></UL
+><P
+>For PHP-Nuke, a typical error is MySQL errno 145 (see <A
+HREF="http://www.karakas-online.de/forum/viewtopic.php?t=332"
+TARGET="_top"
+>MySQL errno: 145 Can't open file nuke bbsearch wordmatch.MYI</A
+>):</P
+><TABLE
+BORDER="1"
+BGCOLOR="#E0E0E0"
+WIDTH="100%"
+><TR
+><TD
+><FONT
+COLOR="#000000"
+><PRE
+CLASS="SCREEN"
+>Could not insert new word matches
+DEBUG MODE
+SQL Error : 1016 Can't open file: 'nuke_bbsearch_wordmatch.MYI'. (errno: 145)
+INSERT INTO nuke_bbsearch_wordmatch (post_id, word_id, title_match) 
+SELECT 4467, word_id, 0 FROM nuke_bbsearch_wordlist WHERE word_text IN ('testing')
+Line : 282
+File : /xxxx/xxxx/public_html/nuke/includes/functions_search.php</PRE
+></FONT
+></TD
+></TR
+></TABLE
+><P
+>You can use the repair.php script of <A
+HREF="proceed-when-mysql-slow.html"
+>Section 25.8</A
+>, or the REPAIR TABLE command from the MySQL prompt, not only to rebuild indexes, but also to generally repair a broken table (see <A
+HREF="http://www.karakas-online.de/forum/viewtopic.php?t=416"
+TARGET="_top"
+>Missing blocks and modules</A
+>). Normally you should never have to run the REPAIR TABLE command, but if disaster strikes, you are very likely to get back all your data from a MyISAM table with it (if your tables get corrupted a lot, you should try to find the reason for this, to eliminate the need to use REPAIR TABLE, see <A
+HREF="http://www.mysql.com/doc/en/Crashing.html"
+TARGET="_top"
+>What To Do If MySQL Keeps Crashing</A
+> and <A
+HREF="http://www.mysql.com/doc/en/MyISAM_table_problems.html"
+TARGET="_top"
+>MyISAM Table Problems</A
+>). On the MySQL prompt, type:</P
+><TABLE
+BORDER="1"
+BGCOLOR="#E0E0E0"
+WIDTH="100%"
+><TR
+><TD
+><FONT
+COLOR="#000000"
+><PRE
+CLASS="SCREEN"
+>repair table nuke_users;</PRE
+></FONT
+></TD
+></TR
+></TABLE
+><P
+>to repair the nuke_users table, for example. To only check if the table is corrupt, use the &#8220;check table&#8221; SQL command:</P
+><TABLE
+BORDER="1"
+BGCOLOR="#E0E0E0"
+WIDTH="100%"
+><TR
+><TD
+><FONT
+COLOR="#000000"
+><PRE
+CLASS="SCREEN"
+>check table nuke_users;</PRE
+></FONT
+></TD
+></TR
+></TABLE
+><P
+>See <A
+HREF="http://www.mysql.com/doc/en/REPAIR_TABLE.html"
+TARGET="_top"
+>REPAIR TABLE Syntax</A
+> for the syntax of REPAIR TABLE.</P
+><P
+>If you don't have a ccess to the MySQL prompt, but can access the shell, you can use the myisamchk utility. Again, you can both check and repair a table. To check it, type </P
+><TABLE
+BORDER="1"
+BGCOLOR="#E0E0E0"
+WIDTH="100%"
+><TR
+><TD
+><FONT
+COLOR="#000000"
+><PRE
+CLASS="SCREEN"
+>myisamchk /path/to/the/table</PRE
+></FONT
+></TD
+></TR
+></TABLE
+><P
+>on the shell's command line. To repair it, use</P
+><TABLE
+BORDER="1"
+BGCOLOR="#E0E0E0"
+WIDTH="100%"
+><TR
+><TD
+><FONT
+COLOR="#000000"
+><PRE
+CLASS="SCREEN"
+>myisamchk -r /path/to/the/table</PRE
+></FONT
+></TD
+></TR
+></TABLE
+><P
+>If you ever needed the REPAIR TABLE function of MySQL (and went through the torture process of wondering what this might do to your beloved data), then you may be appreciating backups a bit more - see <A
+HREF="backup-mysql-using-browser.html"
+>Section 27.16</A
+> and backup your database regularly!</P
+></DIV
+><DIV
+CLASS="NAVFOOTER"
+><HR
+ALIGN="LEFT"
+WIDTH="100%"><TABLE
+SUMMARY="Footer navigation table"
+WIDTH="100%"
+BORDER="0"
+CELLPADDING="0"
+CELLSPACING="0"
+><TR
+><TD
+WIDTH="33%"
+ALIGN="left"
+VALIGN="top"
+><A
+HREF="solve-common-problems-php-nuke.html"
+ACCESSKEY="P"
+>Prev</A
+></TD
+><TD
+WIDTH="34%"
+ALIGN="center"
+VALIGN="top"
+><A
+HREF="index.html"
+ACCESSKEY="H"
+>Home</A
+></TD
+><TD
+WIDTH="33%"
+ALIGN="right"
+VALIGN="top"
+><A
+HREF="restore-php-nuke-from-backup.html"
+ACCESSKEY="N"
+>Next</A
+></TD
+></TR
+><TR
+><TD
+WIDTH="33%"
+ALIGN="left"
+VALIGN="top"
+>How to solve common probems with PHP-Nuke</TD
+><TD
+WIDTH="34%"
+ALIGN="center"
+VALIGN="top"
+><A
+HREF="solve-common-problems-php-nuke.html"
+ACCESSKEY="U"
+>Up</A
+></TD
+><TD
+WIDTH="33%"
+ALIGN="right"
+VALIGN="top"
+>How to restore <SPAN
+CLASS="APPLICATION"
+>PHP-Nuke</SPAN
+> from backup</TD
+></TR
+></TABLE
+></DIV
+></BODY
+></HTML
+>

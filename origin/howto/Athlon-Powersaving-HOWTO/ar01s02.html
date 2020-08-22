@@ -1,0 +1,103 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1"><title>2. The Different Approaches</title><link rel="stylesheet" type="text/css" href="style.css"><meta name="generator" content="DocBook XSL Stylesheets V1.79.1"><link rel="home" href="index.html" title="Athlon Powersaving HOWTO"><link rel="up" href="index.html" title="Athlon Powersaving HOWTO"><link rel="prev" href="ar01s01.html" title="1. Introduction"><link rel="next" href="ar01s03.html" title="3. What Else?"></head><body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF"><div class="navheader"><table width="100%" summary="Navigation header"><tr><th colspan="3" align="center">2. The Different Approaches</th></tr><tr><td width="20%" align="left"><a accesskey="p" href="ar01s01.html">Prev</a> </td><th width="60%" align="center"> </th><td width="20%" align="right"> <a accesskey="n" href="ar01s03.html">Next</a></td></tr></table><hr></div><div class="sect1"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="approaches"></a>2. The Different Approaches</h2></div></div></div><p>
+     In the following section I present different approaches to achieve the same goal: 
+     power-saving on your Athlon/Athlon-XP based system. My recommended approach at the 
+     moment is to use the <span class="quote">&#8220;<span class="quote">command-line hack</span>&#8221;</span> or the athcool programm (the kernel patch 
+     is outdated and will not be developed any further, and the 
+     LVCool patch supports only one chipset family.) 
+  </p><p>
+     Nearly all of these approaches will set the <span class="quote">&#8220;<span class="quote">
+     Disconnect enable when STPGNT detected</span>&#8221;</span> bit 
+     in the north bridge of the chipset. All other work is done by the ACPI subsystem of 
+     the kernel which sends a STPGNT signal to the processor, when it enters the acpi-c2 idle 
+     mode. 
+  </p><p>
+     If you haven't already got a kernel with ACPI support, you have to enable it in
+     the kernel setup and then recompile the new kernel. You'll find the 
+     ACPI-options under <span class="guimenu">General Setup</span>+<span class="guimenu">Power Management Setup</span> &#8594; <span class="guimenuitem">ACPI</span>. You must have at least the following options: <span class="guimenuitem">ACPI Bus Manager</span>, <span class="guimenuitem">System</span> and <span class="guimenuitem">Processor.</span>
+  </p><p>
+     Or for the new 2.4.22 Kernel: <span class="guimenu">General Setup</span>+<span class="guimenu">ACPI Support</span>. You must have at least the following option: <span class="guimenuitem">Processor</span>.
+  </p><p>2.6.x Kernel: <span class="guimenu">Powermanagment options</span>+<span class="guimenu">ACPI</span>. You must have at least the option  <span class="guimenuitem">Processor</span> enabled. You shouldn't enable Thermal Zone !! 
+  </p><p>
+     Some Chipsets also support a STPGNT if a HLT signal is detected. This Motherboards/Chipsets
+     don't need ACPI to be enabled! At the moment i look for feedback which Chipsets work without
+     ACPI and which need ACPI. Maybee you could test it on your Motherboard and send me a mail. 
+     (see <a class="xref" href="ar01s03.html#testing" title="3.1. How to test whether it works">Section 3.1, &#8220;How to test whether it works&#8221;</a>)
+  </p><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="commandline"></a>2.1. The Command-line Hack (recommended)</h3></div></div></div><p>
+     To use the command-line hack you normaly have to enable ACPI in the kernel, otherwise it is mentioned. No reboot is needed to enable the Powersaving. You could enable/disable it from the command line with this commands:
+  </p><p>
+     </p><div class="variablelist"><dl class="variablelist"><dt><span class="term">on KT133/133A, KX133, KL/KLE133, KM/KN133, ...: (needs definitively acpi enabled)</span></dt><dd><p>
+              enable: <span class="command"><strong>setpci -v -H1 -s 0:0.0 52=$(printf %x $((0x$(setpci -H1 -s 0:0.0 52) | 0x80)))</strong></span>
+              </p><p>
+              disable: <span class="command"><strong>setpci -v -H1 -s 0:0.0 52=$(printf %x $((0x$(setpci -H1 -s 0:0.0 52) &amp; 0x7f)))</strong></span>
+              </p></dd><dt><span class="term">on KT266/266A/333,KM266/266A/333, ...:</span></dt><dd><p>enable:</p><p><span class="command"><strong>setpci -v -H1 -s 0:0.0 92=$(printf %x $((0x$(setpci -H1 -s 0:0.0 92) | 0x80)))</strong></span></p><p><span class="command"><strong>setpci -v -H1 -s 0:0.0 95=$(printf %x $((0x$(setpci -H1 -s 0:0.0 95) | 0x02)))</strong></span></p><p>disable:</p><p><span class="command"><strong>setpci -v -H1 -s 0:0.0 92=$(printf %x $((0x$(setpci -H1 -s 0:0.0 92) &amp; 0x7f)))</strong></span></p><p><span class="command"><strong>setpci -v -H1 -s 0:0.0 95=$(printf %x $((0x$(setpci -H1 -s 0:0.0 95) &amp; 0xfd)))</strong></span></p></dd><dt><span class="term">on KT333CF/KT400/KT400A/KM400/KM400A/KT600:</span></dt><dd><p>enable:</p><p><span class="command"><strong>setpci -v -H1 -s 0:0.0 D2=$(printf %x $((0x$(setpci -H1 -s 0:0.0 D2) | 0x80)))</strong></span></p><p><span class="command"><strong>setpci -v -H1 -s 0:0.0 D5=$(printf %x $((0x$(setpci -H1 -s 0:0.0 D5) | 0x02)))</strong></span></p><p>disable:</p><p><span class="command"><strong>setpci -v -H1 -s 0:0.0 D2=$(printf %x $((0x$(setpci -H1 -s 0:0.0 D2) &amp; 0x7f)))</strong></span></p><p><span class="command"><strong>setpci -v -H1 -s 0:0.0 D5=$(printf %x $((0x$(setpci -H1 -s 0:0.0 D5) &amp; 0xfd)))</strong></span></p></dd><dt><span class="term">on KT880:</span></dt><dd><p>enable:</p><p><span class="command"><strong>setpci -v -H1 -s 0:0.0 82=$(printf %x $((0x$(setpci -H1 -s 0:0.0 82) | 0x80)))</strong></span></p><p><span class="command"><strong>setpci -v -H1 -s 0:0.0 85=$(printf %x $((0x$(setpci -H1 -s 0:0.0 85) | 0x02)))</strong></span></p><p>disable:</p><p><span class="command"><strong>setpci -v -H1 -s 0:0.0 82=$(printf %x $((0x$(setpci -H1 -s 0:0.0 82) &amp; 0x7f)))</strong></span></p><p><span class="command"><strong>setpci -v -H1 -s 0:0.0 85=$(printf %x $((0x$(setpci -H1 -s 0:0.0 85) &amp; 0xfd)))</strong></span></p></dd><dt><span class="term">on SIS730/733:</span></dt><dd><p>enable: <span class="command"><strong>setpci -v -H1 -s 0:0.0 6B=$(printf %x $((0x$(setpci -H1 -s 0:0.0 6B) | 0x01)))</strong></span></p><p>disable: <span class="command"><strong>setpci -v -H1 -s 0:0.0 6B=$(printf %x $((0x$(setpci -H1 -s 0:0.0 6B) &amp; 0xfe)))</strong></span></p></dd><dt><span class="term">on SIS735/740/745/755:</span></dt><dd><p>enable: <span class="command"><strong>setpci -v -H1 -s 0:0.0 6A=$(printf %x $((0x$(setpci -H1 -s 0:0.0 6A) | 0x0003)))</strong></span></p><p>disable: <span class="command"><strong>setpci -v -H1 -s 0:0.0 6A=$(printf %x $((0x$(setpci -H1 -s 0:0.0 6A) &amp; 0xfffc)))</strong></span></p></dd><dt><span class="term">on SIS741/741GX/746/748:</span></dt><dd><p><span class="command"><strong>setpci -v -H1 -s 0:0.0 6C=$(printf %x $((0x$(setpci -H1 -s 0:0.0 6C) | 0x0003)))</strong></span></p><p>disable:</p><p><span class="command"><strong>setpci -v -H1 -s 0:0.0 6C=$(printf %x $((0x$(setpci -H1 -s 0:0.0 6C) &amp; 0xfffc)))</strong></span></p></dd><dt><span class="term">on Nforce:</span></dt><dd><p>enable:</p><p><span class="command"><strong>setpci -v -H1 -s 0:0.0 E7=$(printf %x $((0x$(setpci -H1 -s 0:0.0 E7) | 0x06)))</strong></span></p><p>disable:</p><p><span class="command"><strong>setpci -v -H1 -s 0:0.0 E7=$(printf %x $((0x$(setpci -H1 -s 0:0.0 E7) &amp; 0xf9)))</strong></span></p></dd><dt><span class="term">on Nforce2: (works without acpi enabled)</span></dt><dd><p>enable: <span class="command"><strong>setpci -v -H1 -s 0:0.0 6F=$(printf %x $((0x$(setpci -H1 -s 0:0.0 6F) | 0x10)))</strong></span></p><p>disable: <span class="command"><strong>setpci -v -H1 -s 0:0.0 6F=$(printf %x $((0x$(setpci -H1 -s 0:0.0 6F) &amp; 0xef)))</strong></span></p></dd><dt><span class="term">on AMD751 and AMD760/761:(not for the 760MP!!!)(works without acpi enabled)</span></dt><dd><p>
+              enable: <span class="command"><strong>setpci -v -s 0:0.0 0x62=$(printf %x $((0x$(setpci -H1 -s 0:0.0 62) | 0x06)))</strong></span>
+              </p><p>
+              disable: <span class="command"><strong>setpci -v -s 0:0.0 0x62=$(printf %x $((0x$(setpci -H1 -s 0:0.0 62) &amp; 0xf9)))</strong></span>
+              </p></dd></dl></div><p>
+  </p></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="coolrun"></a>2.2. The coolrun shellscript (recommended)</h3></div></div></div><p>
+    <span class="emphasis"><em>coolrun</em></span> is a small shellscript which uses the command line hacks and does all the work for you. It is developed/maintened
+    by Grozdan Nikolov and based on this HOWTO.
+    </p><p>
+    You can read more about it (and download it) here: 
+    <a class="ulink" href="https://sourceforge.net/projects/coolrun/" target="_top">
+    https://sourceforge.net/projects/coolrun/</a> 
+    </p></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="athcool"></a>2.3. The Athcool Program (recommended)</h3></div></div></div><p>
+     <span class="emphasis"><em>Athcool</em></span> is a small program which performs the same 
+     task as the <span class="command"><strong>setpci</strong></span> commands above. It supports the same
+     chipsets and detects what chipset you have, issuing the right settings
+     in the chipset to get the power-saving to work. 
+  </p><p>
+     You can read more about it (and download it) here: 
+     <a class="ulink" href="http://members.jcom.home.ne.jp/jacobi/linux/softwares.html" target="_top">
+     http://members.jcom.home.ne.jp/jacobi/linux/softwares.html</a>     <span class="emphasis"><em>I am not the Author 
+	  of this program!</em></span>
+  </p></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="biosup"></a>2.4. BIOS updates</h3></div></div></div><p>
+     On some newer boards the manufacturer provides a BIOS update which sets
+     the needed bit/bits in the chipset of the board (or let you choose in
+     the BIOS-setup whether it should be enabled). Refer to the homepage of 
+     your motherboard manufacturer to see if such a BIOS-update is available.
+  </p></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="patch"></a>2.5. Kernel Patches</h3></div></div></div><p>
+     The patch is based on another patch (from Jan Niehusmann) I found on the
+     Newsnet. I modified the patch to also support the KT266/266A chipset.
+     By the way, my patch does the same as the command-line hack, except that 
+     the Patch does it from 
+     within the kernel. This is why I recommend using the command-line hack,  
+     which is really simple to use and you don't have to modify your kernel.
+  </p><div class="procedure"><a name="idm212"></a><p class="title"><b>Procedure 1. Ok... now step by step, here's how to apply the patch:</b></p><ol class="procedure" type="1"><li class="step"><p>
+	   First you have to download the patch: </p><p><a class="ulink" href="http://www.daniel.nofftz.net/linux/amd_cool.diff" target="_top">
+	   Kernel Patch for 2.4.17</a></p><p><a class="ulink" href="http://www.daniel.nofftz.net/linux/amd_cool.linux-2.4.21.diff" target="_top">
+           Kernel Patch for 2.4.21</a> (thx to Thomas Reinhardt for porting it to 2.4.21)</p><p><a class="ulink" href="http://www.daniel.nofftz.net/linux/amd_cool.linux-2.6.5.diff" target="_top">
+           Kernel Patch for 2.6.5</a> which supports all Via Chipsets up to the KT600 (thx to Sebastian Droege  for porting it to 2.6.5 and adding the other Chipsets)</p><p><a class="ulink" href="http://www.daniel.nofftz.net/linux/amd_cool.linux-2.6.9.diff" target="_top">
+           Kernel Patch for 2.6.9</a> which supports all Via Chipsets up to the KT600 (thx to Alexander Hug for porting it from 2.6.5 to 2.6.9)</p></li><li class="step"><p>
+	   Login as root
+	</p></li><li class="step"><p>
+	   <span class="command"><strong>cd /usr/src</strong></span>
+	</p></li><li class="step"><p>
+	   Apply the patch: <span class="command"><strong>cat $path-to-patch/amd_cool.diff | patch -p0</strong></span>
+           (The new 2.6.5 Patch: cd to linux and patch -p1)
+	</p></li><li class="step"><p>
+	   <span class="command"><strong>cd linux</strong></span>
+	</p></li><li class="step"><p>
+	   Make the new kernel
+	</p></li><li class="step"><p>
+	   Reboot, and at the kernel boot-prompt, enter the statement <strong class="userinput"><code> amd_disconnect=yes </code></strong>.  This is because there are known bugs within the Athlon processor, which could cause problems on several boards.  You should test the patch, and if it works, you can append the statement  <strong class="userinput"><code> amd_disconnect=yes </code></strong> to the file <code class="filename">/etc/lilo.conf</code>.
+	</p></li></ol></div></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="lvcool"></a>2.6. The LVCool Solution</h3></div></div></div><p>
+     <span class="emphasis"><em>LVCool</em></span> is a small port of the Windows programm      
+     <a class="ulink" href="http://vcool.occludo.net/" target="_top">
+     VCool</a>. It only supports the KT133/133A and KX133 chipset and
+     I can't provide support for it. You can download it 
+     <a class="ulink" href="http://vcool.occludo.net/VC_Linux.html" target="_top">
+     here</a>. This solutions needs no ACPI compiled in the kernel.
+  </p></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="fvcool"></a>2.7. The FVCool Program</h3></div></div></div><p>      
+     <a class="ulink" href="http://www.nt.phys.kyushu-u.ac.jp/shimizu/download/download.html" target="_top">
+     Here</a> is another Powersaving program which supports several chipsets. I didn't test it
+     by myself but i heared it works. Check it out ... There is also a program provided with 
+     which you could use the onboard monitoring chips on some motherboards 
+     (like the lm-sensors package).
+  </p></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="_760MP"></a>2.8. AMD 760MP Powersaving</h3></div></div></div><p>
+     There is a kernel module which enables powersaving on the 760MP multiprocessor chipset. You 
+     could find it       
+     <a class="ulink" href="http://www.muru.com/linux/amd-smp-idle/" target="_top">
+     here</a>. I don't know how good it works, but i got at least one mail from someone
+     who said it works for him. So check it out.
+  </p></div></div><div class="navfooter"><hr><table width="100%" summary="Navigation footer"><tr><td width="40%" align="left"><a accesskey="p" href="ar01s01.html">Prev</a> </td><td width="20%" align="center"> </td><td width="40%" align="right"> <a accesskey="n" href="ar01s03.html">Next</a></td></tr><tr><td width="40%" align="left" valign="top">1. Introduction </td><td width="20%" align="center"><a accesskey="h" href="index.html">Home</a></td><td width="40%" align="right" valign="top"> 3. What Else?</td></tr></table></div></body></html>

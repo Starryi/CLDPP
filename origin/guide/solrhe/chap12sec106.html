@@ -1,0 +1,802 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1"><title>3. Configure script for Example Gateway Server</title><link rel="stylesheet" type="text/css" href="style.css"><meta name="generator" content="DocBook XSL Stylesheets V1.79.1"><meta name="keywords" content="RedHat, redhat, maddy, linus, linux, Linux, Securing, Optimising, security, secure, openna, gerhard"><link rel="home" href="index.html" title="Securing and Optimizing Linux"><link rel="up" href="Masq-forward.html" title="Chapter 12. Networking Firewall -Masquerading and Forwarding"><link rel="prev" href="chap12sec105.html" title="2. Config /etc/rc.d/init.d/firewall script file -Gateway Server"><link rel="next" href="chap12sec107.html" title="4. Deny access to some address"></head><body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF"><div class="navheader"><table width="100%" summary="Navigation header"><tr><th colspan="3" align="center">3. Configure script for Example Gateway Server</th></tr><tr><td width="20%" align="left"><a accesskey="p" href="chap12sec105.html">Prev</a> </td><th width="60%" align="center">Chapter 12. Networking Firewall -Masquerading and Forwarding</th><td width="20%" align="right"> <a accesskey="n" href="chap12sec107.html">Next</a></td></tr></table><hr></div><div class="section"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="idm6824"></a>3. Configure script for Example Gateway Server</h2></div></div></div><p>
+         This is the configuration script file for our Gateway Server. This configuration allows unlimited traffic on the Loopback interface, <acronym class="acronym">ICMP</acronym>, <acronym class="acronym">DNS</acronym> Server and Client (53), 
+         <acronym class="acronym">SSH</acronym> Server and Client (22), <acronym class="acronym">HTTP</acronym> Server and Client (80), <acronym class="acronym">HTTPS</acronym> Server and Client (443), <acronym class="acronym">POP</acronym> Client (110), <acronym class="acronym">NNTP</acronym> NEWS 
+         Client (119), <acronym class="acronym">SMTP</acronym> Server and Client (25), <acronym class="acronym">IMAP</acronym> Server (143), <acronym class="acronym">IRC</acronym> Client (6667), <acronym class="acronym">ICQ</acronym> Client (4000), <acronym class="acronym">FTP</acronym> Client (20, 21), 
+         RealAudio / QuickTime Client, and OUTGOING TRACEROUTE requests by default.
+         </p><p>
+         If you don't want some services listed in the firewall rules files for the Gateway Server that I make ON by default, comment them out with a "#" at the beginning of the line. If you want some other services 
+         that I commented out with a "#", then remove the "#" at the beginning of their lines. If you have configured Masquerading on your server, don't forget to uncomment the modules necessary to masquerade their 
+         respective services that you need like <code class="filename">ip_masq_irc.o</code>, <code class="filename">ip_masq_raudio.o</code>, etc under the MODULES MASQUERADING section of the firewall script file.
+         </p><p>
+         Create the firewall script file <span class="command"><strong>touch</strong></span> <code class="filename">/etc/rc.d/init.d/firewall</code>, on your Gateway Server and add:
+         </p><pre class="programlisting">
+         #!/bin/sh
+         #
+         # ----------------------------------------------------------------------------
+         # Last modified by Gerhard Mourani:  04-25-2000
+         # ----------------------------------------------------------------------------
+         # Copyright (C) 1997, 1998, 1999  Robert L. Ziegler
+         #
+         # Permission to use, copy, modify, and distribute this software and its
+         # documentation for educational, research, private and non-profit purposes,
+         # without fee, and without a written agreement is hereby granted. 
+         # This software is provided as an example and basis for individual firewall
+         # development.  This software is provided without warranty.
+         #
+         # Any material furnished by Robert L. Ziegler is furnished on an 
+         # "as is" basis.  He makes no warranties of any kind, either expressed 
+         # or implied as to any matter including, but not limited to, warranty 
+         # of fitness for a particular purpose, exclusivity or results obtained
+         # from use of the material.
+         # ----------------------------------------------------------------------------
+         #
+         # Invoked from /etc/rc.d/init.d/firewall.
+         # chkconfig: - 60 95
+         # description: Starts and stops the IPCHAINS Firewall \
+         #              used to provide Firewall network services.
+
+         # Source function library.
+         . /etc/rc.d/init.d/functions
+
+         # Source networking configuration.
+         . /etc/sysconfig/network
+
+         # Check that networking is up.
+         if [ ${NETWORKING} = "no" ]
+         then
+         exit 0
+         fi
+
+         if [ ! -x /sbin/ipchains ]; then
+         exit 0
+         fi
+
+         # See how we were called.
+         case "$1" in
+         start)
+         echo -n "Starting Firewalling Services: "
+
+         # Some definitions for easy maintenance.
+
+         # ----------------------------------------------------------------------------
+         #  EDIT THESE TO SUIT YOUR SYSTEM AND ISP.
+
+         EXTERNAL_INTERFACE="eth0"               		# Internet connected interface
+         LOCAL_INTERFACE_1="eth1"				# Internal LAN interface
+         LOOPBACK_INTERFACE="lo"                 		# Your local naming convention
+         IPADDR="my.ip.address"                  		# Your <acronym class="acronym">IP</acronym> address
+         LOCALNET_1="192.168.1.0/24"             		# Whatever private range you use
+         IPSECSG="my.ipsecsg.address"     	                # Space separated list of remote VPN gateways
+         FREESWANVI="ipsec0"              	                # Space separated list of virtual interfaces
+         ANYWHERE="any/0"                        		# Match any <acronym class="acronym">IP</acronym> address
+         NAMESERVER_1="my.name.server.1"		        # Everyone must have at least one
+         NAMESERVER_2="my.name.server.2"		        # Your secondary name server
+         MY_ISP="my.isp.address.range/24"        		# ISP <acronym class="acronym">&amp;</acronym> NOC address range
+                                                                
+         SMTP_SERVER="my.smtp.server"            		# Your Mail Hub Server.
+         POP_SERVER="my.pop.server"          		        # External pop server, if any
+         NEWS_SERVER="my.news.server"        		        # External news server, if any
+         SYSLOG_SERVER="syslog.internal.server"  	        # Your syslog internal server
+
+         LOOPBACK="127.0.0.0/8"                  		# Reserved loopback address range
+         CLASS_A="10.0.0.0/8"                    		# Class A private networks
+         CLASS_B="172.16.0.0/12"                 		# Class B private networks
+         CLASS_C="192.168.0.0/16"                		# Class C private networks
+         CLASS_D_MULTICAST="224.0.0.0/4"         	        # Class D multicast addresses
+         CLASS_E_RESERVED_NET="240.0.0.0/5"  	                # Class E reserved addresses
+         BROADCAST_SRC="0.0.0.0"                 		# Broadcast source address
+         BROADCAST_DEST="255.255.255.255"      	                # Broadcast destination address
+         PRIVPORTS="0:1023"                      		# Well known, privileged port range
+         UNPRIVPORTS="1024:65535"                		# Unprivileged port range
+
+         # ----------------------------------------------------------------------------
+
+         # <acronym class="acronym">SSH</acronym> starts at 1023 and works down to 513 for
+         # each additional simultaneous incoming connection.
+         SSH_PORTS="1022:1023"             			# range for <acronym class="acronym">SSH</acronym> privileged ports
+
+         # traceroute usually uses -S 32769:65535 -D 33434:33523
+         TRACEROUTE_SRC_PORTS="32769:65535"
+         TRACEROUTE_DEST_PORTS="33434:33523"
+
+         # ----------------------------------------------------------------------------
+         # Default policy is DENY
+         # Explicitly accept desired INCOMING <acronym class="acronym">&amp;</acronym> OUTGOING connections
+
+         # Remove all existing rules belonging to this filter
+         ipchains -F
+
+         # Clearing all current rules and user defined chains
+         ipchains -X
+
+         # Set the default policy of the filter to deny.
+         # Don't even bother sending an error message back.
+         ipchains -P input  DENY
+         ipchains -P output DENY
+         ipchains -P forward DENY
+
+         # set masquerade timeout to 10 hours for tcp connections
+         ipchains -M -S 36000 0 0
+
+         # Don't forward fragments. Assemble before forwarding.
+         ipchains -A output -f -i $LOCAL_INTERFACE_1 -j DENY
+
+         # ----------------------------------------------------------------------------
+         # MODULES MASQUERADING
+         # Uncomment bellow all modules lines that you need
+
+         # These modules are necessary to masquerade their respective services.
+         /sbin/modprobe ip_masq_ftp
+         /sbin/modprobe ip_masq_raudio ports=554,7070,7071,6970,6971
+         /sbin/modprobe ip_masq_irc
+         #/sbin/modprobe ip_masq_vdolive
+         #/sbin/modprobe ip_masq_cuseeme
+         #/sbin/modprobe ip_masq_quake
+
+         # ----------------------------------------------------------------------------
+         # LOOPBACK
+
+         # Unlimited traffic on the loopback interface.
+         ipchains -A input  -i $LOOPBACK_INTERFACE -j ACCEPT 
+         ipchains -A output -i $LOOPBACK_INTERFACE -j ACCEPT 
+
+         # ----------------------------------------------------------------------------
+         # Network Ghouls
+         # Deny access to jerks
+
+         # /etc/rc.d/rc.firewall.blocked contains a list of
+         # ipchains -A input  -i $EXTERNAL_INTERFACE -s address -j DENY
+         # rules to block from any access.
+
+         # Refuse any connection from problem sites
+         #if [ -f /etc/rc.d/rc.firewall.blocked ]; then
+         #    . /etc/rc.d/rc.firewall.blocked
+         #fi
+
+         # ----------------------------------------------------------------------------
+         # SPOOFING <acronym class="acronym">&amp;</acronym> BAD ADDRESSES
+         # Refuse spoofed packets.
+         # Ignore blatantly illegal source addresses.
+         # Protect yourself from sending to bad addresses.
+
+         # Refuse spoofed packets pretending to be from the external address.
+         ipchains -A input  -i $EXTERNAL_INTERFACE -s $IPADDR -j DENY -l
+
+         # Refuse packets claiming to be to or from a Class A private network
+         ipchains -A input  -i $EXTERNAL_INTERFACE -s $CLASS_A -j DENY -l
+         ipchains -A input  -i $EXTERNAL_INTERFACE -d $CLASS_A -j DENY -l
+         ipchains -A output -i $EXTERNAL_INTERFACE -s $CLASS_A -j REJECT -l
+         ipchains -A output -i $EXTERNAL_INTERFACE -d $CLASS_A -j REJECT -l
+
+         # Refuse packets claiming to be to or from a Class B private network
+         ipchains -A input  -i $EXTERNAL_INTERFACE -s $CLASS_B -j DENY -l
+         ipchains -A input  -i $EXTERNAL_INTERFACE -d $CLASS_B -j DENY -l
+         ipchains -A output -i $EXTERNAL_INTERFACE -s $CLASS_B -j REJECT -l
+         ipchains -A output -i $EXTERNAL_INTERFACE -d $CLASS_B -j REJECT -l
+
+         # Refuse packets claiming to be to or from a Class C private network
+         #    ipchains -A input  -i $EXTERNAL_INTERFACE -s $CLASS_C -j DENY -l
+         #    ipchains -A input  -i $EXTERNAL_INTERFACE -d $CLASS_C -j DENY -l
+         #    ipchains -A output -i $EXTERNAL_INTERFACE -s $CLASS_C -j REJECT -l
+         #    ipchains -A output -i $EXTERNAL_INTERFACE -d $CLASS_C -j REJECT -l
+
+         # Refuse packets claiming to be from the loopback interface
+         ipchains -A input  -i $EXTERNAL_INTERFACE -s $LOOPBACK -j DENY -l
+         ipchains -A output -i $EXTERNAL_INTERFACE -s $LOOPBACK -j REJECT -l
+
+         # Refuse broadcast address SOURCE packets
+         ipchains -A input  -i $EXTERNAL_INTERFACE -s $BROADCAST_DEST -j DENY -l
+         ipchains -A input  -i $EXTERNAL_INTERFACE -d $BROADCAST_SRC -j DENY -l
+
+         # Refuse Class D multicast addresses (in.h) (NET-3-HOWTO)
+         # Multicast is illegal as a source address.
+         # Multicast uses UDP.
+         ipchains -A input  -i $EXTERNAL_INTERFACE -s $CLASS_D_MULTICAST -j DENY -l
+
+         # Refuse Class E reserved <acronym class="acronym">IP</acronym>  addresses
+         ipchains -A input  -i $EXTERNAL_INTERFACE -s $CLASS_E_RESERVED_NET -j DENY -l
+
+         # refuse addresses defined as reserved by the IANA
+         # 0.*.*.*, 1.*.*.*, 2.*.*.*, 5.*.*.*, 7.*.*.*, 23.*.*.*, 27.*.*.*
+         # 31.*.*.*, 37.*.*.*, 39.*.*.*, 41.*.*.*, 42.*.*.*, 58-60.*.*.*
+         # 65-95.*.*.*, 96-126.*.*.*, 197.*.*.*, 201.*.*.* (?), 217-223.*.*.*
+         ipchains -A input  -i $EXTERNAL_INTERFACE -s 1.0.0.0/8 -j DENY -l
+         ipchains -A input  -i $EXTERNAL_INTERFACE -s 2.0.0.0/8 -j DENY -l
+         ipchains -A input  -i $EXTERNAL_INTERFACE -s 5.0.0.0/8 -j DENY -l
+         ipchains -A input  -i $EXTERNAL_INTERFACE -s 7.0.0.0/8 -j DENY -l
+         ipchains -A input  -i $EXTERNAL_INTERFACE -s 23.0.0.0/8 -j DENY -l
+         ipchains -A input  -i $EXTERNAL_INTERFACE -s 27.0.0.0/8 -j DENY -l
+         ipchains -A input  -i $EXTERNAL_INTERFACE -s 31.0.0.0/8 -j DENY -l
+         ipchains -A input  -i $EXTERNAL_INTERFACE -s 37.0.0.0/8 -j DENY -l
+         ipchains -A input  -i $EXTERNAL_INTERFACE -s 39.0.0.0/8 -j DENY -l
+         ipchains -A input  -i $EXTERNAL_INTERFACE -s 41.0.0.0/8 -j DENY -l
+         ipchains -A input  -i $EXTERNAL_INTERFACE -s 42.0.0.0/8 -j DENY -l
+         ipchains -A input  -i $EXTERNAL_INTERFACE -s 58.0.0.0/7 -j DENY -l
+         ipchains -A input  -i $EXTERNAL_INTERFACE -s 60.0.0.0/8 -j DENY -l
+
+         #65: 01000001    - /3 includes 64 - need 65-79 spelled out
+         ipchains -A input  -i $EXTERNAL_INTERFACE -s 65.0.0.0/8 -j DENY -l
+         ipchains -A input  -i $EXTERNAL_INTERFACE -s 66.0.0.0/8 -j DENY -l
+         ipchains -A input  -i $EXTERNAL_INTERFACE -s 67.0.0.0/8 -j DENY -l
+         ipchains -A input  -i $EXTERNAL_INTERFACE -s 68.0.0.0/8 -j DENY -l
+         ipchains -A input  -i $EXTERNAL_INTERFACE -s 69.0.0.0/8 -j DENY -l
+         ipchains -A input  -i $EXTERNAL_INTERFACE -s 70.0.0.0/8 -j DENY -l
+         ipchains -A input  -i $EXTERNAL_INTERFACE -s 71.0.0.0/8 -j DENY -l
+         ipchains -A input  -i $EXTERNAL_INTERFACE -s 72.0.0.0/8 -j DENY -l
+         ipchains -A input  -i $EXTERNAL_INTERFACE -s 73.0.0.0/8 -j DENY -l
+         ipchains -A input  -i $EXTERNAL_INTERFACE -s 74.0.0.0/8 -j DENY -l
+         ipchains -A input  -i $EXTERNAL_INTERFACE -s 75.0.0.0/8 -j DENY -l
+         ipchains -A input  -i $EXTERNAL_INTERFACE -s 76.0.0.0/8 -j DENY -l
+         ipchains -A input  -i $EXTERNAL_INTERFACE -s 77.0.0.0/8 -j DENY -l
+         ipchains -A input  -i $EXTERNAL_INTERFACE -s 78.0.0.0/8 -j DENY -l
+         ipchains -A input  -i $EXTERNAL_INTERFACE -s 79.0.0.0/8 -j DENY -l
+
+         #80: 01010000   - /4 masks 80-95
+         ipchains -A input  -i $EXTERNAL_INTERFACE -s 80.0.0.0/4 -j DENY -l
+
+         # 96: 01100000    - /4 makses 96-111
+         ipchains -A input  -i $EXTERNAL_INTERFACE -s 96.0.0.0/4 -j DENY -l
+
+         #126: 01111110    - /3 includes 127 - need 112-126 spelled out
+         ipchains -A input  -i $EXTERNAL_INTERFACE -s 112.0.0.0/8 -j DENY -l
+         ipchains -A input  -i $EXTERNAL_INTERFACE -s 113.0.0.0/8 -j DENY -l
+         ipchains -A input  -i $EXTERNAL_INTERFACE -s 114.0.0.0/8 -j DENY -l
+         ipchains -A input  -i $EXTERNAL_INTERFACE -s 115.0.0.0/8 -j DENY -l
+         ipchains -A input  -i $EXTERNAL_INTERFACE -s 116.0.0.0/8 -j DENY -l
+         ipchains -A input  -i $EXTERNAL_INTERFACE -s 117.0.0.0/8 -j DENY -l
+         ipchains -A input  -i $EXTERNAL_INTERFACE -s 118.0.0.0/8 -j DENY -l
+         ipchains -A input  -i $EXTERNAL_INTERFACE -s 119.0.0.0/8 -j DENY -l
+         ipchains -A input  -i $EXTERNAL_INTERFACE -s 120.0.0.0/8 -j DENY -l
+         ipchains -A input  -i $EXTERNAL_INTERFACE -s 121.0.0.0/8 -j DENY -l
+         ipchains -A input  -i $EXTERNAL_INTERFACE -s 122.0.0.0/8 -j DENY -l
+         ipchains -A input  -i $EXTERNAL_INTERFACE -s 123.0.0.0/8 -j DENY -l
+         ipchains -A input  -i $EXTERNAL_INTERFACE -s 124.0.0.0/8 -j DENY -l
+         ipchains -A input  -i $EXTERNAL_INTERFACE -s 125.0.0.0/8 -j DENY -l
+         ipchains -A input  -i $EXTERNAL_INTERFACE -s 126.0.0.0/8 -j DENY -l
+
+         #217: 11011001    - /5 includes 216 - need 217-219 spelled out
+         ipchains -A input  -i $EXTERNAL_INTERFACE -s 217.0.0.0/8 -j DENY -l
+         ipchains -A input  -i $EXTERNAL_INTERFACE -s 218.0.0.0/8 -j DENY -l
+         ipchains -A input  -i $EXTERNAL_INTERFACE -s 219.0.0.0/8 -j DENY -l
+
+         #223: 11011111    - /6 masks 220-223
+         ipchains -A input  -i $EXTERNAL_INTERFACE -s 220.0.0.0/6 -j DENY -l
+
+         # ----------------------------------------------------------------------------
+         # <acronym class="acronym">ICMP</acronym>
+
+         #    To prevent denial of service attacks based on <acronym class="acronym">ICMP</acronym> bombs, filter
+         #    incoming Redirect (5) and outgoing Destination Unreachable (3).
+         #    Note, however, disabling Destination Unreachable (3) is not
+         #    advisable, as it is used to negotiate packet fragment size.
+
+         # For bi-directional ping.
+         #     Message Types:  Echo_Reply (0),  Echo_Request (8)
+         #     To prevent attacks, limit the src addresses to your ISP range.
+         # 
+         # For outgoing traceroute.
+         #     Message Types:  INCOMING Dest_Unreachable (3), Time_Exceeded (11)
+         #     default UDP base: 33434 to base+nhops-1
+         # 
+         # For incoming traceroute.
+         #     Message Types:  OUTGOING Dest_Unreachable (3), Time_Exceeded (11)
+         #     To block this, deny OUTGOING 3 and 11
+
+         #  0: echo-reply (pong)
+         #  3: destination-unreachable, port-unreachable, fragmentation-needed, etc.
+         #  4: source-quench
+         #  5: redirect
+         #  8: echo-request (ping)
+         # 11: time-exceeded
+         # 12: parameter-problem
+
+         ipchains -A input  -i $EXTERNAL_INTERFACE -p icmp \
+         -s $ANYWHERE 0 -d $IPADDR -j ACCEPT
+         ipchains -A input  -i $EXTERNAL_INTERFACE -p icmp \
+         -s $ANYWHERE 3 -d $IPADDR -j ACCEPT
+         ipchains -A input  -i $EXTERNAL_INTERFACE -p icmp \
+         -s $ANYWHERE 4 -d $IPADDR -j ACCEPT
+         ipchains -A input  -i $EXTERNAL_INTERFACE -p icmp \
+         -s $ANYWHERE 11 -d $IPADDR -j ACCEPT
+         ipchains -A input  -i $EXTERNAL_INTERFACE -p icmp \
+         -s $ANYWHERE 12 -d $IPADDR -j ACCEPT
+         ipchains -A input  -i $EXTERNAL_INTERFACE -p icmp \
+         -s $MY_ISP 8 -d $IPADDR -j ACCEPT
+
+         ipchains -A output -i $EXTERNAL_INTERFACE -p icmp \
+         -s $IPADDR 0 -d $MY_ISP -j ACCEPT
+         ipchains -A output -i $EXTERNAL_INTERFACE -p icmp \
+         -s $IPADDR 3 -d $MY_ISP -j ACCEPT
+         ipchains -A output -i $EXTERNAL_INTERFACE -p icmp \
+         -s $IPADDR 4 -d $ANYWHERE -j ACCEPT
+         ipchains -A output -i $EXTERNAL_INTERFACE -p icmp \
+         -s $IPADDR 8 -d $ANYWHERE -j ACCEPT
+         ipchains -A output -i $EXTERNAL_INTERFACE -p icmp \
+         -s $IPADDR 12 -d $ANYWHERE -j ACCEPT
+         ipchains -A output -i $EXTERNAL_INTERFACE -p icmp \
+         -s $IPADDR 11 -d $MY_ISP -j ACCEPT
+
+         # ----------------------------------------------------------------------------
+         # UDP INCOMING TRACEROUTE
+         # traceroute usually uses -S 32769:65535 -D 33434:33523
+
+         ipchains -A input  -i $EXTERNAL_INTERFACE -p udp \
+         -s $MY_ISP $TRACEROUTE_SRC_PORTS \
+         -d $IPADDR $TRACEROUTE_DEST_PORTS -j ACCEPT -l
+
+         ipchains -A input  -i $EXTERNAL_INTERFACE -p udp \
+         -s $ANYWHERE $TRACEROUTE_SRC_PORTS \
+         -d $IPADDR $TRACEROUTE_DEST_PORTS -j DENY -l
+
+         # ----------------------------------------------------------------------------
+         # <acronym class="acronym">DNS</acronym> server
+         # ----------
+
+         # <acronym class="acronym">DNS</acronym>: full server
+         # server/client to server query or response
+
+         ipchains -A input  -i $EXTERNAL_INTERFACE -p udp \
+         -s $ANYWHERE $UNPRIVPORTS \
+         -d $IPADDR 53 -j ACCEPT
+
+         ipchains -A output -i $EXTERNAL_INTERFACE -p udp \
+         -s $IPADDR 53 \
+         -d $ANYWHERE $UNPRIVPORTS -j ACCEPT
+
+         # <acronym class="acronym">DNS</acronym> client (53)
+         # ---------------
+         ipchains -A input  -i $EXTERNAL_INTERFACE -p udp \
+         -s $NAMESERVER_1 53 \
+         -d $IPADDR $UNPRIVPORTS -j ACCEPT
+
+         ipchains -A output -i $EXTERNAL_INTERFACE -p udp \
+         -s $IPADDR $UNPRIVPORTS \
+         -d $NAMESERVER_1 53 -j ACCEPT
+
+         ipchains -A input  -i $EXTERNAL_INTERFACE -p udp \
+         -s $NAMESERVER_2 53 \
+         -d $IPADDR $UNPRIVPORTS -j ACCEPT
+
+         ipchains -A output -i $EXTERNAL_INTERFACE -p udp \
+         -s $IPADDR $UNPRIVPORTS \
+         -d $NAMESERVER_2 53 -j ACCEPT
+
+         # TCP client to server requests are allowed by the protocol
+         # if UDP requests fail. This is rarely seen. Usually, clients
+         # use TCP as a secondary nameserver for zone transfers from
+         # their primary nameservers, and as hackers.
+
+         ipchains -A input  -i $EXTERNAL_INTERFACE -p tcp ! -y \
+         -s $NAMESERVER_1 53 \
+         -d $IPADDR $UNPRIVPORTS -j ACCEPT
+
+         ipchains -A output -i $EXTERNAL_INTERFACE -p tcp \
+         -s $IPADDR $UNPRIVPORTS \
+         -d $NAMESERVER_1 53 -j ACCEPT
+
+         ipchains -A input  -i $EXTERNAL_INTERFACE -p tcp ! -y \
+         -s $NAMESERVER_2 53 \
+         -d $IPADDR $UNPRIVPORTS -j ACCEPT
+
+         ipchains -A output -i $EXTERNAL_INTERFACE -p tcp \
+         -s $IPADDR $UNPRIVPORTS \
+         -d $NAMESERVER_2 53 -j ACCEPT
+
+         # ----------------------------------------------------------------------------
+         # TCP accept only on selected ports
+         # ---------------------------------
+         # ------------------------------------------------------------------
+
+         # <acronym class="acronym">SSH</acronym> server (22)
+         # ---------------
+
+         ipchains -A input  -i $EXTERNAL_INTERFACE -p tcp \
+         -s $ANYWHERE $UNPRIVPORTS \
+         -d $IPADDR 22 -j ACCEPT 
+
+         ipchains -A output -i $EXTERNAL_INTERFACE -p tcp ! -y \
+         -s $IPADDR 22 \
+         -d $ANYWHERE $UNPRIVPORTS -j ACCEPT 
+
+         ipchains -A input  -i $EXTERNAL_INTERFACE -p tcp \
+         -s $ANYWHERE $SSH_PORTS \
+         -d $IPADDR 22 -j ACCEPT 
+
+         ipchains -A output -i $EXTERNAL_INTERFACE -p tcp ! -y \
+         -s $IPADDR 22 \
+         -d $ANYWHERE $SSH_PORTS -j ACCEPT 
+
+         # <acronym class="acronym">SSH</acronym> client (22)
+         # ---------------
+         ipchains -A input  -i $EXTERNAL_INTERFACE -p tcp ! -y \
+         -s $ANYWHERE 22 \
+         -d $IPADDR $UNPRIVPORTS -j ACCEPT 
+
+         ipchains -A output -i $EXTERNAL_INTERFACE -p tcp \
+         -s $IPADDR $UNPRIVPORTS \
+         -d $ANYWHERE 22 -j ACCEPT 
+
+         ipchains -A input  -i $EXTERNAL_INTERFACE -p tcp ! -y \
+         -s $ANYWHERE 22 \
+         -d $IPADDR $SSH_PORTS -j ACCEPT 
+
+         ipchains -A output -i $EXTERNAL_INTERFACE -p tcp \
+         -s $IPADDR $SSH_PORTS \
+         -d $ANYWHERE 22 -j ACCEPT 
+
+         # ------------------------------------------------------------------
+
+         # <acronym class="acronym">HTTP</acronym> client (80)
+         # ----------------
+         ipchains -A input  -i $EXTERNAL_INTERFACE -p tcp ! -y \
+         -s $ANYWHERE 80 \
+         -d $IPADDR $UNPRIVPORTS -j ACCEPT 
+
+         ipchains -A output -i $EXTERNAL_INTERFACE -p tcp \
+         -s $IPADDR $UNPRIVPORTS \
+         -d $ANYWHERE 80 -j ACCEPT 
+
+         # ------------------------------------------------------------------
+
+         # <acronym class="acronym">HTTPS</acronym> client (443)
+         # ------------------
+         ipchains -A input  -i $EXTERNAL_INTERFACE -p tcp ! -y \
+         -s $ANYWHERE 443 \
+         -d $IPADDR $UNPRIVPORTS -j ACCEPT 
+
+         ipchains -A output -i $EXTERNAL_INTERFACE -p tcp \
+         -s $IPADDR $UNPRIVPORTS \
+         -d $ANYWHERE 443 -j ACCEPT 
+
+         # ------------------------------------------------------------------
+
+         # POP client (110)
+         # ----------------
+         ipchains -A input  -i $EXTERNAL_INTERFACE -p tcp ! -y \
+         -s $POP_SERVER 110 \
+         -d $IPADDR $UNPRIVPORTS -j ACCEPT 
+
+         ipchains -A output -i $EXTERNAL_INTERFACE -p tcp \
+         -s $IPADDR $UNPRIVPORTS \
+         -d $POP_SERVER 110 -j ACCEPT 
+
+         # ------------------------------------------------------------------
+
+         # NNTP NEWS client (119)
+         # ----------------------
+         ipchains -A input  -i $EXTERNAL_INTERFACE -p tcp ! -y \
+         -s $NEWS_SERVER 119 \
+         -d $IPADDR $UNPRIVPORTS -j ACCEPT 
+
+         ipchains -A output -i $EXTERNAL_INTERFACE -p tcp \
+         -s $IPADDR $UNPRIVPORTS \
+         -d $NEWS_SERVER 119 -j ACCEPT 
+
+         # ------------------------------------------------------------------
+
+         # FINGER client (79)
+         # ------------------
+         #    ipchains -A input  -i $EXTERNAL_INTERFACE -p tcp ! -y \
+         #             -s $ANYWHERE 79 \
+         #             -d $IPADDR $UNPRIVPORTS -j ACCEPT 
+
+         #    ipchains -A output -i $EXTERNAL_INTERFACE -p tcp \
+         #             -s $IPADDR $UNPRIVPORTS \
+         #             -d $ANYWHERE 79 -j ACCEPT 
+
+         # ------------------------------------------------------------------
+
+         # SYSLOG client (514)
+         # -----------------
+
+         #    ipchains -A output -i $LOCAL_INTERFACE_1 -p udp \
+         #             -s $IPADDR 514 \
+         #             -d $SYSLOG_SERVER 514 -j ACCEPT
+
+         # ------------------------------------------------------------------
+
+         # AUTH server (113)
+         # -----------------
+
+         # Reject, rather than deny, the incoming auth port. (NET-3-HOWTO)
+
+         ipchains -A input  -i $EXTERNAL_INTERFACE -p tcp \
+         -s $ANYWHERE \
+         -d $IPADDR 113 -j REJECT 
+
+         # AUTH client (113)
+         # -----------------
+         #    ipchains -A input  -i $EXTERNAL_INTERFACE -p tcp ! -y \
+         #             -s $ANYWHERE 113 \
+         #             -d $IPADDR $UNPRIVPORTS -j ACCEPT 
+
+         #    ipchains -A output -i $EXTERNAL_INTERFACE -p tcp \
+         #             -s $IPADDR $UNPRIVPORTS \
+         #             -d $ANYWHERE 113 -j ACCEPT 
+
+         # ------------------------------------------------------------------
+
+         # SMTP client (25)
+         # ----------------
+         ipchains -A input  -i $EXTERNAL_INTERFACE -p tcp ! -y \
+         -s $ANYWHERE 25 \
+         -d $IPADDR $UNPRIVPORTS -j ACCEPT 
+
+         ipchains -A output -i $EXTERNAL_INTERFACE -p tcp \
+         -s $IPADDR $UNPRIVPORTS \
+         -d $ANYWHERE 25 -j ACCEPT 
+
+         # ------------------------------------------------------------------
+
+         # IRC client (6667)
+         # -----------------
+         ipchains -A input  -i $EXTERNAL_INTERFACE -p tcp ! -y \
+         -s $ANYWHERE 6667 \
+         -d $IPADDR $UNPRIVPORTS -j ACCEPT 
+
+         ipchains -A output -i $EXTERNAL_INTERFACE -p tcp \
+         -s $IPADDR $UNPRIVPORTS \
+         -d $ANYWHERE 6667 -j ACCEPT 
+
+         # ------------------------------------------------------------------
+
+         # ICQ client (4000)
+         # -----------------
+         ipchains -A input  -i $EXTERNAL_INTERFACE -p tcp ! -y \
+         -s $ANYWHERE 2000:4000 \
+         -d $IPADDR $UNPRIVPORTS -j ACCEPT 
+
+         ipchains -A output -i $EXTERNAL_INTERFACE -p tcp \
+         -s $IPADDR $UNPRIVPORTS \
+         -d $ANYWHERE 2000:4000 -j ACCEPT 
+
+         ipchains -A input  -i $EXTERNAL_INTERFACE -p udp \
+         -s $ANYWHERE 4000 \
+         -d $IPADDR $UNPRIVPORTS -j ACCEPT 
+
+         ipchains -A output -i $EXTERNAL_INTERFACE -p udp \
+         -s $IPADDR $UNPRIVPORTS \
+         -d $ANYWHERE 4000 -j ACCEPT 
+
+         # ------------------------------------------------------------------
+
+         # FTP client (20, 21)
+         # -------------------
+
+         # outgoing request
+         ipchains -A input  -i $EXTERNAL_INTERFACE -p tcp ! -y \
+         -s $ANYWHERE 21 \
+         -d $IPADDR $UNPRIVPORTS -j ACCEPT 
+
+         ipchains -A output -i $EXTERNAL_INTERFACE -p tcp \
+         -s $IPADDR $UNPRIVPORTS \
+         -d $ANYWHERE 21 -j ACCEPT 
+
+         # NORMAL mode data channel
+         ipchains -A input  -i $EXTERNAL_INTERFACE -p tcp \
+         -s $ANYWHERE 20 \
+         -d $IPADDR $UNPRIVPORTS -j ACCEPT 
+
+         # NORMAL mode data channel responses
+         ipchains -A output -i $EXTERNAL_INTERFACE -p tcp ! -y \
+         -s $IPADDR $UNPRIVPORTS \
+         -d $ANYWHERE 20 -j ACCEPT 
+
+         # PASSIVE mode data channel creation
+         ipchains -A output -i $EXTERNAL_INTERFACE -p tcp \
+         -s $IPADDR $UNPRIVPORTS \
+         -d $ANYWHERE $UNPRIVPORTS -j ACCEPT 
+
+         # PASSIVE mode data channel responses
+         ipchains -A input  -i $EXTERNAL_INTERFACE -p tcp ! -y \
+         -s $ANYWHERE $UNPRIVPORTS \
+         -d $IPADDR $UNPRIVPORTS -j ACCEPT 
+
+         # ------------------------------------------------------------------
+
+         # RealAudio / QuickTime client
+         # ----------------------------
+
+         ipchains -A input  -i $EXTERNAL_INTERFACE -p tcp ! -y \
+         -s $ANYWHERE 554 \
+         -d $IPADDR $UNPRIVPORTS -j ACCEPT
+
+         ipchains -A output -i $EXTERNAL_INTERFACE -p tcp \
+         -s $IPADDR $UNPRIVPORTS \
+         -d $ANYWHERE 554 -j ACCEPT
+
+
+         # TCP is a more secure method:  7070:7071
+
+         ipchains -A input  -i $EXTERNAL_INTERFACE -p tcp ! -y \
+         -s $ANYWHERE 7070:7071 \
+         -d $IPADDR $UNPRIVPORTS -j ACCEPT
+
+         ipchains -A output -i $EXTERNAL_INTERFACE -p tcp \
+         -s $IPADDR $UNPRIVPORTS \
+         -d $ANYWHERE 7070:7071 -j ACCEPT
+
+
+         # UDP is the preferred method:  6970:6999
+         # For LAN machines, UDP requires the RealAudio masquerading module and
+         # the ipmasqadm third-party software.
+
+         ipchains -A input  -i $EXTERNAL_INTERFACE -p udp \
+         -s $ANYWHERE $UNPRIVPORTS \
+         -d $IPADDR 6970:6999 -j ACCEPT
+
+         ipchains -A output -i $EXTERNAL_INTERFACE -p udp \
+         -s $IPADDR $UNPRIVPORTS \
+         -d $ANYWHERE $UNPRIVPORTS -j ACCEPT
+
+         # ------------------------------------------------------------------
+
+         # WHOIS client (43)
+         # -----------------
+         #    ipchains -A input  -i $EXTERNAL_INTERFACE -p tcp ! -y \
+         #             -s $ANYWHERE 43 \
+         #             -d $IPADDR $UNPRIVPORTS -j ACCEPT 
+
+         #    ipchains -A output -i $EXTERNAL_INTERFACE -p tcp \
+         #             -s $IPADDR $UNPRIVPORTS \
+         #             -d $ANYWHERE 43 -j ACCEPT 
+
+         # ------------------------------------------------------------------
+
+         # OUTGOING TRACEROUTE
+         # -------------------
+         ipchains -A output -i $EXTERNAL_INTERFACE -p udp \
+         -s $IPADDR $TRACEROUTE_SRC_PORTS \
+         -d $ANYWHERE $TRACEROUTE_DEST_PORTS -j ACCEPT 
+
+         # ----------------------------------------------------------------------------
+         # Unlimited traffic within the local network.
+
+         # All internal machines have access to the firewall machine.
+
+         ipchains -A input  -i $LOCAL_INTERFACE_1 -s $LOCALNET_1 -j ACCEPT 
+         ipchains -A output -i $LOCAL_INTERFACE_1 -d $LOCALNET_1 -j ACCEPT 
+
+         # ----------------------------------------------------------------------------
+         # FreeS/WAN IPSec VPN
+         # -------------------
+
+         # If you are using the FreeSWAN IPSec VPN, you will need to fill in the
+         # addresses of the gateways in the IPSECSG and the virtual interfaces for
+         # FreeS/Wan IPSEC in the FREESWANVI parameters. Look at the beginning of
+         # this firewall script rules file to set the parameters.
+
+         # IPSECSG is a Space separated list of remote gateways. FREESWANVI is a
+         # Space separated list of virtual interfaces for FreeS/Wan IPSEC
+         # implementation. Only include those that are actually used.
+
+         # Allow IPSEC protocol from remote gateways on external interface
+         # IPSEC uses three main types of packet:
+         # IKE uses the UDP protocol and port 500,
+         # ESP use the protocol number 50, and
+         # AH use the protocol number 51
+
+         #    ipchains -A input  -i $EXTERNAL_INTERFACE -p udp \
+         #             -s $IPSECSG -j ACCEPT
+
+         #    ipchains -A output  -i $EXTERNAL_INTERFACE -p udp \
+         #             -d $IPSECSG -j ACCEPT
+
+         #    ipchains -A input  -i $EXTERNAL_INTERFACE -p 50 \
+         #             -s $IPSECSG -j ACCEPT
+
+         #    ipchains -A output  -i $EXTERNAL_INTERFACE -p 50 \
+         #             -d $IPSECSG -j ACCEPT
+
+         #    ipchains -A input  -i $EXTERNAL_INTERFACE -p 51 \
+         #             -s $IPSECSG -j ACCEPT
+
+         #    ipchains -A output  -i $EXTERNAL_INTERFACE -p 51 \
+         #             -d $IPSECSG -j ACCEPT
+
+         # Allow all traffic to FreeS/WAN Virtual Interface
+         #    ipchains -A input  -i $FREESWANVI \
+         #             -s $ANYWHERE \
+         #             -d $ANYWHERE -j ACCEPT
+
+         #    ipchains -A output  -i $FREESWANVI \
+         #             -s $ANYWHERE \
+         #             -d $ANYWHERE -j ACCEPT
+
+         # Forward anything from the FreeS/WAN virtual interface IPSEC tunnel
+         #    ipchains -A forward  -i $FREESWANVI \
+         #             -s $ANYWHERE \
+         #             -d $ANYWHERE -j ACCEPT
+
+         # Disable <acronym class="acronym">IP</acronym> spoofing protection to allow IPSEC to work properly
+         #    echo 0 &gt; /proc/sys/net/ipv4/conf/ipsec0/rp_filter
+         #    echo 0 &gt; /proc/sys/net/ipv4/conf/eth0/rp_filter
+
+         # ----------------------------------------------------------------------------
+         # Masquerade internal traffic.
+
+         # All internal traffic is masqueraded externally.
+
+         ipchains -A forward -i $EXTERNAL_INTERFACE -s $LOCALNET_1 -j MASQ
+
+         # ----------------------------------------------------------------------------
+         # Enable logging for selected denied packets
+
+         ipchains -A input  -i $EXTERNAL_INTERFACE -p tcp \
+         -d $IPADDR -j DENY -l
+
+         ipchains -A input  -i $EXTERNAL_INTERFACE -p udp \
+         -d $IPADDR $PRIVPORTS -j DENY -l
+
+         ipchains -A input  -i $EXTERNAL_INTERFACE -p udp \
+         -d $IPADDR $UNPRIVPORTS -j DENY -l
+
+         ipchains -A input  -i $EXTERNAL_INTERFACE -p icmp \
+         -s $ANYWHERE 5 -d $IPADDR -j DENY -l
+
+         ipchains -A input  -i $EXTERNAL_INTERFACE -p icmp \
+         -s $ANYWHERE 13:255 -d $IPADDR -j DENY -l
+
+         # ----------------------------------------------------------------------------
+
+         ;;
+         stop)
+         echo -n "Shutting Firewalling Services: "
+
+         # Remove all existing rules belonging to this filter
+         ipchains -F
+
+         # Delete all user-defined chain to this filter
+         ipchains -X
+
+         # Reset the default policy of the filter to accept.
+         ipchains -P input  ACCEPT
+         ipchains -P output ACCEPT
+         ipchains -P forward ACCEPT
+
+         ;;
+         status)
+         status firewall
+         ;;
+         restart|reload)
+         $0 stop
+         $0 start
+         ;;
+         *)
+         echo "Usage: firewall {start|stop|status|restart|reload}"
+         exit 1
+         esac
+
+         exit 0
+         </pre><p>
+         </p><p>
+         Now, make this script executable and change its default permissions:
+         </p><pre class="screen">
+         [root@deep] /#<span class="command"><strong>chmod</strong></span> 700 /etc/rc.d/init.d/firewall
+         [root@deep] /#<span class="command"><strong>chown</strong></span> 0.0 /etc/rc.d/init.d/firewall
+         </pre><p>
+         </p><p>
+         Create the symbolic <code class="filename">rc.d</code> links for your Firewall with the command:
+         </p><pre class="screen">
+         [root@deep] /#<span class="command"><strong>chkconfig</strong></span> --add firewall
+         [root@deep] /#<span class="command"><strong>chkconfig</strong></span> --level 345 firewall on
+         </pre><p>
+         Now, your firewall rules are configured to use System <code class="literal">V</code> init -System <code class="literal">V</code> <span class="emphasis"><em>init is in charge of starting all the normal processes that need to run at boot time</em></span> and it will 
+         be automatically started each time your server reboots.
+         </p><p>
+         To manually stop the firewall on your system, use the following command:
+         </p><pre class="screen">
+         [root@deep] /# /etc/rc.d/init.d/firewall <span class="command"><strong>stop</strong></span>
+         </pre><p>
+         </p><pre class="literallayout"><code class="computeroutput">
+         Shutting Firewalling Services:			[  OK  ]
+         </code></pre><p>
+         </p><p>
+         To manually start the firewall on your system, use the following command:
+         </p><pre class="screen">
+         [root@deep] /# /etc/rc.d/init.d/firewall <span class="command"><strong>start</strong></span>
+         </pre><p>
+         </p><pre class="literallayout"><code class="computeroutput">
+         Starting Firewalling Services:			[  OK  ]
+         </code></pre><p>
+         </p></div><div class="navfooter"><hr><table width="100%" summary="Navigation footer"><tr><td width="40%" align="left"><a accesskey="p" href="chap12sec105.html">Prev</a> </td><td width="20%" align="center"><a accesskey="u" href="Masq-forward.html">Up</a></td><td width="40%" align="right"> <a accesskey="n" href="chap12sec107.html">Next</a></td></tr><tr><td width="40%" align="left" valign="top">2. Config <code class="filename">/etc/rc.d/init.d/firewall</code> script file -Gateway Server </td><td width="20%" align="center"><a accesskey="h" href="index.html">Home</a></td><td width="40%" align="right" valign="top"> 4. Deny access to some address</td></tr></table></div></body></html>

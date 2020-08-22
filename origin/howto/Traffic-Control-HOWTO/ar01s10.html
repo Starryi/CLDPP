@@ -1,0 +1,44 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1"><title>10. Diagram</title><link rel="stylesheet" type="text/css" href="style.css"><meta name="generator" content="DocBook XSL Stylesheets V1.79.1"><link rel="home" href="index.html" title="Traffic Control HOWTO"><link rel="up" href="index.html" title="Traffic Control HOWTO"><link rel="prev" href="ar01s09.html" title="9. Scripts for use with QoS/Traffic Control"><link rel="next" href="ar01s11.html" title="11. Annotated Traffic Control Links"></head><body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF"><div class="navheader"><table width="100%" summary="Navigation header"><tr><th colspan="3" align="center">10. Diagram</th></tr><tr><td width="20%" align="left"><a accesskey="p" href="ar01s09.html">Prev</a> </td><th width="60%" align="center"> </th><td width="20%" align="right"> <a accesskey="n" href="ar01s11.html">Next</a></td></tr></table><hr></div><div class="section"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="diagram"></a>10. Diagram</h2></div></div></div><p>
+  </p><p>
+  </p><div class="section"><div class="titlepage"><div><div><h3 class="title"><a name="d-general"></a>10.1. General diagram</h3></div></div></div><p>
+      Below is a general diagram of the relationships of the components of a
+      classful queuing discipline (HTB pictured).  A larger version of
+      the diagram is
+      <a class="ulink" href="http://linux-ip.net/traffic-control/htb-class.png" target="_top">available</a>.
+    </p><p>
+    </p><div class="example"><a name="d-tcng-config"></a><p class="title"><b>Example 12. An example HTB <span class="command">tcng</span> configuration</b></p><div class="example-contents"><pre class="programlisting">
+/*
+ *
+ *  possible mock up of diagram shown at
+ *  http://linux-ip.net/traffic-control/htb-class.png
+ *
+ */
+
+$m_web = trTCM (
+                 cir 512  kbps,  /* commited information rate */
+                 cbs 10   kB,    /* burst for CIR */
+                 pir 1024 kbps,  /* peak information rate */
+                 pbs 10   kB     /* burst for PIR */
+               ) ;
+
+dev eth0 {
+    egress {
+
+        class ( &lt;$web&gt; )  if tcp_dport == PORT_HTTP &amp;&amp;  __trTCM_green( $m_web );
+        class ( &lt;$bulk&gt; ) if tcp_dport == PORT_HTTP &amp;&amp; __trTCM_yellow( $m_web );
+        drop              if                              __trTCM_red( $m_web );
+        class ( &lt;$bulk&gt; ) if tcp_dport == PORT_SSH ;
+
+        htb () {  /* root qdisc */
+
+            class ( rate 1544kbps, ceil 1544kbps ) {  /* root class */
+
+                $web  = class ( rate 512kbps, ceil  512kbps ) { sfq ; } ;
+                $bulk = class ( rate 512kbps, ceil 1544kbps ) { sfq ; } ;
+
+            }
+        }
+    }
+}
+      </pre></div></div><br class="example-break"><div class="mediaobject"><a name="img-d-general"></a><object type="image/svg+xml" data="images/htb-class.svg"></object></div><p>
+    </p></div></div><div class="navfooter"><hr><table width="100%" summary="Navigation footer"><tr><td width="40%" align="left"><a accesskey="p" href="ar01s09.html">Prev</a> </td><td width="20%" align="center"> </td><td width="40%" align="right"> <a accesskey="n" href="ar01s11.html">Next</a></td></tr><tr><td width="40%" align="left" valign="top">9. Scripts for use with QoS/Traffic Control </td><td width="20%" align="center"><a accesskey="h" href="index.html">Home</a></td><td width="40%" align="right" valign="top"> 11. Annotated Traffic Control Links</td></tr></table></div></body></html>

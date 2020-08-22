@@ -1,0 +1,59 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1"><title>9. Configure the /etc/logrotate.d/squid file</title><link rel="stylesheet" type="text/css" href="style.css"><meta name="generator" content="DocBook XSL Stylesheets V1.79.1"><meta name="keywords" content="RedHat, redhat, maddy, linus, linux, Linux, Securing, Optimising, security, secure, openna, gerhard"><link rel="home" href="index.html" title="Securing and Optimizing Linux"><link rel="up" href="netproxy-squid.html" title="Chapter 28. Software -Server/Proxy Network"><link rel="prev" href="chap28sec233.html" title="8. Configure the /etc/rc.d/init.d/squid script file -/all configurations"><link rel="next" href="chap28sec235.html" title="10. Optimizing Squid"></head><body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF"><div class="navheader"><table width="100%" summary="Navigation header"><tr><th colspan="3" align="center">9. Configure the <code class="filename">/etc/logrotate.d/squid</code> file</th></tr><tr><td width="20%" align="left"><a accesskey="p" href="chap28sec233.html">Prev</a> </td><th width="60%" align="center">Chapter 28. Software -Server/Proxy Network</th><td width="20%" align="right"> <a accesskey="n" href="chap28sec235.html">Next</a></td></tr></table><hr></div><div class="section"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="idm18419"></a>9. Configure the <code class="filename">/etc/logrotate.d/squid</code> file</h2></div></div></div><p>
+               Configure your <code class="filename">/etc/logrotate.d/squid</code> file to rotate your log files automatically each week.
+               Create the <code class="filename">squid</code> file, <span class="command"><strong>touch</strong></span> <code class="filename">/etc/logrotate.d/squid</code> and add:
+             </p><pre class="programlisting">
+               /var/log/squid/access.log {
+               weekly
+               rotate 5
+               copytruncate
+               compress
+               notifempty
+               missingok
+               }
+               /var/log/squid/cache.log {
+               weekly
+               rotate 5
+               copytruncate
+               compress
+               notifempty
+               missingok
+               }
+
+               /var/log/squid/store.log {
+               weekly
+               rotate 5
+               copytruncate
+               compress
+               notifempty
+               missingok
+               # This script asks squid to rotate its logs on its own.
+               # Restarting squid is a long process and it is not worth
+               # doing it just to rotate logs
+               postrotate
+               /usr/sbin/squid -k rotate
+               endscript
+               }
+             </pre><div class="section"><div class="titlepage"><div><div><h3 class="title"><a name="idm18428"></a>9.1. Securing and Immunize Squid</h3></div></div></div><p>
+                 By having more control on mounting the cache directory of Squid, if you have created the cache directory of Squid in a separate partition of your Linux system <abbr class="abbrev">i.e.</abbr> <code class="filename">/cache</code>, like we have done during the install setup, then you can use 
+                 the <code class="literal">noexec</code>, <code class="literal">nodev</code>, and <code class="literal">nosuid</code> features to improve and consolidate the cache security. These features can be set up in the <code class="filename">/etc/fstab</code> file to tell the system to not allow execution of any binaries; <code class="literal">noexec</code> 
+                 to not interpret character or block special devices; <code class="literal">nodev</code> and to not allow set-user-identifier or set-group-identifier bits to take effect, <code class="literal">nosuid</code> on the mounted file system <code class="filename">/cache</code> <span class="emphasis"><em>in our example</em></span>. 
+                 Applying this procedure on the partition where the Squid Cache resides will help to eliminate the possibility of <code class="literal">DEV</code>, <code class="literal">SUID/SGID</code>, and execution of any binaries.
+               </p><p>
+                 As an example, assuming <code class="filename">/dev/sda8</code> is the partition in the system where the <code class="filename">/cache</code> directory of Squid lives, you must edit the fstab 
+                 file, <span class="command"><strong>vi</strong></span> <code class="filename">/etc/fstab</code> and change the line related to <code class="filename">/dev/sda8:</code>
+                 </p><pre class="programlisting">
+                   /dev/sda8			/cache		ext2		defaults        1 2
+                 </pre><p>
+                 To read:
+                 </p><pre class="programlisting">
+                   /dev/sda8			/cache 		ext2		noexec,nodev,nosuid 1 2
+                 </pre><p>
+
+                 Dont you forget to reboot your system for the changes to take effect.
+               </p><p>
+               You should immunize important configuration file like <code class="filename">squid.conf</code>. As we already know, the immutable bit can be used to prevent deletion, overwriting, or creation of a symbolic link to a file. Once your <code class="filename">squid.conf</code> 
+               file has been configured, it's a good idea to immunize it with the following command:
+               </p><pre class="screen">
+                 [root@deep /]# chattr +i /etc/squid/squid.conf
+               </pre><p>
+</p></div></div><div class="navfooter"><hr><table width="100%" summary="Navigation footer"><tr><td width="40%" align="left"><a accesskey="p" href="chap28sec233.html">Prev</a> </td><td width="20%" align="center"><a accesskey="u" href="netproxy-squid.html">Up</a></td><td width="40%" align="right"> <a accesskey="n" href="chap28sec235.html">Next</a></td></tr><tr><td width="40%" align="left" valign="top">8. Configure the <code class="filename">/etc/rc.d/init.d/squid</code> script file -/all configurations </td><td width="20%" align="center"><a accesskey="h" href="index.html">Home</a></td><td width="40%" align="right" valign="top"> 10. Optimizing Squid</td></tr></table></div></body></html>

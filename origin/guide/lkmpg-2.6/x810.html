@@ -1,0 +1,279 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN""http://www.w3.org/TR/html4/loose.dtd">
+<HTML
+><HEAD
+><TITLE
+>Manage /proc file with standard filesystem</TITLE
+><META
+NAME="GENERATOR"
+CONTENT="Modular DocBook HTML Stylesheet Version 1.79"><LINK
+REL="HOME"
+TITLE="The Linux Kernel Module Programming Guide"
+HREF="index.html"><LINK
+REL="UP"
+TITLE="The /proc File System"
+HREF="c708.html"><LINK
+REL="PREVIOUS"
+TITLE="Read and Write a /proc File"
+HREF="x769.html"><LINK
+REL="NEXT"
+TITLE="Manage /proc file with seq_file"
+HREF="x861.html"></HEAD
+><BODY
+CLASS="SECT1"
+BGCOLOR="#FFFFFF"
+TEXT="#000000"
+LINK="#0000FF"
+VLINK="#840084"
+ALINK="#0000FF"
+><DIV
+CLASS="NAVHEADER"
+><TABLE
+SUMMARY="Header navigation table"
+WIDTH="100%"
+BORDER="0"
+CELLPADDING="0"
+CELLSPACING="0"
+><TR
+><TH
+COLSPAN="3"
+ALIGN="center"
+>The Linux Kernel Module Programming Guide</TH
+></TR
+><TR
+><TD
+WIDTH="10%"
+ALIGN="left"
+VALIGN="bottom"
+><A
+HREF="x769.html"
+ACCESSKEY="P"
+>Prev</A
+></TD
+><TD
+WIDTH="80%"
+ALIGN="center"
+VALIGN="bottom"
+>Chapter 5. The /proc File System</TD
+><TD
+WIDTH="10%"
+ALIGN="right"
+VALIGN="bottom"
+><A
+HREF="x861.html"
+ACCESSKEY="N"
+>Next</A
+></TD
+></TR
+></TABLE
+><HR
+ALIGN="LEFT"
+WIDTH="100%"></DIV
+><DIV
+CLASS="SECT1"
+><H1
+CLASS="SECT1"
+><A
+NAME="AEN810"
+>5.3. Manage /proc file with standard filesystem</A
+></H1
+><P
+>	We have seen how to read and write a /proc file with the /proc interface. But it's also possible
+	to manage /proc file with inodes. The main interest is to use advanced function, like permissions.
+	</P
+><P
+>	In Linux, there is a standard mechanism for file system registration. Since every file system has to have its own
+	functions to handle inode and file operations<A
+NAME="AEN814"
+HREF="#FTN.AEN814"
+><SPAN
+CLASS="footnote"
+>[1]</SPAN
+></A
+>,
+	there is a special structure to hold pointers to all those functions, <CODE
+CLASS="VARNAME"
+>struct inode_operations</CODE
+>, which
+	includes a pointer to <CODE
+CLASS="VARNAME"
+>struct file_operations</CODE
+>. In /proc, whenever we register a new file, we're allowed to
+	specify which <CODE
+CLASS="VARNAME"
+>struct inode_operations</CODE
+> will be used to access to it. This is the mechanism we use, a
+	<CODE
+CLASS="VARNAME"
+>struct inode_operations</CODE
+> which includes a pointer to a <CODE
+CLASS="VARNAME"
+>struct file_operations</CODE
+> which
+	includes pointers to our <CODE
+CLASS="FUNCTION"
+>procfs_read</CODE
+> and <CODE
+CLASS="FUNCTION"
+>procfs_write</CODE
+> functions.
+	</P
+><P
+>	Another interesting point here is the <CODE
+CLASS="FUNCTION"
+>module_permission</CODE
+> function. This function is called whenever
+	a process tries to do something with the <TT
+CLASS="FILENAME"
+>/proc</TT
+> file, and it can decide whether to allow
+	access or not. Right now it is only based on the operation and the uid of the current user (as available in
+	<CODE
+CLASS="VARNAME"
+>current</CODE
+>, a pointer to a structure which includes information on the currently running process), but it
+	could be based on anything we like, such as what other processes are doing with the same file, the time of day, or the last
+	input we received.</P
+><P
+>	It's important to note that the standard roles of read and write are reversed in the kernel. Read functions are used for
+	output, whereas write functions are used for input. The reason for that is that read and write refer to the user's point of
+	view --- if a process reads something from the kernel, then the kernel needs to output it, and if a process writes something
+	to the kernel, then the kernel receives it as input.
+	</P
+><DIV
+CLASS="EXAMPLE"
+><A
+NAME="AEN853"
+></A
+><P
+><B
+>Example 5-3. procfs3.c</B
+></P
+><TABLE
+BORDER="0"
+BGCOLOR="#E0E0E0"
+WIDTH="100%"
+><TR
+><TD
+><FONT
+COLOR="#000000"
+><PRE
+CLASS="PROGRAMLISTING"
+>&#62;</PRE
+></FONT
+></TD
+></TR
+></TABLE
+></DIV
+><P
+>	Still hungry for procfs examples? Well, first of all keep in mind, there are rumors around, claiming
+	that procfs is on it's way out, consider using sysfs instead. Second, if you really can't get enough, 
+	there's a highly recommendable bonus level for procfs below <TT
+CLASS="FILENAME"
+> linux/Documentation/DocBook/ </TT
+>. 
+	Use <B
+CLASS="COMMAND"
+> make help </B
+> in your toplevel kernel directory for instructions about how to convert it into 
+	your favourite format. Example: <B
+CLASS="COMMAND"
+> make htmldocs </B
+>. Consider using this mechanism, 
+	in case you want to document something kernel related yourself.
+	</P
+></DIV
+><H3
+CLASS="FOOTNOTES"
+>Notes</H3
+><TABLE
+BORDER="0"
+CLASS="FOOTNOTES"
+WIDTH="100%"
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+WIDTH="5%"
+><A
+NAME="FTN.AEN814"
+HREF="x810.html#AEN814"
+><SPAN
+CLASS="footnote"
+>[1]</SPAN
+></A
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+WIDTH="95%"
+><P
+>The difference between the two is that file operations deal with
+	the file itself, and inode operations deal with ways of referencing the file, such as creating links to it.</P
+></TD
+></TR
+></TABLE
+><DIV
+CLASS="NAVFOOTER"
+><HR
+ALIGN="LEFT"
+WIDTH="100%"><TABLE
+SUMMARY="Footer navigation table"
+WIDTH="100%"
+BORDER="0"
+CELLPADDING="0"
+CELLSPACING="0"
+><TR
+><TD
+WIDTH="33%"
+ALIGN="left"
+VALIGN="top"
+><A
+HREF="x769.html"
+ACCESSKEY="P"
+>Prev</A
+></TD
+><TD
+WIDTH="34%"
+ALIGN="center"
+VALIGN="top"
+><A
+HREF="index.html"
+ACCESSKEY="H"
+>Home</A
+></TD
+><TD
+WIDTH="33%"
+ALIGN="right"
+VALIGN="top"
+><A
+HREF="x861.html"
+ACCESSKEY="N"
+>Next</A
+></TD
+></TR
+><TR
+><TD
+WIDTH="33%"
+ALIGN="left"
+VALIGN="top"
+>Read and Write a /proc File</TD
+><TD
+WIDTH="34%"
+ALIGN="center"
+VALIGN="top"
+><A
+HREF="c708.html"
+ACCESSKEY="U"
+>Up</A
+></TD
+><TD
+WIDTH="33%"
+ALIGN="right"
+VALIGN="top"
+>Manage /proc file with seq_file</TD
+></TR
+></TABLE
+></DIV
+></BODY
+></HTML
+>

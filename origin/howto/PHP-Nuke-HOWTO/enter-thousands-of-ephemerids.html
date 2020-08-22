@@ -1,0 +1,289 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN""http://www.w3.org/TR/html4/loose.dtd">
+<HTML
+><HEAD
+><TITLE
+>How to enter thousands of ephemerids</TITLE
+><META
+NAME="GENERATOR"
+CONTENT="Modular DocBook HTML Stylesheet Version 1.79"><LINK
+REL="HOME"
+TITLE="PHP-Nuke: Management and Programming"
+HREF="index.html"><LINK
+REL="UP"
+TITLE="Miscellaneous"
+HREF="miscellaneous.html"><LINK
+REL="PREVIOUS"
+TITLE="How to check the validity of thousands of web links"
+HREF="check-validity-of-web-links.html"><LINK
+REL="NEXT"
+TITLE="How to make the Encyclopedia international"
+HREF="make-encyclopedia-international.html"></HEAD
+><BODY
+CLASS="SECT1"
+BGCOLOR="#FFFFFF"
+TEXT="#000000"
+LINK="#0000FF"
+VLINK="#840084"
+ALINK="#0000FF"
+><DIV
+CLASS="NAVHEADER"
+><TABLE
+SUMMARY="Header navigation table"
+WIDTH="100%"
+BORDER="0"
+CELLPADDING="0"
+CELLSPACING="0"
+><TR
+><TH
+COLSPAN="3"
+ALIGN="center"
+>PHP-Nuke: Management and Programming</TH
+></TR
+><TR
+><TD
+WIDTH="10%"
+ALIGN="left"
+VALIGN="bottom"
+><A
+HREF="check-validity-of-web-links.html"
+ACCESSKEY="P"
+>Prev</A
+></TD
+><TD
+WIDTH="80%"
+ALIGN="center"
+VALIGN="bottom"
+>Chapter 27. Miscellaneous</TD
+><TD
+WIDTH="10%"
+ALIGN="right"
+VALIGN="bottom"
+><A
+HREF="make-encyclopedia-international.html"
+ACCESSKEY="N"
+>Next</A
+></TD
+></TR
+></TABLE
+><HR
+ALIGN="LEFT"
+WIDTH="100%"></DIV
+><DIV
+CLASS="SECT1"
+><H1
+CLASS="SECT1"
+><A
+NAME="ENTER-THOUSANDS-OF-EPHEMERIDS"
+>27.8. How to enter thousands of ephemerids</A
+></H1
+><P
+><DIV
+CLASS="FIGURE"
+><A
+NAME="FIG-EPHEMERIDS-2"
+></A
+><P
+><B
+>Figure 27-7.    Administration panel: Ephemerids.
+   </B
+></P
+><DIV
+CLASS="MEDIAOBJECT"
+><P
+><IMG
+SRC="./images/ephemerids.png"><DIV
+CLASS="CAPTION"
+><P
+>Administration panel: Ephemerids.</P
+></DIV
+></P
+></DIV
+></DIV
+></P
+><P
+>Problem: You have a file of nice quotes (often called "fortunes") that you would like to see displayed every day in the Ephemerids module (see <A
+HREF="preinstalled-modules.html"
+>Section 6.1</A
+> for the user view and <A
+HREF="administration-functions.html"
+>Section 7.1</A
+> for the administrator view of the Ephemerids module) . You don't want to write all those texts by hand, so you are looking for a way to automate the text insertion.</P
+><P
+>Idea:The right command to insert a text in the Ephemerids table nuke_ephem is:</P
+><TABLE
+BORDER="1"
+BGCOLOR="#E0E0E0"
+WIDTH="100%"
+><TR
+><TD
+><FONT
+COLOR="#000000"
+><PRE
+CLASS="SCREEN"
+>insert into nuke_ephem values (4,4,11,2002,
+"Nothing cures insomnia like the realization that it's time to get up.",");</PRE
+></FONT
+></TD
+></TR
+></TABLE
+><P
+>We will use a script to produce these INSERT commands (see <A
+HREF="http://www.karakas-online.de/forum/viewtopic.php?t=5"
+TARGET="_top"
+>Inserting Ephemerids through script</A
+>).</P
+><P
+>Solution: We write a script like:</P
+><TABLE
+BORDER="1"
+BGCOLOR="#E0E0E0"
+WIDTH="100%"
+><TR
+><TD
+><FONT
+COLOR="#000000"
+><PRE
+CLASS="SCREEN"
+>#! /bin/sh
+did=6
+while [ $did -le 30 ]; do
+  read LINE
+  if [ -n "$LINE" ]; then
+    echo "insert into nuke_ephem values (",$did,11,2002,\"$LINE\",");"
+    did=$((did+1))
+  fi
+done</PRE
+></FONT
+></TD
+></TR
+></TABLE
+><P
+>Let's call it "ephemerids" - don't forget to make it executable. When executed, the ephemerids script outputs the MySQL INSERT command we saw above, for each fortune in the standard input. Suppose that the "fortunes" are in the file called "myfortune", one fortune per line. Then, if you use the script as follows:</P
+><TABLE
+BORDER="1"
+BGCOLOR="#E0E0E0"
+WIDTH="100%"
+><TR
+><TD
+><FONT
+COLOR="#000000"
+><PRE
+CLASS="SCREEN"
+>ephemerids &#60; myfortune &#62; ephemerids.sql</PRE
+></FONT
+></TD
+></TR
+></TABLE
+><P
+>it will create the necessary MySQL statements and put them all in the ephemerids.sql file. Once ephemerids.sql is created, you only need to import it in the <SPAN
+CLASS="APPLICATION"
+>PHP-Nuke</SPAN
+> database. For this, you can type</P
+><TABLE
+BORDER="1"
+BGCOLOR="#E0E0E0"
+WIDTH="100%"
+><TR
+><TD
+><FONT
+COLOR="#000000"
+><PRE
+CLASS="SCREEN"
+>mysql -u dbuname -h dbhost -p dbname &#60; ephemerids.sql</PRE
+></FONT
+></TD
+></TR
+></TABLE
+><P
+>or use the import function of phpMyAdmin (<A
+HREF="phpmyadmin.html"
+>Section 3.3</A
+>).</P
+><P
+>Verification: To show the content of nuke_ephem and verify that the fortunes were inserted, execute the following SQL query:</P
+><TABLE
+BORDER="1"
+BGCOLOR="#E0E0E0"
+WIDTH="100%"
+><TR
+><TD
+><FONT
+COLOR="#000000"
+><PRE
+CLASS="SCREEN"
+>select eid,did,mid,yid from nuke_ephem;</PRE
+></FONT
+></TD
+></TR
+></TABLE
+><P
+>Note that in this version, the above problem can be easily solved with the Random Quotes block (see <A
+HREF="php-nuke-add-on-blocks.html#PHP-NUKE-RANDOM-QUOTES-BLOCK"
+>Section 8.2.8</A
+>). However, instead of fortunes, you could just as well have the birthdays of hundreds of people, or the dates and descriptions of thousands of historical events, as in a classic ephemerids context.</P
+></DIV
+><DIV
+CLASS="NAVFOOTER"
+><HR
+ALIGN="LEFT"
+WIDTH="100%"><TABLE
+SUMMARY="Footer navigation table"
+WIDTH="100%"
+BORDER="0"
+CELLPADDING="0"
+CELLSPACING="0"
+><TR
+><TD
+WIDTH="33%"
+ALIGN="left"
+VALIGN="top"
+><A
+HREF="check-validity-of-web-links.html"
+ACCESSKEY="P"
+>Prev</A
+></TD
+><TD
+WIDTH="34%"
+ALIGN="center"
+VALIGN="top"
+><A
+HREF="index.html"
+ACCESSKEY="H"
+>Home</A
+></TD
+><TD
+WIDTH="33%"
+ALIGN="right"
+VALIGN="top"
+><A
+HREF="make-encyclopedia-international.html"
+ACCESSKEY="N"
+>Next</A
+></TD
+></TR
+><TR
+><TD
+WIDTH="33%"
+ALIGN="left"
+VALIGN="top"
+>How to check the validity of thousands of web links</TD
+><TD
+WIDTH="34%"
+ALIGN="center"
+VALIGN="top"
+><A
+HREF="miscellaneous.html"
+ACCESSKEY="U"
+>Up</A
+></TD
+><TD
+WIDTH="33%"
+ALIGN="right"
+VALIGN="top"
+>How to make the Encyclopedia international</TD
+></TR
+></TABLE
+></DIV
+></BODY
+></HTML
+>

@@ -1,0 +1,194 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1"><title>5. Route Selection</title><link rel="stylesheet" type="text/css" href="style.css"><meta name="generator" content="DocBook XSL Stylesheets V1.79.1"><meta name="keywords" content="linux, ip, iproute2, ifconfig, firewall, ARP, NAT, route, routing, route selection, routing selection, network administration"><link rel="home" href="index.html" title="Guide to IP Layer Network Administration with Linux"><link rel="up" href="ch04.html" title="Chapter 4. IP Routing"><link rel="prev" href="ch04s04.html" title="4. Operating as a Router"><link rel="next" href="ch04s06.html" title="6. Source Address Selection"></head><body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF"><div class="navheader"><table width="100%" summary="Navigation header"><tr><th colspan="3" align="center">5. Route Selection</th></tr><tr><td width="20%" align="left"><a accesskey="p" href="ch04s04.html">Prev</a> </td><th width="60%" align="center">Chapter 4. IP Routing</th><td width="20%" align="right"> <a accesskey="n" href="ch04s06.html">Next</a></td></tr></table><hr></div><div class="section"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="routing-selection"></a>5. Route Selection</h2></div></div></div><a class="indexterm" name="idm1691"></a><p>
+      Crucial to the proper ability of hosts to exchange IP packets is the
+      correct selection of a route to the destination.  The rules for the
+      selection of route path are traditionally made on a
+      
+      hop-by-hop basis
+      <a href="#ftn.idm1694" class="footnote" name="idm1694"><sup class="footnote">[18]</sup></a>
+      based solely upon the destination address of the packet.  Linux
+      behaves as a conventional routing device in this way, but can also 
+      provide a more flexible capability.  Routes can be chosen and
+      prioritized based on other packet characteristics.
+    </p><p>
+      The route selection algorithm under linux has been generalized to
+      enable the powerful latter scenario without complicating the
+      overwhelmingly common case of the former scenario.
+    </p><div class="section"><div class="titlepage"><div><div><h3 class="title"><a name="routing-selection-common"></a>5.1. The Common Case</h3></div></div></div><p>
+        The above sections on routing to a
+        <a class="link" href="ch04s02.html" title="2. Routing to Locally Connected Networks">local network</a> and
+        <a class="link" href="ch04s03.html" title="3. Sending Packets Through a Gateway">the default gateway</a>
+        expose the importance of destination address for route selection.
+        In this simplified model, the kernel need only know the destination
+        address of the packet, which it compares against the routing tables to
+        determine the route by which to send the packet.
+      </p><p>
+        The kernel searches for a matching entry for the destination first in
+        the routing cache and then the main routing table.
+        In the case that the machine has recently transmitted a
+        packet to the destination address, the
+        <a class="link" href="ch04s07.html" title="7. Routing Cache">routing cache</a> will contain an
+        entry for the destination.  The kernel will select the same route, and
+        transmit the packet accordingly.
+      </p><p>
+        If the linux machine has not recently transmitted a packet to this
+        destination address, it will look up the destination in its routing
+        table using a technique known longest prefix match
+        <a href="#ftn.idm1705" class="footnote" name="idm1705"><sup class="footnote">[19]</sup></a>.
+        In practical terms, the concept of longest prefix match means that the
+        most specific route to the destination will be chosen.
+      </p><a name="routing-selection-lpm"></a><a class="indexterm" name="idm1709"></a><a class="indexterm" name="idm1712"></a><p>
+        The use of the
+        longest prefix match allows routes for large networks to be
+        overridden by more specific host or network routes, as required in
+        <a class="xref" href="ch01s03.html#ex-basic-del-static" title="Example 1.10. Removing a static network route and adding a static host route">Example 1.10, &#8220;Removing a static network route and adding a static host
+          route&#8221;</a>, for example.  Conversely, it is
+        this same property of longest prefix match which allows routes to
+        individual destinations to be aggregated into larger network
+        addresses.  Instead of entering individual routes for each host, large
+        numbers of contiguous network addresses can be aggregated.  This is
+        the realized promise of CIDR networking.  See
+        <a class="xref" href="apis01.html#links-general-ip" title="1.3. General IP Networking Resources">Section 1.3, &#8220;General IP Networking Resources&#8221;</a> for further details.
+      </p><p>
+        In the common case, route selection is based completely on the
+        destination address.  Conventional (as opposed to policy-based) IP
+        networking relies on only the destination address to select a route
+        for a packet.
+      </p><p>
+        Because the majority of linux systems have no need of policy
+        based routing
+        features, they use the conventional routing technique of longest
+        prefix match.  While this meets the needs of a large subset of
+        linux networking needs, there are unrealized policy routing features
+        in a machine operating in this fashion.
+      </p></div><div class="section"><div class="titlepage"><div><div><h3 class="title"><a name="routing-selection-adv"></a>5.2. The Whole Story</h3></div></div></div><p>
+        With the prevalence of low cost bandwidth, easily configured VPN
+        tunnels, and increasing reliance on networks, the technique of
+        selecting a route based solely on the destination IP address range no
+        longer suffices for all situations.
+        The discussion of the common case
+        of route selection under linux neglects one
+        of the most powerful features in the linux IP stack.
+        Since kernel 2.2, linux has
+        supported policy based routing through the use of
+        <a class="link" href="ch04s08.html" title="8. Routing Tables">multiple routing tables</a> and the
+        <a class="link" href="ch04s09.html" title="9. Routing Policy Database (RPDB)">routing policy database (RPDB)</a>.
+        Together, they allow a network
+        administrator to configure a machine select different routing
+        tables and routes based on a number of criteria.
+      </p><p>
+        Selectors available for use in policy-based routing are
+        attributes of a packet
+        passing through the linux routing code.  The source address of a
+        packet, the ToS flags, an fwmark (a mark carried through the kernel in
+        the data structure representing the packet), and the interface name on
+        which the packet was received are attributes which can be used as
+        selectors.  By selecting a routing table based
+        on packet attributes, an administrator can have
+        granular control over the network path of any packet.
+      </p><p>
+        With this knowledge of the RPDB and multiple
+        routing tables, let's revisit in detail the method by which the
+        kernel selects the proper route for a packet.  Understanding
+        the series of steps the kernel takes for route selection should
+        demystify advanced routing.  In fact, advanced routing could more
+        accurately be called policy-based networking.
+      </p><p>
+        When determining the route by which to send a packet, the kernel always
+        <a class="link" href="ch04s07.html" title="7. Routing Cache">consults the routing cache first</a>.
+        The routing cache is a hash table used for quick access to recently
+        used routes.  If the kernel finds an entry in the routing cache, the
+        corresponding entry will be used.  If there is no entry in the
+        routing cache, the kernel begins the process of route selection.  For
+        details on the method of matching a route in the routing cache, see
+        <a class="xref" href="ch04s07.html" title="7. Routing Cache">Section 7, &#8220;Routing Cache&#8221;</a>.
+      </p><p>
+        The kernel begins iterating by priority through the routing policy
+        database.  For each matching entry in the RPDB, the kernel will try to
+        find a matching route to the destination IP
+        address in the specified routing table using the aforementioned
+        longest prefix match selection algorithm.  When a matching destination
+        is found, the kernel will select the matching route, and forward the
+        packet.  If no matching entry is found in the specified routing table,
+        the kernel will pass to the next rule in the RPDB, until it finds a
+        match or falls through the end of the RPDB and all consulted routing
+        tables.
+      </p><p>
+        Here is a snippet of python-esque pseudocode to illustrate the
+        kernel's route selection process again.  Each of the lookups below
+        occurs in kernel hash tables which are accessible to the user through
+        the use of various <span class="command"><strong>iproute2</strong></span> tools.
+        <a class="indexterm" name="idm1733"></a>
+        </p><div class="example"><a name="routing-selection-algorithm"></a><p class="title"><b>Example 4.4. Routing Selection Algorithm in Pseudo-code</b></p><div class="example-contents"><pre class="programlisting">
+if packet.routeCacheLookupKey in routeCache :
+    route = routeCache[ packet.routeCacheLookupKey ]
+else
+    for rule in rpdb :
+        if packet.rpdbLookupKey in rule :
+            routeTable = rule[ lookupTable ]
+            if packet.routeLookupKey in routeTable :
+                route = route_table[ packet.routeLookup_key ]
+          </pre></div></div><p><br class="example-break">
+
+
+
+        This pseudocode provides some explanation of the decisions
+        required to find a route.  The final piece of information
+        required to understand the decision making process is the lookup
+        process for each of the three hash table lookups.  In
+        <a class="xref" href="ch04s05.html#tb-routing-selection-adv" title="Table 4.1. Keys used for hash table lookups during route selection">Table 4.1, &#8220;Keys used for hash table lookups during route selection&#8221;</a>, each key is listed in order
+        of importance.  Optional keys are listed in italics and represent keys
+        that will be matched if they are present.
+      </p><a class="indexterm" name="idm1740"></a><div class="table"><a name="tb-routing-selection-adv"></a><p class="title"><b>Table 4.1. Keys used for hash table lookups during route selection</b></p><div class="table-contents"><table class="table" summary="Keys used for hash table lookups during route selection" border="1"><colgroup><col><col><col></colgroup><thead><tr><th align="center">route cache</th><th align="center">RPDB</th><th align="center">route table</th></tr></thead><tbody><tr><td align="center">destination</td><td align="center">source</td><td align="center">destination</td></tr><tr><td align="center">source</td><td align="center"><span class="emphasis"><em>destination</em></span></td><td align="center"><span class="emphasis"><em>ToS</em></span></td></tr><tr><td align="center"><span class="emphasis"><em>ToS</em></span></td><td align="center"><span class="emphasis"><em>ToS</em></span></td><td align="center"><span class="emphasis"><em><a class="link" href="apcs02.html#tb-tools-ip-addr-scope" title="Table C.2. IP Scope under ip address">scope</a></em></span></td></tr><tr><td align="center"><span class="emphasis"><em>fwmark</em></span></td><td align="center"><span class="emphasis"><em>fwmark</em></span></td><td align="center"><span class="emphasis"><em>oif</em></span></td></tr><tr><td align="center"><span class="emphasis"><em>iif</em></span></td><td align="center"><span class="emphasis"><em>iif</em></span></td><td align="center"> </td></tr></tbody></table></div></div><br class="table-break"><p>
+        The route cache (also the forwarding information base) can be
+        displayed using
+        <a class="link" href="apds02.html#tools-ip-route-show-cache" title="2.2. Displaying the routing cache with ip route show cache"><span class="command"><strong>ip route show
+        cache</strong></span></a>.  The routing policy database (RPDB) can be
+        manipulated with the
+        <a class="link" href="apds03.html" title="3. ip rule"><span class="command"><strong>ip rule</strong></span></a>
+        utility.  Individual route tables can be manipulated and displayed
+        with the
+        <a class="link" href="apds02.html" title="2. ip route"><span class="command"><strong>ip route</strong></span></a>
+        command line tool.
+      </p><div class="example"><a name="ex-routing-selection-adv-ip-rule"></a><p class="title"><b>Example 4.5. Listing the Routing Policy Database (RPDB)</b></p><div class="example-contents"><pre class="programlisting">
+<code class="prompt">[root@isolde]# </code><strong class="userinput"><code>ip rule show</code></strong>
+<code class="computeroutput">0:      from all lookup local
+32766:  from all lookup main
+32767:  from all lookup 253</code>
+        </pre></div></div><br class="example-break"><p>
+        Observation of the output of <span class="command"><strong>ip rule show</strong></span> in
+        <a class="xref" href="ch04s05.html#ex-routing-selection-adv-ip-rule" title="Example 4.5. Listing the Routing Policy Database (RPDB)">Example 4.5, &#8220;Listing the Routing Policy Database (RPDB)&#8221;</a>
+        on a box whose RPDB has not been changed should reveal a
+        high priority rule, rule 0.  This rule, created at RPDB
+        initialization, instructs the kernel to try to find a match for the
+        destination in the
+        <a class="link" href="ch04s08.html#routing-table-local" title="8.2. The Local Routing Table">local routing table</a>.  If
+        there is no match for the packet in the local routing table, then,
+        per rule 32766, the kernel will perform a route lookup in the
+        main routing table.  Normally, the main routing table will contain a
+        default route if not a more specific route.
+        Failing a route lookup in the main routing table the final rule
+        (32767) instructs the kernel to perform a route lookup in table 253.
+      </p><p>
+        A common mistake when working with multiple routing tables involves
+        forgetting about the statelessness of IP routing.  This manifests when
+        the user configuring the policy routing machine accounts for outbound
+        packets (via <code class="constant">fwmark</code>, or <span class="command"><strong>ip rule</strong></span>
+        selectors), but forgets to account for the return packets.
+      </p></div><div class="section"><div class="titlepage"><div><div><h3 class="title"><a name="routing-selection-summary"></a>5.3. Summary</h3></div></div></div><p>
+        For more ideas on how to use policy routing, how to work with
+        multiple routing tables, and how to troubleshoot, see
+        <a class="xref" href="ch10s03.html" title="3. Using the Routing Policy Database and Multiple Routing Tables">Section 3, &#8220;Using the Routing Policy Database and Multiple Routing
+      Tables&#8221;</a>.
+      </p><p>
+        Yeah.  That's it.  So there.
+      </p></div><div class="footnotes"><br><hr style="width:100; text-align:left;margin-left: 0"><div id="ftn.idm1694" class="footnote"><p><a href="#idm1694" class="para"><sup class="para">[18] </sup></a>
+          This document could stand to allude to MPLS implementations under
+          linux, for those who want to look at traffic engineering and packet
+          tagging on backbones.  This is certainly not in the scope of this
+          chapter, and should be in a separate chapter, which covers
+          developing technologies.
+        </p></div><div id="ftn.idm1705" class="footnote"><p><a href="#idm1705" class="para"><sup class="para">[19] </sup></a>
+            Refer to
+            <a class="ulink" href="http://www.isi.edu/in-notes/rfc3222.txt" target="_top">RFC
+            3222</a> for further details.
+          </p></div></div></div><div class="navfooter"><hr><table width="100%" summary="Navigation footer"><tr><td width="40%" align="left"><a accesskey="p" href="ch04s04.html">Prev</a> </td><td width="20%" align="center"><a accesskey="u" href="ch04.html">Up</a></td><td width="40%" align="right"> <a accesskey="n" href="ch04s06.html">Next</a></td></tr><tr><td width="40%" align="left" valign="top">4. Operating as a Router </td><td width="20%" align="center"><a accesskey="h" href="index.html">Home</a></td><td width="40%" align="right" valign="top"> 6. Source Address Selection</td></tr></table></div></body></html>

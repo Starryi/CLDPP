@@ -1,0 +1,112 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1"><title>A. Kernel Build Example</title><link rel="stylesheet" type="text/css" href="style.css"><meta name="generator" content="DocBook XSL Stylesheets V1.79.1"><link rel="home" href="index.html" title="Linux i386 Boot Code HOWTO"><link rel="up" href="index.html" title="Linux i386 Boot Code HOWTO"><link rel="prev" href="ar01s08.html" title="8. SMP Boot"><link rel="next" href="ar01s10.html" title="B. Internal Linker Script"></head><body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF"><div class="navheader"><table width="100%" summary="Navigation header"><tr><th colspan="3" align="center">A. Kernel Build Example</th></tr><tr><td width="20%" align="left"><a accesskey="p" href="ar01s08.html">Prev</a> </td><th width="60%" align="center"> </th><td width="20%" align="right"> <a accesskey="n" href="ar01s10.html">Next</a></td></tr></table><hr></div><div class="sect1"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="kbuild"></a>A. Kernel Build Example</h2></div></div></div><p>
+   Here is a kernel build example
+   (in <a class="ulink" href="http://www.redhat.com" target="_top">Redhat</a> 9.0).
+   Statements between "/*" and "*/" are in-line comments, not console output.
+</p><pre class="screen"><span class="command"><strong>[root@localhost root]# ln -s /usr/src/linux-2.4.20 /usr/src/linux</strong></span>
+<span class="command"><strong>[root@localhost root]# cd /usr/src/linux</strong></span>
+<span class="command"><strong>[root@localhost linux]# make xconfig</strong></span>
+        <span class="emphasis"><em>/* Create .config
+         *   1. "Load Configuration from File" -&gt;
+         *        /boot/config-2.4.20-28.9, or whatever you like
+         *   2. Modify kernel configuration parameters
+         *   3. "Save and Exit" */</em></span>
+<span class="command"><strong>[root@localhost linux]# make oldconfig</strong></span>
+        <span class="emphasis"><em>/* Re-check .config, optional */</em></span>
+<span class="command"><strong>[root@localhost linux]# vi Makefile</strong></span>
+        <span class="emphasis"><em>/* Modify EXTRAVERSION in linux/Makefile, optional */</em></span>
+<span class="command"><strong>[root@localhost linux]# make dep</strong></span>
+        <span class="emphasis"><em>/* Create .depend and more */</em></span>
+<span class="command"><strong>[root@localhost linux]# make bzImage</strong></span>
+        <span class="emphasis"><em>/* ... Some output omitted */</em></span>
+ld -m elf_i386 -T /usr/src/linux-2.4.20/arch/i386/vmlinux.lds -e stext arch/i386
+/kernel/head.o arch/i386/kernel/init_task.o init/main.o init/version.o init/do_m
+ounts.o \
+        --start-group \
+        arch/i386/kernel/kernel.o arch/i386/mm/mm.o kernel/kernel.o mm/mm.o fs/f
+s.o ipc/ipc.o \
+         drivers/char/char.o drivers/block/block.o drivers/misc/misc.o drivers/n
+et/net.o drivers/media/media.o drivers/char/drm/drm.o drivers/net/fc/fc.o driver
+s/net/appletalk/appletalk.o drivers/net/tokenring/tr.o drivers/net/wan/wan.o dri
+vers/atm/atm.o drivers/ide/idedriver.o drivers/cdrom/driver.o drivers/pci/driver
+.o drivers/net/pcmcia/pcmcia_net.o drivers/net/wireless/wireless_net.o drivers/p
+np/pnp.o drivers/video/video.o drivers/net/hamradio/hamradio.o drivers/md/mddev.
+o drivers/isdn/vmlinux-obj.o \
+        net/network.o \
+        /usr/src/linux-2.4.20/arch/i386/lib/lib.a /usr/src/linux-2.4.20/lib/lib.
+a /usr/src/linux-2.4.20/arch/i386/lib/lib.a \
+        --end-group \
+        -o vmlinux
+nm vmlinux | grep -v '\(compiled\)\|\(\.o$\)\|\( [aUw] \)\|\(\.\.ng$\)\|\(LASH[R
+L]DI\)' | sort &gt; System.map
+make[1]: Entering directory `/usr/src/linux-2.4.20/arch/i386/boot'
+gcc -E -D__KERNEL__ -I/usr/src/linux-2.4.20/include -D__BIG_KERNEL__ -traditiona
+l -DSVGA_MODE=NORMAL_VGA  bootsect.S -o bbootsect.s
+as -o bbootsect.o bbootsect.s
+bootsect.S: Assembler messages:
+bootsect.S:239: Warning: indirect lcall without `*'
+ld -m elf_i386 -Ttext 0x0 -s --oformat binary bbootsect.o -o bbootsect
+gcc -E -D__KERNEL__ -I/usr/src/linux-2.4.20/include -D__BIG_KERNEL__ -D__ASSEMBL
+Y__ -traditional -DSVGA_MODE=NORMAL_VGA  setup.S -o bsetup.s
+as -o bsetup.o bsetup.s
+setup.S: Assembler messages:
+setup.S:230: Warning: indirect lcall without `*'
+ld -m elf_i386 -Ttext 0x0 -s --oformat binary -e begtext -o bsetup bsetup.o
+make[2]: Entering directory `/usr/src/linux-2.4.20/arch/i386/boot/compressed'
+tmppiggy=_tmp_$$piggy; \
+rm -f $tmppiggy $tmppiggy.gz $tmppiggy.lnk; \
+objcopy -O binary -R .note -R .comment -S /usr/src/linux-2.4.20/vmlinux $tmppigg
+y; \
+gzip -f -9 &lt; $tmppiggy &gt; $tmppiggy.gz; \
+echo "SECTIONS { .data : { input_len = .; LONG(input_data_end - input_data) inpu
+t_data = .; *(.data) input_data_end = .; }}" &gt; $tmppiggy.lnk; \
+ld -m elf_i386 -r -o piggy.o -b binary $tmppiggy.gz -b elf32-i386 -T $tmppiggy.l
+nk; \
+rm -f $tmppiggy $tmppiggy.gz $tmppiggy.lnk
+gcc -D__ASSEMBLY__ -D__KERNEL__ -I/usr/src/linux-2.4.20/include -traditional -c
+head.S
+gcc -D__KERNEL__ -I/usr/src/linux-2.4.20/include -Wall -Wstrict-prototypes -Wno-
+trigraphs -O2 -fno-strict-aliasing -fno-common -fomit-frame-pointer -pipe -mpref
+erred-stack-boundary=2 -march=i686 -DKBUILD_BASENAME=misc -c misc.c
+ld -m elf_i386 -Ttext 0x100000 -e startup_32 -o bvmlinux head.o misc.o piggy.o
+make[2]: Leaving directory `/usr/src/linux-2.4.20/arch/i386/boot/compressed'
+gcc -Wall -Wstrict-prototypes -O2 -fomit-frame-pointer -o tools/build tools/buil
+d.c -I/usr/src/linux-2.4.20/include
+objcopy -O binary -R .note -R .comment -S compressed/bvmlinux compressed/bvmlinu
+x.out
+tools/build -b bbootsect bsetup compressed/bvmlinux.out CURRENT &gt; bzImage
+Root device is (3, 67)
+Boot sector 512 bytes.
+Setup is 4780 bytes.
+System is 852 kB
+make[1]: Leaving directory `/usr/src/linux-2.4.20/arch/i386/boot'
+<span class="command"><strong>[root@localhost linux]# make modules modules_install</strong></span>
+        <span class="emphasis"><em>/* ... Some output omitted */</em></span>
+cd /lib/modules/2.4.20; \
+mkdir -p pcmcia; \
+find kernel -path '*/pcmcia/*' -name '*.o' | xargs -i -r ln -sf ../{} pcmcia
+if [ -r System.map ]; then /sbin/depmod -ae -F System.map  2.4.20; fi
+<span class="command"><strong>[root@localhost linux]# cp arch/i386/boot/bzImage /boot/vmlinuz-2.4.20</strong></span>
+<span class="command"><strong>[root@localhost linux]# cp vmlinux /boot/vmlinux-2.4.20</strong></span>
+<span class="command"><strong>[root@localhost linux]# cp System.map /boot/System.map-2.4.20</strong></span>
+<span class="command"><strong>[root@localhost linux]# cp .config /boot/config-2.4.20</strong></span>
+<span class="command"><strong>[root@localhost linux]# mkinitrd /boot/initrd-2.4.20.img 2.4.20</strong></span>
+<span class="command"><strong>[root@localhost linux]# vi /boot/grub/grub.conf</strong></span>
+        <span class="emphasis"><em>/* Add the following lines to grub.conf:
+title Linux (2.4.20)
+        kernel /vmlinuz-2.4.20 ro root=LABEL=/
+        initrd /initrd-2.4.20.img
+         */</em></span></pre><p>
+  </p><p>
+   Refer to <a class="ulink" href="http://kernelnewbies.org/faq/index.php3#compile" target="_top">
+   Kernelnewbies FAQ: How do I compile a kernel</a> and
+   <a class="ulink" href="http://www.digitalhermit.com/linux/kernel.html" target="_top">
+   Kernel Rebuild Procedure</a> for more details.
+  </p><p>
+   To build the kernel in <a class="ulink" href="http://www.debian.org" target="_top">Debian</a>,
+   also refer to
+<a class="ulink" href="http://www.debian.org/releases/stable/i386/ch-post-install.en.html#s-kernel-baking" target="_top">Debian Installation Manual: Compiling a New Kernel</a>,
+<a class="ulink" href="http://www.debian.org/doc/manuals/debian-faq/ch-kernel.en.html" target="_top">The Debian GNU/Linux FAQ: Debian and the kernel</a> and
+<a class="ulink" href="http://www.debian.org/doc/manuals/reference/ch-kernel.en.html" target="_top">Debian Reference: The Linux kernel under Debian</a>.
+   Check "<span class="command"><strong>zless /usr/share/doc/kernel-package/Problems.gz</strong></span>"
+   if you encounter problems.
+  </p></div><div class="navfooter"><hr><table width="100%" summary="Navigation footer"><tr><td width="40%" align="left"><a accesskey="p" href="ar01s08.html">Prev</a> </td><td width="20%" align="center"> </td><td width="40%" align="right"> <a accesskey="n" href="ar01s10.html">Next</a></td></tr><tr><td width="40%" align="left" valign="top">8. SMP Boot </td><td width="20%" align="center"><a accesskey="h" href="index.html">Home</a></td><td width="40%" align="right" valign="top"> B. Internal Linker Script</td></tr></table></div></body></html>

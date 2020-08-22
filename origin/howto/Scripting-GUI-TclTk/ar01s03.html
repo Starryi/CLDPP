@@ -1,0 +1,98 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1"><title>3. Tcl and Tk Basics</title><link rel="stylesheet" type="text/css" href="style.css"><meta name="generator" content="DocBook XSL Stylesheets V1.79.1"><link rel="home" href="index.html" title="Scripting Graphical Commands with Tcl/Tk Mini-HOWTO"><link rel="up" href="index.html" title="Scripting Graphical Commands with Tcl/Tk Mini-HOWTO"><link rel="prev" href="ar01s02.html" title="2. Introduction to Tcl and Tk"><link rel="next" href="ar01s04.html" title="4. Adding Features"></head><body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF"><div class="navheader"><table width="100%" summary="Navigation header"><tr><th colspan="3" align="center">3. Tcl and Tk Basics</th></tr><tr><td width="20%" align="left"><a accesskey="p" href="ar01s02.html">Prev</a> </td><th width="60%" align="center"> </th><td width="20%" align="right"> <a accesskey="n" href="ar01s04.html">Next</a></td></tr></table><hr></div><div class="sect1"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="basics"></a>3. Tcl and Tk Basics</h2></div></div></div><p>
+Tcl is built up from commands which act on data, and which accept a number of options which specify how each command is executed.  Each command consists of the name of the command followed by one or more words separated by whitespace.  Because Tcl is interpreted, it can be run interactively through its shell command, <span class="command"><strong>tclsh</strong></span>, or non-interactively as a script.  When Tcl is run interactively, the system responds to each command that is entered as illustrated in the following example.  You can experiment with tclsh by simply opening a terminal and entering the command  <span class="command"><strong>tclsh</strong></span>.
+</p><pre class="screen">
+$ tclsh
+% set a 35
+35
+% expr 35 * $a
+1225
+% puts "35 * a is: [ expr 35 * $a ]"
+35 * a is: 1225
+% exit
+$
+</pre><p>
+The previous example illustrates several aspects of the Tcl language.  The first line, <span class="command"><strong>set a 35</strong></span> assigns 35 to the variable <span class="command"><strong>a</strong></span> using the <span class="command"><strong>set</strong></span> command.  The second line evaluates the result of 35 times the value of <span class="command"><strong>a</strong></span> using the <span class="command"><strong>expr</strong></span> command.  Note that Tcl, like Perl and Bash requires the use of the dollar operator to get the value of a variable.  The open brackets around the expression <span class="command"><strong>[ expr 35 * $a ]</strong></span> instruct the interpreter to perform a command substitution on the expression, adds it to the rest of the string and uses the puts command to print the string to Tcl's default output channel, standard output. 
+</p><p>
+Tcl's windowing shell, <span class="command"><strong>Wish</strong></span>, is an interpreter that reads commands from standard input or from file, and interprets them using the Tcl language, and builds graphical components from the Tk toolkit.  Like the <span class="command"><strong>tclsh</strong></span>, it can be run interactively.
+</p><p>
+To invoke Wish interactively, start X on your system, open a terminal, and type <span class="command"><strong>wish</strong></span> at the command prompt.  If your environment is set up properly, this will launch an empty root window and start the  windowing shell in your terminal.  The following example is a two-line script that is one of the simplest programs that can be created with <span class="command"><strong>wish</strong></span>:
+
+</p><pre class="screen">
+$ wish
+% button .submit -text "Click Me" -command { puts "\nHello World" }
+.submit
+% pack .submit
+</pre><p>
+Let's break down these two lines of code:
+</p><p>
+<span class="command"><strong>button .submit -text "Click Me" -command { puts "\nHello World" }</strong></span>:
+</p><p>
+The <span class="command"><strong>button</strong></span> command enables you to create and manipulate the Tk button widget.  As with all Tk widgets, the syntax is  <span class="command"><strong>button</strong></span> <span class="command"><strong>.name</strong></span>  <span class="command"><strong>[-option value]</strong></span>  <span class="command"><strong>[-option value] ...</strong></span>.  The curly braces surrounding the <span class="command"><strong>puts</strong></span> command allow you to nest the text string, "Hello World", inside of the command without performing any variable substitutions.   Other basic widgets include the following:  label, checkbutton, radiobutton, command, separator, entry, and frame.  Click the button a few times to verify that it works. 
+</p><p>
+<span class="command"><strong>pack .submit</strong></span>
+</p><p>
+The <span class="command"><strong>pack</strong></span> command tells the Tk packer geometry manager to pack the window name as a slave of the master window <span class="command"><strong>.</strong></span> which is always referred to by the character <span class="command"><strong>.</strong></span>.   As with the other Tk widget commands we will see, the syntax is <span class="command"><strong>pack .name [-option value] [-option value]</strong></span>.
+</p><p>
+While the previous example was very simple, more advanced examples are nearly as easy to build.  Have a look at the following script which creates a simple graphical front end for apachectl ( please note, this example is intended to be run as a script rather than interactively from the shell.  You will need to set the permissions of the script as executable and run this script as a user with privileges to start and stop apache ):
+</p><pre class="screen">
+#!/usr/bin/wish
+
+set apachectl "/usr/local/apache/bin/apachectl"
+global apachectl
+
+proc start {} {
+  global apachectl
+  exec $apachectl start &amp; 
+}
+
+proc stop {} {
+  global apachectl
+  exec $apachectl stop &amp;
+}
+
+proc restart {} {
+  global apachectl
+  exec $apachectl restart &amp;
+}
+
+proc screen {} {
+  frame .top -borderwidth 10
+  pack .top -fill x	
+  button .top.start -text "Start" -command start
+  button t.op.stop -text "Stop" -command stop
+  button .top.restart -text "Restart" -command restart
+  pack .top.start .top.stop .top.restart -side left -padx 0p -pady 0
+}
+screen
+</pre><p>
+This script introduces a few new concepts.  Let's look at some of them line by line:
+</p><pre class="screen">
+set apachectl "/usr/local/apache/bin/apachectl"
+global apachectl
+</pre><p>
+As we saw earlier, the <span class="command"><strong>set</strong></span> command is used to assign a value to a variable.  As with the previous examples, the syntax is simple: <span class="command"><strong>set variable_name value</strong></span>.  In order to make the variable available to the Tcl procedures that we are creating in this program, we need to import the apachectl variable into each procedure.  This is accomplished using the <span class="command"><strong>global</strong></span> command which adds a named variable to the local namespace of a given procedure.   The <span class="command"><strong>global</strong></span> command accepts one or more variables as arguments and assigns the named variables to each procedure used in the program.  Global is also used to export variables that are declared within a procedure's local namespace.   
+</p><pre class="screen">
+proc start {} {
+  global apachectl
+	  exec $apachectl start &amp;
+}
+</pre><p>
+Procedures in Tcl are created with the <span class="command"><strong>proc</strong></span> command.    The <span class="command"><strong>proc</strong></span> command takes the following form:  <span class="command"><strong>proc name {args} {body}</strong></span> where name is the name of the procedure.  Args are the formal arguments accepted by the procedure, and body is the main code of the procedure.  Procedures are executed the same way that any other command is executed in Tcl. 
+</p><p>
+The script we are currently working with consists of 4 procedures.  The first 3 ( start, stop, restart ), simply import the apachectl variable into the local namespace and execute the basic apachectl commands as background processes while the 4th procedure, "<span class="command"><strong>screen</strong></span>", uses the packer to build the basic screen and call each of the functions.  
+</p><p>
+Let's have a closer look at the <span class="command"><strong>screen</strong></span> procedure:
+</p><pre class="screen">  
+proc screen {} {
+  frame .top -borderwidth 10
+  pack .top -fill x	
+  button .top.start -text "Start" -command start
+  button .top.stop -text "Stop" -command stop
+  button .top.restart -text "Restart" -command restart
+  pack .top.start .top.stop .top.restart -side left -padx 0p -pady 0
+}
+</pre><p>
+The <span class="command"><strong>screen</strong></span> procedure begins by using the <span class="command"><strong>frame</strong></span> command to construct the basic frame that will contain the buttons specified further down in the procedure.  As this example illustrates, slave widgets are specified by prepending them with the name of their master followed by a ".".  The master must already be packed before the slave can use them, so we pack the frame .top before specifying the <span class="command"><strong>button</strong></span> command and tell it to fill along the x axis.
+</p><p>
+Last, we use the <span class="command"><strong>button</strong></span> command to create 3 buttons as slaves to <span class="command"><strong>.top</strong></span>, passing in the appropriate procedure to execute when the button is pressed, and adding a text label using the <span class="command"><strong>-command</strong></span> and <span class="command"><strong>-text</strong></span> arguments, respectively.
+</p></div><div class="navfooter"><hr><table width="100%" summary="Navigation footer"><tr><td width="40%" align="left"><a accesskey="p" href="ar01s02.html">Prev</a> </td><td width="20%" align="center"> </td><td width="40%" align="right"> <a accesskey="n" href="ar01s04.html">Next</a></td></tr><tr><td width="40%" align="left" valign="top">2. Introduction to Tcl and Tk </td><td width="20%" align="center"><a accesskey="h" href="index.html">Home</a></td><td width="40%" align="right" valign="top"> 4. Adding Features</td></tr></table></div></body></html>

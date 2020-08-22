@@ -1,0 +1,1763 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 3.2 Final//EN">
+<HTML>
+<HEAD>
+ <META NAME="GENERATOR" CONTENT="LinuxDoc-Tools 0.9.72">
+ <TITLE>CVS-RCS-HOWTO Document for Linux (Source Code Control System)</TITLE>
+</HEAD>
+<BODY>
+<H1>CVS-RCS-HOWTO Document for Linux (Source Code Control System)</H1>
+
+<H2>Al Dev (Alavoor Vasudevan)        
+<A HREF="mailto:alavoor[AT]yahoo.com">alavoor[AT]yahoo.com</A></H2>v22.9, 28 March 2003
+<HR>
+<EM>This document is a "practical guide" to very quickly setup CVS/RCS source code
+control system. This document has custom shell scripts that are wrappers on top of CVS. These scripts provide an easy user interface for CVS. Several shell scripts are provided to make RCS easier to use.
+The information in this document applies to Linux and as well as to all other flavors of Unix like Solaris, HPUX, AIX, SCO, Sinix, BSD, SCO, Apple Macintosh (which is BSD unix) etc.. and BeOS.</EM>
+<HR>
+<H2><A NAME="s1">1. Introduction</A></H2>
+
+<P><B>(The latest version of this document is at 
+<A HREF="http://www.milkywaygalaxy.freeservers.com">http://www.milkywaygalaxy.freeservers.com</A>. 
+You may want to check there for changes).</B></P>
+<P>A source code control system is a MUST to manage 
+the changes occurring to a software project during development. Developers need a complete history of changes
+to backtrack to previous versions in case of any problems.
+Since source code is the most vital component of any software project and  
+software development takes a huge amount of time and money, it is very important to spend some 
+time in <I><B>safe-guarding</B></I> the source code by using source code control systems like CVS and RCS.</P>
+<P>CVS (Concurrent Version Control System) is a powerful tool which allows 
+concurrent development of software by multiple users. It uses RCS 
+underneath and has an application layer interface as a wrapper on top of RCS.</P>
+<P>CVS can record the history of your files (usually,
+but not always, source code). CVS only stores the differences
+between versions, instead of every version of every file
+you've created. CVS also keeps a log of who, when and
+why changes occurred, among other aspects.</P>
+<P>CVS is very helpful for managing releases and controlling
+the concurrent editing of source files among multiple
+authors. Instead of providing version control for a
+collection of files in a single directory, CVS provides
+version control for a hierarchical collection of
+directories consisting of revision controlled files.</P>
+<P>These directories and files can then be combined 
+to form a software release.</P>
+<P>CVS can be used for storing "C", "C++", Java, Perl, HTML and
+other files.</P>
+<P><B>HISTORY of CVS: </B>
+CVS is a very highly sophisticated and complex system. It is the 
+<I><B>"State of the Art"</B></I>
+technology and is so called <I>"software miracle"</I>. The CVS software is a 
+very advanced and capable system developed
+over a very long period of time. And it took several years to mature!! It took
+about 20 to 30 years of research to develop CVS algorithms and later it was coded 
+into a software. And even today, it is still evolving!!</P>
+<P>CVS algorithms actually started in Universities several decades ago and
+CVS implementation started out as a bunch of shell scripts written by Dick Grune, who 
+posted it to the newsgroup comp.sources.unix in the volume 6 release 
+of <B>December, 1986</B>. While no actual code from these shell scripts is present in the 
+current version of CVS much of the CVS conflict resolution algorithms come from them. 
+In April, 1989, Brian Berliner designed and coded CVS. Jeff Polk 
+later helped Brian with the design of the CVS module and vendor branch support.</P>
+<P>And today each and every major software development project in the world is written
+using CVS as the safe repository. As good old software hats say - 
+<I>"You are in very safe hands, if you are using CVS !!!"</I></P>
+
+
+
+<H2><A NAME="s2">2. Which One Is for Me? CVS or RCS</A></H2>
+
+<P>CVS actually uses RCS underneath. CVS is a lot more powerful tool and
+can control a complete source code tree. 
+It is <I><B>very strongly</B></I> recommended that you use CVS, because you can greatly customize CVS with scripting languages like PERL, Korn and bash shells. 
+See the sample korn shell scripts at 
+<A HREF="#Shell Scripts">Shell Scripts</A>
+.</P>
+<P>Advantages of CVS:
+<UL>
+<LI> CVS is decentralized so a user checks out files/directories 
+from the repository
+and have his own separate stable source directory tree.</LI>
+<LI> CVS can "STAMP" releases of an entire project source tree.</LI>
+<LI> CVS can enable concurrent editing of files.</LI>
+<LI> CVS can be greatly customized to enable strong locking of files 
+via shell scripts or PERL scripts.
+CVS supports weak locking with the command 'cvs watches' and also
+no locking permitting concurrent editing of files. </LI>
+</UL>
+</P>
+<P>Disadvantages of CVS:
+<UL>
+<LI> Needs a little more administration than RCS.</LI>
+<LI> Very highly sophisticated and complex system. It is "State of the Art" 
+technology. The cvs software is a very advanced and capable system developed
+over a very long period of time (it took several years!!). It took about 20 to 30 years
+of research to develop CVS and it is still evolving!!</LI>
+<LI> Has a large number of commands and command options, hence a steeper 
+learning curve for beginners. The shell scripts at 
+<A HREF="#Shell Scripts">Shell Scripts</A>
+ can ease usage.</LI>
+</UL>
+</P>
+<P>Advantages of RCS:
+<UL>
+<LI> RCS is very simple to setup, with less administrative work.</LI>
+<LI> RCS is used in a centralized area where everyone works. </LI>
+<LI> RCS is useful for simple systems.</LI>
+<LI> Very strong locking of files - concurrency eliminated.</LI>
+</UL>
+</P>
+<P>Downside of RCS:
+<UL>
+<LI> Concurrent development by multiple developers is not possible due to file 
+locking and being limited to a single working directory. Because of the 
+single working directory limitation, changes to files by multiple developers can 
+cause failure of the 'make' command.</LI>
+<LI> Cannot stamp releases of an entire software project.</LI>
+</UL>
+</P>
+<P>This document also has 
+shell scripts which provide
+simple commands to check-out, check-in, and commit files.
+See shell scripts at 
+<A HREF="#Shell Scripts">Shell Scripts</A>
+</P>
+<P>For RCS see the RCS mini-howto on the Linux cdrom: 
+<HR>
+<PRE>
+cd /mnt/cdrom/Redhat/RPMS
+ls -l howto-6.0-*.noarch.rpm
+rpm -qpl howto-6* | grep -i rcs 
+</PRE>
+<HR>
+
+or visit 
+<A HREF="http://www.LinuxDoc.org/HOWTO/mini/RCS.html">http://www.LinuxDoc.org/HOWTO/mini/RCS.html</A></P>
+<P>See also the RCS shell scripts at 
+<A HREF="#rcs_scripts">rcs_scripts</A>
+</P>
+
+
+
+<H2><A NAME="Setting up CVS"></A> <A NAME="s3">3. Setting up CVS </A></H2>
+
+<P>First you need to install the CVS package. On Redhat Linux use:
+<HR>
+<PRE>
+cd /mnt/cdrom/Redhat/RPMS
+rpm -i rcs*.rpm
+rpm -i cvs*.rpm
+rpm -i openssh*.rpm
+To see the list of files installed do -
+rpm -qpl cvs*.rpm | less
+</PRE>
+<HR>
+
+and browse the output using j,k, CTRL+f, CTRL+D, CTRL+B, CTRL+U or using arrow keys, page up/down keys.
+See 'man less'.</P>
+<P>The Openssh is required if you want to use ssh (Secure Shell) with CVS.</P>
+<P>On other flavors of Unix, you may need to download the RCS and CVS tar balls
+and follow the README, INSTALL files to setup CVS.
+Visit 
+<A HREF="http://www.cyclic.com">http://www.cyclic.com</A>
+and 
+<A HREF="http://www.loria.fr/~molli/cvs-index.html">http://www.loria.fr/~molli/cvs-index.html</A></P>
+
+
+
+<H2><A NAME="CVS-Env"></A> <A NAME="ss3.1">3.1 Environment variables </A>
+</H2>
+
+<P>The following environment variables need to be setup in /etc/profile - default 
+values required for all users.
+If not set in /etc/profile, then you should add these to your 
+local profile file &nbsp;/.bash_profile.</P>
+<P>
+<HR>
+<PRE>
+export EDITOR=/bin/vi
+export CVSROOT=/home/cvsroot
+
+# WARNING!! WARNING: If you set CVSREAD to yes, checkout and update will try hard to 
+# make the files in your working directory read-only.  When this is not set,
+# the default behavior is to permit modification of your working files.
+#export CVSREAD=yes
+</PRE>
+<HR>
+
+And of course, individual users can <I>override</I> the environment variables 
+set in /etc/profile by resetting them in their local profile file &nbsp;/.bash_profile
+<HR>
+<PRE>
+# File ~/.bash_profile
+# Overriding env variables by resetting
+export EDITOR=/usr/bin/emacs
+export CVSROOT=/home/someotherdir/java/cvsroot
+</PRE>
+<HR>
+</P>
+<P>Create a directory to store the source code repository 
+and give read, write access to Unix group/user.
+Also make sure that the directory name of CVSROOT does not contain
+any blank spaces. For example CVSROOT should not be like '/home/my rootcvs'.
+<HR>
+<PRE>
+bash$ su - root
+bash# export CVSROOT=/home/cvsroot
+bash# groupadd --help
+bash# groupadd cvs
+bash# useradd --help
+bash# useradd -g cvs -d $CVSROOT cvs
+bash# mkdir $CVSROOT
+
+bash# ls -ld $CVSROOT   ... (you should see the listing)
+bash# chgrp -R cvs $CVSROOT
+bash# chmod o-rwx $CVSROOT
+bash# chmod ug+rwx $CVSROOT
+
+# To initialize the CVS repository and to put in source code files
+# do (but requires env CVSROOT to be set) :
+bash# cvs init
+
+# Add the unix users to the cvs group. Create supplementary groups for users.
+# Note that you MUST not put any blank spaces after comma separating the
+# group names in -G option.
+# In example below user tom belongs to groups cvs, users and staff and user
+# johnson belongs to group cvs only.
+bash# usermod --help
+bash# usermod -G cvs some_unix_username
+bash# usermod -G cvs,users,staff tom
+bash# usermod -G cvs,users,staroffice billclinton
+bash# usermod -G cvs johnson
+bash# exit    .... (logout of root superuser mode)
+
+# Login as a user and import files into cvs....
+bash$ su - billclinton
+bash$ export EDITOR=/bin/vi
+bash$ export CVSROOT=/home/cvsroot
+
+# WARNING! WARNING: If you set CVSREAD to yes, checkout and update will try hard to 
+# make the files in your working directory read-only.  When this is not set,
+# the default behavior is to permit modification of your working files.
+bash$ export CVSREAD=yes
+
+# Change directory is a must (MANDATORY)
+bash$ cd $HOME/somedir/anotherdir/directory/my_source_code_dir
+
+# Must give vendor tag and revision tag
+cvs import somedir/anotherdir/directory/my_source_code_dir vendor_1_0 rev_1_0
+
+# Also note that it is very important to give the directory tree starting
+# from the $HOME, that is, in above example starting from somedir.
+# For example I did:
+bash$ cd $HOME/howto/foobar
+bash$ cvs import howto/foobar vendor_1_0 rev_1_0
+
+# Another example is:
+bash$ cd $HOME/javafilesdir
+bash$ cvs import javafilesdir vendor_1_0 rev_1_0
+
+# A sample testing and verification:
+bash$ cd $HOME/howto/foobar
+bash$ cvs checkout myfoo.java
+</PRE>
+<HR>
+</P>
+<P><B>TROUBLESHOOTING:</B> When doing checkout it says module is unknown. It 
+is a common mistake not to change directory while doing cvs import. You 
+<B><I>MUST change directory</I></B> to the 
+source-code-directory and then do cvs import. For example:
+<HR>
+<PRE>
+bash$ cd $HOME/somedirectory/foobardir
+bash$ cvs import somedirectory/foobardir vendor_1_0 rev_1_0
+</PRE>
+<HR>
+</P>
+
+
+<H2><A NAME="clientbox"></A> <A NAME="ss3.2">3.2 Setup CVS on Client Box</A>
+</H2>
+
+<P>On client boxes where you want to use the CVS, you should install
+cvs packages and ssh package (if you want to use ssh).
+Setup the environment variables:
+<HR>
+<PRE>
+bash$ export CVSROOT=":ext:developer@cvs_server_box.domain.com:/home/cvsroot"
+bash$ export CVS_RSH="ssh"
+</PRE>
+<HR>
+
+The cvs_server_box.domain.com is the IP address of the remote CVS repository server
+and 'developer' is the user id.
+Another example using pserver is given below:
+<HR>
+<PRE>
+bash$ export CVSROOT=:pserver:username@cvs.tldp.org:/cvsroot
+bash$ export CVS_RSH="ssh"
+</PRE>
+<HR>
+
+See also 
+<A HREF="#multiuser">multiuser</A>
+.</P>
+
+
+
+<H2><A NAME="RCS2CVS"></A> <A NAME="ss3.3">3.3 Migrate RCS to CVS </A>
+</H2>
+
+<P>To migrate the existing RCS files to CVS, use the following script from
+<A HREF="#downloadsoftware">downloadsoftware</A>
+ 
+. Make sure that you installed the Korn shell package pdksh*.rpm from the Linux contrib cdrom.</P>
+<P><B>NOTE : <I>Get the Korn shell /bin/ksh by installing pdksh*.rpm from the Linux contrib cdrom</I></B></P>
+<P>Now the RCS is migrated to CVS as 'project'. You can start using the
+CVS commands on module 'project'.</P>
+
+
+<H2><A NAME="Intro_CVS"></A> <A NAME="s4">4. Intro to CVS Commands </A></H2>
+
+<P>CVS provides a rich variety of  commands  (cvs_command  in
+the  Synopsis),  each  of  which  often  has  a  wealth of
+options, to satisfy the many needs of source management in
+distributed environments.  However, you don't have to master
+every detail to do useful work with CVS; in fact, five
+commands  are  sufficient  to  use (and contribute to) the
+source repository.
+The most commonly used CVS commands are: 
+<B>checkout</B>,
+<B>update</B>,
+<B>add</B>,
+<B>remove</B>,
+<B>commit</B> and
+<B>diff</B>.</P>
+
+
+
+<H2><A NAME="checkout"></A> <A NAME="ss4.1">4.1 checkout</A>
+</H2>
+
+<P><B>cvs checkout modules...</B>
+A necessary preliminary for most CVS work:  creates
+your  private copy of the source for modules (named
+collections of source; you can also use a path relative
+to the source repository here).  You can work
+with this copy  without  interfering  with  others'
+work.   At  least  one subdirectory level is always
+created.
+<HR>
+<PRE>
+bash$ cvs --help checkout
+Usage:
+  cvs checkout [-ANPRcflnps] [-r rev | -D date] [-d dir]
+    [-j rev1] [-j rev2] [-k kopt] modules...
+        -A      Reset any sticky tags/date/kopts.
+        -N      Don't shorten module paths if -d specified.
+        -P      Prune empty directories.
+        -R      Process directories recursively.
+        -c      "cat" the module database.
+        -f      Force a head revision match if tag/date not found.
+        -l      Local directory only, not recursive
+        -n      Do not run module program (if any).
+        -p      Check out files to standard output (avoids stickiness).
+        -s      Like -c, but include module status.
+        -r rev  Check out revision or tag. (implies -P) (is sticky)
+        -D date Check out revisions as of date. (implies -P) (is sticky)
+        -d dir  Check out into dir instead of module name.
+        -k kopt Use RCS kopt -k option on checkout.
+        -j rev  Merge in changes made between current revision and rev.
+(Specify the --help global option for a list of other help options) 
+</PRE>
+<HR>
+</P>
+
+
+
+
+<H2><A NAME="update"></A> <A NAME="ss4.2">4.2 Staying in sync with other developers - 'cvs update'</A>
+</H2>
+
+<P><B>cvs update</B>
+Execute  this  command  from  within  your  private
+source  directory  when  you  wish  to  update your
+copies of source  files  from  changes  that  other
+developers  have  made to the source in the repository.
+<HR>
+<PRE>
+bash$ cvs --help update
+Usage: cvs update [-APdflRp] [-k kopt] [-r rev|-D date] [-j rev]
+    [-I ign] [-W spec] [files...]
+        -A      Reset any sticky tags/date/kopts.
+        -P      Prune empty directories.
+        -d      Build directories, like checkout does.
+        -f      Force a head revision match if tag/date not found.
+        -l      Local directory only, no recursion.
+        -R      Process directories recursively.
+        -p      Send updates to standard output (avoids stickiness).
+        -k kopt Use RCS kopt -k option on checkout.
+        -r rev  Update using specified revision/tag (is sticky).
+        -D date Set date to update from (is sticky).
+        -j rev  Merge in changes made between current revision and rev.
+        -I ign  More files to ignore (! to reset).
+        -W spec Wrappers specification line.
+(Specify the --help global option for a list of other help options) 
+
+In order to receive changes from the latest commits from your peer developers, do: 
+bash$ cvs update
+
+If another developer has done bigger changes such as adding new directories etc. do:
+bash$ cvs update -d
+</PRE>
+<HR>
+</P>
+
+
+
+<H2><A NAME="add"></A> <A NAME="ss4.3">4.3 add</A>
+</H2>
+
+<P><B>cvs add file...</B>
+Use this command to enroll new files in CVS records
+of your working directory.  The files will be added
+to the  repository  the  next  time  you  run  `cvs
+commit'.   Note:  You  should  use the `cvs import'
+command to bootstrap new sources  into  the  source
+repository.   `cvs  add' is only used for new files
+to an already checked-out module.
+<HR>
+<PRE>
+bash$ cvs --help add
+Usage: cvs add [-k rcs-kflag] [-m message] files...
+        -k      Use "rcs-kflag" to add the file with the specified kflag.
+        -m      Use "message" for the creation log.
+(Specify the --help global option for a list of other help options)  
+
+To add a new file to the repository do: 
+bash$ cvs add newFile
+bash$ cvs commit
+
+To add a new binary file to the repository do: 
+bash$ cvs add -kb newBinaryFile
+bash$ cvs commit
+(-kb specifies that file is binary) 
+
+To add a new directory to the repository do: 
+bash$ cvs add newDirectory
+bash$ cvs commit
+
+To remove an existing file from the repository do: 
+bash$ rm existingFile
+bash$ cvs remove existingFile
+bash$ cvs commit
+</PRE>
+<HR>
+</P>
+
+
+<H2><A NAME="remove"></A> <A NAME="ss4.4">4.4 remove</A>
+</H2>
+
+<P><B>cvs remove file...</B>
+Use this command (after erasing any  files  listed)
+to  declare  that  you wish to eliminate files from
+the repository.  The removal does not affect others
+until you run `cvs commit'.
+<HR>
+<PRE>
+bash$ cvs --help remove
+Usage: cvs remove [-flR] [files...]
+        -f      Delete the file before removing it.
+        -l      Process this directory only (not recursive).
+        -R      Process directories recursively.
+(Specify the --help global option for a list of other help options)
+</PRE>
+<HR>
+</P>
+
+
+
+<H2><A NAME="commit"></A> <A NAME="ss4.5">4.5 commit</A>
+</H2>
+
+<P><B>cvs commit file...</B>
+To check in modifications (on existing files).
+Use this command when you wish to ``publish'' your
+changes to other developers, by incorporating  them
+in the source repository.</P>
+<P><B>NOTE : </B> It's usually a very good idea to do 'cvs update' before committing changes.
+<HR>
+<PRE>
+bash$ cvs --help commit
+Usage: cvs commit [-nRlf] [-m msg | -F logfile] [-r rev] files...
+        -n      Do not run the module program (if any).
+        -R      Process directories recursively.
+        -l      Local directory only (not recursive).
+        -f      Force the file to be committed; disables recursion.
+        -F file Read the log message from file.
+        -m msg  Log message.
+        -r rev  Commit to this branch or trunk revision.
+(Specify the --help global option for a list of other help options)
+</PRE>
+<HR>
+</P>
+
+
+<H2><A NAME="diff"></A> <A NAME="ss4.6">4.6 diff</A>
+</H2>
+
+<P><B>cvs diff file...</B>
+Show differences between files in the working directory
+and  source repository, or between two revisions in the
+source repository.  (Does not change either repository or working directory.)
+<HR>
+<PRE>
+bash$ cvs --help diff
+Usage: cvs diff [-lNR] [rcsdiff-options]
+    [[-r rev1 | -D date1] [-r rev2 | -D date2]] [files...]
+        -l      Local directory only, not recursive
+        -R      Process directories recursively.
+        -D d1   Diff revision for date against working file.
+        -D d2   Diff rev1/date1 against date2.
+        -N      include diffs for added and removed files.
+        -r rev1 Diff revision for rev1 against working file.
+        -r rev2 Diff rev1/date1 against rev2.
+        --ifdef=arg     Output diffs in ifdef format.
+(consult the documentation for your diff program for rcsdiff-options.
+The most popular is -c for context diffs but there are many more).
+(Specify the --help global option for a list of other help options)
+</PRE>
+<HR>
+</P>
+
+
+
+<H2><A NAME="createrelease"></A> <A NAME="ss4.7">4.7 Creating Releases</A>
+</H2>
+
+<P>Since there usually are several files with different version numbers in a project,
+it's a good idea to "stamp" the files with a release tag for each release, this can
+be done like this (for version "v001"): 
+<HR>
+<PRE>
+bash$ cvs tag -R "v001"
+bash$ cvs commit
+
+This release can be checked out with 
+bash$ cvs checkout -r "v001" YourProject
+</PRE>
+<HR>
+</P>
+
+
+<H2><A NAME="Emacs"></A> <A NAME="ss4.8">4.8 Emacs Editor </A>
+</H2>
+
+<P>Emacs is a powerful editor and it supports CVS/RCS - especially 
+for revision merging and comparing. The main Emacs site 
+is at 
+<A HREF="http://www.gnu.org/software/emacs/emacs.html">http://www.gnu.org/software/emacs/emacs.html</A>.</P>
+
+
+
+<H2><A NAME="locking"></A> <A NAME="s5">5. Strong, Weak or No Locking </A></H2>
+
+<P>CVS is a powerful system and is highly customizable. CVS supports:
+<UL>
+<LI> Strong locking with "reserved checkouts" via <B>cvs admin -l</B> or 
+<A HREF="#Shell Scripts">Shell Scripts</A>
+.
+Also read the 
+<A HREF="http://www.cvshome.org/docs/inforeserve.html">Reserved checkouts</A>.
+Here is a patch (
+<A HREF="http://www.cvshome.org/dev/patches/editf">http://www.cvshome.org/dev/patches/editf</A>) from 
+Eric Griswold for reserved checkouts. 
+
+</LI>
+<LI> Weak locking via 'cvs watch' features.
+Also see "cvs edit" to give a warning(
+<A HREF="http://www.cvshome.org/dev/text2/res2">http://www.cvshome.org/dev/text2/res2</A>) if 
+someone else is already editing the file.
+
+</LI>
+<LI> No locking - the default permitting concurrent editing of files.</LI>
+</UL>
+</P>
+
+
+
+<H2><A NAME="Shell Scripts"></A> <A NAME="s6">6. Shell Scripts </A></H2>
+
+<P>The following are wrappers around the basic CVS commands. These scripts
+give you initial <B>booster-push</B> into the CVS system and are useful 
+until you become very familiar with the CVS commands. The scripts 
+are written for Korn shell since it is always available 
+on all flavors of Unix, but you can translate to bash or 
+Perl if needed. You can customize
+these scripts to your taste. They are basically CVS commands, but features are
+added to make it site specific. For example, the sedit script provides locking
+so that users will know someone is editing the file. Of course users can 
+directly use the CVS commands to bypass these scripts. These scripts 
+demonstrate how CVS can be <B>customized</B> to a great extent.</P>
+<P><B>NOTE: </B> <I>The wrapper shell scripts assume the user's 
+home directory as the root and check out the tree from CVS to build the 
+tree underneath user's home directory.</I></P>
+<P><B> TIP: </B> <I>In these shell scripts, every target filename is composed 
+of 3 parts - Home directory, sub-directory 
+and the filename. The full-path is $HOME/$subdir/$fname
+And in CVS the same directory structure is maintained (by 
+variable $subdir) therefore in cvs there will be something 
+like  $CVSROOT/$subdir/$fname.
+In all scripts, these 4 variables $HOME, $CVSROOT, $subdir and $fname
+play an important role. For example, sample values can be like
+HOME=/home/aldev, subdir=myproject/src, CVSROOT=/home/cvsroot,
+and fname=foo.cpp</I></P>
+<P>Copy these scripts to /usr/local/bin and this should be in the user's PATH environment.
+<OL>
+<LI> <B>sget</B> [-r revision_number] &lt;file/directory name&gt;
+To get a file or entire directory from CVS in READ ONLY mode.
+Click 
+<A HREF="#downloadsoftware">downloadsoftware</A>
+ to get this.
+</LI>
+<LI> <B>sedit</B> [-r revision_number] &lt;filename&gt;
+To edit a file in order to make changes to code. This will lock the
+file so that nobody else can check it out. Of course you can change the script to your requirement - make no locking, warning message, or very strong locking.
+Click 
+<A HREF="#downloadsoftware">downloadsoftware</A>
+ to get this.
+</LI>
+<LI> <B>scommit</B> [-r revision_number] &lt;filename&gt;
+To commit the changes you made to filename or entire 
+directory. Upload your changes to CVS.
+Click 
+<A HREF="#downloadsoftware">downloadsoftware</A>
+ to get this.
+</LI>
+<LI> <B>supdate</B>     &lt;filename/directory&gt; 
+To update a filename or to update an entire directory by 
+getting the latest files from CVS.
+Click 
+<A HREF="#downloadsoftware">downloadsoftware</A>
+ to get this.
+</LI>
+<LI> <B>sunlock</B> [-r revision_number] &lt;filename&gt;
+To unlock the file got by sedit. Will release the lock.
+Click 
+<A HREF="#downloadsoftware">downloadsoftware</A>
+ to get this.
+</LI>
+<LI> <B>slist</B>       
+To see the list of files currently being edited by you. 
+Does 'ls -l | grep | ...' command.
+Click 
+<A HREF="#downloadsoftware">downloadsoftware</A>
+ to get this. 
+Note that there is also another Unix
+command by the name slist (list available Netware servers). You
+should make sure cvs script slist comes before other in your
+PATH environment.
+</LI>
+<LI> <B>sinfo</B> &lt;filename/directory&gt; 
+To get the information of changes/revisions to a file. 
+Click 
+<A HREF="#downloadsoftware">downloadsoftware</A>
+ to get this.
+</LI>
+<LI> <B>slog</B> &lt;filename&gt; 
+To get the history of changes/revisions to a file from CVS.
+Click 
+<A HREF="#downloadsoftware">downloadsoftware</A>
+ to get this.
+</LI>
+<LI> <B>sdif</B> &lt;filename&gt;
+<P><B>sdif</B> -r rev1 -r rev2 &lt;filename&gt; 
+To get the diff of your file with CVS.
+Click 
+<A HREF="#downloadsoftware">downloadsoftware</A>
+ to get this.</P>
+<P>NOTE: sdif has only one 'f' because there is already another 
+Unix command called 'sdiff'</P>
+
+</LI>
+<LI> <B>sadd</B> &lt;filename&gt;   
+To add a new file to CVS repository.
+Click 
+<A HREF="#downloadsoftware">downloadsoftware</A>
+ to get this.
+</LI>
+<LI> <B>sdelete</B>     &lt;filename&gt; 
+To delete a file from CVS repository.
+Click 
+<A HREF="#downloadsoftware">downloadsoftware</A>
+ to get this.
+</LI>
+<LI> <B>sfreeze</B>     &lt;revision name&gt; &lt;directory name&gt;
+To freeze the code, that is make a release of the entire source tree.
+Click 
+<A HREF="#downloadsoftware">downloadsoftware</A>
+ to get this.
+<P>For example : 
+<HR>
+<PRE>
+        cd $HOME;   
+        sfreeze REVISION_1_0  srctree  
+</PRE>
+<HR>
+
+This will freeze code with tag REVISION_1_0  so that you can later 
+checkout the entire tree by using the revision name.</P>
+</LI>
+</OL>
+</P>
+
+
+
+
+
+<H2><A NAME="CVS Documentation"></A> <A NAME="s7">7. CVS Documentation </A></H2>
+
+<P>At Unix prompt type: 
+<OL>
+<LI> cvs --help</LI>
+<LI> cvs --help-options</LI>
+<LI> cvs --help-commands</LI>
+<LI> cvs -H checkout</LI>
+<LI> cvs -H commit</LI>
+<LI> man cvs</LI>
+<LI> man tkcvs</LI>
+<LI> Visit 
+<A HREF="http://www.cyclic.com">http://www.cyclic.com</A></LI>
+<LI> Visit 
+<A HREF="http://www.loria.fr/~molli/cvs-index.html">http://www.loria.fr/~molli/cvs-index.html</A></LI>
+</OL>
+</P>
+<P>The tkcvs 
+<A HREF="http://www.tkcvs.org">http://www.tkcvs.org</A>
+is the Tcl/Tk GUI interface to CVS. It also has online help. Try the following:
+<UL>
+<LI> cd $HOME/src/foo.cpp</LI>
+<LI> tkcvs</LI>
+<LI> Click on foo.cpp</LI>
+<LI> Click on 'Revision Log Icon' which is located next to 'spectacle' icon.</LI>
+<LI> This will display the branch TREE in the window. Now click the RIGHT Mouse 
+button on the text '1.3' and click the LEFT Mouse button on text '1.1'. Then 
+click on "Diff" button. This will display a two-pane window!!  </LI>
+<LI> Click on the "Next" button to step thru more diffs. 
+Click on "Center" to center the text.</LI>
+</UL>
+</P>
+<P>There is also a Windows 95 client for CVS called WinCVS  (see:
+<A HREF="http://www.wincvs.org">http://www.wincvs.org</A>
+and 
+<A HREF="http://www.cvshome.org/cyclic/cvs/soft-maccvs.html">cyclicsite</A>).
+WinCVS can be used along with Samba(on cdrom samba*.rpm) - 
+<A HREF="http://www.samba.org">http://www.samba.org</A></P>
+<P>The essential command are:
+<UL>
+<LI> cvs checkout &lt;filename &gt;</LI>
+<LI> cvs update &lt;filename&gt;</LI>
+<LI> cvs add &lt;file, ..&gt;</LI>
+<LI> cvs remove &lt;file, ..&gt;</LI>
+<LI> cvs commit &lt;file&gt;</LI>
+<LI> cvs status &lt;filename&gt;</LI>
+<LI> cvs log &lt;filename&gt;</LI>
+<LI> cvs diff -r1.4 -r1.5 &lt;filename&gt;  
+This gives a diff between version 1.4 and 1.5 on filename.</LI>
+</UL>
+</P>
+
+
+<H2><A NAME="onlinedocs"></A> <A NAME="ss7.1">7.1 Online Documentation </A>
+</H2>
+
+<P>On Linux systems, you can find the CVS documentation in postscript format at
+<B>/usr/doc/cvs*/*.ps</B>. Also there is an FAQ and other useful information.
+<HR>
+<PRE>
+bash# cd /usr/doc/cvs*
+bash# gv cvs.ps
+</PRE>
+<HR>
+</P>
+
+
+<H2><A NAME="cederquist"></A> <A NAME="ss7.2">7.2 CVS Org Documentation </A>
+</H2>
+
+<P>The documentation on CVS from "CVS Organization" is at
+<A HREF="http://www.cvshome.org/docs">http://www.cvshome.org/docs</A></P>
+<P>The Official manual for CVS by Cederqvist 
+is at 
+<A HREF="http://www.cvshome.org/docs/manual/cvs.html">http://www.cvshome.org/docs/manual/cvs.html</A></P>
+<P>FAQ for CVS is at 
+<A HREF="http://www.cs.utah.edu/dept/old/texinfo/cvs/FAQ.txt">http://www.cs.utah.edu/dept/old/texinfo/cvs/FAQ.txt</A></P>
+
+
+<H2><A NAME="training"></A> <A NAME="ss7.3">7.3 CVS Training </A>
+</H2>
+
+<P>
+<UL>
+<LI> 
+<A HREF="http://rpmfind.net/tools/CVS/training/cvstrain.html">http://rpmfind.net/tools/CVS/training/cvstrain.html</A></LI>
+<LI> 
+<A HREF="http://www.loria.fr/~molli/cvs/cvs-tut/cvs_tutorial_toc.html">http://www.loria.fr/~molli/cvs/cvs-tut/cvs_tutorial_toc.html</A></LI>
+<LI> 
+<A HREF="http://atlas.web.cern.ch/Atlas/GROUPS/SOFTWARE/OO/tools/srt/">http://atlas.web.cern.ch/Atlas/GROUPS/SOFTWARE/OO/tools/srt/</A></LI>
+<LI> 
+<A HREF="http://durak.org/cvswebsites/">http://durak.org/cvswebsites/</A></LI>
+<LI> 
+<A HREF="http://www-users.informatik.rwth-aachen.de/~wge/tools/cvs/cvsclient/cvsclient_toc.html">http://www-users.informatik.rwth-aachen.de/~wge/tools/cvs/cvsclient/cvsclient_toc.html</A></LI>
+<LI> 
+<A HREF="http://www-users.informatik.rwth-aachen.de/~wge/tools/cvs.html">http://www-users.informatik.rwth-aachen.de/~wge/tools/cvs.html</A>
+<P>General utilities for cvs (third party):</P>
+</LI>
+<LI> The textbook "Open Source Development with CVS" by Karl Fogel at
+<A HREF="http://cvsbook.red-bean.com">http://cvsbook.red-bean.com</A> has 
+<A HREF="http://cvsbook.red-bean.com/cvsbook.html#Third-Party_Tools">third-party-tools</A>
+and mirror sites at
+<A HREF="http://www.zevils.com/doc/cvsbook/cvsbook_8.html">Zevils</A></LI>
+<LI> 
+<A HREF="http://rcs.ee.washington.edu/spp/Projects/Manastash/Links/cvsbook_toc.html">http://rcs.ee.washington.edu/spp/Projects/Manastash/Links/cvsbook_toc.html</A></LI>
+</UL>
+</P>
+
+
+<H2><A NAME="textbook"></A> <A NAME="ss7.4">7.4 CVS Online Textbook </A>
+</H2>
+
+<P>The following CVS textbook is available online.
+<OL>
+<LI> <B>"CVS Best Practices" </B>
+Version: 0.5 by Vivek Venugopalan, 
+<A HREF="mailto:vivek@magic-cauldron.com">vivek@magic-cauldron.com</A>
+at 
+<A HREF="http://www.tldp.org/REF/CVS-BestPractices/html/index.html">http://www.tldp.org/REF/CVS-BestPractices/html/index.html</A>
+
+</LI>
+<LI> Open Source Development with CVS by Karl Fogel 
+<A HREF="http://cvsbook.red-bean.com">http://cvsbook.red-bean.com</A>
+
+</LI>
+<LI> The Official manual for CVS by Cederqvist 
+is at 
+<A HREF="http://www.cvshome.org/docs/manual/cvs.html">http://www.cvshome.org/docs/manual/cvs.html</A></LI>
+</OL>
+</P>
+
+
+<H2><A NAME="frontend"></A> <A NAME="s8">8. Graphical Front Ends </A></H2>
+
+<P>The following GUI front ends for CVS are available:
+<UL>
+<LI> Popular CVS GUI front end 
+<A HREF="http://cervisia.sourceforge.net">http://cervisia.sourceforge.net</A>, get 
+RPM packages at
+<A HREF="http://rpmfind.net/linux/rpm2html/search.php?query=cervisia">Cervisia RPMs</A></LI>
+<LI> CVS home.org 
+<A HREF="http://www.cvshome.org/dev/addons.html">http://www.cvshome.org/dev/addons.html</A></LI>
+<LI> CVS Web for windows 
+<A HREF="http://www.devguy.com/fp/cfgmgmt/cvs/cvs_admin_nt.htm#CVSWEBIIS">http://www.devguy.com/fp/cfgmgmt/cvs/cvs_admin_nt.htm#CVSWEBIIS</A> and at 
+<A HREF="http://stud.fh-heilbronn.de/~zeller/cgi/cvsweb.cgi">http://stud.fh-heilbronn.de/~zeller/cgi/cvsweb.cgi</A></LI>
+<LI> TkCVS 
+<A HREF="http://www.tkcvs.org">http://www.tkcvs.org</A> is the Tcl/Tk GUI interface to CVS
+and at 
+<A HREF="http://www.cvshome.org/cyclic/tkcvs/index.html">cyclicsite</A></LI>
+<LI> gCVS: A portable GUI for the non-technical CVS user 
+<A HREF="http://www.arachne.org/software/gcvs">http://www.arachne.org/software/gcvs</A></LI>
+<LI> jCVS is a CVS client package written entirely in Java 
+<A HREF="http://www.jcvs.org">http://www.jcvs.org</A>
+And at 
+<A HREF="http://www.cvshome.org/cyclic/jcvs/index.html">cyclicsite</A></LI>
+<LI> WinCVS 
+<A HREF="http://www.cvshome.org/cyclic/cvs/soft-maccvs.html">http://www.cvshome.org/cyclic/cvs/soft-maccvs.html</A>
+and at 
+<A HREF="http://www.cvshome.org/cyclic/cvs/soft-maccvs.html">cyclicsite</A></LI>
+<LI> Component soft Win CVS 
+<A HREF="http://www.componentsoftware.com/cvs">http://www.componentsoftware.com/cvs</A></LI>
+<LI> JA-SIG UPortal CVS 
+<A HREF="http://www.mis3.udel.edu/~jlaker/development">http://www.mis3.udel.edu/~jlaker/development</A></LI>
+<LI> 
+<A HREF="http://ppprs1.phy.tu-dresden.de/~trogisch/lincvs/lincvsen.html">http://ppprs1.phy.tu-dresden.de/~trogisch/lincvs/lincvsen.html</A></LI>
+<LI> 
+<A HREF="http://www.loria.fr/~molli/cvs/doc/cvs_toc.html">http://www.loria.fr/~molli/cvs/doc/cvs_toc.html</A></LI>
+</UL>
+
+It is <B>very strongly recommended</B> that you use 
+<A HREF="http://www.samba.org">Samba(on cdrom samba*.rpm)</A>
+and a
+<A HREF="#win95">PC X Server</A> 
+on MS Windows 95/NT. By using Samba the remote directory on Unix
+will look like local folder on MS Windows. See the next section for 
+<A HREF="#win95">PC X Server</A>.</P>
+<P><B>For Apple Macintosh - Mac OS:</B>
+See MacCvs at 
+<A HREF="http://www.cvsgui.org">http://www.cvsgui.org</A>
+and MacCvsPro at 
+<A HREF="http://www.maccvs.org">http://www.maccvs.org</A></P>
+
+
+
+
+<H2><A NAME="win95"></A> <A NAME="s9">9. CVS for MS Windows 95/98/NT/2000/XP </A></H2>
+
+
+
+
+<H2><A NAME="cvsexe"></A> <A NAME="ss9.1">9.1 Method 1: Using VNC, Samba </A>
+</H2>
+
+<P>It is <B>VERY STRONGLY recommended</B> that you use 
+<A HREF="http://www.samba.org">Samba(on cdrom samba*.rpm)</A>
+and a VNC viewer (or PC X Server) on MS Windows 95/NT. 
+With samba the Unix/Linux CVS server will be like a <B>file server</B>.
+By using Samba the remote directory on Unix
+will look like a local folder on MS Windows on the local disk. 
+Install samba*.rpm on Unix/Linux server(which has the CVS repository) and install 
+the VNC viewer (or PC X server) on 
+MS Windows 95/NT/2000/XP desktop. Using a VNC (or PC X server) you can easily log on to the
+Unix box and check-out/check-in the files. And you can use tools like
+Java Visual Cafe or Java JBuilder on MS Windows to edit the files located in Unix/Linux
+folder(via samba). 
+After editing, you can check-in the files to Unix through VNC or PC X-server.</P>
+<P>Advantages of using CVS on Linux/Unix via MS Windows are:
+<UL>
+<LI> Only one single Linux File server (CVS server) can serve many MS Windows clients.</LI>
+<LI> A Linux file server (CVS) is very robust, secure and reliable</LI>
+<LI> Only one UPS (uninterrupted power supply) battery is required for a linux server.</LI>
+<LI> Linux can serve as MS Windows folder through Samba package.</LI>
+<LI> A Linux file server (CVS) supports centralized backups via tools like
+<A HREF="http://www.milkywaygalaxy.freeservers.com">BRS, Arkeia, Bru</A>
+mirrors at 
+<A HREF="http://www.angelfire.com/country/aldev0">angelfire</A>,
+<A HREF="http://www.geocities.com/alavoor/index.html">geocities</A>,
+<A HREF="http://aldev0.virtualave.net">virtualave</A>,
+<A HREF="http://members.fortunecity.com/aldev">Fortunecity</A>,
+<A HREF="http://aldev.freewebsites.com">Freewebsites</A>,
+<A HREF="http://members.tripod.lycos.com/aldev">Tripod</A>,
+<A HREF="http://www.101xs.com/101xs/aldev">101xs</A>,
+<A HREF="http://aldev0.50megs.com">50megs</A>,
+</LI>
+<LI> A Linux file server (CVS) requires just one small server room which can air-conditioned
+and dust free. Small room keeps the cooling/heating costs down.</LI>
+<LI> A Linux file server (CVS) provides security via Unix groups and user id authentication</LI>
+</UL>
+</P>
+<P>The best tool for remote access is VNC. The VNC is lightweight and is 
+much better than the PC X servers. <B><I>The VNC is very strongly recommended 
+over PC X server</I></B>. The remote access methods available are:
+<UL>
+<LI>VNC (Virtual Network Computing) at 
+<A HREF="http://www.uk.research.att.com/vnc">http://www.uk.research.att.com/vnc</A>
+VNC is not an X-server but can display the remote Unix on Windows.
+VNC is the best tool in the market for remote access, it is very lightweight and 
+is a very powerful software.
+
+</LI>
+<LI> Get VNC rpms from 
+<A HREF="http://rpmfind.net/linux/rpm2html/search.php?query=vnc">rpmfind</A>.
+
+</LI>
+<LI> The best Window manager for VNC is QVWM which is like MS Windows 98/NT/2000/XP interface, get
+it from 
+<A HREF="http://www.qvwm.org">http://www.qvwm.org</A>.
+
+</LI>
+<LI> After starting vncserver, you can start the <B>vncviewer</B> program on clients
+like MS Windows, Mac or Linux.
+
+</LI>
+<LI> See also the
+<A HREF="http://www.dlhoffman.com/publiclibrary/RPM/X11_Window_Managers.html">List of X11 Windows Managers</A>.</LI>
+</UL>
+</P>
+<P><B>Compiling qvwm on Solaris : </B>
+On Solaris you should install the following packages which you can get 
+from 
+<A HREF="http://sun.freeware.com">http://sun.freeware.com</A> - xpm, imlib, jpeg, libungif, giflib, libpng, tiff.
+And you can download the binary package for solaris from
+<A HREF="http://www.qvwm.org">http://www.qvwm.org</A>.</P>
+<P>Or you can download the qvwm source for solaris from
+<A HREF="http://www.qvwm.org">http://www.qvwm.org</A> and compile it using gcc.</P>
+<P>Troubleshooting compile:
+You should put unsigned long before arg in usleep()
+usleep((unsigned long) 10000)</P>
+<P>The following PC X servers are available:
+<UL>
+<LI> Low cost, best and small size (3 MB) 
+<A HREF="http://www.microimages.com">http://www.microimages.com</A> and
+click on "X-Server (MI/X) for Windows"</LI>
+<LI> Humming bird eXceed 14 MB 
+<A HREF="http://www.hummingbird.com">http://www.hummingbird.com</A></LI>
+<LI> Starnet 5.2 MB
+<A HREF="http://www.starnet.com">http://www.starnet.com</A>
+<P> 
+There are more than 2 dozen vendors for X servers for Windows:</P>
+</LI>
+<LI> X-win pro 6.34 MB 
+<A HREF="http://www.labf.com">http://www.labf.com</A></LI>
+<LI> X-WinPro 
+<A HREF="http://lab-pro.com">http://lab-pro.com</A></LI>
+<LI> X-Link 
+<A HREF="http://www.xlink.com/x.htm">http://www.xlink.com/x.htm</A></LI>
+<LI> Xoftware 
+<A HREF="http://www.age.com">http://www.age.com</A>
+<P>University resources:</P>
+</LI>
+<LI> University listings 
+<A HREF="http://www.et.byu.edu/support/pc/xterm.html">http://www.et.byu.edu/support/pc/xterm.html</A></LI>
+<LI> Floppy based PC "X server" 
+<A HREF="http://mirriwinni.cse.rmit.edu.au/~brad/co338/sem1/floppy.html">http://mirriwinni.cse.rmit.edu.au/~brad/co338/sem1/floppy.html</A></LI>
+</UL>
+</P>
+
+
+
+<H2><A NAME="cvsexe"></A> <A NAME="ss9.2">9.2 Method 2: Using Cygwin </A>
+</H2>
+
+<P>You can install the 
+<A HREF="http://www.cygwin.com">Redhat Cygwin</A>
+and install the CVS clients and SSH packages via Cygwin. With cygwin the
+Windows 95/NT/2000/XP will be like a Unix client. Bring up the cygwin bash
+shell prompt and you can access the remote CVS server. With cygwin the 
+Windows 95/NT will be like any other Linux CVS client.</P>
+
+
+<H2><A NAME="cvsexe"></A> <A NAME="ss9.3">9.3 CVS exe for Windows 95/NT/2000/XP </A>
+</H2>
+
+<P>You can install and run CVS on MS Windows directly.
+Download cvsnt from 
+<A HREF="http://www.cvsnt.org">http://www.cvsnt.org</A>.
+See the installation instructions and other documents of CVS on NT/2000 
+at 
+<A HREF="http://www.devguy.com/fp/cfgmgmt/cvs/cvs_admin_nt.htm#install">http://www.devguy.com/fp/cfgmgmt/cvs/cvs_admin_nt.htm#install</A>.</P>
+
+
+<H2><A NAME="ftptools"></A> <A NAME="ss9.4">9.4 Windows 95/NT/2000/XP FTP Tools</A>
+</H2>
+
+<P>You can also use the ftp tools on MS Windows to transfer files from a Unix/Linux (CVS repository)
+to windows:
+<UL>
+<LI> Go to Tucows and search "ftp tools" for MS Windows 
+<A HREF="http://www.tucows.com">http://www.tucows.com</A></LI>
+</UL>
+</P>
+
+
+<H2><A NAME="mstools"></A> <A NAME="ss9.5">9.5 Visual Cafe(Java), JBuilder, MS Visual C++, HTML files </A>
+</H2>
+
+<P>Using Samba and a PC X server it is possible to use CVS on MS Windows platform.
+And the tools like Symantec Visual Cafe (Java), Inprise JBuilder, MS Visual C++
+and others are easily supported by CVS.</P>
+<P>You can also store the HTML files on a CVS repository via Samba and easily
+access them from MS Windows.</P>
+
+
+<H2><A NAME="samba"></A> <A NAME="ss9.6">9.6 Samba Admin tool </A>
+</H2>
+
+<P>To administer samba use the admin tools from 
+<A HREF="http://www.samba.org">http://www.samba.org</A>. Go here
+and click on "GUI Interfaces Tools".</P>
+
+
+
+<H2><A NAME="cvssecurity"></A> <A NAME="s10">10. Security of CVS Repository </A></H2>
+
+<P>To make a CVS server and CVS repository secure do the following:
+<UL>
+<LI> Run CVS on a stand-alone Linux/Unix box, 
+see 
+<A HREF="#perftuning">Performance Tuning</A>.</LI>
+<LI> Remove unnecessary software packages from CVS linux box - to prevent 
+external vandals running it. Just in case vandals break into the system, you 
+do not want to give them a chance to run dangerous programs.</LI>
+<LI> Consider SSH as given in the chapter 
+<A HREF="#multiuser">Multi-User Repository</A></LI>
+<LI> Consider Kerberos - install cvs-*-kerberos*.rpm package 
+<A HREF="http://cvshome.org/dev/codelinux.html">http://cvshome.org/dev/codelinux.html</A>.</LI>
+<LI> Visit 
+<A HREF="http://www.cvshome.org">http://www.cvshome.org</A> and post your security questions in the
+<A HREF="http://cvshome.org/communication.html">mailing list</A>.</LI>
+</UL>
+</P>
+
+
+
+<H2><A NAME="multiuser"></A> <A NAME="s11">11. Remote, Multi-User CVS Repository </A></H2>
+
+<P>The Cederqvist manual at 
+<A HREF="http://cvshome.org/docs/manual/cvs_2.html#SEC30">http://cvshome.org/docs/manual/cvs_2.html#SEC30</A> 
+describes how to setup CVS for external access.</P>
+<P>In order to use CVS for a group, one has to set up a permissions 
+system to allow people to access the system from other machines. 
+There are three ways to do this (:server:, :pserver:, and :ext:). 
+The pserver mechanism and use of rsh are 
+both insecure.  Only the :ext: (with ssh) offers sufficient security 
+protection.</P>
+<P>If you set CVS_RSH to SSH or some other rsh replacement, 
+the instructions <B>may be</B> similar to `.rhosts' but 
+consult the documentation for your rsh replacement.</P>
+<P>To get ssh visit
+<A HREF="http://rpmfind.net">http://rpmfind.net</A> and in the search box enter "ssh".
+Or visit 
+<A HREF="http://www.redhat.com/apps/download">http://www.redhat.com/apps/download</A> and in the search box enter "ssh".
+Download and install the ssh RPM and then configure CVS to use it.  
+See also 
+<A HREF="http://www.ssh.org">http://www.ssh.org</A>.</P>
+<P>Note: If you plan to configure CVS for use with rsh then 
+you MUST do this critical step:
+<HR>
+<PRE>
+bash# chmod 600 .rhosts
+</PRE>
+<HR>
+</P>
+<P>See also JA-SIG UPortal CVS repository 
+<A HREF="http://www.mis3.udel.edu/~jlaker/development">http://www.mis3.udel.edu/~jlaker/development</A>.</P>
+
+
+<H2><A NAME="sshauth"></A> <A NAME="ss11.1">11.1 SSH Authentication </A>
+</H2>
+
+<P>If you're tired of entering passwords for each simple CVS command, then 
+you can distribute your ssh-identity from the client to the server in order
+to allow automatic identification (i.e. no password needed!), this can be done by 
+On the CVS server box do:
+<HR>
+<PRE>
+For ssh 1: 
+bash$ cd $HOME
+bash$ ssh-keygen
+
+For ssh 2: 
+bash$ cd $HOME
+bash$ ssh-keygen -t rsa
+</PRE>
+<HR>
+</P>
+<P>You should be asked to save 'your identification' in /home/developer/.ssh/identity
+(ssh 1) or /home/developer/.ssh/id_rsa.pub (ssh 2) (or wherever $HOME points to),
+just hit enter. When asked for password and confirmation of password, continue
+hitting enter. Then copy your public key (identity.pub for ssh 1 or id_rsa.pub for
+ssh 2) to the server using secure copy (a part of ssh): </P>
+<P>
+<HR>
+<PRE>
+ssh 1: 
+clientbox$ scp .ssh/identity.pub developer@serverbox.domain.com:~/.ssh
+
+ssh 2: 
+clientbox$ scp .ssh/id_rsa.pub developer@serverbox.domain.com:~/.ssh
+</PRE>
+<HR>
+</P>
+<P>Then log onto the server and fix the authorized_keys file. 
+<HR>
+<PRE>
+ssh 1: 
+clientbox$ ssh developer@serverbox.domain.com
+serverbox$ cd .ssh
+serverbox$ cat identity.pub >> authorized_keys
+
+ssh 2: 
+clientbox$ ssh developer@serverbox.domain.com
+serverbox$ cd .ssh
+serverbox$ cat id_rsa.pub >> authorized_keys2
+serverbox$ chmod go-w authorized_keys2
+</PRE>
+<HR>
+</P>
+<P>You should now be able to ssh directly from the client to server without having to
+enter password, this can be tested with: </P>
+<P>
+<HR>
+<PRE>
+ssh 1 or ssh 2: 
+clientbox$ ssh developer@serverbox.domain.com
+</PRE>
+<HR>
+</P>
+<P>Version control from this point should not require you to enter the password.</P>
+<P>Note: This enables anyone getting access to your client to continue into the server
+without knowing the password on the server. </P>
+<P>Encrypted Disks</P>
+<P>If you fear such a situation, this can (somewhat) be prevented by using a encrypted
+disk, e.g. PGPDisk holding the $HOME directory on the client. So when an intruder
+takes over your machine s/he needs to know the password for your encrypted disk in
+order to get further into the server. Another advantage of using a encrypted disk is
+that your (checked out) source code can reside on it.</P>
+
+
+<H2><A NAME="sshtunnel"></A> <A NAME="ss11.2">11.2 Securing CVS by pserver Port Forwarding using an SSH Tunnel </A>
+</H2>
+
+
+<P>From : 
+<A HREF="http://www.cycom.co.uk/howto/cvssshtunnel.html">http://www.cycom.co.uk/howto/cvssshtunnel.html</A></P>
+<P>The Concurrent Versions System, in its "pserver" client/server mode, and secured by "ssh" encrypted tunnels, can allow multiple authors to safely collaborate over the internet. CVS is a source file version control system optimised for wide area networks, concurrent editing, and reuse of 3rd party source libraries. Pserver is a protocol used for communication between CVS clients and servers. SSH is a tool to transparently encrypt TCP/IP network connections.
+MSWindows users can use a posix shell</P>
+<P>The tools discussed here are most functional in a unix environment but windows users can obtain similar functions by using a posix shell available from http://www.cygwin.com/. which will include an openssh package in 'latest' and a cvs package in 'contrib'. Other native windows ports of the tools are available but may lack needed features such as SSH2 DSA support.
+Creating the CVS Repository on the repository server machine</P>
+<P>If you are a contributing author, you don't need to know how the repository was created. You may skip this section.
+If you are the unix repository administrator, you would create a directory and run
+cvs init
+then adjust the control files in CVSROOT to suit the permitted users (writers, passwd). It is convenient to have all files owned by "cvsuser"
+Starting the repository service</P>
+<P>If you are a contributing author, you don't need to know how the repository server is started. You may skip this section. If you are the unix repository administrator, you allow the server to be started by xinetd with security constraints that specify that only clients local to the server machine may connect. To do this, create a configuration file named "/etc/xinetd.d/cvspserver" with contents similar to:</P>
+<P>
+<HR>
+<PRE>
+service cvspserver
+{
+        flags           = REUSE
+        socket_type     = stream
+        wait            = no
+        user            = cvsuser
+        server          = /usr/bin/cvs
+        server_args     = -f --allow-root=/cycomcvs pserver
+        passenv         =
+        log_on_failure  += USERID
+        only_from               = 127.0.0.1
+        bind                    = 127.0.0.1
+}   
+</PRE>
+<HR>
+</P>
+
+<P>then restart the xinetd super-service.
+Generating a public/private DSA keypair on the author's client machine</P>
+<P>Contributing authors must perform this step only once. The "ssh" tools have various ways of authenticating users. The method chosen here is to use the DSA Digital Signature Algorithm. This is a public/private keypair algorithm which means that the secret private key need never be communicated to anyone and can stay safe on the clients hard disk (protected by a passphrase). The public key can be advertised to anyone with no loss of security. If you do not already have the ssh tools then you should obtain them from http://www.openssh.com/. They must support SSH2 as we use the DSA algorithm not RSA.</P>
+<P>A unix client will generate the keypair using:-
+ssh-keygen -d
+This will result in the creation of a file "&nbsp;/.ssh/id_dsa.pub". You must send this public file to the unix repository administrator. Do not send any other file nor reveal any passphrase.
+Authorizing a client to tunnel to the repository server machine</P>
+<P>If you are a contributing author, you don't need to know how authorization is allowed. You may skip this section.
+If you are the unix repository administrator, on receipt of a clients "id_dsa.pub" file, append the single line therein to the "&nbsp;cvsnobody/.ssh/authorized_keys2" file on the server.
+Creating the secure tunnel between author's client machine and the repository server machine.</P>
+<P>CVS keeps a single copy of the master sources called a source repository. Remote authors access the repository using CVS client programs which talk to the repository service using a "pserver" protocol and connect using a registered TCP/IP port (port 2401).</P>
+<P>The pserver protocol is insecure because passwords are transmitted unencrypted and there are often some hacked hosts on a network that are sniffing for passwords. The connection to be used for the pserver protocol therefore needs to be encrypted where it passes over any network. The "ssh" suite of programs provides such encrypted connections.</P>
+<P>SSH will create a secure tunnel which makes the repository service appear to be local to your client machine. Similarly, your client machine will appear to be local to the repository service. Both client and server are fooled into thinking that they are on the same machine and that no traffic travels over any network.</P>
+<P>The single line unix command to achieve this is:-
+/usr/bin/ssh -v -a -e none -N -o 'KeepAlive=yes' -o 'BatchMode=yes' -L 2401:localhost:2401 cvsnobody@j2ee.cycom.co.uk
+The fixed cvsnobody user is just for ssh tunneling purposes; it is not relevant to CVS. The j2ee.cycom.co.uk is the repository server machine name. This command will block. To destroy the tunnel, cntrl-c the command. If the tunnel collapses in use, reestablish it by repeating the command. Use another window to operate the CVS clients.
+Operating CVS clients on the author's client machine</P>
+<P>Having established a tunnel, the remote CVS repository service now appears to be local to your client machine (i.e. at localhost). The CVS client programs obtain configuration data from a CVSROOT environment variable which should be set in unix (e.g in your ".bash_profile") using:-</P>
+<P>
+<HR>
+<PRE>
+CVSROOT=':pserver:jsharp@localhost:/cycomcvs'
+export CVSROOT
+</PRE>
+<HR>
+</P>
+
+<P>The username "jsharp" and the repository root "/cycomcvs" will have been sent to you by the repository administrator.</P>
+<P>The first CVS client command should always be:-
+cvs login
+You will be prompted for a password (again sent to you by the repository administrator).</P>
+<P>To create a new cvs working directory and populate it from Honest John Car Rental Demo sources, use :-</P>
+<P>
+<HR>
+<PRE>
+mkdir mywork
+cd mywork
+cvs co hjvh
+cvs co hjvhear
+cvs co hjvhmodel
+</PRE>
+<HR>
+</P>
+<P>To freshen an existing working directory with updates from other authors, use:-</P>
+<P>
+<HR>
+<PRE>
+cd mywork/hjvh
+cvs update
+</PRE>
+<HR>
+</P>
+<P>To publish the files that you have changed in an existing working directory, use:-</P>
+<P>
+<HR>
+<PRE>
+cd mywork/hjvh
+cvs commit
+</PRE>
+<HR>
+</P>
+<P>To publish a newly created file in an existing working directory, use:-</P>
+<P>
+<HR>
+<PRE>
+cd mywork/hjvh
+cd mywork/hjvh
+cvs add mynewfile.txt
+cvs commit
+</PRE>
+<HR>
+</P>
+<P>To import a new independent directory tree of sources into the repository, make sure all files in the tree are useful source and then use:-</P>
+<P>
+<HR>
+<PRE>
+cd projdir
+cvs import projdir projV1_1 proj_V1_1
+cd ..
+mv projdir origprojsources
+cvs co projdir
+</PRE>
+<HR>
+</P>
+
+
+
+<H2><A NAME="remoteeg"></A> <A NAME="ss11.3">11.3 An Example - Access Remote CVS Server </A>
+</H2>
+
+<P>To access a remote cvs server, here is an example:
+<HR>
+<PRE>
+
+# Set env variable
+export EDITOR=/bin/vi
+export CVSROOT=:pserver:yourname@cvs.tldp.org:/cvsroot
+
+# Login to remote cvs server
+cvs -d $CVSROOT login
+
+# Goto some local directory
+cd $HOME/&lt;somedirectory>
+
+# You MUST create a new directory, as below... 
+mkdir cvsroot   # Create the local cvs directory which has the same name as in CVSROOT 
+
+# Now get the files from remote CVS repository
+cd cvsroot 
+cvs get LDP/howto   # Or you can do 'cvs get . ' which will get everything
+
+# After you make changes some file and later check-in that do
+cd $HOME/&lt;somedirectory>/cvsroot
+cvs ci -m "your update comments here" LDP/howto/somefilename.java
+</PRE>
+<HR>
+</P>
+
+
+
+
+<H2><A NAME="rcs_scripts"></A> <A NAME="s12">12. RCS Shell Scripts </A></H2>
+
+<P>If you want to use RCS instead of CVS then you can use the following
+shell scripts.
+<OL>
+<LI> cotree.sh  - Will check out the entire directory tree from RCS. Instead of
+doing 'co -l name' on each file one-by-one, you can give just one command. Very useful
+shell script. </LI>
+<LI> cofiles.sh  - Will check out all the files in the directory.</LI>
+<LI> ciall.sh - Will check in all the files into RCS with just one shell command.</LI>
+</OL>
+
+You can get these scripts from 
+<A HREF="#downloadsoftware">downloadsoftware</A>
+. </P>
+
+
+<H2><A NAME="perftuning"></A> <A NAME="s13">13. Performance Tuning of a CVS Server </A></H2>
+
+<P>For optimum performance a CVS server must be running on a stand alone Linux/Unix box.</P>
+<P>To get more bang for a given CPU processing power, do the following:
+<UL>
+<LI> Recompile the Linux kernel to make it small and lean. Remove items 
+which are not used. See the kernel 
+howto at 
+<A HREF="http://www.linuxdoc.org/HOWTO/Kernel-HOWTO.html">http://www.linuxdoc.org/HOWTO/Kernel-HOWTO.html</A>
+
+</LI>
+<LI> Turn off unneccessary Unix processes - on Linux/Unix systems run chkconfig.
+<HR>
+<PRE>
+bash$ su - root
+bash# man chkconfig
+bash# chkconfig --help
+bash# chkconfig --list | grep on | less
+From the above list, turn off the processes you do not want to start automatically -
+bash# chkconfig --level 0123456 &lt;service name> off
+Next time when the machine is booted these services will not be started.
+Now, shutdown the services manually which you just turned off.
+bash# cd /etc/rc.d/init.d
+bash# ./&lt;service name> stop
+</PRE>
+<HR>
+
+
+</LI>
+<LI> Do not run any other application processes which are unnecessary.
+
+</LI>
+<LI> Do not leave X Window running unattended because its processes
+consume memory and contribute to CPU load. It can also be a serious 
+security hole from outside attacks.
+The X Window managers generally used are KDE, GNOME, CDE, XDM and others. 
+You must exit the X Window immediately after using and most of the time
+you should see a command line console login prompt on the CVS server machine.</LI>
+</UL>
+</P>
+
+
+
+<H2><A NAME="PRS"></A> <A NAME="s14">14. Problem Reporting System </A></H2>
+
+<P>Along with CVS, you may want to use project tracking system or problem
+reporting system. Every software project needs a problem reporting system
+that track bugs and assigns them to various developers. 
+See GNU gpl GNATS at 
+<A HREF="http://www.gnu.org/software/gnats/gnats.html">http://www.gnu.org/software/gnats/gnats.html</A>
+and
+<A HREF="http://dcl.sourceforge.net">http://dcl.sourceforge.net</A>
+And commercial PRS at 
+<A HREF="http://www.stonekeep.com">http://www.stonekeep.com</A>
+look for a project tracking system.</P>
+
+
+
+<H2><A NAME="configmgt"></A> <A NAME="s15">15. Configuration Management System Tools </A></H2>
+
+<P><B>What is Configuration Management (CM) ?</B></P>
+<P>There are a number of different interpretations. 
+It is about the tracking and
+control of software development and its activities. That is, it concerns the 
+management of software development projects with
+respect to issues such as multiple developers working on the 
+same code at the same time, targeting multiple
+platforms, supporting multiple versions, and controlling the 
+status of code (for example a beta test versus a real release).
+Even within that scope there are different schools of thought:</P>
+<P>
+<UL>
+<LI>Traditional Configuration Management - checkin/checkout control 
+of sources (and sometimes binaries) and the
+ability to perform builds (or compiles) of the entities. Other
+functions may be included as well. 
+</LI>
+<LI>Process Management - control of the software development 
+activities. For example, it might check to ensure
+that a change request existed and had been approved for fixing
+and that the associated design, documentation,
+and review activities have been completed before allowing the 
+code to be "checked in" again.</LI>
+</UL>
+</P>
+<P>While process management and control are necessary for a
+repeatable, optimized development process, a solid
+configuration management foundation for that process is essential.</P>
+<P>Visit the following links:
+<UL>
+<LI> FAQ on Configuration Management tools 
+<A HREF="http://www.iac.honeywell.com/Pub/Tech/CM/CMFAQ.html">http://www.iac.honeywell.com/Pub/Tech/CM/CMFAQ.html</A></LI>
+<LI>Linux version control and configuration management tools 
+<A HREF="http://linas.org/linux/cmvc.html">http://linas.org/linux/cmvc.html</A></LI>
+<LI> Configuration Management systems 
+<A HREF="http://www.cmtoday.com/yp/commercial.html">http://www.cmtoday.com/yp/commercial.html</A></LI>
+<LI> Configuration Management Tools 
+<A HREF="http://www.iac.honeywell.com/Pub/Tech/CM/CMTools.html">http://www.iac.honeywell.com/Pub/Tech/CM/CMTools.html</A></LI>
+<LI> DevGuy CVS config mgmt 
+<A HREF="http://devguy.com/fp/cfgmgmt/cvs">http://devguy.com/fp/cfgmgmt/cvs</A></LI>
+<LI> 
+<A HREF="http://dir.yahoo.com/Computers_and_Internet/software/programming_tools/software_engineering/configuration_management/cvs___concurrent_versions_system">Yahoo category site</A></LI>
+<LI> Free config mgmt tool 
+<A HREF="http://www.canb.auug.org.au/~millerp/aegis/aegis.html">http://www.canb.auug.org.au/~millerp/aegis/aegis.html</A></LI>
+<LI> Free CM tools 
+<A HREF="http://www.loria.fr/cgi-bin/molli/cm/wilma/fcmt">http://www.loria.fr/cgi-bin/molli/cm/wilma/fcmt</A></LI>
+<LI> Rational ClearCase tool 
+<A HREF="http://www.rational.com/products/clearcase/prodinfo.jsp">http://www.rational.com/products/clearcase/prodinfo.jsp</A></LI>
+</UL>
+</P>
+
+
+
+<H2><A NAME="relatedsites"></A> <A NAME="s16">16. Related Sites </A></H2>
+
+<P>Related URLs are at: 
+<UL>
+<LI>Linux goodies main site is at 
+<A HREF="http://24.221.230.253">http://24.221.230.253</A>
+and secondary site at 
+<A HREF="http://www.milkywaygalaxy.freeservers.com">http://www.milkywaygalaxy.freeservers.com</A> 
+Mirror sites are at -
+<A HREF="http://www.angelfire.com/country/aldev0">angelfire</A>,
+<A HREF="http://www.geocities.com/alavoor/index.html">geocities</A>,
+<A HREF="http://aldev0.virtualave.net">virtualave</A>,
+<A HREF="http://members.fortunecity.com/aldev">Fortunecity</A>,
+<A HREF="http://aldev.freewebsites.com">Freewebsites</A>,
+<A HREF="http://members.tripod.lycos.com/aldev">Tripod</A>,
+<A HREF="http://www.101xs.com/101xs/aldev">101xs</A>,
+<A HREF="http://aldev0.50megs.com">50megs</A>,
+</LI>
+<LI> CVS Bubbles 
+<A HREF="http://www.loria.fr/~molli/cvs-index.html">http://www.loria.fr/~molli/cvs-index.html</A></LI>
+<LI> CSSC (SCCS like system) 
+<A HREF="http://cssc.sourceforge.net">http://cssc.sourceforge.net</A> and
+<A HREF="ftp://alpha.gnu.org/pub/gnu/CSSC">mirror-site</A></LI>
+<LI> SCCS for Linux 
+<A HREF="http://www.bitmover.com/bitkeeper">http://www.bitmover.com/bitkeeper</A></LI>
+</UL>
+</P>
+
+
+
+<H2><A NAME="s17">17. SCCS v/s CVS-RCS</A></H2>
+
+<P>SCCS (Source Code Control System) 
+is no longer being enhanced or improved. 
+The general consensus has been that this tool is clumsy and not
+suited to large numbers of users working on one project. 
+Actually, SCCS interleaves 
+all the versions, but it can make new development get 
+<B>progressively slower</B>. Hence, SCCS is NOT recommended for
+new projects; however, it is still there to support old code base in SCCS.</P>
+<P>RCS (Revision Control System) is often considered to be 
+better than SCCS. One reason for this is that RCS baselines the most
+recent version and keeps deltas for earlier ones, making new
+development faster. Additional discussions concerning SCCS vs RCS
+are at 
+<A HREF="http://www.faqs.org/faqs/unix-faq/faq/part7">http://www.faqs.org/faqs/unix-faq/faq/part7</A></P>
+<P><B>Note that RCS learned from the mistakes of SCCS... </B></P>
+<P>CVS, which requires RCS, extends RCS 
+to control concurrent editing of sources by several users
+working on releases built from a hierarchical set of 
+directories. "RCS is [analogous to using] assembly language, while CVS is
+[like using] Pascal". </P>
+
+
+
+<H2><A NAME="s18">18. Other Formats of this Document</A></H2>
+
+<P>This document is published in 14 different formats namely: DVI, Postscript, 
+Latex, Adobe Acrobat PDF,
+LyX, GNU-info, HTML, RTF(Rich Text Format), Plain-text, Unix man pages, single 
+HTML file, SGML (Linuxdoc format), SGML (Docbook format), and MS WinHelp format.</P>
+<P>This howto document is located at:
+<UL>
+<LI> 
+<A HREF="http://www.linuxdoc.org">http://www.linuxdoc.org</A> and click on HOWTOs and search 
+for the howto document name using CTRL+f or ALT+f within the web-browser.</LI>
+</UL>
+</P>
+<P>You can also find this document at the following mirrors sites: 
+<UL>
+<LI> 
+<A HREF="http://www.caldera.com/LDP/HOWTO">http://www.caldera.com/LDP/HOWTO</A></LI>
+<LI> 
+<A HREF="http://www.linux.ucla.edu/LDP">http://www.linux.ucla.edu/LDP</A></LI>
+<LI> 
+<A HREF="http://www.cc.gatech.edu/linux/LDP">http://www.cc.gatech.edu/linux/LDP</A></LI>
+<LI> 
+<A HREF="http://www.redhat.com/mirrors/LDP">http://www.redhat.com/mirrors/LDP</A>
+</LI>
+<LI> Other mirror sites near you (network-address-wise) can be found at
+<A HREF="http://www.linuxdoc.org/mirrors.html">http://www.linuxdoc.org/mirrors.html</A>
+select a site and go to directory /LDP/HOWTO/xxxxx-HOWTO.html</LI>
+</UL>
+</P>
+
+<P>
+<UL>
+<LI>You can get this HOWTO document as a single file tar ball in HTML, DVI, 
+Postscript or SGML formats from -
+<A HREF="ftp://www.linuxdoc.org/pub/Linux/docs/HOWTO/other-formats/">ftp://www.linuxdoc.org/pub/Linux/docs/HOWTO/other-formats/</A>
+and 
+<A HREF="http://www.linuxdoc.org/docs.html#howto">http://www.linuxdoc.org/docs.html#howto</A>
+
+</LI>
+<LI>Plain text format is in: 
+<A HREF="ftp://www.linuxdoc.org/pub/Linux/docs/HOWTO">ftp://www.linuxdoc.org/pub/Linux/docs/HOWTO</A>
+and 
+<A HREF="http://www.linuxdoc.org/docs.html#howto">http://www.linuxdoc.org/docs.html#howto</A>
+
+</LI>
+<LI>Single HTML file format is in: 
+<A HREF="http://www.linuxdoc.org/docs.html#howto">http://www.linuxdoc.org/docs.html#howto</A>
+<P> A single HTML file can be created with the command (see man sgml2html) - 
+sgml2html -split 0   xxxxhowto.sgml</P>
+
+</LI>
+<LI>Translations to other languages like French, German, Spanish, 
+Chinese, and Japanese are in
+<A HREF="ftp://www.linuxdoc.org/pub/Linux/docs/HOWTO">ftp://www.linuxdoc.org/pub/Linux/docs/HOWTO</A>
+and 
+<A HREF="http://www.linuxdoc.org/docs.html#howto">http://www.linuxdoc.org/docs.html#howto</A>
+Any help from you to translate to other languages is welcome.</LI>
+</UL>
+
+The document is written using a tool called "SGML-Tools" which can be got from: 
+<A HREF="http://www.sgmltools.org">http://www.sgmltools.org</A>
+Compiling the source you will get the following commands like:
+<UL>
+<LI>sgml2html xxxxhowto.sgml     (to generate html file)</LI>
+<LI>sgml2html -split 0   xxxxhowto.sgml (to generate a single page html file)</LI>
+<LI>sgml2rtf  xxxxhowto.sgml     (to generate RTF file)</LI>
+<LI>sgml2latex xxxxhowto.sgml    (to generate latex file)</LI>
+</UL>
+</P>
+
+
+<H2><A NAME="acrobatpdf"></A> <A NAME="ss18.1">18.1 Acrobat PDF format </A>
+</H2>
+
+<P>A PDF file can be generated from postscript file using 
+either acrobat <B>distill</B> or <B>Ghostscript</B>.
+And a postscript file is generated
+from DVI which in turn is generated from a LaTex file.
+You can download distill software from 
+<A HREF="http://www.adobe.com">http://www.adobe.com</A>. Given below 
+is a sample session:
+<HR>
+<PRE>
+bash$ man sgml2latex
+bash$ sgml2latex filename.sgml
+bash$ man dvips
+bash$ dvips -o filename.ps filename.dvi
+bash$ distill filename.ps
+bash$ man ghostscript
+bash$ man ps2pdf
+bash$ ps2pdf input.ps output.pdf
+bash$ acroread output.pdf &amp;
+</PRE>
+<HR>
+
+Or you can use the Ghostscript command <B>ps2pdf</B>.
+ps2pdf is a work-alike for nearly all the functionality of 
+Adobe's Acrobat Distiller product: it
+converts PostScript files to Portable Document Format (PDF) files. 
+<B>ps2pdf</B> is implemented as a very small command script 
+(batch file) that invokes Ghostscript, selecting a special "output device"
+called <B>pdfwrite</B>. In order to use ps2pdf, the pdfwrite 
+device must be included in the makefile when Ghostscript was compiled;
+see the documentation on building Ghostscript for details.</P>
+
+
+<H2><A NAME="linuxdoc2docbook"></A> <A NAME="ss18.2">18.2 Convert Linuxdoc to Docbook format </A>
+</H2>
+
+<P>This document is written in linuxdoc SGML format. The Docbook SGML format
+supercedes the linuxdoc format and has a lot more features than linuxdoc.
+The linuxdoc is very simple and easy to use. To convert linuxdoc SGML 
+file to Docbook SGML use the program <B>ld2db.sh</B> and some Perl scripts.
+The ld2db output is not 100% clean and you need to use the <B>clean_ld2db.pl</B>
+Perl script. You may need to manually correct a few lines in the document.
+<UL>
+<LI> Download the ld2db program from 
+<A HREF="http://www.dcs.gla.ac.uk/~rrt/docbook.html">http://www.dcs.gla.ac.uk/~rrt/docbook.html</A>
+or from 
+<A HREF="http://www.milkywaygalaxy.freeservers.com">Milkyway Galaxy site</A>
+click on "Source code for C++ howto".</LI>
+<LI> Download the cleanup_ld2db.pl perl script from
+from 
+<A HREF="http://www.milkywaygalaxy.freeservers.com">Milkyway Galaxy site</A>
+click on "Source code for C++ howto".</LI>
+</UL>
+
+The ld2db.sh is not 100% clean, so you will get some errors when you run it.
+<HR>
+<PRE>
+        bash$ ld2db.sh file-linuxdoc.sgml db.sgml
+        bash$ cleanup.pl db.sgml > db_clean.sgml
+        bash$ gvim db_clean.sgml 
+        bash$ docbook2html db.sgml
+</PRE>
+<HR>
+
+And you may have to manually edit some of the minor errors after 
+running the Perl script. For example you may need to put closing tag &lt;
+/Para> for each &lt;
+Listitem></P>
+
+
+<H2><A NAME="mswinhelp"></A> <A NAME="ss18.3">18.3 Convert to MS WinHelp format </A>
+</H2>
+
+<P>You can convert the SGML howto document to a Microsoft Windows Help file, 
+First convert the sgml to html using:
+<HR>
+<PRE>
+        bash$ sgml2html xxxxhowto.sgml     (to generate html file)
+        bash$ sgml2html -split 0   xxxxhowto.sgml (to generate a single page html file)
+</PRE>
+<HR>
+
+Then use the tool 
+<A HREF="http://javadocs.planetmirror.com/htmltohlpe.html">HtmlToHlp</A>.
+You can also use sgml2rtf and then use the RTF files for generating winhelp files.</P>
+
+
+<H2><A NAME="readformats"></A> <A NAME="ss18.4">18.4 Reading various formats </A>
+</H2>
+
+<P>In order to view the document in dvi format, use the xdvi program. The xdvi
+program is located in tetex-xdvi*.rpm package in Redhat Linux which can be
+located through ControlPanel | Applications | Publishing | TeX menu buttons.
+To read a dvi document give the command:
+<BLOCKQUOTE><CODE>
+<PRE>
+        xdvi -geometry 80x90 howto.dvi
+        man xdvi
+</PRE>
+</CODE></BLOCKQUOTE>
+
+And resize the window with the mouse.
+To navigate use Arrow keys, Page Up, Page Down keys, also
+you can use 'f', 'd', 'u', 'c', 'l', 'r', 'p', 'n' letter
+keys to move up, down, center, next page, previous page etc.
+To turn off expert menu press 'x'.</P>
+<P>You can read a postscript file using the program 'gv' (ghostview) or 
+'ghostscript'.
+The ghostscript program is in the ghostscript*.rpm package and the gv 
+program is in the gv*.rpm package in Redhat Linux
+which can be located through ControlPanel | Applications | Graphics menu 
+buttons. The gv program is much more user friendly than ghostscript.
+Also ghostscript and gv are available on other platforms like OS/2,
+Windows 95 and NT. You  can view this document even on those platforms.</P>
+<P>
+<UL>
+<LI>Get ghostscript for Windows 95, OS/2, and for 
+all OSes from 
+<A HREF="http://www.cs.wisc.edu/~ghost">http://www.cs.wisc.edu/~ghost</A></LI>
+</UL>
+</P>
+<P>To read a postscript document give the command:
+<BLOCKQUOTE><CODE>
+<PRE>
+                gv howto.ps
+                ghostscript howto.ps
+</PRE>
+</CODE></BLOCKQUOTE>
+</P>
+<P>You can read an HTML format document using Netscape Navigator, Microsoft Internet
+explorer, Redhat Baron Web browser or any of the 10 other web browsers.</P>
+<P>You can read the latex, LyX output using LyX an X Window front end to LaTex.</P>
+
+<H2><A NAME="downloadsoftware"></A> <A NAME="s19">19. CVS Shell Scripts </A></H2>
+
+<P>You can get the shell scripts for a nominal fee 
+(which covers code maintenance and ISP charges)
+from 
+<A HREF="http://www.milkywaygalaxy.freeservers.com">Milkyway Galaxy site</A>.
+These shell scripts are very useful.</P>
+
+
+
+<H2><A NAME="s20">20. Copyright and License</A></H2>
+
+<P>Copyright Al Dev (Alavoor Vasudevan) 1998-2002.</P>
+<P>License is GNU GPL, but it is requested that you retain the author's name
+and email on all copies.</P>
+
+
+</BODY>
+</HTML>

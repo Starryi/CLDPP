@@ -1,0 +1,45 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1"><title>2. Creating the encrypted root filesystem</title><link rel="stylesheet" type="text/css" href="style.css"><meta name="generator" content="DocBook XSL Stylesheets V1.79.1"><link rel="home" href="index.html" title="Encrypted Root Filesystem HOWTO"><link rel="up" href="index.html" title="Encrypted Root Filesystem HOWTO"><link rel="prev" href="ar01s01.html" title="1. Preparing the system"><link rel="next" href="ar01s03.html" title="3. Setting up the boot device"></head><body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF"><div class="navheader"><table width="100%" summary="Navigation header"><tr><th colspan="3" align="center">2. Creating the encrypted root filesystem</th></tr><tr><td width="20%" align="left"><a accesskey="p" href="ar01s01.html">Prev</a> </td><th width="60%" align="center"> </th><td width="20%" align="right"> <a accesskey="n" href="ar01s03.html">Next</a></td></tr></table><hr></div><div class="sect1"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="encrypt-root-filesystem"></a>2. Creating the encrypted root filesystem</h2></div></div></div><p>
+Fill the target partition with random data:
+    </p><p>
+</p><pre class="screen">shred -n 1 -v /dev/hda2</pre><p>
+    </p><p>
+Setup the encrypted loopback device:
+    </p><p>
+</p><pre class="screen">losetup -e aes256 -S xxxxxx /dev/loop0 /dev/hda2</pre><p>
+    </p><p>
+To prevent optimized dictionary attacks, it is recommended to add
+the -S xxxxxx option, where "xxxxxx" is your randomly chosen
+seed (for example, you might choose "gPk4lA"). Write down your seed on
+a piece of paper so that you don't loose it afterwards. Also, in order
+to avoid boot-time problems with the keyboard map, do not use non-ASCII
+characters (accents, etc.) in your password. The
+<a class="ulink" href="http://www.diceware.com/" target="_top">Diceware</a> site offers
+a simple way to create strong, yet easy to remember, passphrases.
+    </p><p>
+Now create the ext3 filesystem:
+    </p><p>
+</p><pre class="screen">mke2fs -j /dev/loop0</pre><p>
+    </p><p>
+Check that the password you entered is correct:
+    </p><p>
+</p><pre class="screen">losetup -d /dev/loop0
+losetup -e aes256 -S xxxxxx /dev/loop0 /dev/hda2</pre><p>
+    </p><p>
+</p><pre class="screen">mkdir /mnt/efs
+mount /dev/loop0 /mnt/efs</pre><p>
+    </p><p>
+You can compare the encrypted and unencrypted data:
+    </p><p>
+</p><pre class="screen">xxd /dev/hda2  | less
+xxd /dev/loop0 | less</pre><p>
+    </p><p>
+It's time to install your encrypted Linux system. If you use a GNU/Linux
+distribution (such as Debian, Slackware, Gentoo, Mandrake, RedHat/Fedora,
+SuSE, etc.), run the following command:
+    </p><p>
+</p><pre class="screen">cp -avx / /mnt/efs</pre><p>
+    </p><p>
+If you use the Linux From Scratch book, proceed as described in
+the manual, with the modifications below:
+        </p><div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem"><p>Chapter 6 - Installing util-linux:</p><p>Apply the loop-AES patch after unpacking the sources.</p></li><li class="listitem"><p>Chapter 8 - Making the LFS system bootable:</p><p>Refer to the next section (Setting up the boot device).</p></li></ul></div><p>
+    </p></div><div class="navfooter"><hr><table width="100%" summary="Navigation footer"><tr><td width="40%" align="left"><a accesskey="p" href="ar01s01.html">Prev</a> </td><td width="20%" align="center"> </td><td width="40%" align="right"> <a accesskey="n" href="ar01s03.html">Next</a></td></tr><tr><td width="40%" align="left" valign="top">1. Preparing the system </td><td width="20%" align="center"><a accesskey="h" href="index.html">Home</a></td><td width="40%" align="right" valign="top"> 3. Setting up the boot device</td></tr></table></div></body></html>

@@ -1,0 +1,85 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1"><title>3. Gawk variables</title><link rel="stylesheet" type="text/css" href="style.css"><meta name="generator" content="DocBook XSL Stylesheets V1.79.1"><meta name="keywords" content="Linux, Scripts, linux, Bash, guide, Guide, Exercises, exercises, bash, scripting, Scripting, awk, sed, variables, functions, loops, conditionals"><link rel="home" href="index.html" title="Bash Guide for Beginners"><link rel="up" href="ch06.html" title="Chapter 6. The GNU awk programming language"><link rel="prev" href="ch06s02.html" title="2. The print program"><link rel="next" href="ch06s04.html" title="4. Summary"></head><body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF"><div class="navheader"><table width="100%" summary="Navigation header"><tr><th colspan="3" align="center">3. Gawk variables</th></tr><tr><td width="20%" align="left"><a accesskey="p" href="ch06s02.html">Prev</a> </td><th width="60%" align="center">Chapter 6. The GNU awk programming language</th><td width="20%" align="right"> <a accesskey="n" href="ch06s04.html">Next</a></td></tr></table><hr></div><div class="sect1"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="sect_06_03"></a>3. Gawk variables</h2></div></div></div><p>As <span class="command"><strong>awk</strong></span> is processing the input file, it uses several variables<a class="indexterm" name="idm4277"></a>.  Some are editable, some are read-only.</p><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="sect_06_03_01"></a>3.1. The input field separator</h3></div></div></div><p>The <span class="emphasis"><em>field separator<a class="indexterm" name="idm4284"></a></em></span>, which is either a single character or a regular expression, controls the way <span class="command"><strong>awk</strong></span> splits up an input record into fields.  The input record is scanned for character sequences that match the separator definition; the fields themselves are the text between the matches.</p><p>The field separator is represented by the built-in variable <code class="varname">FS</code>.  Note that this is something different from the <code class="varname">IFS</code> variable used by POSIX-compliant shells.</p><p>The value of the field separator variable can be changed in the <span class="command"><strong>awk</strong></span> program with the assignment operator <span class="command"><strong>=</strong></span>.  Often the right time to do this is at the beginning of execution before any input has been processed, so that the very first record is read with the proper separator.  To do this, use the special <span class="command"><strong>BEGIN</strong></span> pattern.</p><p>In the example below, we build a command that displays all the users on your system with a description:</p><pre class="screen">
+<code class="prompt">kelly is in ~&gt;</code> <span class="command"><strong>awk <em class="parameter"><code>'BEGIN { FS=":" } { print $1 "\t" $5 }'</code></em> <code class="filename">/etc/passwd</code></strong></span>
+--output omitted--
+kelly	Kelly Smith
+franky	Franky B.
+eddy	Eddy White
+willy	William Black
+cathy	Catherine the Great
+sandy	Sandy Li Wong
+
+<code class="prompt">kelly is in ~&gt;</code>
+</pre><p>In an <span class="command"><strong>awk</strong></span> script, it would look like this:</p><pre class="screen">
+<code class="prompt">kelly is in ~&gt;</code> <span class="command"><strong>cat <code class="filename">printnames.awk</code></strong></span>
+BEGIN { FS=":" }
+{ print $1 "\t" $5 }
+
+<code class="prompt">kelly is in ~&gt;</code> <span class="command"><strong>awk <code class="option">-f</code> <code class="filename">printnames.awk /etc/passwd</code></strong></span>
+--output omitted--
+</pre><p>Choose input field separators carefully to prevent problems.  An example to illustrate this: say you get input in the form of lines that look like this:</p><p><span class="quote">&#8220;<span class="quote">Sandy L. Wong, 64 Zoo St., Antwerp, 2000X</span>&#8221;</span></p><p>You write a command line or a script, which prints out the name of the person in that record:</p><div class="cmdsynopsis"><p><code class="command">awk 'BEGIN { FS="," } { print $1, $2, $3 }' <code class="filename">inputfile</code></code> </p></div><p>But a person might have a PhD, and it might be written like this:</p><p><span class="quote">&#8220;<span class="quote">Sandy L. Wong, PhD, 64 Zoo St., Antwerp, 2000X</span>&#8221;</span></p><p>Your <span class="command"><strong>awk</strong></span> will give the wrong output for this line.  If needed, use an extra <span class="command"><strong>awk</strong></span> or <span class="command"><strong>sed</strong></span> to uniform data input formats.</p><p>The default input field separator is one or more whitespaces or tabs.</p></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="sect_06_03_02"></a>3.2. The output separators</h3></div></div></div><div class="sect3"><div class="titlepage"><div><div><h4 class="title"><a name="sect_06_03_02_01"></a>3.2.1. The output field separator</h4></div></div></div><p>Fields are normally separated by spaces in the output<a class="indexterm" name="idm4332"></a>.  This becomes apparent when you use the correct syntax for the <span class="command"><strong>print</strong></span> command, where arguments are separated by commas:</p><pre class="screen">
+<code class="prompt">kelly@octarine ~/test&gt;</code> <span class="command"><strong>cat <code class="filename">test</code></strong></span>
+record1         data1
+record2         data2
+
+<code class="prompt">kelly@octarine ~/test&gt;</code> <span class="command"><strong>awk <em class="parameter"><code>'{ print $1 $2}'</code></em> <code class="filename">test</code></strong></span>
+record1data1
+record2data2
+
+<code class="prompt">kelly@octarine ~/test&gt;</code> <span class="command"><strong>awk <em class="parameter"><code>'{ print $1, $2}'</code></em> <code class="filename">test</code></strong></span>
+record1 data1
+record2 data2
+
+<code class="prompt">kelly@octarine ~/test&gt;</code>
+</pre><p>If you don't put in the commas, <span class="command"><strong>print</strong></span> will treat the items to output as one argument, thus omitting the use of the default <span class="emphasis"><em>output separator</em></span>, <code class="varname">OFS</code>.</p><p>Any character string may be used as the output field separator by setting this built-in variable.</p></div><div class="sect3"><div class="titlepage"><div><div><h4 class="title"><a name="sect_06_03_02_02"></a>3.2.2. The output record separator</h4></div></div></div><p>The output from an entire <span class="command"><strong>print</strong></span> statement is called an <span class="emphasis"><em>output record<a class="indexterm" name="idm4359"></a></em></span>.  Each <span class="command"><strong>print</strong></span> command results in one output record, and then outputs a string called the <span class="emphasis"><em>output record separator</em></span>, <code class="varname">ORS</code>.  The default value for this variable is <span class="quote">&#8220;<span class="quote">\n</span>&#8221;</span>, a newline character.  Thus, each <span class="command"><strong>print</strong></span> statement generates a separate line.</p><p>To change the way output fields and records are separated, assign new values to <code class="varname">OFS</code> and <code class="varname">ORS</code>:</p><pre class="screen">
+<code class="prompt">kelly@octarine ~/test&gt;</code> <span class="command"><strong>awk <em class="parameter"><code>'BEGIN { OFS=";" ; ORS="\n--&gt;\n" } \
+{ print $1,$2}'</code></em> <code class="filename">test</code></strong></span>
+record1;data1
+--&gt;
+record2;data2
+--&gt;
+
+<code class="prompt">kelly@octarine ~/test&gt;</code>
+</pre><p>If the value of <code class="varname">ORS</code> does not contain a newline, the program's output is run together on a single line.</p></div></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="sect_06_03_03"></a>3.3. The number of records</h3></div></div></div><p>The built-in <code class="varname">NR</code> holds the number of records<a class="indexterm" name="idm4382"></a> that are processed.  It is incremented after reading a new input line.  You can use it at the end to count the total number of records, or in each output record:</p><pre class="screen">
+<code class="prompt">kelly@octarine ~/test&gt;</code> <span class="command"><strong>cat <code class="filename">processed.awk</code></strong></span>
+BEGIN { OFS="-" ; ORS="\n--&gt; done\n" }
+{ print "Record number " NR ":\t" $1,$2 }
+END { print "Number of records processed: " NR }
+
+<code class="prompt">kelly@octarine ~/test&gt;</code> <span class="command"><strong>awk <code class="option">-f</code> <code class="filename">processed.awk test</code></strong></span>
+Record number 1:        record1-data1
+--&gt; done
+Record number 2:        record2-data2
+--&gt; done
+Number of records processed: 2
+--&gt; done
+
+<code class="prompt">kelly@octarine ~/test&gt;</code>
+</pre></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="sect_06_03_04"></a>3.4. User defined variables</h3></div></div></div><p>Apart from the built-in variables, you can define your own.  When <span class="command"><strong>awk</strong></span> encounters a reference to a variable<a class="indexterm" name="idm4398"></a> which does not exist (which is not predefined), the variable is created and initialized to a null string.  For all subsequent references, the value of the variable is whatever value was assigned last.  Variables can be a string or a numeric value.  Content of input fields can also be assigned to variables.</p><p>Values can be assigned directly using the <span class="command"><strong>=</strong></span> operator, or you can use the current value of the variable in combination with other operators:</p><pre class="screen">
+<code class="prompt">kelly@octarine ~&gt;</code> <span class="command"><strong>cat <code class="filename">revenues</code></strong></span>
+20021009        20021013        consultancy     BigComp         2500
+20021015        20021020        training        EduComp         2000
+20021112        20021123        appdev          SmartComp       10000
+20021204        20021215        training        EduComp         5000
+
+<code class="prompt">kelly@octarine ~&gt;</code> <span class="command"><strong>cat <code class="filename">total.awk</code></strong></span>
+{ total=total + $5 }
+{ print "Send bill for " $5 " dollar to " $4 }
+END { print "---------------------------------\nTotal revenue: " total }
+
+<code class="prompt">kelly@octarine ~&gt;</code> <span class="command"><strong>awk <code class="option">-f</code> <code class="filename">total.awk test</code></strong></span>
+Send bill for 2500 dollar to BigComp
+Send bill for 2000 dollar to EduComp
+Send bill for 10000 dollar to SmartComp
+Send bill for 5000 dollar to EduComp
+---------------------------------
+Total revenue: 19500
+
+<code class="prompt">kelly@octarine ~&gt;</code>
+</pre><p>C-like shorthands like <span class="command"><strong><code class="varname">VAR</code>+= value</strong></span> are also accepted.</p></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="sect_06_03_05"></a>3.5. More examples</h3></div></div></div><p>The example from <a class="xref" href="ch05s03.html#sect_05_03_02" title="3.2. Writing output files">Section 3.2, &#8220;Writing output files&#8221;</a> becomes much easier when we use an <span class="command"><strong>awk</strong></span> script<a class="indexterm" name="idm4423"></a>:</p><pre class="screen">
+<code class="prompt">kelly@octarine ~/html&gt;</code> <span class="command"><strong>cat <code class="filename">make-html-from-text.awk</code></strong></span>
+BEGIN { print "&lt;html&gt;\n&lt;head&gt;&lt;title&gt;Awk-generated HTML&lt;/title&gt;&lt;/head&gt;\n&lt;body bgcolor=\"#ffffff\"&gt;\n&lt;pre&gt;" }
+{ print $0 }
+END { print "&lt;/pre&gt;\n&lt;/body&gt;\n&lt;/html&gt;" }
+</pre><p>And the command to execute is also much more straightforward when using <span class="command"><strong>awk</strong></span> instead of <span class="command"><strong>sed</strong></span>:</p><pre class="screen">
+<code class="prompt">kelly@octarine ~/html&gt;</code> <span class="command"><strong>awk <code class="option">-f</code> <code class="filename">make-html-from-text.awk testfile</code> &gt; <code class="filename">file.html</code></strong></span>
+</pre><div class="tip" style="margin-left: 0.5in; margin-right: 0.5in;"><h3 class="title">Awk examples on your system</h3><p>We refer again to the directory containing the initscripts on your system.  Enter a command similar to the following to see more practical examples of the widely spread usage of the <span class="command"><strong>awk</strong></span> command:</p><div class="cmdsynopsis"><p><code class="command">grep <em class="parameter"><code>awk</code></em> <code class="filename">/etc/init.d/*</code></code> </p></div></div></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="sect_06_03_06"></a>3.6. The printf program</h3></div></div></div><p>For more precise control over the output format than what is normally provided by <span class="command"><strong>print</strong></span>, use <span class="command"><strong>printf<a class="indexterm" name="idm4452"></a></strong></span>.  The <span class="command"><strong>printf</strong></span> command can be used to specify the field width to use for each item, as well as various formatting choices for numbers (such as what output base to use, whether to print an exponent, whether to print a sign, and how many digits to print after the decimal point).  This is done by supplying a string, called the <span class="emphasis"><em>format string</em></span>, that controls how and where to print the other arguments.</p><p>The syntax is the same as for the C-language <span class="command"><strong>printf</strong></span> statement; see your C introduction guide.  The <span class="command"><strong>gawk</strong></span> info pages contain full explanations.</p></div></div><div class="navfooter"><hr><table width="100%" summary="Navigation footer"><tr><td width="40%" align="left"><a accesskey="p" href="ch06s02.html">Prev</a> </td><td width="20%" align="center"><a accesskey="u" href="ch06.html">Up</a></td><td width="40%" align="right"> <a accesskey="n" href="ch06s04.html">Next</a></td></tr><tr><td width="40%" align="left" valign="top">2. The print program </td><td width="20%" align="center"><a accesskey="h" href="index.html">Home</a></td><td width="40%" align="right" valign="top"> 4. Summary</td></tr></table></div></body></html>

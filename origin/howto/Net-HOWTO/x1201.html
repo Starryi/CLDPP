@@ -1,0 +1,320 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN""http://www.w3.org/TR/html4/loose.dtd">
+<HTML
+><HEAD
+><TITLE
+>IP Accounting (for Linux-2.0)</TITLE
+><META
+NAME="GENERATOR"
+CONTENT="Modular DocBook HTML Stylesheet Version 1.79"><LINK
+REL="HOME"
+TITLE="Linux Networking HOWTO"
+HREF="index.html"><LINK
+REL="UP"
+TITLE="IP Related Information"
+HREF="c1121.html"><LINK
+REL="PREVIOUS"
+TITLE="EQL - multiple line traffic equaliser"
+HREF="x1167.html"><LINK
+REL="NEXT"
+TITLE="IP Aliasing"
+HREF="x1227.html"></HEAD
+><BODY
+CLASS="SECT1"
+BGCOLOR="#FFFFFF"
+TEXT="#000000"
+LINK="#0000FF"
+VLINK="#840084"
+ALINK="#0000FF"
+><DIV
+CLASS="NAVHEADER"
+><TABLE
+SUMMARY="Header navigation table"
+WIDTH="100%"
+BORDER="0"
+CELLPADDING="0"
+CELLSPACING="0"
+><TR
+><TH
+COLSPAN="3"
+ALIGN="center"
+><A
+HREF="http://www.linuxports.com/"
+TARGET="_top"
+>Linux Networking HOWTO</A
+></TH
+></TR
+><TR
+><TD
+WIDTH="10%"
+ALIGN="left"
+VALIGN="bottom"
+><A
+HREF="x1167.html"
+ACCESSKEY="P"
+>Prev</A
+></TD
+><TD
+WIDTH="80%"
+ALIGN="center"
+VALIGN="bottom"
+>Chapter 7. IP Related Information</TD
+><TD
+WIDTH="10%"
+ALIGN="right"
+VALIGN="bottom"
+><A
+HREF="x1227.html"
+ACCESSKEY="N"
+>Next</A
+></TD
+></TR
+></TABLE
+><HR
+ALIGN="LEFT"
+WIDTH="100%"></DIV
+><DIV
+CLASS="SECT1"
+><H1
+CLASS="SECT1"
+><A
+NAME="AEN1201"
+>7.3. IP Accounting (for Linux-2.0)</A
+></H1
+><P
+>The IP accounting features of the Linux kernel allow you to collect and
+analyze some network usage data. The data collected comprises the number
+of packets and the number of bytes accumulated since the figures were
+last reset. You may specify a variety of rules to categorize the
+figures to suit your purpose. This option has been
+removed in kernel 2.1.102 because the old ipfwadm-based firewalling
+was replaced by ``ipfwchains''.</P
+><P
+><EM
+>Kernel Compile Options</EM
+>:
+<TABLE
+BORDER="1"
+BGCOLOR="#E0E0E0"
+WIDTH="100%"
+><TR
+><TD
+><FONT
+COLOR="#000000"
+><PRE
+CLASS="SCREEN"
+>	Networking options  ---&#62;
+	    [*] IP: accounting</PRE
+></FONT
+></TD
+></TR
+></TABLE
+></P
+><P
+>After you have compiled and installed the kernel, you need to use the
+<EM
+>ipfwadm</EM
+> command to configure IP accounting. There are many different
+ways of breaking down the accounting information.
+I've picked a simple example of what might be useful. You should
+read the <EM
+>ipfwadm</EM
+> man page for more information.</P
+><P
+>Scenario: You have a ethernet network that is linked to the Internet via
+a PPP link. On the ethernet, you have a machine that offers a number of
+services. You are interested in knowing how much traffic is generated
+by each of  ftp (and world wide web traffic), as well as total tcp and udp
+traffic.</P
+><P
+>You might use a command set that looks like the following (shown as a
+shell script):</P
+><P
+><TABLE
+BORDER="1"
+BGCOLOR="#E0E0E0"
+WIDTH="100%"
+><TR
+><TD
+><FONT
+COLOR="#000000"
+><PRE
+CLASS="SCREEN"
+>	#!/bin/sh
+	#
+	# Flush the accounting rules
+	ipfwadm -A -f
+	#
+	# Set shortcuts
+	localnet=44.136.8.96/29
+	any=0/0
+	# Add rules for local ethernet segment
+	ipfwadm -A in  -a -P tcp -D $localnet ftp-data
+	ipfwadm -A out -a -P tcp -S $localnet ftp-data
+	ipfwadm -A in  -a -P tcp -D $localnet www
+	ipfwadm -A out -a -P tcp -S $localnet www
+	ipfwadm -A in  -a -P tcp -D $localnet
+	ipfwadm -A out -a -P tcp -S $localnet
+	ipfwadm -A in  -a -P udp -D $localnet
+	ipfwadm -A out -a -P udp -S $localnet
+	#
+	# Rules for default
+	ipfwadm -A in  -a -P tcp -D $any ftp-data
+	ipfwadm -A out -a -P tcp -S $any ftp-data
+	ipfwadm -A in  -a -P tcp -D $any www
+	ipfwadm -A out -a -P tcp -S $any www
+	ipfwadm -A in  -a -P tcp -D $any
+	ipfwadm -A out -a -P tcp -S $any
+	ipfwadm -A in  -a -P udp -D $any
+	ipfwadm -A out -a -P udp -S $any
+	#
+	# List the rules
+	ipfwadm -A -l -n
+	#</PRE
+></FONT
+></TD
+></TR
+></TABLE
+></P
+><P
+>The names ``ftp-data'' and ``www'' refer to lines in
+<TT
+CLASS="LITERAL"
+>/etc/services</TT
+>.  The last command lists each of the Accounting
+rules and displays the collected totals.</P
+><P
+>An important point to note when analyzing IP accounting is that
+<EM
+>totals for all rules that match will be incremented</EM
+>. To
+obtain differential figures, you need to perform appropriate maths. For
+example, if I wanted to know how much data was not ftp or www, I would
+subtract the individual totals from the rule that matches all ports.</P
+><P
+><TABLE
+BORDER="1"
+BGCOLOR="#E0E0E0"
+WIDTH="100%"
+><TR
+><TD
+><FONT
+COLOR="#000000"
+><PRE
+CLASS="SCREEN"
+>root# ipfwadm -A -l -n
+IP accounting rules
+ pkts bytes dir prot source               destination          ports
+    0     0 in  tcp  0.0.0.0/0            44.136.8.96/29       * -&#62; 20
+    0     0 out tcp  44.136.8.96/29       0.0.0.0/0            20 -&#62; *
+   10  1166 in  tcp  0.0.0.0/0            44.136.8.96/29       * -&#62; 80
+   10   572 out tcp  44.136.8.96/29       0.0.0.0/0            80 -&#62; *
+  252 10943 in  tcp  0.0.0.0/0            44.136.8.96/29       * -&#62; *
+  231 18831 out tcp  44.136.8.96/29       0.0.0.0/0             * -&#62; *
+    0     0 in  udp  0.0.0.0/0            44.136.8.96/29       * -&#62; *
+    0     0 out undp  44.136.8.96/29       0.0.0.0/0            * -&#62; *
+    0     0 in  tcp  0.0.0.0/0            0.0.0.0/0            * -&#62; 20
+    0     0 out tcp  0.0.0.0/0            0.0.0.0/0            20 -&#62; *
+   10  1166 in  tcp  0.0.0.0/0            0.0.0.0/0            * -&#62; 80
+   10   572 out tcp  0.0.0.0/0            0.0.0.0/0            80 -&#62; *
+  253 10983 in  tcp  0.0.0.0/0            0.0.0.0/0            * -&#62; *
+  231 18831 out tcp  0.0.0.0/0            0.0.0.0/0            * -&#62; *
+    0     0 in  udp  0.0.0.0/0            0.0.0.0/0            * -&#62; *
+    0     0 out udp  0.0.0.0/0            0.0.0.0/0            * -&#62; *</PRE
+></FONT
+></TD
+></TR
+></TABLE
+></P
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN1220"
+>7.3.1. IP Accounting (for Linux-2.2)</A
+></H2
+><P
+>The new accounting code is accessed via ``IP Firewall Chains''.
+See <A
+HREF="http://www.adelaide.net.au/~rustcorp/ipfwchains/ipfwchains.html"
+TARGET="_top"
+>the IP chains home page</A
+> for more information.
+You'll now need to use <EM
+>ipchains</EM
+> instead of <TT
+CLASS="LITERAL"
+>ipfwadm</TT
+>
+to configure your filters. (From <TT
+CLASS="LITERAL"
+>Documentation/Changes</TT
+> in the
+latest kernel sources).</P
+></DIV
+></DIV
+><DIV
+CLASS="NAVFOOTER"
+><HR
+ALIGN="LEFT"
+WIDTH="100%"><TABLE
+SUMMARY="Footer navigation table"
+WIDTH="100%"
+BORDER="0"
+CELLPADDING="0"
+CELLSPACING="0"
+><TR
+><TD
+WIDTH="33%"
+ALIGN="left"
+VALIGN="top"
+><A
+HREF="x1167.html"
+ACCESSKEY="P"
+>Prev</A
+></TD
+><TD
+WIDTH="34%"
+ALIGN="center"
+VALIGN="top"
+><A
+HREF="index.html"
+ACCESSKEY="H"
+>Home</A
+></TD
+><TD
+WIDTH="33%"
+ALIGN="right"
+VALIGN="top"
+><A
+HREF="x1227.html"
+ACCESSKEY="N"
+>Next</A
+></TD
+></TR
+><TR
+><TD
+WIDTH="33%"
+ALIGN="left"
+VALIGN="top"
+>EQL - multiple line traffic equaliser</TD
+><TD
+WIDTH="34%"
+ALIGN="center"
+VALIGN="top"
+><A
+HREF="c1121.html"
+ACCESSKEY="U"
+>Up</A
+></TD
+><TD
+WIDTH="33%"
+ALIGN="right"
+VALIGN="top"
+>IP Aliasing</TD
+></TR
+></TABLE
+></DIV
+></BODY
+></HTML
+>

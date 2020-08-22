@@ -1,0 +1,74 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1"><title>9. Routing Policy Database (RPDB)</title><link rel="stylesheet" type="text/css" href="style.css"><meta name="generator" content="DocBook XSL Stylesheets V1.79.1"><meta name="keywords" content="linux, ip, iproute2, ifconfig, firewall, ARP, NAT, route, routing, route selection, routing selection, network administration"><link rel="home" href="index.html" title="Guide to IP Layer Network Administration with Linux"><link rel="up" href="ch04.html" title="Chapter 4. IP Routing"><link rel="prev" href="ch04s08.html" title="8. Routing Tables"><link rel="next" href="ch04s10.html" title="10. ICMP and Routing"></head><body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF"><div class="navheader"><table width="100%" summary="Navigation header"><tr><th colspan="3" align="center">9. Routing Policy Database (RPDB)</th></tr><tr><td width="20%" align="left"><a accesskey="p" href="ch04s08.html">Prev</a> </td><th width="60%" align="center">Chapter 4. IP Routing</th><td width="20%" align="right"> <a accesskey="n" href="ch04s10.html">Next</a></td></tr></table><hr></div><div class="section"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="routing-rpdb"></a>9. Routing Policy Database (RPDB)</h2></div></div></div><a class="indexterm" name="idm2313"></a><a class="indexterm" name="idm2316"></a><p>
+      The routing policy database (RPDB) controls the order in which the
+      kernel searches through the routing tables.  Each rule has a priority,
+      and rules are examined sequentially from rule 0 through rule 32767.
+    </p><p>
+      When a new packet arrives for routing (assuming the routing cache
+      is empty), the kernel begins at the highest priority rule in the
+      RPDB--rule 0.  The kernel iterates over each rule in turn until the
+      packet to be routed matches a rule.  When this happens the kernel
+      follows the instructions in that rule.  Typically, this causes the
+      kernel to perform a route lookup in a specified routing table.  If a
+      matching route is found in the routing table, the kernel uses that
+      route.  If no such route is found, the kernel returns to traverse the
+      RPDB again, until every option has been exhausted.
+    </p><p>
+      The priority-based rule system provides a flexible way to define routes
+      while taking advantage of the traditional routing table concept.
+      For a complete picture of the entire route selection process including
+      the RPDB, see
+      <a class="link" href="ch04s05.html#routing-selection-adv" title="5.2. The Whole Story">the section on routing
+      selection</a>.
+    </p><p>
+      There are a number of different rule types available for use in the
+      routing policy database.  These rule types have a striking similarity to
+      the
+      <a class="link" href="ch04s08.html#list-routing-route-types">route types</a> available
+      for route entries.
+    </p><div class="variablelist"><a name="list-routing-rule-types"></a><dl class="variablelist"><dt><a name="list-routing-rule-types-unicast"></a><span class="term">unicast</span></dt><dd><a class="indexterm" name="idm2328"></a><p>
+            A unicast rule entry is the most common rule type.  This rule type
+            simple causes the kernel to refer to the specified routing table
+            in the search for a route.  If no rule type is specified on the
+            command line, the rule is assumed to be a unicast rule.
+          </p><div class="example"><a name="ex-list-rule-unicast"></a><p class="title"><b>Example 4.16. unicast rule type</b></p><div class="example-contents"><pre class="programlisting">
+<strong class="userinput"><code>ip rule add unicast from 192.168.100.17 table 5</code></strong>
+<strong class="userinput"><code>ip rule add unicast iif eth7 table 5</code></strong>
+<strong class="userinput"><code>ip rule add unicast fwmark 4 table 4</code></strong>
+            </pre></div></div><br class="example-break"></dd><dt><a name="list-routing-rule-types-nat"></a><span class="term">nat</span></dt><dd><a class="indexterm" name="idm2342"></a><p>
+            The nat rule type is required for correct operation of stateless
+            NAT.  This rule is typically coupled with a corresponding nat
+            route entry.  The RPDB nat entry causes the kernel to rewrite the
+            source address of an outbound packet.  See
+            <a class="xref" href="ch05s03.html" title="3. Stateless NAT with iproute2">Section 3, &#8220;Stateless NAT with <span class="command"><strong>iproute2</strong></span>&#8221;</a> for a fuller discussion of network
+            address translation in general.
+          </p><div class="example"><a name="ex-list-rule-nat"></a><p class="title"><b>Example 4.17. nat rule type</b></p><div class="example-contents"><pre class="programlisting">
+<strong class="userinput"><code>ip rule add nat 193.7.255.184 from 172.16.82.184</code></strong>
+<strong class="userinput"><code>ip rule add nat 10.40.0.0 from 172.40.0.0/16</code></strong>
+            </pre></div></div><br class="example-break"></dd><dt><a name="list-routing-rule-types-unreachable"></a><span class="term">unreachable</span></dt><dd><a class="indexterm" name="idm2356"></a><p>
+            Any route lookup matching a rule entry with an unreachable rule
+            type will cause the kernel to generate an ICMP unreachable to
+            the source address of the packet.
+          </p><div class="example"><a name="ex-list-rule-unreachable"></a><p class="title"><b>Example 4.18. unreachable rule type</b></p><div class="example-contents"><pre class="programlisting">
+<strong class="userinput"><code>ip rule add unreachable iif eth2 tos 0xc0</code></strong>
+<strong class="userinput"><code>ip rule add unreachable iif wan0 fwmark 5</code></strong>
+<strong class="userinput"><code>ip rule add unreachable from 192.168.7.0/25</code></strong>
+            </pre></div></div><br class="example-break"></dd><dt><a name="list-routing-rule-types-prohibit"></a><span class="term">prohibit</span></dt><dd><a class="indexterm" name="idm2370"></a><p>
+            Any route lookup matching a rule entry with a prohibit rule type
+            will cause the kernel to generate an ICMP prohibited to the source
+            address of the packet.
+          </p><div class="example"><a name="ex-list-rule-prohibit"></a><p class="title"><b>Example 4.19. prohibit rule type</b></p><div class="example-contents"><pre class="programlisting">
+<strong class="userinput"><code>ip rule add prohibit from 209.10.26.51</code></strong>
+<strong class="userinput"><code>ip rule add prohibit to 64.65.64.0/18</code></strong>
+<strong class="userinput"><code>ip rule add prohibit fwmark 7</code></strong>
+            </pre></div></div><br class="example-break"></dd><dt><a name="list-routing-rule-types-blackhole"></a><span class="term">blackhole</span></dt><dd><a class="indexterm" name="idm2384"></a><p>
+            While traversing the RPDB, any route lookup which matches a rule
+            with the blackhole rule type will cause the packet to be dropped.
+            No ICMP will be sent and no packet will be forwarded.
+          </p><div class="example"><a name="ex-list-rule-blackhole"></a><p class="title"><b>Example 4.20. blackhole rule type</b></p><div class="example-contents"><pre class="programlisting">
+<strong class="userinput"><code>ip rule add blackhole from 209.10.26.51</code></strong>
+<strong class="userinput"><code>ip rule add blackhole from 172.19.40.0/24</code></strong>
+<strong class="userinput"><code>ip rule add blackhole to 10.182.17.64/28</code></strong>
+            </pre></div></div><br class="example-break"></dd></dl></div><p>
+      The routing policy database provides the core of functionality around
+      which the policy routing and advanced routing features can be built.
+    </p></div><div class="navfooter"><hr><table width="100%" summary="Navigation footer"><tr><td width="40%" align="left"><a accesskey="p" href="ch04s08.html">Prev</a> </td><td width="20%" align="center"><a accesskey="u" href="ch04.html">Up</a></td><td width="40%" align="right"> <a accesskey="n" href="ch04s10.html">Next</a></td></tr><tr><td width="40%" align="left" valign="top">8. Routing Tables </td><td width="20%" align="center"><a accesskey="h" href="index.html">Home</a></td><td width="40%" align="right" valign="top"> 10. ICMP and Routing</td></tr></table></div></body></html>

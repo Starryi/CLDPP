@@ -1,0 +1,102 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1"><title>4. The ldapsearch, ldapdelete and ldapmodify utilities</title><link rel="stylesheet" type="text/css" href="style.css"><meta name="generator" content="DocBook XSL Stylesheets V1.79.1"><link rel="home" href="index.html" title="LDAP Linux HOWTO"><link rel="up" href="ch05.html" title="Chapter 5. Database Creation and Maintenance"><link rel="prev" href="ch05s03.html" title="3. More on the LDIF Format"><link rel="next" href="ch06.html" title="Chapter 6. Additional Information and Features"></head><body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF"><div class="navheader"><table width="100%" summary="Navigation header"><tr><th colspan="3" align="center">4. The ldapsearch, ldapdelete and ldapmodify utilities</th></tr><tr><td width="20%" align="left"><a accesskey="p" href="ch05s03.html">Prev</a> </td><th width="60%" align="center">Chapter 5. Database Creation and Maintenance</th><td width="20%" align="right"> <a accesskey="n" href="ch06.html">Next</a></td></tr></table><hr></div><div class="section"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="Utilities"></a>4. The ldapsearch, ldapdelete and ldapmodify utilities</h2></div></div></div><p><span class="command"><strong>ldapsearch</strong></span> - ldapsearch is a shell accessible interface to the ldap_search(3) 
+library call. Use this utility to search for entries on your LDAP database backend. </p><p>The synopsis to call ldapsearch is the following (take a look at the ldapsearch
+ man page to see what each option means): </p><pre class="screen">
+ldapsearch  [-n]  [-u]  [-v]  [-k]  
+[-K]  [-t]  [-A] [-B] [-L] 
+[-R] [-d debuglevel] [-F sep] [-f file] 
+[-x] [-D binddn]  [-W]  [-w bindpasswd]  
+[-h ldaphost]  [-p ldapport]   [-b searchbase]   
+[-s base|one|sub] 
+[-a never|always|search|find] [-l timelimit] 
+[-z sizelimit] filter [attrs...] 
+</pre><p><span class="command"><strong>ldapsearch</strong></span> opens a connection to an LDAP server, binds, and performs a
+ search using the filter <span class="emphasis"><em>filter</em></span>. The filter should conform to the string 
+representation for LDAP filters as defined in RFC 1558. If ldapsearch finds one
+ or more entries, the attributes specified by <span class="emphasis"><em>attrs</em></span> are retrieved and the 
+entries and values are printed to standard output. If no attrs are listed, all 
+attributes are returned.</p><pre class="screen">
+ldapsearch -x -b 'o=TUDelft,c=NL' 'objectclass=*' 
+
+ldapsearch -b 'o=TUDelft,c=NL' 'cn=Rene van Leuken' 
+
+ldasearch -u -b 'o=TUDelft,c=NL' 'cn=Luiz Malere' sn mail
+</pre><p>The -b option stands for searchbase (initial search point), the -u option 
+stands for userfriendly output information and the -x option is used to specify
+simple authentication.</p><p><span class="command"><strong>ldapdelete - </strong></span>ldapdelete is a shell accessible interface to the ldap_delete(3) 
+library call. Use this utility to delete entries on our LDAP database backend.</p><p>The synopsis to call ldapdelete is the following (take a look at the ldapdelete
+ man page to see what each option means): </p><pre class="screen">
+ldapdelete   [-n]   [-v]  [-k]  [-K]  
+[-c]  [-d debuglevel]  [-f file]  [-D binddn]  
+[-W]  [-w passwd] [-h ldaphost] [-p ldapport] 
+[dn]... 
+
+</pre><p><span class="command"><strong>ldapdelete</strong></span> opens a connection to an LDAP server, binds, and deletes one or more
+ entries. If one or more dn arguments are provided, entries with those 
+Distinguished Names are deleted. Each dn should be a string-represented DN as 
+defined in RFC 1779. If no dn arguments are provided, a list of DNs is read 
+from standard input (or from file if the -f flag is used). </p><p>Here are some examples of the use of ldapdelete: </p><pre class="screen">
+ldapdelete 'cn=Luiz Malere,o=TUDelft,c=NL' 
+
+ldapdelete -v 'cn=Rene van Leuken,o=TUDelft,c=NL' -D 'cn=Luiz Malere,o=TUDelft,c=NL' -W 
+
+</pre><p>The -v option stands for verbose mode, the -D option stands for Binddn (the dn 
+to authenticate against) and the -W option stands for password prompt. </p><p><span class="command"><strong>ldapmodify - </strong></span>ldapmodify is a shell accessible interface to the
+ ldap_modify(3) and ldap_add(3) library calls. Use this utility to modify entries on our LDAP 
+database backend. </p><p>The synopsis to call ldapmodify is the following (take a look at the ldapmodify
+ man page to see what each option mean): </p><pre class="screen">
+ldapmodify   [-a]  [-b]  [-c]  [-r]  
+[-n]  [-v]  [-k]  [-d debuglevel]  
+[-D binddn]  [-W]  [-w passwd] 
+[-h ldaphost] [-p ldapport] [-f file] 
+
+ldapadd [-b] [-c] [-r] [-n] 
+[-v]  [-k]  [-K]  [-d debuglevel]  
+[-D binddn]  [-w passwd]  [-h ldaphost] 
+[-p ldapport] [-f file] 
+</pre><p><span class="command"><strong>ldapadd</strong></span> is implemented as a hard link to the ldapmodify tool.  When invoked as 
+ldapadd the -a  (add  new entry) flag of ldapmodify is turned on automatically.
+ 
+ldapmodify  opens  a  connection  to  an  LDAP server, binds, and modifies or 
+adds entries.  The entry information is read from standard input or from file 
+through the use of the -f option. </p><p>Here are some examples of the use of ldapmodify: </p><p>Assuming that the file /tmp/entrymods exists and has the contents: </p><pre class="screen">
+dn: cn=Modify Me, o=University of Michigan, c=US 
+changetype: modify 
+replace: mail 
+mail: modme@terminator.rs.itd.umich.edu 
+- 
+add: title 
+title: Grand Poobah 
+- 
+add: jpegPhoto 
+jpegPhoto: /tmp/modme.jpeg 
+- 
+delete: description 
+- 
+</pre><p>The command: </p><pre class="screen">ldapmodify -b -r -f /tmp/entrymods </pre><p>will  replace  the  contents  of the "Modify Me" entry's mail attribute with 
+the value "modme@terminator.rs.itd.umich.edu", add a title of "Grand Poobah", 
+and the contents of the file /tmp/modme.jpeg as a jpegPhoto, and completely 
+remove the description attribute. </p><p>The same modifications as above can be performed using the older ldapmodify 
+input format: </p><pre class="screen">
+cn=Modify Me, o=University of Michigan, c=US 
+mail=modme@terminator.rs.itd.umich.edu 
++title=Grand Poobah 
++jpegPhoto=/tmp/modme.jpeg 
+-description 
+</pre><p>And plus the command bellow: </p><pre class="screen">ldapmodify -b -r -f /tmp/entrymods </pre><p>Assuming that the file /tmp/newentry exists and has the contents: </p><pre class="screen">
+dn: cn=Barbara Jensen, o=University of Michigan, c=US 
+objectClass: person 
+cn: Barbara Jensen 
+cn: Babs Jensen 
+sn: Jensen 
+title: the world's most famous manager 
+mail: bjensen@terminator.rs.itd.umich.edu 
+uid: bjensen 
+</pre><p>The command: </p><pre class="screen">ldapadd -f /tmp/entrymods </pre><p>will add the entry with dn: cn=Barbara Jensen, o=University of Michigan, c=US 
+if it's not already present. If an entry with this dn already exists, the 
+command will point out the error and will not overwrite the entry.</p><p>Assuming that the file /tmp/newentry exists and has the contents: </p><pre class="screen">
+dn: cn=Barbara Jensen, o=University of Michigan, c=US 
+changetype: delete 
+</pre><p>The command: </p><pre class="screen">ldapmodify -f /tmp/entrymods </pre><p>will remove Babs Jensen's entry. </p><p>The -f option stands for file (read the modification information from a file 
+instead of standard input), the -b option stands for binary (any values 
+starting with a '/' on the input file are interpreted as binaries), the -r 
+stands for replace (replace existing values by default). </p></div><div class="navfooter"><hr><table width="100%" summary="Navigation footer"><tr><td width="40%" align="left"><a accesskey="p" href="ch05s03.html">Prev</a> </td><td width="20%" align="center"><a accesskey="u" href="ch05.html">Up</a></td><td width="40%" align="right"> <a accesskey="n" href="ch06.html">Next</a></td></tr><tr><td width="40%" align="left" valign="top">3. More on the LDIF Format </td><td width="20%" align="center"><a accesskey="h" href="index.html">Home</a></td><td width="40%" align="right" valign="top"> Chapter 6. Additional Information and Features</td></tr></table></div></body></html>

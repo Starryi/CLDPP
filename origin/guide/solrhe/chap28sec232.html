@@ -1,0 +1,74 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1"><title>7. Configure of the /etc/squid/squid.conf file -/proxy-caching mode</title><link rel="stylesheet" type="text/css" href="style.css"><meta name="generator" content="DocBook XSL Stylesheets V1.79.1"><meta name="keywords" content="RedHat, redhat, maddy, linus, linux, Linux, Securing, Optimising, security, secure, openna, gerhard"><link rel="home" href="index.html" title="Securing and Optimizing Linux"><link rel="up" href="netproxy-squid.html" title="Chapter 28. Software -Server/Proxy Network"><link rel="prev" href="chap28sec231.html" title="6. Configure the /etc/squid/squid.conf file -in httpd-accelerator mode"><link rel="next" href="chap28sec233.html" title="8. Configure the /etc/rc.d/init.d/squid script file -/all configurations"></head><body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF"><div class="navheader"><table width="100%" summary="Navigation header"><tr><th colspan="3" align="center">7. Configure of the <code class="filename">/etc/squid/squid.conf</code> file -/proxy-caching mode</th></tr><tr><td width="20%" align="left"><a accesskey="p" href="chap28sec231.html">Prev</a> </td><th width="60%" align="center">Chapter 28. Software -Server/Proxy Network</th><td width="20%" align="right"> <a accesskey="n" href="chap28sec233.html">Next</a></td></tr></table><hr></div><div class="section"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="idm18345"></a>7. Configure of the <code class="filename">/etc/squid/squid.conf</code> file -/proxy-caching mode</h2></div></div></div><p>
+               With some minor modification to the <code class="filename">squid.conf</code> file we have defined above to run in <code class="literal">httpd-accelerator</code> mode, we can run Squid as a proxy-caching server. With a proxy cache server, all users 
+               in your corporate network use Squid to access the Internet. With this configuration, you can have complete control, and apply special policies on what can be viewed, accessed, and downloaded. You can also control bandwidth 
+               usage, connection time, and so on. A proxy cache server can be configured to run as stand-alone server for your corporation, or to use and share caches hierarchically with other proxy servers around the Internet.
+               </p><div class="mediaobject"><img src="./images/Squid-Stand-Alone-Schema.gif" alt="Squid-StandAlone"></div><p>
+             </p><p>
+               With the first example below we show you how to configure Squid as a stand-alone server, and then speak a little bit about a cache hierarchy configuration, where two or more proxy-cache servers cooperate by serving documents to each other.
+               Edit the <code class="filename">squid.conf</code> file, <span class="command"><strong>vi</strong></span> <code class="filename">/etc/squid/squid.conf</code> and add/change the following options for proxy cache that run as a stand-alone server:
+               </p><pre class="programlisting">
+                 http_port 8080
+                 icp_port 0
+                 acl QUERY urlpath_regex cgi-bin \?
+                 no_cache deny QUERY
+                 cache_mem 16 MB
+                 cache_dir ufs /cache 200 16 256
+                 redirect_rewrites_host_header off
+                 replacement_policy GDSF
+                 acl localnet src 192.168.1.0/255.255.255.0
+                 acl localhost src 127.0.0.1/255.255.255.255
+                 acl Safe_ports port 80 443 210 119 70 21 1025-65535
+                 acl CONNECT method CONNECT
+                 acl all src 0.0.0.0/0.0.0.0
+                 http_access allow localnet
+                 http_access allow localhost
+                 http_access deny !Safe_ports
+                 http_access deny CONNECT
+                 http_access deny all
+                 cache_mgr admin@openna.com
+                 cache_effective_user squid
+                 cache_effective_group squid
+                 log_icp_queries off
+                 cachemgr_passwd my-secret-pass all
+                 buffered_logs on
+               </pre><p>
+             </p><p>
+               The big difference with the <code class="literal">httpd-accellerator</code> mode configuration is the use of access control lists (ACL). This feature allows you to restrict access based on source <acronym class="acronym">IP</acronym> address (src), destination 
+               <acronym class="acronym">IP</acronym> address (dst), source domain, destination domain, time, and so on. Many types exist with this feature, and you should consult the <code class="filename">Squid.conf</code> file for a complete list. The four most used types 
+               are as follows:
+               </p><div class="literallayout"><p><br>
+                   acl	 name   type    data<br>
+                   |	    |	   |	   |<br>
+                   acl some-name src a.b.c.d/e.f.g.h 	# ACL restrict access based on source IP address <br>
+                   acl some-name dst a.b.c.d/e.f.g.h 	# ACL restrict access based on destination IP address <br>
+                   acl some-name srcdomain foo.com 	# ACL restrict access based on source domain <br>
+                   acl some-name dstdomain foo.com 	# ACL restrict access based on destination domain<br>
+                 </p></div><p>
+             </p><p>
+               As an example, to restrict access to your Squid proxy server to only your internal clients, and to a specific range of designated ports, something like the following will make the job:
+               </p><pre class="programlisting">
+                 acl localnet src 192.168.1.0/255.255.255.0
+                 acl localhost src 127.0.0.1/255.255.255.255
+                 acl Safe_ports port 80 443 210 119 70 21 1025-65535
+                 acl CONNECT method CONNECT
+                 acl all src 0.0.0.0/0.0.0.0
+                 http_access allow localnet
+                 http_access allow localhost
+                 http_access deny !Safe_ports
+                 http_access deny CONNECT
+                 http_access deny all
+               </pre><p>
+             </p><p>
+             This acl configuration will allow all internal clients from the private class C 192.168.1.0 to access the proxy server; it's also recommended that you allow the localhost IP (a special IP address used by your own server) to access 
+             the proxy. After we choose a range of ports (80=http, 443=https, 210=wais, 119=nntp, 70=gopher, and 21=ftp) which our internal clients can use to access the Internet, we deny the <code class="envar">CONNECT</code> method to prevent outside people 
+             from trying to connect to the proxy server, and finally, we deny all source IP address and ports on the proxy server.
+             </p><div class="sidebar"><div class="titlepage"><div><div><p class="title"><b>Multi-level Web Caching</b></p></div></div></div><p>
+                 The second method of proxy cache is the so-called <em class="wordasword">Multi-level Web Caching</em> where you choose to share and cooperate with more proxy-cache servers on the Internet. With this method, your organization uses the cache 
+                 of many others proxy cache servers, and to compensate, the other cache server can use yours. It's important to note that in this situation, the proxy cache can play two different roles in the hierarchy. It can be configured to be a sibling 
+                 cache, and be able to only serve documents it already has, or it can be configured as a parent cache, and be able to get documents from another cache or from the source directly.
+<span class="inlinemediaobject"><img src="./images/Squid-Hierarchy-Schema.gif" alt="Squid-Hierarchy"></span>
+               </p></div><div class="tip" style="margin-left: 0.5in; margin-right: 0.5in;"><h3 class="title">
+                 <span class="inlinemediaobject"><img src="./images/Tip.gif" alt="Tip"></span>    
+               </h3><p>
+               A good strategy to avoid generating more network traffic than without web caching is to choose to have several sibling caches and only a small number of parent caches.
+               </p></div></div><div class="navfooter"><hr><table width="100%" summary="Navigation footer"><tr><td width="40%" align="left"><a accesskey="p" href="chap28sec231.html">Prev</a> </td><td width="20%" align="center"><a accesskey="u" href="netproxy-squid.html">Up</a></td><td width="40%" align="right"> <a accesskey="n" href="chap28sec233.html">Next</a></td></tr><tr><td width="40%" align="left" valign="top">6. Configure the <code class="filename">/etc/squid/squid.conf</code> file -in <code class="literal">httpd-accelerator mode</code> </td><td width="20%" align="center"><a accesskey="h" href="index.html">Home</a></td><td width="40%" align="right" valign="top"> 8. Configure the <code class="filename">/etc/rc.d/init.d/squid</code> script file -/all configurations</td></tr></table></div></body></html>

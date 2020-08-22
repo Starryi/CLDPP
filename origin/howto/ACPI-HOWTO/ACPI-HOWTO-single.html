@@ -1,0 +1,664 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1"><title>ACPI: Advanced Configuration and Power Interface</title><link rel="stylesheet" type="text/css" href="style.css"><meta name="generator" content="DocBook XSL Stylesheets V1.79.1"><meta name="description" content="Outlines how to patch a kernel for ACPI support."></head><body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF"><div class="article"><div class="titlepage"><div><div><h2 class="title"><a name="index"></a>ACPI: Advanced Configuration and Power Interface</h2></div><div><div class="authorgroup"><div class="author"><h3 class="author"><span class="firstname">Emma Jane</span> <span class="surname">Hogbin</span></h3><div class="affiliation"><span class="orgname">
+		<a class="ulink" href="http://www.xtrinsic.com" target="_top">xtrinsic</a>
+	<br></span><div class="address"><p><br>
+	   <code class="email">&lt;<a class="email" href="mailto:emmajane@xtrinsic.com">emmajane@xtrinsic.com</a>&gt;</code><br>
+	</p></div></div></div><div class="othercredit"><h3 class="othercredit"><span class="firstname">Erich</span> <span class="surname">Schubert</span></h3><span class="contrib">Author of the section on DSDT.</span> </div></div></div><div><div class="revhistory"><table style="border-style:solid; width:100%;" summary="Revision History"><tr><th align="left" valign="top" colspan="3"><b>Revision History</b></th></tr><tr><td align="left">Revision v1.6</td><td align="left">2004-07-23</td><td align="left">ejh</td></tr><tr><td align="left" colspan="3">Spelling mistakes fixed, converted the bibliography, added a glossary, moved step-by-step instructions to procedures in examples, and updated the information on the 2.6 kernel and random freezes.</td></tr><tr><td align="left">Revision v1.5.1</td><td align="left">2004-07-15</td><td align="left">ejh</td></tr><tr><td align="left" colspan="3">Link included to the French translation of this document.</td></tr><tr><td align="left">Revision v1.5</td><td align="left">2004-05-21</td><td align="left">ejh</td></tr><tr><td align="left" colspan="3">Minor updates for the 2.6.6 kernel and corrections regarding
+	which kernels need patching.</td></tr><tr><td align="left">Revision v1.4</td><td align="left">2004-05-12</td><td align="left">ejh</td></tr><tr><td align="left" colspan="3">Initial thoughts on the 2.6.5 kernel; includes information
+	on battery monitoring applications causing touch pad lockup
+	problems.</td></tr></table></div></div><div><div class="abstract"><p class="title"><b>Abstract</b></p><p>Outlines how to patch a kernel for ACPI support.</p></div></div></div><hr></div><div class="toc"><p><b>Table of Contents</b></p><dl class="toc"><dt><span class="sect1"><a href="#about">1. About this document</a></span></dt><dd><dl><dt><span class="sect2"><a href="#copyright">1.1. Copyright and License</a></span></dt><dt><span class="sect2"><a href="#translations">1.2. Translations</a></span></dt><dt><span class="sect2"><a href="#preface">1.3. Preface</a></span></dt><dt><span class="sect2"><a href="#thanks">1.4. Acknowledgments</a></span></dt><dt><span class="sect2"><a href="#feedback">1.5. Feedback</a></span></dt><dt><span class="sect2"><a href="#conventions">1.6. Conventions used in this document</a></span></dt></dl></dd><dt><span class="sect1"><a href="#aboutacpi">2. About ACPI</a></span></dt><dd><dl><dt><span class="sect2"><a href="#apmtoacpi">2.1. Why switch?</a></span></dt><dt><span class="sect2"><a href="#switch-distro">2.2. Distribution News</a></span></dt></dl></dd><dt><span class="sect1"><a href="#install">3. Installing from scratch</a></span></dt><dd><dl><dt><span class="sect2"><a href="#dsdt">3.1. DSDT: Differentiated System Description Table</a></span></dt><dt><span class="sect2"><a href="#kernelchoice">3.2. Choosing a kernel</a></span></dt><dt><span class="sect2"><a href="#backups">3.3. Backups</a></span></dt><dt><span class="sect2"><a href="#kernelprep">3.4. Download and unpack the kernel source</a></span></dt><dt><span class="sect2"><a href="#kernelconfig">3.5. Configure the new kernel</a></span></dt><dt><span class="sect2"><a href="#kernelcompile">3.6. Compile and install the new kernel</a></span></dt><dt><span class="sect2"><a href="#finishinstall">3.7. Reboot and test</a></span></dt><dt><span class="sect2"><a href="#loadmodules">3.8. Load related modules</a></span></dt></dl></dd><dt><span class="sect1"><a href="#usingacpi">4. Using ACPI</a></span></dt><dd><dl><dt><span class="sect2"><a href="#apm2acpi">4.1. Switching from APM to ACPI</a></span></dt><dt><span class="sect2"><a href="#proc-acpi-files">4.2. /proc/acpi files</a></span></dt></dl></dd><dt><span class="appendix"><a href="#howto-patch">A. Patching Kernels</a></span></dt><dd><dl><dt><span class="sect1"><a href="#kernelpatch">1. Patch</a></span></dt></dl></dd><dt><span class="appendix"><a href="#nodebkernel">B. Compiling Kernels the Non-Debian Way</a></span></dt><dd><dl><dt><span class="sect1"><a href="#nodebcompile">1. Compile the kernel</a></span></dt><dt><span class="sect1"><a href="#nodebinstall">2. Install the new kernel</a></span></dt><dt><span class="sect1"><a href="#nodebsoftware">3. Software packages</a></span></dt></dl></dd><dt><span class="appendix"><a href="#known-issues">C. Known Issues</a></span></dt><dd><dl><dt><span class="sect1"><a href="#known-issues-24">1. 2.4 series kernels</a></span></dt><dd><dl><dt><span class="sect2"><a href="#dpms-features">1.1. DPMS features</a></span></dt></dl></dd><dt><span class="sect1"><a href="#known-issues-26">2. 2.6 series kernels</a></span></dt><dd><dl><dt><span class="sect2"><a href="#acpi_power_off-hangs">2.1. acpi_power_off hangs in 2.6</a></span></dt><dt><span class="sect2"><a href="#touchpad-freezes">2.2. Touchpad/Mouse or Keyboard Freezes</a></span></dt></dl></dd></dl></dd><dt><span class="appendix"><a href="#gfdl">D. GNU Free Documentation License</a></span></dt><dd><dl><dt><span class="sect1"><a href="#gfdl-0">1. PREAMBLE</a></span></dt><dt><span class="sect1"><a href="#gfdl-1">2. APPLICABILITY AND DEFINITIONS</a></span></dt><dt><span class="sect1"><a href="#gfdl-2">3. VERBATIM COPYING</a></span></dt><dt><span class="sect1"><a href="#gfdl-3">4. COPYING IN QUANTITY</a></span></dt><dt><span class="sect1"><a href="#gfdl-4">5. MODIFICATIONS</a></span></dt><dt><span class="sect1"><a href="#gfdl-5">6. COMBINING DOCUMENTS</a></span></dt><dt><span class="sect1"><a href="#gfdl-6">7. COLLECTIONS OF DOCUMENTS</a></span></dt><dt><span class="sect1"><a href="#gfdl-7">8. AGGREGATION WITH INDEPENDENT WORKS</a></span></dt><dt><span class="sect1"><a href="#gfdl-8">9. TRANSLATION</a></span></dt><dt><span class="sect1"><a href="#gfdl-9">10. TERMINATION</a></span></dt><dt><span class="sect1"><a href="#gfdl-10">11. FUTURE REVISIONS OF THIS LICENSE</a></span></dt><dt><span class="sect1"><a href="#gfdl-11">12. How to use this License for your documents</a></span></dt></dl></dd><dt><span class="glossary"><a href="#glossary">Glossary</a></span></dt><dt><span class="bibliography"><a href="#resources">References and Resources</a></span></dt></dl></div><div class="sect1"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="about"></a>1. About this document</h2></div></div></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="copyright"></a>1.1. Copyright and License</h3></div></div></div><p>
+      Copyright (c) 2003, 2004 Emma Jane Hogbin.</p><p>Permission is granted to copy, distribute and/or modify this 
+      document under the terms of the GNU Free Documentation License, Version 
+      1.1 or any later version published by the Free Software Foundation;
+      with no Invariant Sections, no Front-Cover Texts, and with no Back-Cover
+      Texts.
+      A copy of the license is included in <a class="xref" href="#gfdl" title="D. GNU Free Documentation License">Appendix D, <i>GNU Free Documentation License</i></a>.
+</p></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="translations"></a>1.2. Translations</h3></div></div></div><p>This document is also available in the following languages:</p><div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem"><p><a class="ulink" href="http://www.traduc.org/docs/HOWTO/lecture/ACPI-HOWTO.html" target="_top">Français</a>. Merci à Guillaume Lelarge et Vanessa Conchodon pour le traduction !</p></li></ul></div><p>If you know of any other translations, please email me <code class="email">&lt;<a class="email" href="mailto:emmajane@xtrinsic.com">emmajane@xtrinsic.com</a>&gt;</code>.</p></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="preface"></a>1.3. Preface</h3></div></div></div><p>When I first started the switch from <a class="xref" href="#APM" title="APM">APM</a> to <a class="xref" href="#ACPI" title="ACPI">ACPI</a> I did not realize the
+kernel needed to be patched. My problem (very loud fan) was fixed just
+by upgrading to 2.4.20 (<a class="xref" href="#debian" title="Debian">Debian</a> packaged <a class="xref" href="#kernel" title="kernel">kernel</a> with an earlier <a class="xref" href="#patch" title="patch">patch</a> from
+<a class="ulink" href="http://acpi.sourceforge.net" target="_top">acpi.sourceforge.net</a>).
+Unfortunately after the first upgrade I was not able to correctly power down my computer.
+It was not until later that 
+I realized I had an old, ineffectual ACPI patch. This HOWTO was
+written to summarize the install process for myself, and hopefully help others who
+are also having a hard time finding information about ACPI. Please note:
+the main article outlines <a class="ulink" href="http://www.debian.org" target="_top">The Debian Way</a> 
+of doing things. There is also generic information in the
+<a class="xref" href="#nodebkernel" title="B. Compiling Kernels the Non-Debian Way">Appendix B, <i>Compiling Kernels the Non-Debian Way</i></a> for those of you who prefer ... the generic way.</p></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="thanks"></a>1.4. Acknowledgments</h3></div></div></div><p>I have found that it takes a whole community to write a technical guide. I am forever grateful for all of the support that I have received along the way. Without this (ever growing) group of people our document would not exist.</p><div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem"><p><a class="ulink" href="http://acpi.sourceforge.net/mailinglists.html" target="_top">acpi-devel</a></p></li><li class="listitem"><p><a class="ulink" href="http://lists.debian.org/debian-laptop/" target="_top">debian-laptop</a> and <a class="ulink" href="http://lists.debian.org/debian-user/" target="_top">debian-user</a></p></li><li class="listitem"><p><a class="ulink" href="http://linuxchix.org/" target="_top">techtalk</a></p></li><li class="listitem"><p>
+<a class="ulink" href="http://www.tldp.org/mailinfo.html#maillists" target="_top">TLDP mailing
+lists</a> (discuss and docbook)
+</p></li><li class="listitem"><p>Sebastian Henschel for reminding me I had promised to write
+it all down</p></li><li class="listitem"><p>Erich Schubert for writing the section on DSDTs when I could not</p></li><li class="listitem"><p>Werner Heuser for suggesting I submit the document to The LDP</p></li><li class="listitem"><p>Tabatha Marshall for editing and generally being very enthusiastic about learning DocBook</p></li><li class="listitem"><p>Pavel Machek, Len Brown and Hartwig Felger for patiently answering my questions</p></li><li class="listitem"><p>Werner (again) and Nicolas <span class="quote">&#8220;<span class="quote">nico</span>&#8221;</span> Boulay for helping me to update my BIOS at the 2004 <a class="ulink" href="http://www.libresoftwaremeeting.org" target="_top">Libre Software Meeting</a></p></li><li class="listitem"><p>Michal <span class="quote">&#8220;<span class="quote">mizu</span>&#8221;</span> Zimen for discovering the solution to the acpi_power_off problem</p></li><li class="listitem"><p><a class="ulink" href="http://www.traduc.org" target="_top">Traduc</a> for working on the French translation.</p></li></ul></div></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="feedback"></a>1.5. Feedback</h3></div></div></div><p>Find something wrong with this document? (Or perhaps something right?) I would love to hear from you. Please email me at <code class="email">&lt;<a class="email" href="mailto:emmajane@xtrinsic.com">emmajane@xtrinsic.com</a>&gt;</code>.</p></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="conventions"></a>1.6. Conventions used in this document</h3></div></div></div><p>The following typographic and usage conventions occur in this text:
+</p><div class="table"><a name="table-conventions"></a><p class="title"><b>Table 1. Typographic and usage conventions</b></p><div class="table-contents"><table class="table" summary="Typographic and usage conventions" border="1"><colgroup><col><col></colgroup><thead><tr><th align="left">Text type</th><th align="left">Meaning</th></tr></thead><tbody><tr><td align="left"><span class="quote">&#8220;<span class="quote">Quoted text</span>&#8221;</span></td><td align="left">Quotes from people, quoted computer output.</td></tr><tr><td align="left"><pre class="screen">terminal view</pre></td><td align="left">Literal computer input and output captured from the terminal.</td></tr><tr><td align="left"><span class="command"><strong>command</strong></span></td><td align="left">Name of a command that can be entered on the command line.</td></tr><tr><td align="left"><code class="option">option</code></td><td align="left">Option to a command, as in <span class="quote">&#8220;<span class="quote">the <code class="option">-a</code> option to the 
+<span class="command"><strong>ls</strong></span> command</span>&#8221;</span>.</td></tr><tr><td align="left"><em class="parameter"><code>parameter</code></em></td><td align="left">Parameter to a command, as in <span class="quote">&#8220;<span class="quote">read 
+<span class="command"><strong>man <em class="parameter"><code>ls</code></em></strong></span></span>&#8221;</span>.</td></tr><tr><td align="left"><div class="cmdsynopsis"><p><code class="command">command <code class="option">options</code> 
+<em class="parameter"><code>arguments</code></em></code> </p></div></td><td align="left">Command synopsis or general usage, on a separated line.</td></tr><tr><td align="left"><code class="filename">filename</code></td><td align="left">Name of a file or directory, for example <span class="quote">&#8220;<span class="quote">Change to the 
+<code class="filename">/usr/bin</code> directory.</span>&#8221;</span></td></tr><tr><td align="left"><span class="guimenu">Menu</span> &#8594; <span class="guimenuitem">Choice</span></td><td align="left">Choice to select from a graphical menu, for instance: <span class="quote">&#8220;<span class="quote">Select 
+<span class="guimenu">Help</span> &#8594; <span class="guimenuitem">About Mozilla</span> in your browser.</span>&#8221;</span></td></tr><tr><td align="left"><a class="ulink" href="http://www.xtrinsic.com" target="_top">The author</a></td><td align="left">Click-able link to an external web resource.</td></tr></tbody></table></div></div><br class="table-break"><p>Thanks to Machtelt <span class="quote">&#8220;<span class="quote">Tille</span>&#8221;</span> Garrels for this list of conventions.</p></div></div><div class="sect1"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="aboutacpi"></a>2. About ACPI</h2></div></div></div><p>In the world of power management ACPI is relatively new to the game.
+It was first released in 1996 by 
+Compaq/Hewlett-Packard, Intel, Microsoft, Phoenix and Toshiba. These
+developers aimed to replace the previous industry standard for power
+management. Their <a class="ulink" href="http://www.acpi.info" target="_top">ACPI.info</a> site
+includes the official specifications, and a list of companies that support ACPI. This is not required reading, but may be of some interest to the curious.</p><p><a class="xref" href="#ACPI" title="ACPI">ACPI</a> allows control of power management from within the
+operating system. The previous industry standard for power management, Advanced 
+Power Management (<a class="xref" href="#APM" title="APM">APM</a>), is controlled at the <a class="xref" href="#BIOS" title="BIOS">BIOS</a>
+level. APM is activated 
+when the system becomes idle--the longer the system idles, the less power it
+consumes (for example: screen saver, sleep and suspend). 
+In APM, the operating system has no knowledge of when the system will
+change power states.</p><p>ACPI can typically be configured from within the operating system.
+This is unlike APM where configuration often involves rebooting and
+entering the BIOS configuration screens to set parameters.</p><p>ACPI has several different software components:</p><div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem"><p>a subsystem which controls hardware states and 
+	functions that may have previously been in the BIOS configuration</p><p>These states include:</p><div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: circle; "><li class="listitem"><p>thermal control</p></li><li class="listitem"><p>motherboard configuration</p></li><li class="listitem"><p>power states (sleep, suspend)</p></li></ul></div></li><li class="listitem"><p>a policy manager, which is software that sits on top of
+the operating system and allows user input on the system
+policies</p></li><li class="listitem"><p>device drivers that control/monitor devices such as a
+laptop battery, SMBus (communication/transmission path) and EC (embedded controller).</p></li></ul></div><p>More information on power management in laptops is available from
+<a class="ulink" href="http://www.tuxmobil.org" target="_top">tuxmobil.org</a>.
+Specifically: <a class="ulink" href="http://tuxmobil.org/apm_linux.html" target="_top">Power Management
+with Linux - APM, ACPI, PMU</a> and the <a class="ulink" href="http://tuxmobil.org/Mobile-Guide.db/mobile-guide-p2c1-hardware-in-detail.html" target="_top">Hardware in Detail</a> section of the
+<a class="ulink" href="http://tuxmobil.org/Mobile-Guide.db/Mobile-Guide.html" target="_top">Linux on the Road</a>.</p><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="apmtoacpi"></a>2.1. Why switch?</h3></div></div></div><p>Not all systems support both APM and ACPI. I switched because my
+system only supported ACPI. Pretty easy decision really. If you are switching
+to get <a class="ulink" href="http://acpi.sourceforge.net/documentation/sleep.html" target="_top">S3</a> (suspend
+to RAM) support and you are using a 2.4.x kernel, do not bother. It is <a class="ulink" href="http://lists.debian.org/debian-laptop/2003/debian-laptop-200304/msg00418.html" target="_top">not supported</a>.</p><p><a class="ulink" href="http://acpi.sf.net" target="_top">ACPI4Linux</a> has a list of <a class="ulink" href="http://acpi.sourceforge.net/wiki/index.php/InstallationReports" target="_top">supported
+machines/BIOSes</a> and a list of 
+<a class="ulink" href="http://acpi.sourceforge.net/documentation/blacklist.html" target="_top">unsupported machines</a>. Please contribute to
+the list!</p><p>For more information about the power management in laptops you may
+(also) find the <a class="ulink" href="http://www.tldp.org/HOWTO/mini/Battery-Powered/index.html" target="_top">Battery Powered Linux Mini-HOWTO</a> useful.</p></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="switch-distro"></a>2.2. Distribution News</h3></div></div></div><p>As ACPI support matures in Linux there may be some specific things you should know with regards to your distribution. At this time there is very little news to share, but I hope this section will grow with time. Please email me at <code class="email">&lt;<a class="email" href="mailto:emmajane@xtrinsic.com">emmajane@xtrinsic.com</a>&gt;</code> if there is anything else that should be reported in this section!</p><div class="variablelist"><p class="title"><b>News for your distro</b></p><dl class="variablelist"><dt><span class="term">Fedora Core 2</span></dt><dd><p>Red Hat Fedora Core 2 now ships with ACPI enabled by default! This
+is big progress for the ACPI development team. Congratulations to
+everyone. Fedora Core 2 users please skip right past the installation instructions and go directly to <a class="xref" href="#usingacpi" title="4. Using ACPI">Using ACPI</a>.</p></dd></dl></div></div></div><div class="sect1"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="install"></a>3. Installing from scratch</h2></div></div></div><p>ACPI is constantly being revised. It is available in later versions
+of the 2.4.x series kernel (2.4.22 and higher), and all 2.6.x series kernels.
+You should always use the latest stable version of the kernel that your system will support.
+Patches are available from <a class="ulink" href="http://acpi.sourceforge.net" target="_top">acpi.sourceforge.net</a>. If you must use a kernel older than version 2.4.22 you will need to <a class="xref" href="#patch" title="patch">patch</a> your kernel to get ACPI support.</p><div class="note" style="margin-left: 0.5in; margin-right: 0.5in;"><h3 class="title">Always check for kernel patches</h3><p>Even the latest kernel will sometimes have minor bug fixes
+	available as a patch. You should check the ACPI4Linux web site to see
+	if there are any patches available.</p><p>
+You need to get the patch that exactly matches the
+version of the kernel that you are running. Since this is the 
+<span class="quote">&#8220;<span class="quote">install from scratch</span>&#8221;</span> section I will assume you know exactly 
+which kernel you will be installing.</p></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="dsdt"></a>3.1. DSDT: Differentiated System Description Table</h3></div></div></div><p>Thanks to <a class="ulink" href="http://www.vitavonni.de/" target="_top">Erich</a> writing this section.</p><p>You might need to override the <a class="xref" href="#DSDT" title="DSDT">DSDT</a> when certain features like battery
+status are incorrectly reported (usually causing error messages to
+syslog). DELL laptops usually need this kind of override. Fixed DSDT for many systems are available on the <a class="ulink" href="http://acpi.sourceforge.net/dsdt/index.php" target="_top">DSDT page</a>, along with a patch that tells the kernel to ignore the BIOS-supplied table but use the
+compiled-in fixed DSDT.</p><p>Basically you need to copy
+the fixed table into your kernel source with a special filename (or
+modifying the filename in the patch supplied at the <a class="ulink" href="http://acpi.sourceforge.net/dsdt/index.php" target="_top">DSDT page</a>)
+This override is quite easy: instead of loading the DSDT table from
+BIOS, the kernel uses the compiled-in DSDT table. That is all.</p></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="kernelchoice"></a>3.2. Choosing a kernel</h3></div></div></div><p>This document was originally written for the 2.4.20 <a class="xref" href="#kernel" title="kernel">kernel</a> and has
+been updated since to include information about the 2.6.x series kernels.
+At the time of this update the 2.6.x series kernels are proving easy for
+some and harder for others.</p><p>If you can, I would recommend waiting to upgrade your kernel to the
+2.6.x series until more bugs are ironed out, and more documentation is 
+available. There are a
+<span class="emphasis"><em>lot</em></span> of changes in the 2.6.x series kernel. When I
+upgraded to 2.6.5 to update this document I ran into problems with my
+wireless connection, my nVidia graphics card, my touch pad, and with ACPI. Your mileage
+may vary. I personally had good success with the 2.4.20 with the latest
+patch and the 2.4.22 kernel with no patch. (And then I upgraded from 2.4.22 directly to 2.6.5.) A Google through your distribution's mailing list, and the acpi-devel mailing list should help you to pick the right kernel.</p><p>Regardless of which kernel you choose, if it is a kernel that
+requires patching, it is important to use the latest version of the ACPI patch. Some
+distributions have already patched their kernels. This is the case for
+Debian, and may be the case for others. For more information on the 
+patches that have been applied to the Debian kernel source package scan through:
+<code class="filename">/usr/src/kernel-source-<em class="replaceable"><code>&lt;version&gt;</code></em>/README.Debian</code>. If you are not using Debian
+look in the <code class="filename">/usr/src/kernel-source-<em class="replaceable"><code>&lt;version&gt;</code></em></code> directory for an equivalent file.</p><div class="note" style="margin-left: 0.5in; margin-right: 0.5in;"><h3 class="title">Using pre-compiled kernels</h3><p>I do not use the Debian pre-compiled kernels. I always opt to compile my own kernels using The Debian Way. If you are using your distribution's pre-compiled kernel, please check to make sure it has all relevant ACPI patches applied before you install it.</p></div><p>If you are running a production-level server and/or are serving web pages
+to the Internet, please also apply any additional security patches. You may have additional patches which must be applied for hardware or software problems specific to your system. Most laptop users should be fine with only the ACPI patch. If possible laptop users should also apply any additional security patches.</p><div class="warning" style="margin-left: 0.5in; margin-right: 0.5in;"><h3 class="title">Patching a previously patched kernel</h3><p>If a kernel has had other patches applied to it, you may have
+problems applying the ACPI patch. Of course, an ACPI patch should not be
+applied to a kernel that is already patched for ACPI.
+Depending on the patches applied, you may need to modify some of
+the Makefiles for your patch to be successful. This is beyond my current 
+grasp of reality so it is not covered in this document.</p></div></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="backups"></a>3.3. Backups</h3></div></div></div><p>If you are already running a kernel that is the same version of the
+one you are about to patch I recommend creating a fresh
+directory for the newly patched kernel. You should create a backup of all important kernel configuration and kernel-related files that may be affected by your work. Remember that backups are <span class="emphasis"><em>never</em></span> a bad thing and can be easily deleted after your system has been successfully patched.</p><div class="example"><a name="ex-backups"></a><p class="title"><b>Example 1. Files to backup</b></p><div class="example-contents"><div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem"><p><code class="filename">/etc/lilo.conf</code></p></li><li class="listitem"><p><code class="filename">/usr/src/*.deb</code>
+	 (Debian-specific)</p></li><li class="listitem"><p><code class="filename">/etc/modules</code></p></li><li class="listitem"><p><code class="filename">/etc/modutils/aliases</code></p></li><li class="listitem"><p><code class="filename">/usr/src/linux/.config</code></p></li></ul></div><p>If you are <span class="emphasis"><em>not</em></span> doing things The Debian Way you should also back up the following files:</p><div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem"><p><code class="filename">/lib/modules</code> (the entire directory)</p></li><li class="listitem"><p><code class="filename">/boot/vmlinuz</code></p></li><li class="listitem"><p><code class="filename">/usr/src/linux/arch/i386/boot/bzImage</code></p></li><li class="listitem"><p><code class="filename">/usr/src/System.map</code></p></li></ul></div><p>It is possible the location of these files differs on your system. Use <span class="application">locate</span> as follows if the files are not in the locations specified above: </p><div class="cmdsynopsis"><p><code class="command">locate <em class="replaceable"><code>&lt;file&gt;</code></em></code> </p></div></div></div><br class="example-break"></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="kernelprep"></a>3.4. Download and unpack the kernel source</h3></div></div></div><div class="sect3"><div class="titlepage"><div><div><h4 class="title"><a name="requiredpackages"></a>3.4.1. Required packages</h4></div></div></div><p>The following is a list of packages required to patch a kernel.</p><div class="example"><a name="ex-requiredpackages"></a><p class="title"><b>Example 2. Packages required for patching your kernel</b></p><div class="example-contents"><div class="itemizedlist"><p class="title"><b>2.6.x series kernels</b></p><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem"><p>kernel source files</p></li><li class="listitem"><p>ACPI patch that exactly matches the kernel
+	version</p></li><li class="listitem"><p>debian packages: binutils, e2fsprogs, gcc, make, module-init-tools, procps, util-linux (see also the list from 2.4)</p></li></ul></div><p>
+</p><div class="caution" style="margin-left: 0.5in; margin-right: 0.5in;"><h3 class="title">Learn more about the 2.6 kernel before you upgrade</h3><p>This HOWTO does not include information on how to migrate from a 2.4 series kernel to a 2.6 series kernel. Please read the resources listed in <a class="xref" href="#ref-upgrade-26" title="Migrating to the 2.6 series kernels">Migrating to the 2.6 series kernels</a> before attempting a kernel upgrade.</p></div><p>
+</p><div class="itemizedlist"><p class="title"><b>2.4.x series kernels</b></p><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem"><p>kernel source files</p></li><li class="listitem"><p>ACPI patch that exactly matches the kernel
+	version</p></li><li class="listitem"><p>debian packages: make, bzip2, gcc, libc6-dev, tk8.3,
+	libncurses5-dev, kernel-package</p></li></ul></div></div></div><br class="example-break"></div><div class="sect3"><div class="titlepage"><div><div><h4 class="title"><a name="get-kernel-source"></a>3.4.2. Getting the Source Files</h4></div></div></div><p>Download a fresh kernel from <a class="ulink" href="http://www.kernel.org" target="_top">www.kernel.org</a>. You need to make sure you
+get a full kernel. Find the <span class="quote">&#8220;<span class="quote">latest stable version of the Linux kernel</span>&#8221;</span> 
+and click on <code class="option">F</code> for FULL. Wait patiently. A bzipped kernel 
+is about 26M. If you are feeling particularly geeky you could also grab the file from the command line with <span class="application">wget</span>.</p><div class="tip" style="margin-left: 0.5in; margin-right: 0.5in;"><h3 class="title">Tip</h3><p>You may or may not want the latest stable version. For more information
+read the <a class="xref" href="#kernelchoice" title="3.2. Choosing a kernel">Section 3.2, &#8220;Choosing a kernel&#8221;</a> section of
+this document. If you decide to use a version of the kernel that is not
+published on the front page, use the <a class="ulink" href="http://www.kernel.org/pub/linux/kernel/" target="_top">/pub/linux/kernel</a>
+directory on the <a class="ulink" href="http://www.kernel.org" target="_top">kernel.org</a> 
+site to find the kernel you would like.</p></div><div class="example"><a name="ex-downloadkernel"></a><p class="title"><b>Example 3. Download the kernel and patch</b></p><div class="example-contents"><div class="blockquote"><blockquote class="blockquote"><div class="procedure"><ol class="procedure" type="1"><li class="step"><div class="cmdsynopsis"><p><code class="command">wget <code class="filename">http://kernel.org/pub/linux/kernel/v2.4/linux-<em class="replaceable"><code>&lt;version&gt;</code></em>.tar.bz2</code></code> </p></div></li><li class="step"><p>Download the latest patch for your kernel. This may or may not be the newest patch available. Please look carefully. For example: if you are using the 2.4.20 kernel you would get <code class="filename">acpi-20021212-2.4.20.diff.gz</code>. The patches can be downloaded from: <a class="ulink" href="http://prdownloads.sourceforge.net/acpi" target="_top">http://prdownloads.sourceforge.net/acpi</a>.</p></li><li class="step"><p>Note the revision date. In this example above the date is 20021212 (December 12, 2002), but it will almost certainly be different for your kernel. You will need to know this number when you check to make sure the patch worked.</p></li></ol></div></blockquote></div></div></div><br class="example-break"></div><div class="sect3"><div class="titlepage"><div><div><h4 class="title"><a name="unpack"></a>3.4.3. Unpack</h4></div></div></div><p>You will need to unpack the bz2 file (bzip2) and move the directories into place.
+<code class="filename">/usr/src/linux</code> probably points 
+to your current kernel. This link must point to the new kernel, you will update that link now as well.</p><div class="example"><a name="ex-unpack"></a><p class="title"><b>Example 4. Unpacking your kernel source files</b></p><div class="example-contents"><div class="blockquote"><blockquote class="blockquote"><div class="procedure"><ol class="procedure" type="1"><li class="step"><p>
+		<span class="command"><strong>
+			cd <code class="filename">/usr/src</code>
+		</strong></span>
+	</p></li><li class="step"><p>
+		<span class="command"><strong>tar <code class="option">xjfv</code> 
+		<code class="filename">linux.<em class="replaceable"><code>&lt;version&gt;</code></em>.tar.bz2</code></strong></span>
+	</p></li><li class="step"><p>
+		<span class="command"><strong>rm <code class="filename">linux</code></strong></span> 
+		 (assuming it is a link to your old kernel)
+	</p></li><li class="step"><p>
+		<span class="command"><strong>ln <code class="option">-s</code>
+		<code class="filename">/usr/src/linux.<em class="replaceable"><code>&lt;version&gt;</code></em></code>
+		<code class="filename">linux</code>
+		</strong></span>
+	</p></li></ol></div></blockquote></div></div></div><br class="example-break"><p>If your kernel needs to be patched, do so now.
+Full instructions are available from <a class="xref" href="#howto-patch" title="A. Patching Kernels">Appendix A, <i>Patching Kernels</i></a> or you can skip right to the step-by-step instructions at <a class="xref" href="#ex-patch" title="Example A.1. Patching your kernel">Patching your kernel</a>.</p></div></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="kernelconfig"></a>3.5. Configure the new kernel</h3></div></div></div><div class="note" style="margin-left: 0.5in; margin-right: 0.5in;"><h3 class="title">Patch Your Kernel First</h3><p>If you are using an old kernel you will need to patch it before
+	you can proceed. Instructions on patching your kernel are available
+	from <a class="xref" href="#howto-patch" title="A. Patching Kernels">Appendix A, <i>Patching Kernels</i></a>. Always check to see if your kernel should be patched.</p></div><p>Use <span class="command"><strong>make <em class="parameter"><code>oldconfig</code></em></strong></span> to configure your new kernel. Using <em class="parameter"><code>oldconfig</code></em> instead of <em class="parameter"><code>menuconfig</code></em> allows you to start with the options you have selected in your current kernel and prompts you to select your preference for all new kernel options. This is much easier than looking for all of the new options by hand. For everything specific to ACPI and your 
+hardware (if you use a Toshiba choose the Toshiba options, Asus choose the Asus
+options) choose <code class="option">M</code> for module. There are about ten
+different ACPI related options that you will need to select.</p><div class="example"><a name="ex-configure"></a><p class="title"><b>Example 5. Configuring your kernel</b></p><div class="example-contents"><p>Please also read the list of <a class="xref" href="#known-issues" title="C. Known Issues">Known Issues</a>.</p><div class="blockquote"><blockquote class="blockquote"><div class="procedure"><ol class="procedure" type="1"><li class="step"><p>
+		<span class="command"><strong>cd 
+		<code class="filename">/usr/src/linux</code>
+		</strong></span>
+	</p></li><li class="step"><p>
+		<span class="command"><strong>cp 
+		<code class="filename">/usr/src/<em class="replaceable"><code>&lt;oldkernel-source-directory&gt;</code></em>/.config</code>
+		<code class="filename">.config</code>
+		</strong></span>
+	</p></li><li class="step"><p>
+	<span class="command"><strong>make <em class="parameter"><code>oldconfig</code></em></strong></span> 
+	(say <code class="option">M</code> to all new options for
+	ACPI--you can also say <span class="quote">&#8220;<span class="quote"><code class="option">Y</code></span>&#8221;</span> if you prefer to compile it directly into your kernel)
+	</p></li><li class="step"><p>Please confirm the kernel is properly configured:</p><div class="procedure"><ol class="procedure" type="1"><li class="step"><p><span class="command"><strong>make <em class="parameter"><code>menuconfig</code></em></strong></span></p></li><li class="step"><p>Select <span class="quote">&#8220;<span class="quote"><span class="guimenu">General Setup</span></span>&#8221;</span></p></li><li class="step"><p>Confirm <span class="guimenuitem">Power Management Support</span> 
+		is ON</p></li><li class="step"><p>Confirm <span class="guimenuitem">APM (Advanced Power Management)</span> is OFF (this is the old style of power management that is being replaced)</p></li><li class="step"><p>Check everything to do with ACPI. Options related to your hardware should be <code class="option">M</code> (modules) or <code class="option">*</code> (compiled directly into the kernel). Read the list <span class="emphasis"><em>carefully</em></span>. Some options will not apply to your hardware.</p></li><li class="step"><p>Exit and save the new configuration</p></li></ol></div></li></ol></div></blockquote></div></div></div><br class="example-break"></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="kernelcompile"></a>3.6. Compile and install the new kernel</h3></div></div></div><p>It is now time to compile the kernel. These instructions are for Debian users. If you are not using Debian, or you do not like compiling your kernel The Debian Way, please read <a class="xref" href="#nodebkernel" title="B. Compiling Kernels the Non-Debian Way">Appendix B, <i>Compiling Kernels the Non-Debian Way</i></a> for more help.</p><p>If you have additional modules that are not part of the main source
+tree, you will need to add <em class="parameter"><code>modules_image</code></em> when you make your Debian
+packages. This is almost inevitable if you are using a laptop and an older
+kernel. I still need this option even in the 2.6.6 kernel due to my nVidia graphics card.</p><div class="example"><a name="ex-compile-deb"></a><p class="title"><b>Example 6. Compiling the kernel The Debian Way</b></p><div class="example-contents"><p>Each of these steps should be performed as the root user.</p><div class="blockquote"><blockquote class="blockquote"><div class="procedure"><ol class="procedure" type="1"><li class="step"><p><span class="command"><strong>cd <code class="filename">/usr/src/linux</code></strong></span></p></li><li class="step"><p><span class="command"><strong>make-kpkg <em class="parameter"><code>clean</code></em></strong></span></p></li><li class="step"><p><span class="command"><strong>make-kpkg <code class="option">--append-to-version=.<em class="replaceable"><code>&lt;a_unique_and_clever_name&gt;</code></em></code> <em class="parameter"><code>kernel_image</code></em> <em class="parameter"><code>modules_image</code></em></strong></span></p></li></ol></div></blockquote></div><p>I no longer use <em class="replaceable"><code>.date</code></em> to distinguish 
+kernel builds. It was too frustrating to have 030627a, 032627b (etc) as I tried to figure things out. I now use names, in alphabetical order, starting with the kernel build <span class="quote">&#8220;<span class="quote">alien</span>&#8221;</span>. My current kernel build is <span class="quote">&#8220;<span class="quote">Ulairi.</span>&#8221;</span> (The machine itself is <span class="quote">&#8220;<span class="quote">Smeagol</span>&#8221;</span>--a name it has earned.)</p></div></div><br class="example-break"><p>Now that the kernel is compiled it can be <span class="quote">&#8220;<span class="quote">installed.</span>&#8221;</span> For Debian users this means installing the Debian package file you created in the last step and then loading the new kernel into <span class="application">lilo</span>. I like to configure lilo on my own and have provided the instructions here, but I leave that decision up to you.</p><div class="example"><a name="ex-kernel-install"></a><p class="title"><b>Example 7. Install the new kernel</b></p><div class="example-contents"><p>Each of these steps should be performed as the root user.</p><div class="blockquote"><blockquote class="blockquote"><div class="procedure"><ol class="procedure" type="1"><li class="step"><p><span class="command"><strong>cd <code class="filename">/usr/src</code></strong></span></p></li><li class="step"><p><span class="command"><strong>dpkg <code class="option">-i</code> kernel-image-<em class="replaceable"><code>&lt;version&gt;</code></em>.<em class="replaceable"><code>&lt;a_unique_and_clever_name&gt;</code></em>_10.00.Custom_i386.deb</strong></span></p></li><li class="step"><p>At this point I decline <span class="emphasis"><em>all</em></span> the lilo updates and configure it myself by hand.
+	</p></li><li class="step"><p>To configure lilo:</p><div class="procedure"><ol class="procedure" type="1"><li class="step"><p><span class="command"><strong>vi <code class="filename">/etc/lilo.conf</code></strong></span></p></li><li class="step"><p>Scroll to the end of the file and look for a line that starts with <em class="parameter"><code>image=</code></em>.</p></li><li class="step"><p>Create an entry for your new kernel by adding the following three lines:</p><pre class="programlisting">
+image=/vmlinuz
+label=<em class="replaceable"><code>&lt;a_unique_and_clever_name&gt;</code></em>
+read-only
+</pre></li><li class="step"><p>Update the entry for your old kernel so that it points to the right <code class="filename">vmlinuz</code> file. You can use either <code class="filename">vmlinuz.old</code> if this is your first time recompiling the kernel, or look in <code class="filename">/boot</code> for the correct file.</p></li><li class="step"><p>If you would like, you can update the kernel that is selected by default by changing the <em class="parameter"><code>default=</code></em> parameter.</p></li></ol></div></li><li class="step"><p>
+	load the new kernel into lilo by running <span class="application">lilo</span> from the command line. You need only type: <span class="command"><strong>lilo</strong></span>
+	</p></li><li class="step"><p>
+	If you have any other deb files for your modules you should
+	install them now as well. If you are not sure check
+	<code class="filename">/usr/src</code> for additional
+	<code class="filename">.deb</code> files.
+	</p></li></ol></div></blockquote></div></div></div><br class="example-break"></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="finishinstall"></a>3.7. Reboot and test</h3></div></div></div><p>At this point you should reboot your machine. When your system comes
+back up (assuming of course that everything went well and you still have a
+system), you will need to check that you are running the new kernel with the correct patch.</p><div class="example"><a name="ex-check-revision"></a><p class="title"><b>Example 8. Confirm installed kernel and ACPI patch version</b></p><div class="example-contents"><p>First you need to make sure you are running the correct kernel. This can be done with the command line tool <span class="application">uname</span>. The
+revision is the date the patch was released and will be different for each kernel release.</p><p>
+<strong class="userinput"><code>
+<code class="prompt">$ </code> <span class="command"><strong>uname <code class="option">-a</code></strong></span>
+</code></strong>
+</p><p>Assuming you are indeed running the new kernel, you can now check the ACPI's revision date with the following command.</p><p>
+<strong class="userinput"><code><code class="prompt">$ </code> <span class="command"><strong>cat <code class="filename">/proc/acpi/info</code></strong></span>
+</code></strong>
+</p><p>This may give you only a version number, or a more detailed list. You are looking for the line that starts with <em class="parameter"><code>version:</code></em>.</p><p>If for some reason that gives you no information, you can also check the message printed when ACPI was first loaded as the system was booting. This information can be printed to a terminal window with the application <span class="application">dmesg</span>.</p><p>
+<strong class="userinput"><code><code class="prompt">$ </code> <span class="command"><strong>dmesg</strong></span> | <span class="command"><strong>grep <em class="parameter"><code>ACPI.*Subsystem\ revision</code></em></strong></span>
+</code></strong>
+</p><p>It should give the output: 
+<code class="computeroutput">ACPI: Subsystem revision 20040326</code>. The revision number is the date the patch was originally released by the development team. If you patched your kernel according to <a class="xref" href="#howto-patch" title="A. Patching Kernels">Appendix A, <i>Patching Kernels</i></a> this number will match the patch that you installed in <a class="xref" href="#ex-patch" title="Example A.1. Patching your kernel">Patching your kernel</a>.</p><p>To read all the ACPI-related information, you can expand the pattern that <span class="application">grep</span> matches and selectively print all ACPI messages:</p><p>
+<strong class="userinput"><code><code class="prompt">$ </code> <span class="command"><strong>dmesg</strong></span> | <span class="command"><strong>grep <em class="parameter"><code>ACPI</code></em></strong></span> </code></strong>
+</p></div></div><br class="example-break"></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="loadmodules"></a>3.8. Load related modules</h3></div></div></div><p>Check to see that each of the ACPI modules have been loaded after
+your machine boots. You can do this with the command
+<span class="command"><strong>lsmod</strong></span>. You are looking for the following options:
+button, battery, fan, ac, thermal and processor. If you chose
+<span class="quote">&#8220;<span class="quote">Y</span>&#8221;</span> instead of modules when you compiled your kernel, you
+will not see this list. The output on my computer looks like this:</p><pre class="screen">
+Module                  Size  Used by    Tainted: P  
+button                  2420   0 (unused)
+battery                 5960   0 (unused)
+ac                      1832   0 (unused)
+fan                     1608   0 (unused)
+thermal                 6664   0 (unused)
+processor               8664   0 [thermal]
+NVdriver              945408  11 
+</pre><p>The last module is my graphics card, which uses proprietary drivers. This
+is why I have a <span class="quote">&#8220;<span class="quote">P</span>&#8221;</span> next to Tainted on the top line.</p><p>If you compiled ACPI support in as <span class="quote">&#8220;<span class="quote">M</span>&#8221;</span>odules and you
+do not see the ACPI modules listed you will need to load the modules by
+hand. The modules should be in
+<code class="filename">/lib/modules/<em class="replaceable"><code>&lt;version&gt;</code></em>.
+<em class="replaceable"><code>&lt;a_unique_and_clever_name&gt;</code></em>/kernel/drivers/acpi/</code>, and are as
+follows:</p><pre class="screen">
+-rw-r--r--    1 root     root         4.1k Jun  3 23:57 ac.o
+-rw-r--r--    1 root     root         9.5k Jun  3 23:57 battery.o
+-rw-r--r--    1 root     root         5.2k Jun  3 23:57 button.o
+-rw-r--r--    1 root     root         3.7k Jun  3 23:57 fan.o
+-rw-r--r--    1 root     root          14k Jun  3 23:57 processor.o
+-rw-r--r--    1 root     root          11k Jun  3 23:57 thermal.o
+-rw-r--r--    1 root     root         6.2k Jun  3 23:57 toshiba_acpi.o
+</pre><div class="note" style="margin-left: 0.5in; margin-right: 0.5in;"><h3 class="title">Extensions on Modules</h3><p>The module name is the bit
+before <code class="filename">.o</code> extension on a module
+filename. <code class="filename">processor.o</code> is the file, and processor is
+the module name. To install a loadable kernel module use: 
+<span class="command"><strong>insmod <em class="replaceable"><code>processor</code></em></strong></span>. </p><p>
+		The 2.4.x series kernels use the extension <code class="filename">.o</code>; however, the 2.6.x
+		series kernel use the extension <code class="filename">.ko</code>.
+	</p></div><p>The first time I rebooted I loaded them all by hand, typing
+<span class="command"><strong>insmod <em class="replaceable"><code>&lt;modulename&gt;</code></em></strong></span>. 
+I personally load processor
+first, although there are mixed feelings on whether or not the order
+matters.</p><div class="note" style="margin-left: 0.5in; margin-right: 0.5in;"><h3 class="title">Operating System Power Management (OSPM)</h3><p>The first time I tried this the modules were all in separate
+directories and were ospm_&lt;name&gt;. This was probably because I was
+using an old patch, but it is something to be aware of. The OSPM modules
+are now deprecated so hopefully you will not see them.</p></div><p>To prevent having to load
+the modules each time you reboot you can do one of two things: compile them
+directly into the kernel (bit late for that though, eh?), or add them to
+your <code class="filename">/etc/modules</code> file. If you do not already have a copy of the
+file just create a new one and add each module name (remember, no
+dot-o) on a separate line. You can also try running
+<span class="command"><strong>update-modules</strong></span> which should automatically update your
+<code class="filename">/etc/modules.conf</code> configuration file.</p></div></div><div class="sect1"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="usingacpi"></a>4. Using ACPI</h2></div></div></div><p>There are a few different applications/daemons you should install
+on your system: <span class="application">acpid</span> (the daemon that will control your hardware states), and a monitoring program. I personally use <span class="application">wmacpi</span>. There are lots to choose from in <a class="xref" href="#ref-software" title="ACPI packages and related software">ACPI packages and related software</a>.</p><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="apm2acpi"></a>4.1. Switching from APM to ACPI</h3></div></div></div><p>Do not let <span class="application">apmd</span> and
+<span class="application">acpid</span> run at the same time unless you REALLY know
+what you are doing. Debian will <span class="emphasis"><em>not</em></span> make sure only one is running
+at a time. You will have to check.</p><p>APM will try to put your system into S3. On the 2.4.x (and before) series
+kernels this will probably cause your machine to lock up. S3 is not supported
+until at least 2.5.x. Even the patch will not provide support for S3 in the
+2.4.x series kernels. I completely removed APM support from the kernel, and removed the <span class="application">apmd</span> daemon from my system. On Debian this was as easy as <span class="command"><strong>apt-get remove apmd</strong></span>.</p></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="proc-acpi-files"></a>4.2. /proc/acpi files</h3></div></div></div><p>You can also look in each of the ACPI files individually for
+information about your system. Look in the <code class="filename">/proc/acpi</code> directory
+for various things of importance. If I want to check my battery I read the
+following file like this: <span class="command"><strong>cat
+<code class="filename">/proc/acpi/battery/BAT0/state</code></strong></span>. The output is as follows:</p><pre class="screen">
+present:                 yes
+capacity state:          ok
+charging state:          discharging &lt;-- running off battery
+present rate:            unknown
+remaining capacity:      3920 mAh &lt;-- watch this number
+present voltage:         14800 mV
+</pre><pre class="screen">
+present:                 yes
+capacity state:          ok
+charging state:          discharging
+present rate:            unknown
+remaining capacity:      3840 mAh &lt;-- capacity getting smaller
+present voltage:         14800 mV
+</pre><pre class="screen">
+present:                 yes
+capacity state:          ok
+charging state:          charging &lt;-- AC adapter plugged in
+present rate:            unknown
+remaining capacity:      3840 mAh
+present voltage:         14800 mV
+</pre><p>If I want information about my battery in general I check it out like
+this: <span class="command"><strong>cat <code class="filename">/proc/acpi/battery/BAT0/info</code></strong></span></p><pre class="screen">
+present:                 yes
+design capacity:         3920 mAh
+last full capacity:      3920 mAh
+battery technology:      rechargeable
+design voltage:          14800 mV
+design capacity warning: 30 mAh
+design capacity low:     20 mAh
+capacity granularity 1:  10 mAh
+capacity granularity 2:  3470 mAh
+model number:            Bat0
+serial number:              
+battery type:            Lion
+OEM info:                Acer
+</pre><p>For more information on each of these files, please read <a class="ulink" href="http://acpi.sourceforge.net/documentation/index.html" target="_top">http://acpi.sourceforge.net/documentation/index.html</a>.</p></div></div><div class="appendix"><h2 class="title" style="clear: both"><a name="howto-patch"></a>A. Patching Kernels</h2><p>If you are using a 2.4.x series kernel, the kernel will need to be patched
+before you can add ACPI support. Although ACPI is included in the 2.6.x
+series kernels you should check to see if any patches have been released
+to fix bugs. You can find this information on the ACPI4Linux site.</p><div class="sect1"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="kernelpatch"></a>1. Patch</h2></div></div></div><p>Now you are going to actually patch the kernel. I take one extra step from
+<a class="ulink" href="http://acpi.sourceforge.net/download.html" target="_top">the instructions</a> at
+ACPI4Linux. Instead of gunzipping and patching in the same line, I use two lines.
+This is purely a matter of preference. When you patch the kernel you want
+to make sure there are no error messages. (There is no <span class="quote">&#8220;<span class="quote">yay</span>&#8221;</span> line, instead
+look for the absence of errors.)</p><div class="example"><a name="ex-patch"></a><p class="title"><b>Example A.1. Patching your kernel</b></p><div class="example-contents"><p>These steps should be performed as the root user.</p><div class="blockquote"><blockquote class="blockquote"><div class="procedure"><ol class="procedure" type="1"><li class="step"><p>
+		<span class="command"><strong>cd 
+		<code class="filename">/usr/src/linux</code></strong></span>
+	</p></li><li class="step"><p>
+		<span class="command"><strong>cp 
+		<code class="filename">acpi-20021212-2.4.20.diff.gz</code>
+		<code class="filename">/usr/src/linux/.</code>
+		</strong></span>
+		(Your patch filename will be different if you are not using the
+		2.4.20 kernel.)
+	</p></li><li class="step"><p>
+		<span class="command"><strong>gunzip  
+		<code class="filename">acpi-20021212-2.4.20.diff.gz</code></strong></span>
+	</p></li><li class="step"><p>
+		<span class="command"><strong>patch <code class="option">-p<em class="parameter"><code>1</code></em></code> &lt;
+		<code class="filename">acpi-20021212-2.4.20.diff</code>
+		</strong></span> 
+	 (this is the actual patching part)
+	</p></li></ol></div></blockquote></div></div></div><br class="example-break"><p>Once you have finished patching your kernel, continue reading at <a class="xref" href="#kernelconfig" title="3.5. Configure the new kernel">Section 3.5, &#8220;Configure the new kernel&#8221;</a>.
+</p></div></div><div class="appendix"><h2 class="title" style="clear: both"><a name="nodebkernel"></a>B. Compiling Kernels the Non-Debian Way</h2><p>There is very little difference between The Debian Way and the
+generic way. In fact it is probably only 10 or so lines of difference.</p><div class="sect1"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="nodebcompile"></a>1. Compile the kernel</h2></div></div></div><p>The <span class="quote">&#8220;<span class="quote">normal</span>&#8221;</span> way of compiling a kernel does not use
+<span class="command"><strong>make-kpkg</strong></span>. Instead, it uses the following steps:</p><div class="example"><a name="ex-compilenodeb"></a><p class="title"><b>Example B.1. Compile the kernel</b></p><div class="example-contents"><div class="blockquote"><blockquote class="blockquote"><div class="procedure"><ol class="procedure" type="1"><li class="step"><p>
+		<span class="command"><strong>cd 
+		<code class="filename">/usr/src/linux</code>
+		</strong></span> which should point to the kernel (unzipped) files
+	</p></li><li class="step"><p>
+		<span class="command"><strong>make <em class="parameter"><code>dep</code></em></strong></span>
+	</p></li><li class="step"><p>
+		<span class="command"><strong>make <em class="parameter"><code>clean</code></em></strong></span>
+	</p></li><li class="step"><p>
+		<span class="command"><strong>make <em class="parameter"><code>bzImage</code></em></strong></span>
+	</p></li><li class="step"><p>
+		<span class="command"><strong>make <em class="parameter"><code>modules</code></em></strong></span>
+		(remember to unpack your modules first)
+	</p></li></ol></div></blockquote></div></div></div><br class="example-break"></div><div class="sect1"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="nodebinstall"></a>2. Install the new kernel</h2></div></div></div><p>In <em class="citetitle">The Debian Way</em>, you create a deb file which contains information about where the kernel is (and makes the kernel and yada-yada). In the <span class="quote">&#8220;<span class="quote">normal</span>&#8221;</span> way, you put things where they need to be right away. You need to install your modules and then configure lilo to point to the new kernel and then run
+lilo. If you are not doing things <em class="citetitle">The Debian Way</em> your <span class="quote">&#8220;<span class="quote">install</span>&#8221;</span> will look like this:</p><div class="example"><a name="ex-nodebinstall"></a><p class="title"><b>Example B.2. Install the new kernel</b></p><div class="example-contents"><div class="blockquote"><blockquote class="blockquote"><div class="procedure"><ol class="procedure" type="1"><li class="step"><p>
+		<span class="command"><strong>cd 
+		<code class="filename">/usr/src/linux</code>
+		</strong></span>
+	</p></li><li class="step"><p>
+		<span class="command"><strong>make
+		<em class="parameter"><code>modules_install</code></em></strong></span>
+	</p></li><li class="step"><p>
+		<span class="command"><strong>cp 
+		<code class="filename">arch/i386/boot/bzImage</code>
+		<code class="filename">/boot/vmlinuz.<em class="replaceable"><code>&lt;a_unique_and_clever_name&gt;</code></em></code>
+		</strong></span>
+	</p></li><li class="step"><p>
+	<span class="command"><strong>vi <code class="filename">/etc/lilo.conf</code></strong></span> and copy the structure of your
+	existing kernel. Do NOT delete the reference to your existing kernel! You need 
+	to point lilo to the <span class="quote">&#8220;<span class="quote">vmlinuz</span>&#8221;</span> file that was created when you compiled the
+	kernel above
+	</p></li><li class="step"><p><span class="command"><strong>lilo</strong></span> (yup, just exactly like that.) 
+	<a class="xref" href="#LILO" title="LILO">LILO</a> will let you know if it is going to have major problems loading 
+	the new kernel.
+	</p></li></ol></div></blockquote></div></div></div><br class="example-break"><div class="warning" style="margin-left: 0.5in; margin-right: 0.5in;"><h3 class="title">Warning</h3><p>Do NOT forget to run lilo before rebooting. Type
+<span class="command"><strong>lilo</strong></span>. It is that easy (and that easy to forget).</p></div></div><div class="sect1"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="nodebsoftware"></a>3. Software packages</h2></div></div></div><p>You can still use all of the software mentioned in this HOWTO even if
+you are not using Debian. Unfortunately it will take a little more effort on
+your part to download and install everything. Fortunately it is really not
+that difficult. Most software packages include a README file when you
+gunzip them which will explain what you need to do to get things working on
+your system.</p><div class="tip" style="margin-left: 0.5in; margin-right: 0.5in;"><h3 class="title">Software downloads</h3><p>
+	  For more information about software for ACPI, please use the
+	  <a class="xref" href="#ref-software" title="ACPI packages and related software">ACPI packages and related software</a>.
+	</p></div></div></div><div class="appendix"><h2 class="title" style="clear: both"><a name="known-issues"></a>C. Known Issues</h2><p>There are a number of problems which have been identified for various laptop models. Please scan through this list before you finish compiling the kernel to see if your hardware is affected by any of the following problems. You may also want to use this as a trouble shooting guide after installing your system if you are still having problems.</p><p>Known issues for the 2.4 kernel include:</p><div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem"><p>DPMS (Energy Star) features try to suspend the laptop</p></li></ul></div><p>Known issues for the 2.6 kernel include:</p><div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem"><p>acpi_power_off hangs</p></li><li class="listitem"><p>touch pad/mouse or keyboard freezes</p></li></ul></div><div class="sect1"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="known-issues-24"></a>1. 2.4 series kernels</h2></div></div></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="dpms-features"></a>1.1. DPMS features</h3></div></div></div><p>This is not a bug exactly, but it is something to be aware of. The
+<span class="application">XFree86</span> server has an option for <a class="xref" href="#DPMS" title="DPMS">DPMS</a> (Energy Star) features. The DPMS states can be one of standby, suspend,  off or on. Since the 2.4.x kernels
+cannot suspend to disk, this can cause problems. I fixed my system by doing
+two things:</p><div class="procedure"><ol class="procedure" type="1"><li class="step"><p>
+		<span class="command"><strong>xset <code class="option">-dpms</code></strong></span> (disables DPMS features)
+	</p></li><li class="step"><p>
+		In <code class="filename">/etc/X11/XF86Config-4</code> I commented out
+	the line <code class="option">Option "DPMS"</code> under Section "Monitor".</p></li></ol></div></div></div><div class="sect1"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="known-issues-26"></a>2. 2.6 series kernels</h2></div></div></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="acpi_power_off-hangs"></a>2.1. acpi_power_off hangs in 2.6</h3></div></div></div><p>There are a couple of solutions to this problem, depending on your laptop.</p><p>The easiest option to try is to remove the <a class="xref" href="#APIC" title="APIC">APIC</a> options at boot time. This has been reported to work on a Sony TR2. In the <code class="filename">/etc/lilo.conf</code> file look for a line that has <em class="parameter"><code>append=""</code></em>. Inside the quotes add the words <code class="option">nolapic</code> and <code class="option">noapic</code>.</p><div class="example"><a name="ex-appendlilo"></a><p class="title"><b>Example C.1. Updating the append directive in LILO</b></p><div class="example-contents"><p>Open and edit the <code class="filename">/etc/lilo.conf</code> configuration file as root. Add the appropriate instructions to the existing append statement. If there is not an append statement you can add one right before the list of boot disk images. In my <code class="filename">/etc/lilo.conf</code> it would look like this:</p><pre class="screen">
+
+<em class="parameter"><code>append="<code class="option">nolapic</code> <code class="option">noapic</code>"</code></em>
+
+default="<em class="replaceable"><code>&lt;a_unique_and_clever_name&gt;</code></em>"
+image=/vmlinuz
+label=<em class="replaceable"><code>&lt;a_unique_and_clever_name&gt;</code></em>
+read-only
+
+</pre><p>After editing the configuration file, load the new information by running the command <span class="command"><strong>lilo</strong></span> as root.</p><pre class="screen"><strong class="userinput"><code><code class="prompt">#</code> <span class="command"><strong>lilo</strong></span></code></strong></pre></div></div><br class="example-break"><p>You can also remove these two modules from the kernel completely by removing the following kernel options: <code class="option">CONFIG_X86_UP_APIC</code>, <code class="option">CONFIG_X86_UP_IOAPIC</code>. This is what I have done with my Acer TravelMate.</p><p>Acer TravelMates should also disable the <a class="xref" href="#RTC" title="RTC">RTC</a>-related modules. They are not needed for <span class="quote">&#8220;<span class="quote">normal</span>&#8221;</span> operation.</p><p>The following kernel modules should be unselected to allow the notebook to power off correctly:</p><div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem"><p><code class="option">CONFIG_HPET_EMULATE_RTC</code></p></li><li class="listitem"><p><code class="option">CONFIG_RTC</code></p></li><li class="listitem"><p><code class="option">CONFIG_SND_RTCTIMER</code></p></li></ul></div><p>Thank you to mizu for discovering this solution!</p></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="touchpad-freezes"></a>2.2. Touchpad/Mouse or Keyboard Freezes</h3></div></div></div><p>Karl Hegbloom emailed me to say that <span class="quote">&#8220;<span class="quote">keyboard
+keys sticking, touch pad pointer jumping suddenly across the screen,
+lockups under heavy network I/O [was] caused by
+polling the battery state via ACPI and the proc file system.</span>&#8221;</span> This
+problem is caused by a delay between the initial request for
+information about the battery's status and the response. In that delay
+communication with the keyboard or touch pad may be temporarily interrupted causing the device to become out of sync (jumpy) or the communication lost (freeze).
+<span class="quote">&#8220;<span class="quote">The overnight solution is to either turn off
+the battery applet, or reduce its polling frequency.</span>&#8221;</span> Karl also
+notes that a BIOS update was also able to solve the problem. Thanks Karl!</p><p>
+	I did not find this to be a problem for me in the 2.4.x kernels,
+	however, it was a problem when I upgraded to 2.6.5. I use
+	<span class="application">wmacpi</span> to monitor my battery status. By
+	setting the polling frequency to 1 (the lowest possible number), I seem
+	to have eliminated the touch pad lockups. In my
+	<code class="filename">.xinitrc</code> file I use:
+</p><p>
+<strong class="userinput"><code>
+<span class="command"><strong>/usr/bin/wmacpi</strong></span> <em class="parameter"><code>-s 1</code></em>
+</code></strong>
+</p><p>
+	The <em class="parameter"><code>-s 1</code></em> represents the polling frequency
+	(sample rate) of <span class="quote">&#8220;<span class="quote">once per minute.</span>&#8221;</span> The default is 20.
+</p><div class="caution" style="margin-left: 0.5in; margin-right: 0.5in;"><h3 class="title">Caution</h3><p>If you recently upgraded to the 2.6 series kernel, make sure your touch pad drivers are correctly installed as well. You may find the following KernelTrap article useful if you are not sure where to start: <a class="ulink" href="http://kerneltrap.org/node/view/2199" target="_top">http://kerneltrap.org/node/view/2199</a>.</p></div></div></div></div><div class="appendix"><h2 class="title" style="clear: both"><a name="gfdl"></a>D. GNU Free Documentation License</h2><p>Version 1.1, March 2000</p><div class="blockquote"><blockquote class="blockquote"><p>Copyright (C) 2000  Free Software Foundation, Inc.
+59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+Everyone is permitted to copy and distribute verbatim copies
+of this license document, but changing it is not allowed.</p></blockquote></div><div class="sect1"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="gfdl-0"></a>1. PREAMBLE</h2></div></div></div><p>The purpose of this License is to make a manual, textbook,
+    or other written document "free" in the sense of freedom: to
+    assure everyone the effective freedom to copy and redistribute it,
+    with or without modifying it, either commercially or
+    noncommercially.  Secondarily, this License preserves for the
+    author and publisher a way to get credit for their work, while not
+    being considered responsible for modifications made by
+    others.</p><p>This License is a kind of "copyleft", which means that
+    derivative works of the document must themselves be free in the
+    same sense.  It complements the GNU General Public License, which
+    is a copyleft license designed for free software.</p><p>We have designed this License in order to use it for manuals
+    for free software, because free software needs free documentation:
+    a free program should come with manuals providing the same
+    freedoms that the software does.  But this License is not limited
+    to software manuals; it can be used for any textual work,
+    regardless of subject matter or whether it is published as a
+    printed book.  We recommend this License principally for works
+    whose purpose is instruction or reference.</p></div><div class="sect1"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="gfdl-1"></a>2. APPLICABILITY AND DEFINITIONS</h2></div></div></div><p>This License applies to any manual or other work that
+    contains a notice placed by the copyright holder saying it can be
+    distributed under the terms of this License.  The "Document",
+    below, refers to any such manual or work.  Any member of the
+    public is a licensee, and is addressed as "you".</p><p>A "Modified Version" of the Document means any work
+    containing the Document or a portion of it, either copied
+    verbatim, or with modifications and/or translated into another
+    language.</p><p>A "Secondary Section" is a named appendix or a front-matter
+    section of the Document that deals exclusively with the
+    relationship of the publishers or authors of the Document to the
+    Document's overall subject (or to related matters) and contains
+    nothing that could fall directly within that overall subject.
+    (For example, if the Document is in part a textbook of
+    mathematics, a Secondary Section may not explain any mathematics.)
+    The relationship could be a matter of historical connection with
+    the subject or with related matters, or of legal, commercial,
+    philosophical, ethical or political position regarding
+    them.</p><p>The "Invariant Sections" are certain Secondary Sections
+    whose titles are designated, as being those of Invariant Sections,
+    in the notice that says that the Document is released under this
+    License.</p><p>The "Cover Texts" are certain short passages of text that
+    are listed, as Front-Cover Texts or Back-Cover Texts, in the
+    notice that says that the Document is released under this
+    License.</p><p>A "Transparent" copy of the Document means a
+    machine-readable copy, represented in a format whose specification
+    is available to the general public, whose contents can be viewed
+    and edited directly and straightforwardly with generic text
+    editors or (for images composed of pixels) generic paint programs
+    or (for drawings) some widely available drawing editor, and that
+    is suitable for input to text formatters or for automatic
+    translation to a variety of formats suitable for input to text
+    formatters.  A copy made in an otherwise Transparent file format
+    whose markup has been designed to thwart or discourage subsequent
+    modification by readers is not Transparent.  A copy that is not
+    "Transparent" is called "Opaque".</p><p>Examples of suitable formats for Transparent copies include
+    plain ASCII without markup, Texinfo input format, LaTeX input
+    format, SGML or XML using a publicly available DTD, and
+    standard-conforming simple HTML designed for human modification.
+    Opaque formats include PostScript, PDF, proprietary formats that
+    can be read and edited only by proprietary word processors, SGML
+    or XML for which the DTD and/or processing tools are not generally
+    available, and the machine-generated HTML produced by some word
+    processors for output purposes only.</p><p>The "Title Page" means, for a printed book, the title page
+    itself, plus such following pages as are needed to hold, legibly,
+    the material this License requires to appear in the title page.
+    For works in formats which do not have any title page as such,
+    "Title Page" means the text near the most prominent appearance of
+    the work's title, preceding the beginning of the body of the
+    text.</p></div><div class="sect1"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="gfdl-2"></a>3. VERBATIM COPYING</h2></div></div></div><p>You may copy and distribute the Document in any medium,
+    either commercially or noncommercially, provided that this
+    License, the copyright notices, and the license notice saying this
+    License applies to the Document are reproduced in all copies, and
+    that you add no other conditions whatsoever to those of this
+    License.  You may not use technical measures to obstruct or
+    control the reading or further copying of the copies you make or
+    distribute.  However, you may accept compensation in exchange for
+    copies.  If you distribute a large enough number of copies you
+    must also follow the conditions in section 3.</p><p>You may also lend copies, under the same conditions stated
+    above, and you may publicly display copies.</p></div><div class="sect1"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="gfdl-3"></a>4. COPYING IN QUANTITY</h2></div></div></div><p>If you publish printed copies of the Document numbering more
+    than 100, and the Document's license notice requires Cover Texts,
+    you must enclose the copies in covers that carry, clearly and
+    legibly, all these Cover Texts: Front-Cover Texts on the front
+    cover, and Back-Cover Texts on the back cover.  Both covers must
+    also clearly and legibly identify you as the publisher of these
+    copies.  The front cover must present the full title with all
+    words of the title equally prominent and visible.  You may add
+    other material on the covers in addition.  Copying with changes
+    limited to the covers, as long as they preserve the title of the
+    Document and satisfy these conditions, can be treated as verbatim
+    copying in other respects.</p><p>If the required texts for either cover are too voluminous to
+    fit legibly, you should put the first ones listed (as many as fit
+    reasonably) on the actual cover, and continue the rest onto
+    adjacent pages.</p><p>If you publish or distribute Opaque copies of the Document
+    numbering more than 100, you must either include a
+    machine-readable Transparent copy along with each Opaque copy, or
+    state in or with each Opaque copy a publicly-accessible
+    computer-network location containing a complete Transparent copy
+    of the Document, free of added material, which the general
+    network-using public has access to download anonymously at no
+    charge using public-standard network protocols.  If you use the
+    latter option, you must take reasonably prudent steps, when you
+    begin distribution of Opaque copies in quantity, to ensure that
+    this Transparent copy will remain thus accessible at the stated
+    location until at least one year after the last time you
+    distribute an Opaque copy (directly or through your agents or
+    retailers) of that edition to the public.</p><p>It is requested, but not required, that you contact the
+    authors of the Document well before redistributing any large
+    number of copies, to give them a chance to provide you with an
+    updated version of the Document.</p></div><div class="sect1"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="gfdl-4"></a>5. MODIFICATIONS</h2></div></div></div><p>You may copy and distribute a Modified Version of the
+    Document under the conditions of sections 2 and 3 above, provided
+    that you release the Modified Version under precisely this
+    License, with the Modified Version filling the role of the
+    Document, thus licensing distribution and modification of the
+    Modified Version to whoever possesses a copy of it.  In addition,
+    you must do these things in the Modified Version:</p><div class="orderedlist"><ol class="orderedlist" type="A"><li class="listitem"><p>Use in the Title Page
+      (and on the covers, if any) a title distinct from that of the
+      Document, and from those of previous versions (which should, if
+      there were any, be listed in the History section of the
+      Document).  You may use the same title as a previous version if
+      the original publisher of that version gives permission.</p></li><li class="listitem"><p>List on the Title Page,
+      as authors, one or more persons or entities responsible for
+      authorship of the modifications in the Modified Version,
+      together with at least five of the principal authors of the
+      Document (all of its principal authors, if it has less than
+      five).</p></li><li class="listitem"><p>State on the Title page
+      the name of the publisher of the Modified Version, as the
+      publisher.</p></li><li class="listitem"><p>Preserve all the
+      copyright notices of the Document.</p></li><li class="listitem"><p>Add an appropriate
+      copyright notice for your modifications adjacent to the other
+      copyright notices.</p></li><li class="listitem"><p>Include, immediately
+      after the copyright notices, a license notice giving the public
+      permission to use the Modified Version under the terms of this
+      License, in the form shown in the Addendum below.</p></li><li class="listitem"><p>Preserve in that license
+      notice the full lists of Invariant Sections and required Cover
+      Texts given in the Document's license notice.</p></li><li class="listitem"><p>Include an unaltered
+      copy of this License.</p></li><li class="listitem"><p>Preserve the section
+      entitled "History", and its title, and add to it an item stating
+      at least the title, year, new authors, and publisher of the
+      Modified Version as given on the Title Page.  If there is no
+      section entitled "History" in the Document, create one stating
+      the title, year, authors, and publisher of the Document as given
+      on its Title Page, then add an item describing the Modified
+      Version as stated in the previous sentence.</p></li><li class="listitem"><p>Preserve the network
+      location, if any, given in the Document for public access to a
+      Transparent copy of the Document, and likewise the network
+      locations given in the Document for previous versions it was
+      based on.  These may be placed in the "History" section.  You
+      may omit a network location for a work that was published at
+      least four years before the Document itself, or if the original
+      publisher of the version it refers to gives permission.</p></li><li class="listitem"><p>In any section entitled
+      "Acknowledgements" or "Dedications", preserve the section's
+      title, and preserve in the section all the substance and tone of
+      each of the contributor acknowledgements and/or dedications
+      given therein.</p></li><li class="listitem"><p>Preserve all the
+      Invariant Sections of the Document, unaltered in their text and
+      in their titles.  Section numbers or the equivalent are not
+      considered part of the section titles.</p></li><li class="listitem"><p>Delete any section
+      entitled "Endorsements".  Such a section may not be included in
+      the Modified Version.</p></li><li class="listitem"><p>Do not retitle any
+      existing section as "Endorsements" or to conflict in title with
+      any Invariant Section.</p></li></ol></div><p>If the Modified Version includes new front-matter sections
+    or appendices that qualify as Secondary Sections and contain no
+    material copied from the Document, you may at your option
+    designate some or all of these sections as invariant.  To do this,
+    add their titles to the list of Invariant Sections in the Modified
+    Version's license notice.  These titles must be distinct from any
+    other section titles.</p><p>You may add a section entitled "Endorsements", provided it
+    contains nothing but endorsements of your Modified Version by
+    various parties--for example, statements of peer review or that
+    the text has been approved by an organization as the authoritative
+    definition of a standard.</p><p>You may add a passage of up to five words as a Front-Cover
+    Text, and a passage of up to 25 words as a Back-Cover Text, to the
+    end of the list of Cover Texts in the Modified Version.  Only one
+    passage of Front-Cover Text and one of Back-Cover Text may be
+    added by (or through arrangements made by) any one entity.  If the
+    Document already includes a cover text for the same cover,
+    previously added by you or by arrangement made by the same entity
+    you are acting on behalf of, you may not add another; but you may
+    replace the old one, on explicit permission from the previous
+    publisher that added the old one.</p><p>The author(s) and publisher(s) of the Document do not by
+    this License give permission to use their names for publicity for
+    or to assert or imply endorsement of any Modified Version.</p></div><div class="sect1"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="gfdl-5"></a>6. COMBINING DOCUMENTS</h2></div></div></div><p>You may combine the Document with other documents released
+    under this License, under the terms defined in section 4 above for
+    modified versions, provided that you include in the combination
+    all of the Invariant Sections of all of the original documents,
+    unmodified, and list them all as Invariant Sections of your
+    combined work in its license notice.</p><p>The combined work need only contain one copy of this
+    License, and multiple identical Invariant Sections may be replaced
+    with a single copy.  If there are multiple Invariant Sections with
+    the same name but different contents, make the title of each such
+    section unique by adding at the end of it, in parentheses, the
+    name of the original author or publisher of that section if known,
+    or else a unique number.  Make the same adjustment to the section
+    titles in the list of Invariant Sections in the license notice of
+    the combined work.</p><p>In the combination, you must combine any sections entitled
+    "History" in the various original documents, forming one section
+    entitled "History"; likewise combine any sections entitled
+    "Acknowledgements", and any sections entitled "Dedications".  You
+    must delete all sections entitled "Endorsements."</p></div><div class="sect1"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="gfdl-6"></a>7. COLLECTIONS OF DOCUMENTS</h2></div></div></div><p>You may make a collection consisting of the Document and
+    other documents released under this License, and replace the
+    individual copies of this License in the various documents with a
+    single copy that is included in the collection, provided that you
+    follow the rules of this License for verbatim copying of each of
+    the documents in all other respects.</p><p>You may extract a single document from such a collection,
+    and distribute it individually under this License, provided you
+    insert a copy of this License into the extracted document, and
+    follow this License in all other respects regarding verbatim
+    copying of that document.</p></div><div class="sect1"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="gfdl-7"></a>8. AGGREGATION WITH INDEPENDENT WORKS</h2></div></div></div><p>A compilation of the Document or its derivatives with other
+    separate and independent documents or works, in or on a volume of
+    a storage or distribution medium, does not as a whole count as a
+    Modified Version of the Document, provided no compilation
+    copyright is claimed for the compilation.  Such a compilation is
+    called an "aggregate", and this License does not apply to the
+    other self-contained works thus compiled with the Document, on
+    account of their being thus compiled, if they are not themselves
+    derivative works of the Document.</p><p>If the Cover Text requirement of section 3 is applicable to
+    these copies of the Document, then if the Document is less than
+    one quarter of the entire aggregate, the Document's Cover Texts
+    may be placed on covers that surround only the Document within the
+    aggregate.  Otherwise they must appear on covers around the whole
+    aggregate.</p></div><div class="sect1"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="gfdl-8"></a>9. TRANSLATION</h2></div></div></div><p>Translation is considered a kind of modification, so you may
+    distribute translations of the Document under the terms of section
+    4.  Replacing Invariant Sections with translations requires
+    special permission from their copyright holders, but you may
+    include translations of some or all Invariant Sections in addition
+    to the original versions of these Invariant Sections.  You may
+    include a translation of this License provided that you also
+    include the original English version of this License.  In case of
+    a disagreement between the translation and the original English
+    version of this License, the original English version will
+    prevail.</p></div><div class="sect1"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="gfdl-9"></a>10. TERMINATION</h2></div></div></div><p>You may not copy, modify, sublicense, or distribute the
+    Document except as expressly provided for under this License.  Any
+    other attempt to copy, modify, sublicense or distribute the
+    Document is void, and will automatically terminate your rights
+    under this License.  However, parties who have received copies, or
+    rights, from you under this License will not have their licenses
+    terminated so long as such parties remain in full
+    compliance.</p></div><div class="sect1"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="gfdl-10"></a>11. FUTURE REVISIONS OF THIS LICENSE</h2></div></div></div><p>The Free Software Foundation may publish new, revised
+    versions of the GNU Free Documentation License from time to time.
+    Such new versions will be similar in spirit to the present
+    version, but may differ in detail to address new problems or
+    concerns.  See <a class="ulink" href="http://www.gnu.org/copyleft/" target="_top">http://www.gnu.org/copyleft/</a>.</p><p>Each version of the License is given a distinguishing
+    version number.  If the Document specifies that a particular
+    numbered version of this License "or any later version" applies to
+    it, you have the option of following the terms and conditions
+    either of that specified version or of any later version that has
+    been published (not as a draft) by the Free Software Foundation.
+    If the Document does not specify a version number of this License,
+    you may choose any version ever published (not as a draft) by the
+    Free Software Foundation.</p></div><div class="sect1"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="gfdl-11"></a>12. How to use this License for your documents</h2></div></div></div><p>To use this License in a document you have written, include
+    a copy of the License in the document and put the following
+    copyright and license notices just after the title page:</p><div class="blockquote"><blockquote class="blockquote"><p>
+      Copyright (c)  YEAR  YOUR NAME.
+      Permission is granted to copy, distribute and/or modify this document
+      under the terms of the GNU Free Documentation License, Version 1.1
+      or any later version published by the Free Software Foundation;
+      with the Invariant Sections being LIST THEIR TITLES, with the
+      Front-Cover Texts being LIST, and with the Back-Cover Texts being LIST.
+      A copy of the license is included in the section entitled "GNU
+      Free Documentation License".
+</p></blockquote></div><p>If you have no Invariant Sections, write "with no Invariant
+    Sections" instead of saying which ones are invariant.  If you have
+    no Front-Cover Texts, write "no Front-Cover Texts" instead of
+    "Front-Cover Texts being LIST"; likewise for Back-Cover
+    Texts.</p><p>If your document contains nontrivial examples of program
+    code, we recommend releasing these examples in parallel under your
+    choice of free software license, such as the GNU General Public
+    License, to permit their use in free software.</p></div></div><div class="glossary"><div class="titlepage"><div><div><h2 class="title"><a name="glossary"></a>Glossary</h2></div></div></div><div class="abstract"><p class="title"><b>Abstract</b></p><p>Terms and definitions for the many <a class="xref" href="#TLA" title="TLA">TLA</a>s in this document. Some entries are modified from the <a class="ulink" href="http://www.tldp.org/LDP/Linux-Dictionary/" target="_top">Linux Dictionary</a>.</p></div><div class="glossdiv"><h3 class="title">A</h3><dl><dt><a name="ACPI"></a><span class="glossterm">ACPI</span></dt><dd class="glossdef"><p>Abbreviation for Advanced Control and Power Interface. Allows control of power management from within the operating system.</p><p>See also: <a class="xref" href="#APM" title="APM">APM</a></p></dd><dt><a name="APIC"></a><span class="glossterm">APIC</span></dt><dd class="glossdef"><p>Abbreviation for Advanced Programmable Interrupt Controller. A set of devices that make up an interrupt controller for multi-processor support. It consists of three parts: local APIC, In/Out APIC and an APIC bus.</p></dd><dt><a name="APM"></a><span class="glossterm">APM</span></dt><dd class="glossdef"><p>Abbreviation for Advanced Power Management. Power management from within the BIOS. Replaced by ACPI.</p><p>See also: <a class="xref" href="#ACPI" title="ACPI">ACPI</a></p><p>See also: <a class="xref" href="#BIOS" title="BIOS">BIOS</a></p></dd></dl></div><div class="glossdiv"><h3 class="title">B</h3><dl><dt><a name="BIOS"></a><span class="glossterm">BIOS</span></dt><dd class="glossdef"><p>Abbreviation for Basic Input/Output System. Services that allow the hardware and software of a computer to communicate.</p></dd></dl></div><div class="glossdiv"><h3 class="title">D</h3><dl><dt><a name="debian"></a><span class="glossterm">Debian</span></dt><dd class="glossdef"><p>The distribution of Linux used by the author. <a class="ulink" href="http://www.debian.org" target="_top">http://www.debian.org</a></p></dd><dt><a name="DPMS"></a><span class="glossterm">DPMS</span></dt><dd class="glossdef"><p>Abbreviation for Display Power Management Signaling. A standard developed to extend the life of PC monitors and conserve energy when monitors are not in use.</p></dd><dt><a name="DSDT"></a><span class="glossterm">DSDT</span></dt><dd class="glossdef"><p>Abbreviation for Differentiated System Description Table. This table contains information and configuration about the base system. It is not always capable of supplying fully function tables and sometimes must be patched.</p><p>See also: <a class="xref" href="#patch" title="patch">patch</a>, <a class="ulink" href="http://acpi.sourceforge.net/dsdt/index.php" target="_top">http://acpi.sourceforge.net/dsdt/index.php</a>.</p></dd></dl></div><div class="glossdiv"><h3 class="title">L</h3><dl><dt><a name="LILO"></a><span class="glossterm">LILO</span></dt><dd class="glossdef"><p>Abbreviation for LInux LOader. Installs the boot loader which decides the operating system to use when the computer is first turned on. You may have Grub installed instead.</p></dd></dl></div><div class="glossdiv"><h3 class="title">K</h3><dl><dt><a name="kernel"></a><span class="glossterm">kernel</span></dt><dd class="glossdef"><p>The core of an operating system. Responsible for many things including managing resources, sharing memory and user access.</p><p>See also: <a class="ulink" href="http://www.kernel.org" target="_top">http://www.kernel.org</a></p></dd></dl></div><div class="glossdiv"><h3 class="title">M</h3><dl><dt><a name="module"></a><span class="glossterm">module</span></dt><dd class="glossdef"><p>A piece of code that can be loaded or unloaded from the main program. In this document module refers to kernel modules.</p><p>See also: <a class="xref" href="#kernel" title="kernel">kernel</a></p></dd></dl></div><div class="glossdiv"><h3 class="title">P</h3><dl><dt><a name="patch"></a><span class="glossterm">patch</span></dt><dd class="glossdef"><p>A fix applied to the source code of a program. Used to correct bugs or enhance a program's capabilities.</p></dd></dl></div><div class="glossdiv"><h3 class="title">R</h3><dl><dt><a name="RTC"></a><span class="glossterm">RTC</span></dt><dd class="glossdef"><p>Abbreviation for Real Time Clock. Used by the system to keep track of time while the computer is powered off.</p><p>See also: <a class="ulink" href="http://www.linuxgazette.com/node/view/8993" target="_top">http://www.linuxgazette.com/node/view/8993</a></p></dd></dl></div><div class="glossdiv"><h3 class="title">T</h3><dl><dt><a name="TLA"></a><span class="glossterm">TLA</span></dt><dd class="glossdef"><p>Abbreviation for Three Letter Acronym. Developers love to use their TLAs. Most of the time they do not even notice.</p></dd></dl></div></div><div class="bibliography"><div class="titlepage"><div><div><h2 class="title"><a name="resources"></a>References and Resources</h2></div></div></div><div class="bibliodiv"><h3 class="title"><a name="ref-howto"></a>HOWTOs</h3><div class="biblioentry"><a name="idm1038"></a><p><span class="title"><i>HOWTO install ACPI under Linux</i>. </span><span class="bibliosource"><a class="ulink" href="http://sylvestre.ledru.info/howto/howto_acpi.php" target="_top">http://sylvestre.ledru.info/howto/howto_acpi.php</a>. </span></p></div><div class="biblioentry"><a name="idm1042"></a><p><span class="title"><i>Linux ACPI-HOWTO</i>. </span><span class="bibliosource"><a class="ulink" href="http://www.columbia.edu/~ariel/acpi/acpi_howto.txt" target="_top">http://www.columbia.edu/~ariel/acpi/acpi_howto.txt</a>. </span></p></div><div class="biblioentry"><a name="idm1046"></a><p><span class="title"><i>Linux on the road</i>. </span><span class="bibliosource"><a class="ulink" href="http://tuxmobil.org/Mobile-Guide.db/Mobile-Guide.html" target="_top">http://tuxmobil.org/Mobile-Guide.db/Mobile-Guide.html</a>. </span></p></div><div class="biblioentry"><a name="idm1050"></a><p><span class="title"><i>Hardware in Detail</i>. </span><span class="bibliosource"><a class="ulink" href="http://tuxmobil.org/Mobile-Guide.db/mobile-guide-p2c1-hardware-in-detail.html" target="_top">http://tuxmobil.org/Mobile-Guide.db/mobile-guide-p2c1-hardware-in-detail.html</a>. </span></p></div><div class="biblioentry"><a name="idm1054"></a><p><span class="title"><i>Power Management with Linux - APM, ACPI, PMU</i>. </span><span class="bibliosource"><a class="ulink" href="http://tuxmobil.org/apm_linux.html" target="_top">http://tuxmobil.org/apm_linux.html</a>. </span></p></div><div class="biblioentry"><a name="idm1058"></a><p><span class="title"><i>Battery Powered Linux Mini-HOWTO</i>. </span><span class="bibliosource"><a class="ulink" href="http://www.tldp.org/HOWTO/mini/Battery-Powered/" target="_top">http://www.tldp.org/HOWTO/mini/Battery-Powered/</a>. </span></p></div><div class="biblioentry"><a name="idm1062"></a><p><span class="title"><i>Creating custom kernels with Debian's Kernel-Package system</i>. </span><span class="bibliosource"><a class="ulink" href="http://newbiedoc.sourceforge.net/system/kernel-pkg.html" target="_top">http://newbiedoc.sourceforge.net/system/kernel-pkg.html</a>. </span></p></div></div><div class="bibliodiv"><h3 class="title"><a name="ref-installreports"></a>Hardware-specific Install Reports and Info</h3><div class="biblioentry"><a name="idm1068"></a><p><span class="title"><i>Installation Reports</i>. </span><span class="bibliosource"><a class="ulink" href="http://acpi.sourceforge.net/wiki/index.php/InstallationReports" target="_top">http://acpi.sourceforge.net/wiki/index.php/InstallationReports</a>. </span></p></div><div class="biblioentry"><a name="idm1072"></a><p><span class="title"><i>Blacklist</i>. </span><span class="bibliosource"><a class="ulink" href="http://acpi.sourceforge.net/documentation/blacklist.html" target="_top">http://acpi.sourceforge.net/documentation/blacklist.html</a>. </span></p></div><div class="biblioentry"><a name="idm1076"></a><p><span class="title"><i>DSDT: Overview</i>. </span><span class="bibliosource"><a class="ulink" href="http://acpi.sourceforge.net/dsdt/index.php" target="_top">http://acpi.sourceforge.net/dsdt/index.php</a>. </span></p></div><div class="biblioentry"><a name="idm1082"></a><p><span class="title"><i>BIOS Settings for the AcerTM (Phoenix BIOS)</i>. </span><span class="bibliosource"><a class="ulink" href="http://help.nec-computers.com/au/pri/item_instr_bios_7521N.asp" target="_top">http://help.nec-computers.com/au/pri/item_instr_bios_7521N.asp</a>. </span></p></div></div><div class="bibliodiv"><h3 class="title"><a name="ref-softwaredev"></a>Software Development Groups</h3><div class="biblioentry"><a name="idm1088"></a><p><span class="title"><i>ACPI4Linux</i>. </span><span class="bibliosource"><a class="ulink" href="http://acpi.sf.net" target="_top">http://acpi.sf.net</a>. </span></p></div><div class="biblioentry"><a name="idm1092"></a><p><span class="title"><i>ACPI Special Interest Group</i>. </span><span class="bibliosource"><a class="ulink" href="http://www.acpi.info/" target="_top">http://www.acpi.info/</a>. </span></p></div><div class="biblioentry"><a name="idm1096"></a><p><span class="title"><i>Intel</i>. </span><span class="bibliosource"><a class="ulink" href="http://developer.intel.com/technology/iapc/acpi/" target="_top">http://developer.intel.com/technology/iapc/acpi/</a>. </span></p></div></div><div class="bibliodiv"><h3 class="title"><a name="ref-articles"></a>ACPI articles</h3><div class="biblioentry"><a name="idm1102"></a><p><span class="title"><i>Fan Speed Control Techniques in PCs</i>. </span><span class="bibliosource"><a class="ulink" href="http://www.analog.com/library/analogDialogue/archives/34-04/fan/" target="_top">http://www.analog.com/library/analogDialogue/archives/34-04/fan/</a>. </span></p></div></div><div class="bibliodiv"><h3 class="title"><a name="ref-mailinglist"></a>Mailing List Threads</h3><div class="biblioentry"><a name="idm1108"></a><p><span class="title"><i>debian-laptop thread: can't restore from suspend</i>. </span><span class="bibliosource"><a class="ulink" href="http://lists.debian.org/debian-laptop/2003/debian-laptop-200304/msg00367.html" target="_top">http://lists.debian.org/debian-laptop/2003/debian-laptop-200304/msg00367.html</a>. </span></p></div><div class="biblioentry"><a name="idm1112"></a><p><span class="title"><i>acpi-support thread: newbie HOWTO and debian patching</i>. </span><span class="bibliosource"><a class="ulink" href="http://sourceforge.net/mailarchive/forum.php?forum_id=7803&amp;max_rows=25&amp;style=flat&amp;viewmonth=200304&amp;viewday=17" target="_top">http://sourceforge.net/mailarchive/forum.php?forum_id=7803&amp;max_rows=25&amp;style=flat&amp;viewmonth=200304&amp;viewday=17</a>. </span></p></div><div class="biblioentry"><a name="idm1116"></a><p><span class="title"><i>debian-laptop thread: acer 634 acpi &amp; apm</i>. </span><span class="bibliosource"><a class="ulink" href="http://lists.debian.org/debian-laptop/2002/debian-laptop-200212/msg00242.html" target="_top">http://lists.debian.org/debian-laptop/2002/debian-laptop-200212/msg00242.html</a>. </span></p></div></div><div class="bibliodiv"><h3 class="title"><a name="ref-software"></a>ACPI packages and related software</h3><div class="biblioentry"><a name="idm1122"></a><p><span class="title"><i>The Kernel</i>. </span><span class="bibliosource"><a class="ulink" href="http://www.kernel.org" target="_top">http://www.kernel.org</a>. </span></p></div><div class="biblioentry"><a name="idm1128"></a><p><span class="title"><i>ACPI kernel patch</i>. </span><span class="bibliosource"><a class="ulink" href="http://sourceforge.net/project/showfiles.php?group_id=36832" target="_top">http://sourceforge.net/project/showfiles.php?group_id=36832</a>. </span></p></div><div class="biblioentry"><a name="idm1134"></a><p><span class="title"><i>ACPI daemon <span class="application">acpid</span></i>. </span><span class="bibliosource"><a class="ulink" href="http://sourceforge.net/projects/acpid" target="_top">http://sourceforge.net/projects/acpid</a>. </span></p></div><div class="biblioentry"><a name="idm1139"></a><p><span class="title"><i><span class="application">acpi</span></i>. </span><span class="bibliosource"><a class="ulink" href="http://grahame.angrygoats.net/acpi.shtml" target="_top">http://grahame.angrygoats.net/acpi.shtml</a>. </span></p></div><div class="biblioentry"><a name="idm1144"></a><p><span class="title"><i><span class="application">Kacpi</span></i>. </span><span class="bibliosource"><a class="ulink" href="http://www.elektronikschule.de/~genannt/kacpi/download.html" target="_top">http://www.elektronikschule.de/~genannt/kacpi/download.html</a>. </span></p></div><div class="biblioentry"><a name="idm1149"></a><p><span class="title"><i><span class="application">aKpi</span></i>. </span><span class="bibliosource"><a class="ulink" href="http://akpi.scmd.at/" target="_top">http://akpi.scmd.at/</a>. </span></p></div><div class="biblioentry"><a name="idm1154"></a><p><span class="title"><i><span class="application">wmacpi</span></i>. </span><span class="bibliosource"><a class="ulink" href="http://www.ne.jp/asahi/linux/timecop/" target="_top">http://www.ne.jp/asahi/linux/timecop/</a>. </span></p></div><div class="biblioentry"><a name="idm1159"></a><p><span class="title"><i><span class="application">wmacpi+clecourt</span></i>. </span><span class="bibliosource"><a class="ulink" href="http://open.iliad.fr/~clecourt/wmacpi/index.html" target="_top">http://open.iliad.fr/~clecourt/wmacpi/index.html</a>. </span></p></div></div><div class="bibliodiv"><h3 class="title"><a name="ref-upgrade-26"></a>Migrating to the 2.6 series kernels</h3><div class="biblioentry"><a name="idm1168"></a><p><span class="title"><i>HowTo Upgrade to the 2.6 Kernel</i>. </span><span class="bibliosource"><a class="ulink" href="http://kerneltrap.org/node/view/799" target="_top">http://kerneltrap.org/node/view/799</a>. </span></p></div><div class="biblioentry"><a name="idm1172"></a><p><span class="title"><i>Kernel Build HOWTO</i>. </span><span class="bibliosource"><a class="ulink" href="http://www.digitalhermit.com/linux/Kernel-Build-HOWTO.html" target="_top">http://www.digitalhermit.com/linux/Kernel-Build-HOWTO.html</a>. </span></p></div><div class="biblioentry"><a name="idm1176"></a><p><span class="title"><i>The post-Halloween document</i>. </span><span class="bibliosource"><a class="ulink" href="http://www.codemonkey.org.uk/post-halloween-2.5.txt" target="_top">http://www.codemonkey.org.uk/post-halloween-2.5.txt</a>. </span></p></div></div></div></div></body></html>

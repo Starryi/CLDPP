@@ -1,0 +1,196 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1"><title>1. Introduction</title><link rel="stylesheet" type="text/css" href="style.css"><meta name="generator" content="DocBook XSL Stylesheets V1.79.1"><link rel="home" href="index.html" title="Disk Encryption HOWTO"><link rel="up" href="index.html" title="Disk Encryption HOWTO"><link rel="prev" href="index.html" title="Disk Encryption HOWTO"><link rel="next" href="ar01s02.html" title="2. Procedure"></head><body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF"><div class="navheader"><table width="100%" summary="Navigation header"><tr><th colspan="3" align="center">1. Introduction</th></tr><tr><td width="20%" align="left"><a accesskey="p" href="index.html">Prev</a> </td><th width="60%" align="center"> </th><td width="20%" align="right"> <a accesskey="n" href="ar01s02.html">Next</a></td></tr></table><hr></div><div class="sect1"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="Introduction"></a>1. Introduction</h2></div></div></div><p>I've got a
+    laptop computer running Linux and I don't want to
+    worry about someone reading the personal information it contains, in case
+    it gets lost or stolen. My log on password may stop someone from booting
+    it, but it won't prevent an attacker from removing the hard disk and
+    reading its data. I need stronger protection.</p><p>Fortunately, it's relatively easy to use encryption so the hard
+    disk data would be unreadable if it were to fall into the wrong hands.
+    Encryption's not only useful for portable computers like laptops&#8212;it
+    can be used to protect any computer with personal information. I protect
+    my computer's files with encryption for the same reason I lock my
+    filing cabinet at home. For further motivation, you may be interested in
+    reading Michael Crawford's <a class="ulink" href="http://www.goingware.com/encryption/" target="_top">Why You Should Use Encryption</a>.</p><p>I could encrypt only certain files, such as those in my home
+    directory. This would protect the files but then I'd have to worry
+    about information leaking out of them to other, unencrypted places on the
+    disk. Instead I encrypt the whole disk so I don't have to manage this
+    problem.</p><p>There are many encryption algorithms to choose from. I chose <a class="ulink" href="http://csrc.nist.gov/CryptoToolkit/aes/" target="_top">AES</a> because it has
+    been approved by the US government's <a class="ulink" href="http://www.nist.gov/" target="_top">National
+    Institute of Standards and Technology</a> and is well regarded by the
+    cryptography community. I want my use of it to be resistant to dictionary
+    attacks, so I use a long, randomly generated key. There's no way
+    I'm going to memorize such a key so I keep it in a form I can carry
+    with me easily: on a USB flash drive on my keychain. I encrypt the key
+    with a passphrase so my data is protected in two ways: by a) what I have
+    (the USB flash drive) and b) what I know (the passphrase). I can even give
+    a friend access to my computer without giving away my passphrase&#8212;she uses
+    her own USB flash drive and her own passphrase.</p><p>The operating system keeps the data encrypted on the disk at all
+    times and decrypts it in RAM only as it's used. This way if the
+    computer loses power suddenly the data will remain protected. The
+    decryption key is loaded into RAM at boot time and kept there while the
+    computer is on, so I don't need to keep the USB flash drive plugged in
+    after starting the computer.</p><p>The procedure outlined in this HOWTO is written for version 2.4 of
+    the Linux kernel. It will become less complicated with the release of
+    Linux 2.6, which will have built-in support for encryption and do a better
+    job of managing partitions within loopback devices.</p><p>This document assumes the reader has a moderate level of experience
+    with Linux (you should be comfortable <a class="ulink" href="http://www.tldp.org/HOWTO/Kernel-HOWTO/index.html" target="_top">patching and
+    compiling kernels</a> as well as <a class="ulink" href="http://www.tldp.org/HOWTO/Multi-Disk-HOWTO.html" target="_top">partitioning,
+    mounting, and unmounting disks</a>).</p><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="TechnicalSummary"></a>1.1. Technical Summary</h3></div></div></div><p>The encryption is implemented through a special kind of
+      <em class="glossterm">loopback device</em>. A loopback device doesn't
+      store any data itself; instead it takes all the data storage and
+      retrieval requests it receives and passes them along to a real storage
+      device, such as a disk or a file. As the data passes through, it can be
+      filtered, and in our case the filter used is encryption.</p><p>When the system is deployed, a removable medium (USB flash drive)
+      boots using GRUB, a kernel, and an initrd. Both the key and the kernel
+      are selected from the GRUB menu, allowing a single removable medium to
+      be used with multiple computers. The initrd contains just enough tools
+      to ask for a passphrase, set up an encrypted loopback device, and mount
+      it. After mounting, <code class="literal">pivot_root</code> is used to resume the
+      boot process from the encrypted device. Loopback device offsets are
+      used, instead of partitions, to access separate swap and root file
+      system spaces within the encrypted loopback device because the 2.4
+      kernel doesn't provide access to partitions within loopback devices.
+      The offset method does not generalize to multiple partitions
+      (unfortunately) because the maximum offset understood by
+      <code class="literal">losetup</code> is 2GB.</p></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="CopyrightAndLicense"></a>1.2. Copyright and License</h3></div></div></div><p>Permission is granted to copy, distribute and/or modify this
+      document under the terms of the GNU Free Documentation License, Version
+      1.2 or any later version published by the Free Software Foundation; with
+      no Invariant Sections, no Front-Cover Texts, and no Back-Cover Texts. A
+      copy of the license is included in <a class="xref" href="apa.html" title="A. GNU Free Documentation License">Appendix A, <i>GNU Free Documentation License</i></a>.</p><p><span class="trademark">Linux is a registered trademark of
+      Linus Torvalds.</span>®</p></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="Disclaimer"></a>1.3. Disclaimer</h3></div></div></div><p>No liability for the contents of this document can be accepted.
+      Use the concepts, examples and information at your own risk. There may
+      be errors and inaccuracies that could be damaging to your system and you
+      may lose important data. Proceed with caution, and although this is
+      highly unlikely, the author does not take any responsibility.</p><p>All copyrights are held by their by their respective owners,
+      unless specifically noted otherwise. Use of a term in this document
+      should not be regarded as affecting the validity of any trademark or
+      service mark. Naming of particular products or brands should not be seen
+      as endorsements.</p><p>I know you hate reading directions and want to skip to the meaty
+      bit right away, but I advise you to read the whole document first before
+      touching anything. I know all the HOWTOs say that, but I really mean it
+      for this one. It's worth it; trust me. You may also want to run
+      through the procedure first on a test system before tackling a
+      production system.</p></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="Acknowledgments"></a>1.4. Acknowledgments</h3></div></div></div><p>Thanks to Linus Torvalds, Jari Ruusu, and all the developers who
+      contributed to their software, without which this HOWTO would have been
+      impossible.</p><p>Thanks to the <a class="ulink" href="http://www.nist.gov/" target="_top">National Institute
+      of Standards and Technology</a> for carefully selecting a strong,
+      open encryption algorithm.</p><p>Thanks to Mark Garboden and others on the <a class="ulink" href="http://mail.nl.linux.org/linux-crypto/" target="_top">linux-crypto</a>
+      mailing list and <a class="ulink" href="http://www.tldp.org/mailinfo.html#maillists" target="_top">The Linux
+      Documentation Project mailing lists</a> who took the time to
+      critique my writing and offer suggestions.</p><p>Thanks to alert readers Ladislao Bastetti and Norris Pouhovitch for
+      struggling through unusual hardware configurations, finding mistakes in
+      the HOWTO, and suggesting good ideas.</p></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="Feedback"></a>1.5. Feedback</h3></div></div></div><p>Feedback is solicited for this document. Please send additions,
+      comments, and criticisms to the author.</p></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="Approaches"></a>1.6. Approaches</h3></div></div></div><p>There are three different approaches we can take to encrypt the
+      disk: encrypt the whole thing, a single partition, or a single file. I
+      strongly recommend the first approach for best security. The first two
+      approaches assume you'll be booting from removable media, such as a
+      USB flash drive or a business card size CD-ROM. If you don't want to
+      do this, you may modify the method to boot from the disk instead by
+      making a small, unencrypted boot partition. If you want to use a USB
+      flash drive to boot your computer, be sure your motherboard can do it
+      first. At the time of this writing many cannot.</p><p>To avoid having to enumerate all three approaches everywhere
+      I'm going to refer to what you're protecting as the
+      <em class="glossterm">asset</em>. I will refer to the removable medium used
+      to store the key as the <em class="glossterm">keychain</em>. I call it the
+      keychain instead of the key because we can store lots of keys, each for
+      different computers, on the same medium.</p><div class="sect3"><div class="titlepage"><div><div><h4 class="title"><a name="idm102"></a>1.6.1. Whole Disk</h4></div></div></div><p>A problem with keeping data secret with encryption is that the
+        data likes to move around. Imagine the encryption is like a fence
+        around your data. While the data's inside the fence, it's
+        safe. To be most useful, however, data likes to be transmitted on
+        networks, put on removable disks like CD-ROMs, and shared with
+        friends. Any time your data leaves the fenced area it's
+        unprotected. We can't put an encryption fence around all possible
+        locations where our data might play but we do want to make the fence
+        as large as practical. By putting the encryption fence around your
+        whole hard disk, you won't have to worry about data becoming
+        unprotected if it jumps to another part of the disk.</p><div class="warning" style="margin-left: 0.5in; margin-right: 0.5in;"><h3 class="title">Warning</h3><p>In this approach, we create one swap
+        space and one root file system. Some people want more than a single
+        encrypted partition for the root file system. Unfortunately, the
+        method detailed here relies on the offset parameter of
+        <code class="literal">losetup</code> to create "subpartitions" within
+        the asset. The offset parameter is limited to a maximum value of 2GB,
+        limiting the size of all but the last partition to 2GB. This works
+        nicely for swap, which is already limited to 2GB on the i386
+        architecture, but I'm guessing it won't be practical for other
+        uses. Using it to create multiple partitions smaller than 2GB is left
+        as an exercise for the reader.</p><p>Another way to handle multiple partitions is to encrypt each partition separately (using the same key) to avoid the technical limitation above.  This isn't secure as encrypting the whole disk because the partition table is exposed.  When an attacker attempts to break encryption, the first thing he does is try to figure out what it's encrypting.  A partition table listing Linux partitions is a big hint.  For this reason I discourage encrypting multiple partitions separately, but arguably it's a good compromise for getting around the current <code class="literal">losetup</code> limitation.  Another option is simply to wait for the release of Linux 2.6 because it is expected to make the offset parameter unnecessary.</p></div></div><div class="sect3"><div class="titlepage"><div><div><h4 class="title"><a name="idm110"></a>1.6.2. Partition (for multiboot systems)</h4></div></div></div><p>Encrypting the whole disk is fine if Linux is the only operating
+        system on it, but this won't work for people who have set up their
+        computer to boot multiple operating systems, e.g., <a class="ulink" href="http://www.kernel.org" target="_top">Linux</a>, <a class="ulink" href="http://www.netbsd.org/" target="_top">NetBSD</a>, and <a class="ulink" href="http://developer.apple.com/darwin/" target="_top">Darwin</a>. In this case
+        we can encrypt just the Linux partition and leave the others alone.
+        Since we're booting from a removable medium, we won't even
+        need to include the Linux partition in the multiboot menu with the
+        others. To see why this isn't as secure as encrypting the whole
+        disk, read <a class="xref" href="ar01s01.html#Attack_Tree" title="Table 1. Attack Tree">Table 1, &#8220;Attack Tree&#8221;</a>.</p></div><div class="sect3"><div class="titlepage"><div><div><h4 class="title"><a name="idm117"></a>1.6.3. File (for home directories)</h4></div></div></div><p>You may want to encrypt only a file on a file system. Once
+        you've encrypted it you can put into it whatever you want,
+        including other file systems. You might want to use this approach to
+        encrypt only your home directory, for example. This is the least
+        secure of the three approaches and not recommended. If you choose this
+        approach you will notice instructions below to skip whole sections.
+        This is because I'm assuming you've already booted an
+        operating system and have your swap issues handled, so those sections
+        don't apply to you. This HOWTO may be overkill for your needs and
+        you can probably get away with just reading the fine
+        <code class="literal"><a class="ulink" href="http://loop-aes.sourceforge.net/loop-AES.README" target="_top">README</a></code>
+        that comes with <a class="ulink" href="http://sourceforge.net/projects/loop-aes/" target="_top">loop-AES</a>.
+        If you do, be sure to read <a class="xref" href="ar01s01.html#ThreatModel" title="1.7. Threat Model">Section 1.7, &#8220;Threat Model&#8221;</a> before you
+        finish here.</p></div></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="ThreatModel"></a>1.7. Threat Model</h3></div></div></div><p>In order to protect our asset well, we must first understand what
+      we're protecting it against. The general idea is that you've got
+      a laptop which is vulnerable to being stolen or lost, and have a USB
+      flash drive on your keychain that isn't, so this system is designed
+      to handle the case that your laptop is stolen. I'm guessing your
+      keychain won't be as easily stolen because it's in your pocket,
+      and because an attacker won't know that it's important. If you
+      pull your USB flash drive out of your pocket and someone non-technical
+      exclaims, "What's that?", tell them it's a <a class="ulink" href="http://www.pez.com/" target="_top">Pez dispenser</a>.</p><div class="note" style="margin-left: 0.5in; margin-right: 0.5in;"><h3 class="title">Note</h3><p>This system falls short when it comes to <em class="glossterm">plausible
+        deniability</em>, which means there's no way to hide the
+        fact that your personal data is encrypted. This is like locking your
+        jewels in a safe and keeping the safe in plain sight in the middle of
+        your living room. Only you can open the safe, but a man with a gun can
+        tell you to open the safe for him. So if you're worried about your
+        <a class="ulink" href="http://zdnet.com.com/2100-11-502433.html?legacy=zdnn" target="_top">computer
+        being subpoenaed</a> and being told to hand over your laptop,
+        keychain, and passphrase, you'd better look at other solutions
+        such as <a class="ulink" href="http://stegfs.sourceforge.net/" target="_top">StegFS</a>.</p><p>The following solution to the deniability problem has been suggested by Norris Pouhovitch.
+        It should be possible to install a minimal Windows partition at the front
+        of the disk and to encrypt the remainder.  When the computer
+        is turned on without the keychain, it boots Windows normally.  When the
+        keychain is booted, it skips the Windows partition, decrypts the remainder of
+        the disk, and boots Linux.</p><p>The advantage of this scheme is that if the laptop is stolen and turned
+        on, it will look like what a casual attacker is expecting to see (a Windows
+        computer).  On the other hand, a serious attacker could notice the unusually
+        small partition and become suspicious.  I will flesh out this idea further in
+        a future version of the HOWTO.</p></div><div class="table"><a name="Attack_Tree"></a><p class="title"><b>Table 1. Attack Tree</b></p><div class="table-contents"><table class="table" summary="Attack Tree" border="1"><colgroup><col class="A1"><col class="A2"><col class="A3"><col class="A4"><col align="center"><col></colgroup><thead><tr><th colspan="4" align="center">Attack</th><th align="center">Reaction</th><th align="center">Notes</th></tr></thead><tbody><tr valign="middle"><td rowspan="4" valign="middle">attacker steals laptop</td><td colspan="3" valign="middle">while it is on</td><td align="center" valign="middle"><a class="glossterm" href="ar01s01.html#SOL"><em class="glossterm"><a class="glossterm" href="ar01s01.html#SOL" title="SOL">SOL</a></em></a></td><td valign="middle">The asset is unprotected while the computer is running because the encryption key is in RAM.  You can lower the risk by using an idle logout (<a class="xref" href="ar01s02.html#Idle_Logout" title="2.6.3. Idle Logout">Section 2.6.3, &#8220;Idle Logout&#8221;</a>), but if you think your laptop is about to be stolen, turn off the power immediately and quickly read the <a class="ulink" href="http://www.aikidofaq.com/" target="_top">Aikido HOWTO</a>.</td></tr><tr valign="middle"><td rowspan="3" valign="middle">while it is off</td><td colspan="2" valign="middle">attacker doesn't steal
+              keychain</td><td align="center" valign="middle"><a class="glossterm" href="ar01s01.html#new_key"><em class="glossterm"><a class="glossterm" href="ar01s01.html#new_key" title="new key">new key</a></em></a></td><td class="auto-generated"> </td></tr><tr valign="middle"><td rowspan="2" valign="middle">attacker steals keychain</td><td valign="middle">attacker knows your passphrase</td><td align="center" valign="middle"><a class="glossterm" href="ar01s01.html#SOL"><em class="glossterm"><a class="glossterm" href="ar01s01.html#SOL" title="SOL">SOL</a></em></a></td><td class="auto-generated"> </td></tr><tr valign="middle"><td valign="middle">attacker doesn't know your passphrase</td><td align="center" valign="middle"><a class="glossterm" href="ar01s01.html#new_key"><em class="glossterm"><a class="glossterm" href="ar01s01.html#new_key" title="new key">new key</a></em></a></td><td class="auto-generated"> </td></tr><tr valign="middle"><td rowspan="3" valign="middle">attacker steals keychain but doesn't
+              have laptop</td><td colspan="3" valign="middle">attacker knows passphrase</td><td align="center" valign="middle"><a class="glossterm" href="ar01s01.html#new_key"><em class="glossterm"><a class="glossterm" href="ar01s01.html#new_key" title="new key">new key</a></em></a></td><td valign="middle">Your asset is at risk because the attacker can decrypt
+              it.</td></tr><tr valign="middle"><td rowspan="2" valign="middle">attacker doesn't know passphrase</td><td colspan="2" valign="middle">you're feeling lazy or
+              you're convinced the keychain was lost, not stolen</td><td align="center" valign="middle"><a class="glossterm" href="ar01s01.html#new_passphrase"><em class="glossterm"><a class="glossterm" href="ar01s01.html#new_passphrase" title="new passphrase">new passphrase</a></em></a></td><td valign="middle">You're probably OK without changing the asset key
+              because the attacker can't decrypt the asset without the
+              passphrase.</td></tr><tr valign="middle"><td colspan="2" valign="middle">you're feeling paranoid</td><td align="center" valign="middle"><a class="glossterm" href="ar01s01.html#new_key"><em class="glossterm"><a class="glossterm" href="ar01s01.html#new_key" title="new key">new key</a></em></a></td><td class="auto-generated"> </td></tr><tr valign="middle"><td colspan="4" valign="middle">attacker convinces you to send
+              data over network</td><td align="center" valign="middle"><a class="glossterm" href="ar01s01.html#SOL"><em class="glossterm"><a class="glossterm" href="ar01s01.html#SOL" title="SOL">SOL</a></em></a></td><td class="auto-generated"> </td></tr><tr valign="middle"><td colspan="4" valign="middle">attacker convinces you to copy
+              data to removable medium</td><td align="center" valign="middle"><a class="glossterm" href="ar01s01.html#SOL"><em class="glossterm"><a class="glossterm" href="ar01s01.html#SOL" title="SOL">SOL</a></em></a></td><td class="auto-generated"> </td></tr><tr valign="middle"><td colspan="4" valign="middle">you encrypt only a partition and
+              a process writes data to a different partition</td><td align="center" valign="middle"><a class="glossterm" href="ar01s01.html#SOL"><em class="glossterm"><a class="glossterm" href="ar01s01.html#SOL" title="SOL">SOL</a></em></a></td><td class="auto-generated"> </td></tr><tr valign="middle"><td colspan="4" valign="middle">you encrypt only a file and a
+              process copies data from RAM to the unencrypted swap, or to a
+              file in <code class="literal">/tmp</code>, or elsewhere on the unencrypted disk</td><td align="center" valign="middle"><a class="glossterm" href="ar01s01.html#SOL"><em class="glossterm"><a class="glossterm" href="ar01s01.html#SOL" title="SOL">SOL</a></em></a></td><td class="auto-generated"> </td></tr><tr valign="middle"><td colspan="4" valign="middle">attacker demands you hand over
+              laptop, keychain, and passphrase while waving a rubber hose
+              menacingly</td><td align="center" valign="middle"><a class="glossterm" href="ar01s01.html#SOL"><em class="glossterm"><a class="glossterm" href="ar01s01.html#SOL" title="SOL">SOL</a></em></a></td><td valign="middle">There is no plausible deniability built into the system.</td></tr></tbody></table></div></div><br class="table-break"><div class="glosslist"><a name="reactions"></a><dl><dt><a name="new_passphrase"></a><span class="glossterm">new passphrase</span></dt><dd class="glossdef"><p>Restore the keychain backup and choose a new passphrase.</p></dd><dt><a name="new_key"></a><span class="glossterm">new key</span></dt><dd class="glossdef"><p>Generate a new random key to re-encrypt the asset, choose a
+            new passphrase, and restore the asset backup.</p></dd><dt><a name="SOL"></a><span class="glossterm"><acronym class="acronym">SOL</acronym></span></dt><dd class="glossdef"><p>Sorry Over your Loss</p></dd></dl></div></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="Caveats"></a>1.8. Caveats</h3></div></div></div><div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem"><p>This method won't work (yet)
+      with <a class="ulink" href="http://swsusp.sourceforge.net/" target="_top">Software Suspend for
+      Linux</a>.</p></li><li class="listitem"><p>Encrypting the disk will
+      undoubtedly slow it down. I don't know by how much. If anyone has
+      done some benchmarks, please send them to me.</p></li><li class="listitem"><p>There
+      is nothing in this method to support <em class="glossterm">plausible deniability</em>
+      (see <a class="xref" href="ar01s01.html#ThreatModel" title="1.7. Threat Model">Section 1.7, &#8220;Threat Model&#8221;</a>).</p></li><li class="listitem"><p>It
+      won't prevent information leaks via networks and removable disks.</p></li><li class="listitem"><p>Encrypting
+      backups is beyond the scope of this HOWTO.</p></li></ul></div></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="Requirements"></a>1.9. Requirements</h3></div></div></div><div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem"><p>a computer with an easily accessible removable medium reader
+          (such as a USB port or a CD-ROM drive)</p></li><li class="listitem"><p>a motherboard which supports booting from removable media
+          (check carefully for USB, not all do)</p></li><li class="listitem"><p>removable medium (such as a <em class="glossterm">USB flash drive</em>)
+          to be used as the <em class="glossterm">keychain</em></p></li><li class="listitem"><p><a class="ulink" href="http://www.kernel.org/" target="_top">Linux</a> 2.4</p></li><li class="listitem"><p><a class="ulink" href="http://sourceforge.net/projects/loop-aes/" target="_top">loop-AES</a></p></li></ul></div><div class="sect3"><div class="titlepage"><div><div><h4 class="title"><a name="idm257"></a>1.9.1. A Digression about USB Flash Drives</h4></div></div></div><p>There are many choices on the market. When I bought mine, I
+        found one which fit the following requirements:</p><div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem"><p>physically small (I carry it on my physical keychain)</p></li><li class="listitem"><p>supports USB 2.0 at full speed</p></li><li class="listitem"><p>has a write-protect switch, so I don't clobber my
+            encryption keys by accident</p></li></ul></div><p>You might be tempted to get one with a fingerprint reader. I
+        strongly encourage you not to. It might initially seem like a good
+        idea, because by adding the biometric, your security protection
+        expands to:</p><div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem"><p>something you have (the USB flash drive)</p></li><li class="listitem"><p>something you know (the passphrase)</p></li><li class="listitem"><p>something you are (your fingerprint, or whatever)</p></li></ul></div><p>However, suppose something goes wrong. If you are now asking
+        yourself, "What could go wrong?", then why are you reading
+        this HOWTO? If something goes wrong, you make a change (see <a class="xref" href="ar01s01.html#reactions">Corrective Reactions</a>):</p><div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem"><p>Change what you have by using a different USB flash drive.</p></li><li class="listitem"><p>Change what you know by learning a new passphrase.</p></li><li class="listitem"><p><span class="emphasis"><em>You can't change what you are.</em></span></p></li></ul></div><p>Stop and ponder that last line for a while.</p></div></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="LookingToTheFuture"></a>1.10. Looking to the Future</h3></div></div></div><p>I wrote this document while using the 2.4 kernel.  Linux 2.6 introduces the <a class="ulink" href="http://sources.redhat.com/dm/" target="_top">Device-mapper</a> which we will be able to use to avoid playing games with
+losetup offsets.  Linux 2.6 also introduces <a class="ulink" href="http://www.saout.de/misc/dm-crypt/" target="_top">dm-crypt</a>, an
+encryption layer for the Device-mapper which looks quite elegant.  Unfortunately, <a class="ulink" href="http://mareichelt.de/pub/texts.cryptoloop.php" target="_top">it's not safe!</a>  Hopefully someday
+it will be fixed, but in the mean time the best course is to stick with loop-AES.</p><p>A future version of this HOWTO will explain how to use the Device-mapper with Linux 2.6.</p></div></div><div class="navfooter"><hr><table width="100%" summary="Navigation footer"><tr><td width="40%" align="left"><a accesskey="p" href="index.html">Prev</a> </td><td width="20%" align="center"> </td><td width="40%" align="right"> <a accesskey="n" href="ar01s02.html">Next</a></td></tr><tr><td width="40%" align="left" valign="top">Disk Encryption HOWTO </td><td width="20%" align="center"><a accesskey="h" href="index.html">Home</a></td><td width="40%" align="right" valign="top"> 2. Procedure</td></tr></table></div></body></html>

@@ -1,0 +1,423 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1"><title>5. Files and File system Security</title><link rel="stylesheet" type="text/css" href="style.css"><meta name="generator" content="DocBook XSL Stylesheets V1.79.1"><link rel="home" href="index.html" title="Linux Security HOWTO"><link rel="up" href="index.html" title="Linux Security HOWTO"><link rel="prev" href="ar01s04.html" title="4. Local Security"><link rel="next" href="ar01s06.html" title="6. Password Security and Encryption"></head><body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF"><div class="navheader"><table width="100%" summary="Navigation header"><tr><th colspan="3" align="center">5. Files and File system Security</th></tr><tr><td width="20%" align="left"><a accesskey="p" href="ar01s04.html">Prev</a> </td><th width="60%" align="center"> </th><td width="20%" align="right"> <a accesskey="n" href="ar01s06.html">Next</a></td></tr></table><hr></div><div class="sect1"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="file-security"></a>5. Files and File system Security</h2></div></div></div><p>
+A few minutes of preparation and planning ahead before putting your
+systems on-line can help to protect them and the data
+stored on them.
+
+</p><div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem"><p>
+There should never be a reason for users' home directories to allow
+SUID/SGID programs to be run from there.  Use the <code class="literal">nosuid</code> option in
+<code class="literal">/etc/fstab</code> for partitions that are writable by others than root.  You
+may also wish to use <code class="literal">nodev</code> and <code class="literal">noexec</code> on users' home partitions,
+as well as <code class="literal">/var</code>, thus prohibiting execution of programs, and
+creation of character or block devices, which should never be
+necessary anyway. 
+</p></li><li class="listitem"><p>
+If you are exporting file-systems using NFS, be sure to configure
+<code class="literal">/etc/exports</code> with the most restrictive access possible.  This means
+not using wild cards, not allowing root write access, and exporting
+read-only wherever possible.
+</p></li><li class="listitem"><p>
+Configure your users' file-creation <code class="literal">umask</code> to be as restrictive as
+possible.  See <a class="xref" href="ar01s05.html#umask" title="5.1. Umask Settings">Section 5.1, &#8220;Umask Settings&#8221;</a>.
+</p></li><li class="listitem"><p>
+If you are mounting file systems using a network file system such as
+NFS, be sure to configure /etc/exports with suitable restrictions.
+Typically, using `nodev', `nosuid', and perhaps `noexec', are
+desirable.
+</p></li><li class="listitem"><p>
+Set file system limits instead of allowing <code class="literal">unlimited</code> as is the
+default.  You can control the per-user limits using the
+resource-limits PAM module and <code class="literal">/etc/pam.d/limits.conf</code>.  For example,
+limits for group <code class="literal">users</code> might look like this:
+</p><p>
+
+</p><pre class="screen">
+		@users     hard  core    0
+		@users     hard  nproc   50
+		@users     hard  rss     5000
+</pre><p>
+
+</p><p>
+This says to prohibit the creation of core files, restrict the
+number of processes to 50, and restrict memory usage per user to
+5M.
+</p><p>
+You can also use the /etc/login.defs configuration file to set the
+same limits. 
+</p></li><li class="listitem"><p>
+The <code class="literal">/var/log/wtmp</code> and <code class="literal">/var/run/utmp</code> files contain the login records
+for all users on your system.  Their integrity must be maintained
+because they can be used to determine when and from where a user (or
+potential intruder) has entered your system.  These files should
+also have <code class="literal">644</code> permissions, without affecting normal system
+operation.
+</p></li><li class="listitem"><p>
+The immutable bit can be used to prevent accidentally deleting or
+overwriting a file that must be protected.  It also prevents someone
+from creating a hard link to the file. See the <code class="literal">chattr</code>(1)
+man page for information on the immutable bit. 
+</p></li><li class="listitem"><p>
+
+SUID and SGID files on your system are a potential security risk, and
+should be monitored closely.  Because these programs grant special
+privileges to the user who is executing them, it is necessary to
+ensure that insecure programs are not installed.  A favorite trick of
+crackers is to exploit SUID-root programs, then leave a SUID
+program as a back door to get in the next time, even if the original
+hole is plugged.
+</p><p>
+Find all SUID/SGID programs on your system, and keep track of what
+they are, so you are aware of any changes which could indicate a
+potential intruder.  Use the following command to find all SUID/SGID
+programs on your system:
+</p><p>
+
+</p><pre class="screen">
+                root#  find / -type f \( -perm -04000 -o -perm -02000 \)
+</pre><p>
+
+</p><p>
+The Debian distribution runs a job each night to determine what SUID
+files exist. It then compares this to the previous night's run. You can 
+look in <code class="literal">/var/log/setuid*</code> for this log.
+</p><p>
+You can remove the SUID or SGID permissions on a
+suspicious program with <code class="literal">chmod</code>, then restore them back if you
+absolutely feel it is necessary.
+</p></li><li class="listitem"><p>
+World-writable files, particularly system files, can be a security
+hole if a cracker gains access to your system and modifies them.
+Additionally, world-writable directories are dangerous, since they
+allow a cracker to add or delete files as he wishes.  To locate all
+world-writable files on your system, use the following command:
+</p><p>
+
+</p><pre class="screen">
+		root# find / -perm -2 ! -type l -ls
+</pre><p>
+
+and be sure you know why those files are writable.  In the normal
+course of operation, several files will be world-writable, including some
+from <code class="literal">/dev</code>, and symbolic links, thus the <code class="literal">! -type l</code>
+which excludes these from the previous <code class="literal">find</code> command.
+</p></li><li class="listitem"><p>
+</p><p>
+Unowned files may also be an indication an intruder has accessed your
+system.  You can locate files on your system that have no
+owner, or belong to no group with the command:
+</p><p>
+
+</p><pre class="screen">
+		root# find / \( -nouser -o -nogroup \) -print
+</pre><p>
+
+</p></li><li class="listitem"><p>
+Finding <code class="literal">.rhosts</code> files should be a part of your regular system
+administration duties, as these files should not be permitted on your
+system.  Remember, a cracker only needs one insecure account to
+potentially gain access to your entire network.  You can locate all
+<code class="literal">.rhosts</code> files on your system with the following command:
+
+</p><pre class="screen">
+               root# find /home -name .rhosts -print
+</pre><p>
+
+</p></li><li class="listitem"><p>
+</p><p>
+Finally, before changing permissions on any system files, make sure
+you understand what you are doing. Never change permissions on a file
+because it seems like the easy way to get things working. Always
+determine why the file has that permission before changing it.
+</p></li></ul></div><p>
+
+</p><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="umask"></a>5.1. Umask Settings</h3></div></div></div><p>
+The <code class="literal">umask</code> command can be used to determine the default file creation
+mode on your system. It is the octal complement of the desired file
+mode. If files are created without any regard to their permissions
+settings, the user could inadvertently give read or write permission
+to someone that should not have this permission. Typical <code class="literal">umask</code>
+settings include <code class="literal">022</code>, <code class="literal">027</code>, and <code class="literal">077</code> (which is the most
+restrictive). Normally the umask is set in <code class="literal">/etc/profile</code>, so it applies
+to all users on the system.  The resulting permission is calculated as
+follows: The default permission of  user/group/others (7 for
+directories, 6 for files) is combined with the  inverted mask (NOT)
+using AND on a per-bit-basis. 
+</p><p>
+Example 1:
+</p><p>
+file, default 6, binary:      110
+mask, eg. 2: 010, NOT:        101
+</p><p>
+resulting permission, AND:    100  (equals 4, r__)
+</p><p>
+Example 2:
+</p><p>
+file, default 6, binary:      110
+mask, eg. 6: 110, NOT:        001
+</p><p>
+resulting permission, AND:    000  (equals 0, ___)
+</p><p>
+Example 3:
+</p><p>
+directory, default 7, binary: 111                
+mask, eg. 2: 010, NOT:        101 
+</p><p>
+resulting permission, AND:    101  (equals 5, r_x)
+</p><p>
+Example 4:
+</p><p>
+directory, default 7, binary: 111                
+mask, eg. 6: 110, NOT:        001 
+</p><p>
+resulting permission, AND:    001  (equals 1, __x)
+</p><p>
+
+</p><pre class="screen">
+		# Set the user's default umask
+		umask 033
+</pre><p>
+
+Be sure to make root's umask <code class="literal">077</code>, which will disable read, write, and
+execute permission for other users, unless explicitly changed using
+<code class="literal">chmod</code>.  In this case, newly-created directories would have 744
+permissions, obtained by subtracting 033 from 777.  Newly-created files
+using the 033 umask would have permissions of 644.
+</p><p>
+If you are using Red Hat, and adhere to their user and group ID
+creation scheme (User Private Groups), it is only necessary to use <code class="literal">002</code>
+for a <code class="literal">umask</code>.  This is due to the fact that the default configuration
+is one user per group.
+</p></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="idm432"></a>5.2. File Permissions</h3></div></div></div><p>
+It's important to ensure that your system files are not open for
+casual editing by users and groups who shouldn't be doing such system
+maintenance.
+</p><p>
+Unix separates access control on files and directories according to
+three characteristics:  owner, group, and other.  There is always
+exactly one owner, any number of members of the group, and everyone
+else.
+</p><p>
+A quick explanation of Unix permissions:
+</p><p>
+Ownership      - Which user(s) and group(s) retain(s) control of the
+permission settings of the node and parent of the node
+</p><p>
+Permissions    - Bits capable of being set or reset to allow certain
+types of access to it.  Permissions for directories may have a
+different meaning than the same set of permissions on files.
+</p><p>
+<span class="emphasis"><em>Read:</em></span>
+
+</p><div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem"><p>
+To be able to view contents of a file
+</p></li><li class="listitem"><p>
+To be able to read a directory
+</p></li></ul></div><p>
+
+</p><p>
+<span class="emphasis"><em>Write:</em></span>
+
+</p><div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem"><p>
+To be able to add to or change a file
+</p></li><li class="listitem"><p>
+To be able to delete or move files in a directory
+</p></li></ul></div><p>
+
+</p><p>
+<span class="emphasis"><em>Execute:</em></span>
+
+</p><div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem"><p>
+To be able to run a binary program or shell script
+</p></li><li class="listitem"><p>
+To be able to search in a directory, combined with read permission
+</p></li></ul></div><p>
+
+</p><p>
+</p><div class="variablelist"><dl class="variablelist"><dt><span class="term">Save Text Attribute: (For directories)</span></dt><dd><p>
+The "sticky bit" also has a different meaning when 
+applied to directories than when applied to files.  If the sticky bit is set on a directory, then 
+a user may only delete files that the he owns or for which he has
+explicit write permission granted, even when he has write access to
+the directory.  This is designed for directories like <code class="literal">/tmp</code>, which are
+world-writable, but where it may not be desirable to allow any user to 
+delete files at will.  The sticky bit is seen as a <code class="literal">t</code> in a long
+directory listing.
+</p></dd></dl></div><p>
+</p><p>
+</p><div class="variablelist"><dl class="variablelist"><dt><span class="term">SUID Attribute: (For Files)</span></dt><dd><p>
+This describes set-user-id permissions on the file.  When the set user
+ID access mode is set in the owner permissions, and the file is
+executable, processes which run it are granted access to system
+resources based on user who owns the file, as opposed to the user who
+created the process. This is the cause of many "buffer overflow" exploits.
+</p></dd></dl></div><p>
+</p><div class="variablelist"><dl class="variablelist"><dt><span class="term">SGID Attribute: (For Files)</span></dt><dd><p>
+If set in the group permissions, this bit controls the "set group id" 
+status of a file.  This behaves the same way as SUID, except the group 
+is affected instead.  The file must be executable for this to
+have any effect.
+</p></dd></dl></div><p>
+</p><p>
+</p><div class="variablelist"><dl class="variablelist"><dt><span class="term">SGID Attribute: (For directories)</span></dt><dd><p>
+If you set the SGID bit on a directory (with <code class="literal">chmod g+s directory</code>),
+files created in that directory will have their group set to the
+directory's group.
+</p></dd></dl></div><p>
+</p><p>
+You          - The owner of the file
+</p><p>
+Group        - The group you belong to
+</p><p>
+Everyone     - Anyone on the system that is not the owner or a member
+of the group
+</p><p>
+<span class="emphasis"><em>File Example:</em></span>
+</p><p>
+
+</p><pre class="screen">
+        -rw-r--r--  1 kevin  users         114 Aug 28  1997 .zlogin
+        1st bit - directory?             (no)
+         2nd bit - read by owner?         (yes, by kevin)
+          3rd bit - write by owner?        (yes, by kevin)
+           4th bit - execute by owner?      (no)
+            5th bit - read by group?         (yes, by users)
+             6th bit - write by group?        (no)
+              7th bit - execute by group?      (no)
+               8th bit - read by everyone?      (yes, by everyone)
+                9th bit - write by everyone?     (no)
+                 10th bit - execute by everyone?  (no)
+
+</pre><p>
+
+</p><p>
+The following lines are examples of the minimum sets of permissions
+that are required to perform the access described.  You may want to
+give more permission than what's listed here, but this should
+describe what these minimum permissions on files do:
+</p><p>
+
+</p><pre class="screen">
+
+-r--------  Allow read access to the file by owner
+--w-------  Allows the owner to modify or delete the file
+            (Note that anyone with write permission to the directory
+             the file is in can overwrite it and thus delete it)
+---x------  The owner can execute this program, but not shell scripts, 
+	     which still need read permission
+---s------  Will execute with effective User ID = to owner
+--------s-  Will execute with effective Group ID = to group
+-rw------T  No update of "last modified time".  Usually used for swap
+	     files
+---t------  No effect.  (formerly sticky bit)
+
+</pre><p>
+
+<span class="emphasis"><em>Directory Example:</em></span>
+
+</p><pre class="screen">
+
+        drwxr-xr-x  3 kevin  users         512 Sep 19 13:47 .public_html/
+        1st bit - directory?             (yes, it contains many files)
+         2nd bit - read by owner?         (yes, by kevin)
+          3rd bit - write by owner?        (yes, by kevin)
+           4th bit - execute by owner?      (yes, by kevin)
+            5th bit - read by group?         (yes, by users
+             6th bit - write by group?        (no)
+              7th bit - execute by group?      (yes, by users)
+               8th bit - read by everyone?      (yes, by everyone)
+                9th bit - write by everyone?     (no)
+                 10th bit - execute by everyone?  (yes, by everyone)
+
+</pre><p>
+
+</p><p>
+The following lines are examples of the minimum sets of permissions 
+that are required to perform the access described.  You may want to
+give more permission than what's listed, but this should describe what 
+these minimum permissions on directories do:
+</p><p>
+
+</p><pre class="screen">
+dr--------  The contents can be listed, but file attributes can't be read
+d--x------  The directory can be entered, and used in full execution paths
+dr-x------  File attributes can be read by owner
+d-wx------  Files can be created/deleted, even if the directory
+	     isn't the current one
+d------x-t  Prevents files from deletion by others with write
+	     access. Used on /tmp
+d---s--s--  No effect
+</pre><p>
+
+</p><p>
+System configuration files (usually in <code class="literal">/etc</code>) are usually mode <code class="literal">640</code>
+(<code class="literal">-rw-r-----</code>), and owned by root. Depending on your site's security
+requirements, you might adjust this. Never leave any system files
+writable by a group or everyone.  Some configuration files, including
+<code class="literal">/etc/shadow</code>, should only be readable by root, and directories in <code class="literal">/etc</code>
+should at least not be accessible by others.
+</p><p>
+</p><div class="variablelist"><dl class="variablelist"><dt><span class="term">SUID Shell Scripts</span></dt><dd><p>
+SUID shell scripts are a serious security risk, and for this reason
+the kernel will not honor them.  Regardless of how secure you think
+the shell script is, it can be exploited to give the cracker a root
+shell.
+</p></dd></dl></div><p>
+</p></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="idm513"></a>5.3. Integrity Checking</h3></div></div></div><p>
+Another very good way to detect local (and also network) attacks on
+your system is to run an integrity checker like <code class="literal">Tripwire</code>,
+<code class="literal">Aide</code> or <code class="literal">Osiris</code>.
+These integrety checkers run a number of checksums on all your important
+binaries and config files and compares them against a database of former,
+known-good values as a reference. Thus, any changes in the files will 
+be flagged.
+</p><p>
+It's a good idea to install these sorts of programs onto a floppy, and then
+physically set the write protect on the floppy. This way intruders
+can't tamper with the integrety checker itself or change the database. Once you
+have something like this setup, it's a good idea to run it as part of your normal
+security administration duties to see if anything has changed.
+</p><p>
+You can even add a <code class="literal">crontab</code> entry to run the checker from your floppy
+every night and mail you the results in the morning. Something like:
+
+</p><pre class="screen">
+		# set mailto
+		MAILTO=kevin
+		# run Tripwire
+		15 05 * * * root /usr/local/adm/tcheck/tripwire 
+</pre><p>
+
+will mail you a report each morning at 5:15am. 
+</p><p>
+Integrity checkers can be a godsend to detecting intruders before you would
+otherwise notice them. Since a lot of files change on the average
+system, you have to be careful what is cracker activity and what is
+your own doing. 
+</p><p>
+You can find the freely available unsusported version of
+<code class="literal">Tripwire</code> at <a class="ulink" href="http://www.tripwire.org" target="_top">http://www.tripwire.org</a>, 
+free of charge.  Manuals and support can be purchased.
+</p><p>
+<code class="literal">Aide</code> can be found at <a class="ulink" href="http://www.cs.tut.fi/~rammer/aide.html" target="_top">http://www.cs.tut.fi/~rammer/aide.html</a>. 
+</p><p>
+<code class="literal">Osiris</code> can be found at <a class="ulink" href="http://www.shmoo.com/osiris/" target="_top">http://www.shmoo.com/osiris/</a>.
+</p></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="idm533"></a>5.4. Trojan Horses</h3></div></div></div><p>
+"Trojan Horses" are named after the fabled ploy in Virgil's  "Aenid".
+The idea is that a cracker distributes a program or binary that sounds
+great, and encourages other people to download it and run it as root. Then
+the program can compromise their system while they are not paying
+attention. While they think the binary they just pulled down does one
+thing (and it might very well), it also compromises their security. 
+</p><p>
+You should take care of what programs you install on your
+machine. RedHat provides MD5 checksums and PGP signatures on its RPM 
+files so you can verify you are installing the real thing. Other 
+distributions have similar methods. You should never run any unfamiliar 
+binary, for which you don't have the source, as root. Few attackers are 
+willing to release source code to public scrutiny.
+</p><p>
+Although it can be complex, make sure you are getting the source for
+a program from its real distribution site. If the program is going to
+run as root, make sure either you or someone you trust has looked over
+the source and verified it.
+</p></div></div><div class="navfooter"><hr><table width="100%" summary="Navigation footer"><tr><td width="40%" align="left"><a accesskey="p" href="ar01s04.html">Prev</a> </td><td width="20%" align="center"> </td><td width="40%" align="right"> <a accesskey="n" href="ar01s06.html">Next</a></td></tr><tr><td width="40%" align="left" valign="top">4. Local Security </td><td width="20%" align="center"><a accesskey="h" href="index.html">Home</a></td><td width="40%" align="right" valign="top"> 6. Password Security and Encryption </td></tr></table></div></body></html>

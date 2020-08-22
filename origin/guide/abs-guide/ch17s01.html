@@ -1,0 +1,64 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1"><title>1. Analyzing a System Script</title><link rel="stylesheet" type="text/css" href="style.css"><meta name="generator" content="DocBook XSL Stylesheets V1.79.1"><link rel="home" href="index.html" title="Advanced Bash-Scripting Guide"><link rel="up" href="ch17.html" title="Chapter 17. System and Administrative Commands"><link rel="prev" href="ch17.html" title="Chapter 17. System and Administrative Commands"><link rel="next" href="pt05.html" title="Part Part 5. Advanced Topics"></head><body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF"><div class="navheader"><table width="100%" summary="Navigation header"><tr><th colspan="3" align="center">1. Analyzing a System Script</th></tr><tr><td width="20%" align="left"><a accesskey="p" href="ch17.html">Prev</a> </td><th width="60%" align="center">Chapter 17. System and Administrative Commands</th><td width="20%" align="right"> <a accesskey="n" href="pt05.html">Next</a></td></tr></table><hr></div><div class="sect1"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="sysscripts"></a>1. Analyzing a System Script</h2></div></div></div><p><a name="killall2ref"></a></p><p>Using our knowledge of administrative commands, let us examine a system
+	script. One of the shortest and simplest to understand scripts is
+	<span class="quote">&#8220;<span class="quote">killall,</span>&#8221;</span>
+	   <a href="#ftn.idm17083" class="footnote" name="idm17083"><sup class="footnote">[97]</sup></a>
+	used to suspend running processes at system shutdown.</p><div class="example"><a name="ex55"></a><p class="title"><b>Example 17.12. <em class="firstterm">killall</em>, from <code class="filename">/etc/rc.d/init.d</code></b></p><div class="example-contents"><pre class="programlisting">#!/bin/sh
+
+# --&gt; Comments added by the author of this document marked by "# --&gt;".
+
+# --&gt; This is part of the 'rc' script package
+# --&gt; by Miquel van Smoorenburg, &lt;miquels@drinkel.nl.mugnet.org&gt;.
+
+# --&gt; This particular script seems to be Red Hat / FC specific
+# --&gt; (may not be present in other distributions).
+
+#  Bring down all unneeded services that are still running
+#+ (there shouldn't be any, so this is just a sanity check)
+
+for i in /var/lock/subsys/*; do
+        # --&gt; Standard for/in loop, but since "do" is on same line,
+        # --&gt; it is necessary to add ";".
+        # Check if the script is there.
+        [ ! -f $i ] &amp;&amp; continue
+        # --&gt; This is a clever use of an "and list", equivalent to:
+        # --&gt; if [ ! -f "$i" ]; then continue
+
+        # Get the subsystem name.
+        subsys=${i#/var/lock/subsys/}
+        # --&gt; Match variable name, which, in this case, is the file name.
+        # --&gt; This is the exact equivalent of subsys=`basename $i`.
+	
+        # --&gt;  It gets it from the lock file name
+        # --&gt;+ (if there is a lock file,
+        # --&gt;+ that's proof the process has been running).
+        # --&gt;  See the "lockfile" entry, above.
+
+
+        # Bring the subsystem down.
+        if [ -f /etc/rc.d/init.d/$subsys.init ]; then
+           /etc/rc.d/init.d/$subsys.init stop
+        else
+           /etc/rc.d/init.d/$subsys stop
+        # --&gt;  Suspend running jobs and daemons.
+        # --&gt;  Note that "stop" is a positional parameter,
+        # --&gt;+ not a shell builtin.
+        fi
+done
+</pre></div></div><br class="example-break"><p>That wasn't so bad. Aside from a little fancy footwork with variable
+	matching, there is no new material there.</p><p><b>Exercise 1. </b>In <code class="filename">/etc/rc.d/init.d</code>,
+	  analyze the <span class="command"><strong>halt</strong></span> script. It is a bit longer
+	  than <span class="command"><strong>killall</strong></span>, but similar in concept. Make
+	  a copy of this script somewhere in your home directory and
+	  experiment with it (do <span class="emphasis"><em>not</em></span> run it as
+	  <em class="firstterm">root</em>). Do a simulated run
+	  with the <code class="option">-vn</code> flags (<strong class="userinput"><code>sh
+	  -vn scriptname</code></strong>). Add extensive
+	  comments. Change the	commands to <a class="link" href="ch15.html#echoref">echos</a>.</p><p><b>Exercise 2. </b>Look at some of the more complex scripts in
+	<code class="filename">/etc/rc.d/init.d</code>.
+	Try to understand at least portions of them. Follow
+	the above procedure to analyze them. For some
+	additional insight, you might also examine the
+	file <code class="filename">sysvinitfiles</code> in <code class="filename">/usr/share/doc/initscripts-?.??</code>,
+	which is part of the <span class="quote">&#8220;<span class="quote">initscripts</span>&#8221;</span>
+	documentation.</p><div class="footnotes"><br><hr style="width:100; text-align:left;margin-left: 0"><div id="ftn.idm17083" class="footnote"><p><a href="#idm17083" class="para"><sup class="para">[97] </sup></a>The <em class="firstterm">killall</em> system
+	   script should not be confused with the <a class="link" href="ch15s01.html#killallref">killall</a> command in <code class="filename">/usr/bin</code>.</p></div></div></div><div class="navfooter"><hr><table width="100%" summary="Navigation footer"><tr><td width="40%" align="left"><a accesskey="p" href="ch17.html">Prev</a> </td><td width="20%" align="center"><a accesskey="u" href="ch17.html">Up</a></td><td width="40%" align="right"> <a accesskey="n" href="pt05.html">Next</a></td></tr><tr><td width="40%" align="left" valign="top">Chapter 17. System and Administrative Commands </td><td width="20%" align="center"><a accesskey="h" href="index.html">Home</a></td><td width="40%" align="right" valign="top"> Part Part 5. Advanced Topics</td></tr></table></div></body></html>

@@ -1,0 +1,294 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN""http://www.w3.org/TR/html4/loose.dtd">
+<HTML
+><HEAD
+><TITLE
+>UUCP Setup</TITLE
+><META
+NAME="GENERATOR"
+CONTENT="Modular DocBook HTML Stylesheet Version 1.79"><LINK
+REL="HOME"
+TITLE="Linux Network Administrators Guide"
+HREF="index.html"><LINK
+REL="UP"
+TITLE="Getting EximUp and Running"
+HREF="x-087-2-exim.html"><LINK
+REL="PREVIOUS"
+TITLE="Protecting Against Mail Spam"
+HREF="x16372.html"><LINK
+REL="NEXT"
+TITLE="Netnews"
+HREF="x-087-2-news.html"></HEAD
+><BODY
+CLASS="SECT1"
+BGCOLOR="#FFFFFF"
+TEXT="#000000"
+LINK="#0000FF"
+VLINK="#840084"
+ALINK="#0000FF"
+><DIV
+CLASS="NAVHEADER"
+><TABLE
+SUMMARY="Header navigation table"
+WIDTH="100%"
+BORDER="0"
+CELLPADDING="0"
+CELLSPACING="0"
+><TR
+><TH
+COLSPAN="3"
+ALIGN="center"
+>Linux Network Administrators Guide</TH
+></TR
+><TR
+><TD
+WIDTH="10%"
+ALIGN="left"
+VALIGN="bottom"
+><A
+HREF="x16372.html"
+ACCESSKEY="P"
+>Prev</A
+></TD
+><TD
+WIDTH="80%"
+ALIGN="center"
+VALIGN="bottom"
+>Chapter 19. Getting EximUp and Running</TD
+><TD
+WIDTH="10%"
+ALIGN="right"
+VALIGN="bottom"
+><A
+HREF="x-087-2-news.html"
+ACCESSKEY="N"
+>Next</A
+></TD
+></TR
+></TABLE
+><HR
+ALIGN="LEFT"
+WIDTH="100%"></DIV
+><DIV
+CLASS="SECT1"
+><H1
+CLASS="SECT1"
+><A
+NAME="X-087-2-EXIM.SIMPLE"
+>19.8. UUCP Setup</A
+></H1
+><P
+>&#13;
+Exim does not have any specific code for transporting mail via UUCP, nor does 
+it support UUCP bang path addresses. However, if domain addressing is being 
+used, Exim can be interfaced to UUCP fairly simply. Here is a configuration 
+fragment for sending certain domains to UUCP, taken from a real installation:</P
+><TABLE
+BORDER="1"
+BGCOLOR="#E0E0E0"
+WIDTH="100%"
+><TR
+><TD
+><FONT
+COLOR="#000000"
+><PRE
+CLASS="SCREEN"
+># Transport
+uucp:
+  driver = pipe
+  user = nobody
+  command = "/usr/local/bin/uux -r - \
+    ${substr_-5:$host}!rmail ${local_part}"
+  return_fail_output = true
+
+# Router
+uucphost:
+  transport = uucp
+  driver = domainlist
+  route_file = /usr/exim/uucphosts
+  search_type = lsearch</PRE
+></FONT
+></TD
+></TR
+></TABLE
+><P
+>In a complete configuration file, the transport would be inserted
+among the other transports, and the router probably defined as the
+first router. The file <TT
+CLASS="FILENAME"
+>/usr/exim/uucphosts</TT
+>
+contains entries like this:
+
+<TABLE
+BORDER="1"
+BGCOLOR="#E0E0E0"
+WIDTH="100%"
+><TR
+><TD
+><FONT
+COLOR="#000000"
+><PRE
+CLASS="SCREEN"
+>darksite.example.com:           darksite.UUCP</PRE
+></FONT
+></TD
+></TR
+></TABLE
+>
+
+which is interpreted to mean, &#8220;Send mail addressed to the domain
+<EM
+>darksite.example.com</EM
+> to the
+UUCP host <EM
+>darksite</EM
+>.&#8221;
+This configuration could be set up more simply without the router
+adding the suffix .UUCP to <EM
+>darksite</EM
+> only to have the transport take
+it off again, but this way is useful because it makes clear the distinction between the
+domain name <EM
+>darksite.example.com</EM
+> and the UUCP host
+name <EM
+>darksite</EM
+>.</P
+><P
+>Whenever the router comes across a domain that is in the route file,
+it will send the address to the UUCP transport, which subsequently pipes it to the
+<B
+CLASS="COMMAND"
+>uux</B
+> command (described in <A
+HREF="x-087-2-uucp.html"
+>Chapter 16</A
+>). If there is a problem,
+<B
+CLASS="COMMAND"
+>uux</B
+> will generate some output and terminate with a
+non-zero error code. The setting of
+<TT
+CLASS="LITERAL"
+>return_fail_output</TT
+> makes sure that the output is
+returned to the sender.</P
+><P
+>If incoming UUCP messages are grouped into files in batched SMTP
+format, they can be passed directly to Exim using a command like this:
+
+<TABLE
+BORDER="1"
+BGCOLOR="#E0E0E0"
+WIDTH="100%"
+><TR
+><TD
+><FONT
+COLOR="#000000"
+><PRE
+CLASS="SCREEN"
+>exim -bS &#60;/var/uucp/incoming/001</PRE
+></FONT
+></TD
+></TR
+></TABLE
+></P
+><P
+>However, there is one catch. When Exim receives a message locally, it
+insists that the sender is the logged-in user that calls it, but for a
+UUCP batch we want the senders to be taken from the incoming
+messages. Exim will do this if the process that calls it is running as
+a <EM
+>trusted user</EM
+>. If you arrange for incoming UUCP
+to be handled by a user called <SPAN
+CLASS="SYSTEMITEM"
+>uucp</SPAN
+>, for example, you need to specify:
+
+<TABLE
+BORDER="1"
+BGCOLOR="#E0E0E0"
+WIDTH="100%"
+><TR
+><TD
+><FONT
+COLOR="#000000"
+><PRE
+CLASS="SCREEN"
+>trusted_users = uucp</PRE
+></FONT
+></TD
+></TR
+></TABLE
+>
+
+in the Exim configuration file to ensure that sender addresses are correctly 
+handled.</P
+></DIV
+><DIV
+CLASS="NAVFOOTER"
+><HR
+ALIGN="LEFT"
+WIDTH="100%"><TABLE
+SUMMARY="Footer navigation table"
+WIDTH="100%"
+BORDER="0"
+CELLPADDING="0"
+CELLSPACING="0"
+><TR
+><TD
+WIDTH="33%"
+ALIGN="left"
+VALIGN="top"
+><A
+HREF="x16372.html"
+ACCESSKEY="P"
+>Prev</A
+></TD
+><TD
+WIDTH="34%"
+ALIGN="center"
+VALIGN="top"
+><A
+HREF="index.html"
+ACCESSKEY="H"
+>Home</A
+></TD
+><TD
+WIDTH="33%"
+ALIGN="right"
+VALIGN="top"
+><A
+HREF="x-087-2-news.html"
+ACCESSKEY="N"
+>Next</A
+></TD
+></TR
+><TR
+><TD
+WIDTH="33%"
+ALIGN="left"
+VALIGN="top"
+>Protecting Against Mail Spam</TD
+><TD
+WIDTH="34%"
+ALIGN="center"
+VALIGN="top"
+><A
+HREF="x-087-2-exim.html"
+ACCESSKEY="U"
+>Up</A
+></TD
+><TD
+WIDTH="33%"
+ALIGN="right"
+VALIGN="top"
+>Netnews</TD
+></TR
+></TABLE
+></DIV
+></BODY
+></HTML
+>

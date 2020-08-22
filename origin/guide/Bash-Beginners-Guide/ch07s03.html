@@ -1,0 +1,79 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1"><title>3. Using case statements</title><link rel="stylesheet" type="text/css" href="style.css"><meta name="generator" content="DocBook XSL Stylesheets V1.79.1"><meta name="keywords" content="Linux, Scripts, linux, Bash, guide, Guide, Exercises, exercises, bash, scripting, Scripting, awk, sed, variables, functions, loops, conditionals"><link rel="home" href="index.html" title="Bash Guide for Beginners"><link rel="up" href="ch07.html" title="Chapter 7. Conditional statements"><link rel="prev" href="ch07s02.html" title="2. More advanced if usage"><link rel="next" href="ch07s04.html" title="4. Summary"></head><body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF"><div class="navheader"><table width="100%" summary="Navigation header"><tr><th colspan="3" align="center">3. Using case statements</th></tr><tr><td width="20%" align="left"><a accesskey="p" href="ch07s02.html">Prev</a> </td><th width="60%" align="center">Chapter 7. Conditional statements</th><td width="20%" align="right"> <a accesskey="n" href="ch07s04.html">Next</a></td></tr></table><hr></div><div class="sect1"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="sect_07_03"></a>3. Using case statements</h2></div></div></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="sect_07_03_01"></a>3.1. Simplified conditions</h3></div></div></div><p>Nested <span class="command"><strong>if</strong></span> statements might be nice, but as soon as you are confronted with a couple of different possible actions to take, they tend to confuse.  For the more complex conditionals, use the <span class="command"><strong>case</strong></span> syntax:</p><div class="cmdsynopsis"><p><code class="command">case <code class="function">EXPRESSION</code> in <code class="function">CASE1</code>) COMMAND-LIST;; <code class="function">CASE2</code>) COMMAND-LIST;; ... <code class="function">CASEN</code>) COMMAND-LIST;; esac</code> </p></div><p>Each case is an expression matching a pattern.  The commands in the <span class="command"><strong>COMMAND-LIST</strong></span> for the first match are executed.  The <span class="quote">&#8220;<span class="quote">|</span>&#8221;</span> symbol is used for separating multiple patterns, and the <span class="quote">&#8220;<span class="quote">)</span>&#8221;</span> operator terminates a pattern list.  Each case plus its according commands are called a <span class="emphasis"><em>clause</em></span>.  Each clause must be terminated with <span class="quote">&#8220;<span class="quote">;;</span>&#8221;</span>.  Each <span class="command"><strong>case</strong></span> statement is ended with the <span class="command"><strong>esac</strong></span> statement.</p><p>In the example, we demonstrate use of cases for sending a more selective warning message with the <code class="filename">disktest.sh</code> script:</p><pre class="screen">
+<code class="prompt">anny ~/testdir&gt;</code> <span class="command"><strong>cat <code class="filename">disktest.sh</code></strong></span>
+#!/bin/bash
+
+# This script does a very simple test for checking disk space.
+
+space=`df -h | awk '{print $5}' | grep % | grep -v Use | sort -n | tail -1 | cut -d "%" -f1 -`
+
+case $space in
+[1-6]*)
+  Message="All is quiet."
+  ;;
+[7-8]*)
+  Message="Start thinking about cleaning out some stuff.  There's a partition that is $space % full."
+  ;;
+9[1-8])
+  Message="Better hurry with that new disk...  One partition is $space % full."
+  ;;
+99)
+  Message="I'm drowning here!  There's a partition at $space %!"
+  ;;
+*)
+  Message="I seem to be running with an nonexistent amount of disk space..."
+  ;;
+esac
+
+echo $Message | mail -s "disk report `date`" anny
+
+<code class="prompt">anny ~/testdir&gt;</code>
+You have new mail.
+
+<code class="prompt">anny ~/testdir&gt;</code> <span class="command"><strong>tail <em class="parameter"><code>-16</code></em> <code class="filename">/var/spool/mail/anny</code></strong></span>
+From anny@octarine Tue Jan 14 22:10:47 2003
+Return-Path: &lt;anny@octarine&gt;
+Received: from octarine (localhost [127.0.0.1])
+        by octarine (8.12.5/8.12.5) with ESMTP id h0ELAlBG020414
+        for &lt;anny@octarine&gt;; Tue, 14 Jan 2003 22:10:47 +0100
+Received: (from anny@localhost)
+        by octarine (8.12.5/8.12.5/Submit) id h0ELAltn020413
+        for anny; Tue, 14 Jan 2003 22:10:47 +0100
+Date: Tue, 14 Jan 2003 22:10:47 +0100
+From: Anny &lt;anny@octarine&gt;
+Message-Id: &lt;200301142110.h0ELAltn020413@octarine&gt;
+To: anny@octarine
+Subject: disk report Tue Jan 14 22:10:47 CET 2003
+
+Start thinking about cleaning out some stuff.  There's a partition that is 87 % full.
+
+<code class="prompt">anny ~/testdir&gt;</code>
+</pre><p>Of course you could have opened your mail program to check the results; this is just to demonstrate that the script sends a decent mail with <span class="quote">&#8220;<span class="quote">To:</span>&#8221;</span>, <span class="quote">&#8220;<span class="quote">Subject:</span>&#8221;</span> and <span class="quote">&#8220;<span class="quote">From:</span>&#8221;</span> header lines.</p><p>Many more examples using <span class="command"><strong>case</strong></span> statements can be found in your system's init script directory.  The startup scripts use <span class="command"><strong>start</strong></span> and <span class="command"><strong>stop</strong></span> cases to run or stop system processes.  A theoretical example can be found in the next section.</p></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="sect_07_03_02"></a>3.2. Initscript example</h3></div></div></div><p>Initscripts often make use of <span class="command"><strong>case</strong></span> statements for starting, stopping and querying system services.  This is an excerpt of the script that starts <span class="application">Anacron</span>, a daemon that runs commands periodically with a frequency specified in days.</p><pre class="screen">
+case "$1" in
+        start)
+            start
+            ;;
+         
+        stop)
+            stop
+            ;;
+         
+        status)
+            status anacron
+            ;;
+        restart)
+            stop
+            start
+            ;;
+        condrestart)
+            if test "x`pidof anacron`" != x; then
+                stop
+                start
+            fi
+            ;;
+         
+        *)
+            echo $"Usage: $0 {start|stop|restart|condrestart|status}"
+            exit 1
+ 
+esac
+</pre><p>The tasks to execute in each case, such as stopping and starting the daemon, are defined in functions, which are partially sourced from the <code class="filename">/etc/rc.d/init.d/functions</code> file.  See <a class="xref" href="ch11.html" title="Chapter 11. Functions">Chapter 11, <i>Functions</i></a> for more explanation.</p></div></div><div class="navfooter"><hr><table width="100%" summary="Navigation footer"><tr><td width="40%" align="left"><a accesskey="p" href="ch07s02.html">Prev</a> </td><td width="20%" align="center"><a accesskey="u" href="ch07.html">Up</a></td><td width="40%" align="right"> <a accesskey="n" href="ch07s04.html">Next</a></td></tr><tr><td width="40%" align="left" valign="top">2. More advanced if usage </td><td width="20%" align="center"><a accesskey="h" href="index.html">Home</a></td><td width="40%" align="right" valign="top"> 4. Summary</td></tr></table></div></body></html>

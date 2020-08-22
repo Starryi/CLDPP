@@ -1,0 +1,133 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1"><title>9. Extending a logical volume</title><link rel="stylesheet" type="text/css" href="style.css"><meta name="generator" content="DocBook XSL Stylesheets V1.79.1"><link rel="home" href="index.html" title="LVM HOWTO"><link rel="up" href="ch11.html" title="Chapter 11. Common Tasks"><link rel="prev" href="ch11s08.html" title="8. Removing a logical volume"><link rel="next" href="ch11s10.html" title="10. Reducing a logical volume"></head><body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF"><div class="navheader"><table width="100%" summary="Navigation header"><tr><th colspan="3" align="center">9. Extending a logical volume</th></tr><tr><td width="20%" align="left"><a accesskey="p" href="ch11s08.html">Prev</a> </td><th width="60%" align="center">Chapter 11. Common Tasks</th><td width="20%" align="right"> <a accesskey="n" href="ch11s10.html">Next</a></td></tr></table><hr></div><div class="sect1"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="extendlv"></a>9. Extending a logical volume</h2></div></div></div><p>
+        To extend a logical volume you simply tell the lvextend command how
+        much you want to increase the size. You can specify how much to
+        grow the volume, or how large you want it to grow to:
+        </p><pre class="screen">
+<span class="command"><strong># lvextend -L12G /dev/myvg/homevol</strong></span>
+<code class="computeroutput">lvextend -- extending logical volume "/dev/myvg/homevol" to 12 GB
+lvextend -- doing automatic backup of volume group "myvg"
+lvextend -- logical volume "/dev/myvg/homevol" successfully extended</code>
+        </pre><p>
+        will extend <code class="filename">/dev/myvg/homevol</code> to 12 Gigabytes.
+      </p><p>
+        </p><pre class="screen">
+<span class="command"><strong># lvextend -L+1G /dev/myvg/homevol</strong></span>
+<code class="computeroutput">lvextend -- extending logical volume "/dev/myvg/homevol" to 13 GB
+lvextend -- doing automatic backup of volume group "myvg"
+lvextend -- logical volume "/dev/myvg/homevol" successfully extended</code>
+        </pre><p>
+        will add another gigabyte to <code class="filename">/dev/myvg/homevol</code>.
+      </p><p>
+        After you have extended the logical volume it is necessary to
+        increase the file system size to match. how you do this depends on
+        the file system you are using.
+      </p><p>
+        By default, most file system resizing tools will increase the size
+        of the file system to be the size of the underlying logical volume
+        so you don't need to worry about specifying the same size for each
+        of the two commands.
+      </p><div class="orderedlist"><ol class="orderedlist" type="1"><li class="listitem"><p>
+            <span class="strong"><strong>
+              ext2/ext3
+            </strong></span>
+          </p><p>
+            Unless you have patched your kernel with the ext2online
+            patch it is necessary to unmount the file system before
+            resizing it.  (It seems that the online resizing patch is
+            rather dangerous, so use at your own risk)
+            </p><pre class="screen">
+   <span class="command"><strong># umount /dev/myvg/homevol/dev/myvg/homevol
+   # resize2fs /dev/myvg/homevol
+   # mount /dev/myvg/homevol /home</strong></span>
+            </pre><p>
+          </p><p>   
+            If you don't have e2fsprogs 1.19 or later, you can download
+            the ext2resize command from 
+            <a class="ulink" href="http://ext2resize.sourceforge.net" target="_top">ext2resize.sourceforge.net</a>
+            and use that:
+            </p><pre class="screen">
+   <span class="command"><strong># umount /dev/myvg/homevol/dev/myvg/homevol
+   # ext2resize /dev/myvg/homevol
+   # mount /dev/myvg/homevol /home</strong></span>
+            </pre><p>
+          </p><p>
+            For ext2 there is an easier way. LVM 1 ships with a utility
+            called e2fsadm which does the lvextend and resize2fs for you
+            (it can also do file system shrinking, see the next section).
+
+            </p><div class="warning" style="margin-left: 0.5in; margin-right: 0.5in;"><h3 class="title">LVM 2 Caveat</h3><p>
+                There is currently no e2fsadm equivalent for
+                LVM 2 and the e2fsadm that ships with LVM 1
+                does not work with LVM 2.
+              </p></div><p>
+
+            so the single command
+            </p><pre class="screen">
+   <span class="command"><strong># e2fsadm -L+1G /dev/myvg/homevol</strong></span>
+            </pre><p>
+            is equivalent to the two commands:
+            </p><pre class="screen">
+   <span class="command"><strong># lvextend -L+1G /dev/myvg/homevol
+   # resize2fs /dev/myvg/homevol</strong></span>
+            </pre><p>
+            </p><div class="note" style="margin-left: 0.5in; margin-right: 0.5in;"><h3 class="title">Note</h3><p>
+                You will still need to unmount the file system before
+                running e2fsadm.
+              </p></div><p>
+          </p></li><li class="listitem"><p>
+            <span class="strong"><strong>
+              reiserfs
+            </strong></span>
+          </p><p>
+            Reiserfs file systems can be resized when mounted or
+            unmounted as you prefer:
+            </p><div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem"><p>
+                  Online:
+                  </p><pre class="screen">
+   <span class="command"><strong># resize_reiserfs -f /dev/myvg/homevol</strong></span>
+                  </pre><p>
+                </p></li><li class="listitem"><p>
+                  Offline:
+                  </p><pre class="screen">
+   <span class="command"><strong># umount /dev/myvg/homevol
+   # resize_reiserfs /dev/myvg/homevol
+   # mount -treiserfs /dev/myvg/homevol /home</strong></span>
+                  </pre><p>
+                </p></li></ul></div><p>
+          </p></li><li class="listitem"><p>
+            <span class="strong"><strong>
+              xfs
+            </strong></span>
+          </p><p>
+            XFS file systems must be mounted to be resized and the
+            mount-point is specified rather than the device name.
+            </p><pre class="screen">
+   <span class="command"><strong># xfs_growfs /home</strong></span>
+            </pre><p>
+          </p></li><li class="listitem"><p>
+            <span class="strong"><strong>
+              jfs
+            </strong></span>
+          </p><p>
+            Just like XFS the JFS file system must be mounted to be
+	    resized and the mount-point is specified rather than the
+	    device name.  You need at least Version 1.0.21 of the
+	    jfs-utils to do this.
+            </p><pre class="screen">
+<span class="command"><strong># mount -o remount,resize /home</strong></span>
+            </pre><p>
+          </p><div class="warning" style="margin-left: 0.5in; margin-right: 0.5in;"><h3 class="title">Known Kernel Bug</h3><p>
+              Some kernel versions have problems with this syntax
+              (2.6.0 is known to have this problem). In this case you
+              have to explicitly specify the new size of the
+              filesystem in blocks.  This is extremely error prone as
+              you <span class="emphasis"><em>must</em></span> know the blocksize of your
+              filesystem and calculate the new size based on those
+              units.
+            </p><p>
+              Example: If you were to resize a JFS file system to 4
+              gigabytes that has 4k blocks, you would write:
+              </p><pre class="screen">
+<span class="command"><strong># mount -o remount,resize=1048576 /home</strong></span>
+              </pre><p>
+            </p></div></li></ol></div></div><div class="navfooter"><hr><table width="100%" summary="Navigation footer"><tr><td width="40%" align="left"><a accesskey="p" href="ch11s08.html">Prev</a> </td><td width="20%" align="center"><a accesskey="u" href="ch11.html">Up</a></td><td width="40%" align="right"> <a accesskey="n" href="ch11s10.html">Next</a></td></tr><tr><td width="40%" align="left" valign="top">8. Removing a logical volume </td><td width="20%" align="center"><a accesskey="h" href="index.html">Home</a></td><td width="40%" align="right" valign="top"> 10. Reducing a logical volume</td></tr></table></div></body></html>

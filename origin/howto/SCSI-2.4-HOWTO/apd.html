@@ -1,0 +1,77 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1"><title>Appendix D. Performance, Test and Debugging tools</title><link rel="stylesheet" type="text/css" href="style.css"><meta name="generator" content="DocBook XSL Stylesheets V1.79.1"><link rel="home" href="index.html" title="The Linux 2.4 SCSI subsystem HOWTO"><link rel="up" href="index.html" title="The Linux 2.4 SCSI subsystem HOWTO"><link rel="prev" href="apc.html" title="Appendix C. Troubleshooting"><link rel="next" href="ape.html" title="Appendix E. Compile options and System calls including ioctls"></head><body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF"><div class="navheader"><table width="100%" summary="Navigation header"><tr><th colspan="3" align="center">Appendix D. Performance, Test and Debugging tools</th></tr><tr><td width="20%" align="left"><a accesskey="p" href="apc.html">Prev</a> </td><th width="60%" align="center"> </th><td width="20%" align="right"> <a accesskey="n" href="ape.html">Next</a></td></tr></table><hr></div><div class="appendix"><div class="titlepage"><div><div><h1 class="title"><a name="perform"></a>Appendix D. Performance, Test and Debugging tools</h1></div></div></div><p><b>scu. </b>
+The SCSI Command Utility (SCU) implements various SCSI commands necessary
+for normal maintenance and diagnostics of SCSI peripherals. Some of its
+features include: formatting, scanning for (and reassigning) bad blocks,
+downloading new firmware, executing diagnostics and obtaining
+performance information. It is available on several Unix platforms
+(and NT), however it is only currently available in binary form. See
+<a class="ulink" href="http://www.bit-net.com/~rmiller/scu.html" target="_top">
+www.bit-net.com/~rmiller/scu.html</a> for more details.
+</p><p><b>dd. </b>
+Very useful for testing the streaming performance of disks and cdroms/dvds.
+See <span class="command"><strong>man dd</strong></span> for more details. Here is an example for
+timing how long a disk takes to read 1 GB (10**9 bytes) starting from block 0:
+</p><pre class="programlisting">
+$ time dd if=/dev/sda of=/dev/null bs=512 count=1953126
+</pre><p>
+If the raw device <code class="filename">/dev/raw/raw1</code> is bound to
+<code class="filename">/dev/sda</code> then the above line is equivalent to:
+</p><pre class="programlisting">
+$ time dd if=/dev/raw/raw1 of=/dev/null bs=512 count=1953126
+</pre><p>
+This may be slower than expected since one 512 byte sector is being read
+at a time. Changing the last 2 arguments to "bs=8k count=122071" should
+give better timings for the "raw" dd.
+</p><p><b>dt. </b>
+The Data Test (DT) program is modelled on dd's syntax but dt can do a
+lot more than sequential copies. It is a comprehensive data test program
+for SCSI devices such as disks, tapes and cdrom/dvds. It is available on
+several Unix platforms (and NT), and its source is available (unlike its
+stable mate "scu" discussed earlier). See 
+<a class="ulink" href="http://www.bit-net.com/~rmiller/dt.html" target="_top">
+www.bit-net.com/~rmiller/dt.html</a> for more details.
+</p><p><b>lmdd. </b>
+This command is part of the lmbench suite of programs and is a variant of the
+<span class="command"><strong>dd</strong></span> command. It has been tailored for IO measurements
+and outputs timing and throughput numbers on completion. Hence the
+<span class="command"><strong>time</strong></span> command and a calculator are not needed.
+</p><p><b>blockdev. </b>
+Fetches the sector size, the number of sectors and read ahead status
+of a block device (typically a disk). Can also be used to flush buffers
+and reread the partition table. See <span class="command"><strong>man blockdev</strong></span>.
+</p><p><b>sg_dd. </b>
+This command is part of the sg_utils package (see 
+<a class="link" href="apf.html#W4">W4</a>) and is another variant of the
+<span class="command"><strong>dd</strong></span> command in which either the input and/or
+output file is a sg or a raw device. The block size argument ("bs") must
+match that of the physical device in question. The "skip" and "seek" arguments
+can be up to 2**31 - 1 on a 32 bit architecture allowing 1TB disks to be
+accessed (2G * 512). The Linux system command llseek() is used to seek with
+a 64 bit file read/write offset. The <span class="command"><strong>lmdd</strong></span> does not
+handle the &gt; 2GB case and the <span class="command"><strong>dd</strong></span> command gets creative
+with multiple relative seeks. <span class="command"><strong>sg_dd</strong></span> has
+a "bpt" (blocks per transfer) argument that controls the number of blocks
+read or written in each IO transaction.
+</p><p>
+There are other programs in the sg_utils package to scan the SCSI bus
+(<span class="command"><strong>sg_scan</strong></span> and <span class="command"><strong>sg_map</strong></span>), to measure
+SCSI bus throughput (<span class="command"><strong>sg_rbuf</strong></span> and <span class="command"><strong>sg_turs
+</strong></span>), show data from the SCSI inquiry command
+(<span class="command"><strong>sg_inq</strong></span>) and spin up (or down) media
+(<span class="command"><strong>sg_start</strong></span>).
+</p><p><b>dd_rescue + scsiinfo. </b>
+This dd variant is designed to rescue damaged media such as SCSI (or IDE)
+disks and CDROMs (see <a class="link" href="apf.html#W6">W6</a>). The <span class="command"><strong>
+scsiinfo</strong></span> utility for displaying and changing mode page
+information is also at that site.
+</p><p><b>sard. </b>
+This utility is modelled on System V Release 4's <span class="command"><strong>sar -d</strong></span> for
+producing IO statistics for mounted devices and partitions. It has been
+developed by Stephen Tweedie and includes the sard utility and a required
+kernel patch which expands the output of <code class="filename">/proc/partitions</code>
+. It can be found at 
+<a class="ulink" href="ftp://ftp.uk.linux.org/pub/linux/sct/fs/profiling" target="_top">
+ftp.uk.linux.org/pub/linux/sct/fs/profiling</a>. It collects statistics
+at a relatively low level (e.g. SCSI mid level) compared to programs
+like <span class="command"><strong>vmstat</strong></span> (see "man vmstat").
+</p></div><div class="navfooter"><hr><table width="100%" summary="Navigation footer"><tr><td width="40%" align="left"><a accesskey="p" href="apc.html">Prev</a> </td><td width="20%" align="center"> </td><td width="40%" align="right"> <a accesskey="n" href="ape.html">Next</a></td></tr><tr><td width="40%" align="left" valign="top">Appendix C. Troubleshooting </td><td width="20%" align="center"><a accesskey="h" href="index.html">Home</a></td><td width="40%" align="right" valign="top"> Appendix E. Compile options and System calls including ioctls</td></tr></table></div></body></html>

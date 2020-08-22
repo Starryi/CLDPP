@@ -1,0 +1,41 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1"><title>2. Region operations</title><link rel="stylesheet" type="text/css" href="style.css"><meta name="generator" content="DocBook XSL Stylesheets V1.79.1"><link rel="home" href="index.html" title="EVMS User Guide"><link rel="up" href="apd.html" title="Appendix D. The LVM2 plug-in"><link rel="prev" href="apds01.html" title="1. Container operations"><link rel="next" href="ape.html" title="Appendix E. The CSM plug-in"></head><body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF"><div class="navheader"><table width="100%" summary="Navigation header"><tr><th colspan="3" align="center">2. Region operations</th></tr><tr><td width="20%" align="left"><a accesskey="p" href="apds01.html">Prev</a> </td><th width="60%" align="center">Appendix D. The LVM2 plug-in</th><td width="20%" align="right"> <a accesskey="n" href="ape.html">Next</a></td></tr></table><hr></div><div class="sect1"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="regionops"></a>2. Region operations</h2></div></div></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="idm4954"></a>2.1. Creating LVM2 regions</h3></div></div></div><p>You create LVM2 regions from the freespace in LVM2 containers.
+If there is at least one extent of freespace in the container, you can create a new region.</p><p>The following options are available for creating LVM2 regions:</p><div class="variablelist"><dl class="variablelist"><dt><span class="term">name</span></dt><dd><p>The name of the new region.</p></dd><dt><span class="term">size</span></dt><dd><p>The size of the new region.  This size must be a multiple of the
+container's extent-size.  If it isn't, the size will be rounded down as appropriate.
+By default, all of the available freespace in the container will be used for the new region.</p></dd><dt><span class="term">stripes</span></dt><dd><p>If the container consumes two or more objects, and each object has unallocated
+extents, then the new region can be striped across multiple objects.  This is similar to
+RAID-0 striping and achieves an increased amount of I/O throughput.  This option
+specifies how many objects the new region should be striped across.  By default, new
+regions are not striped, and this value is set to 1.</p></dd><dt><span class="term">stripe_size</span></dt><dd><p>The granularity of striping.  The default value is 64 KB.  Use this option only if the
+stripes option is greater than 1.</p></dd><dt><span class="term">pvs</span></dt><dd><p>A list of names of the objects the new region should map to.  By default, this
+list is empty, which means all available objects will be used to allocate space to the new region.</p></dd></dl></div></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="idm4979"></a>2.2. Expanding LVM2 regions</h3></div></div></div><p>You can expand an existing LVM region if there are any unused extents in the 
+container.  The following options are available for expanding LVM regions.</p><div class="variablelist"><dl class="variablelist"><dt><span class="term">size</span></dt><dd><p>The amount of space to add to the region.  This is a delta-size,
+not the new absolute size of the region.  As with creating new regions,
+this size must be a multiple of the container's extent-size, and will be rounded
+down if necessary.</p></dd><dt><span class="term">stripes</span></dt><dd><p>The number of objects to stripe this new portion of the region across.
+This value can be different than the number of stripes in the existing region.
+For example, if the region was created originally with three stripes, but now only
+two objects are available, then the new portion of the region could be striped
+across just those two objects.  The number of stripes for the last mapping in the
+region will be used as the default.</p></dd><dt><span class="term">stripe_size</span></dt><dd><p>The granularity of striping. As with the number of stripes, this value
+can be different than the stripe-size for the existing region.  By default, the
+stripe-size of the last mapping in the region is used.</p></dd><dt><span class="term">pvs</span></dt><dd><p>A list of names of the objects the region should be expanded onto.
+By default, this list is empty, which means all available objects will be used to
+allocate additional space for the region.</p></dd></dl></div></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="idm4999"></a>2.3. Shrinking LVM2 regions</h3></div></div></div><p>You can shrink an existing LVM region by removing extents from the end of
+the region.  Regions must have at least one extent, so regions cannot be
+shrunk to zero.</p><p>The following options are available when shrinking LVM regions.
+Because regions are always shrunk by removing space from the end of the region,
+a list of objects cannot be specified in this command.</p><div class="variablelist"><dl class="variablelist"><dt><span class="term">size</span></dt><dd><p>The amount of space to remove from the region.
+This is a delta-size, not the new absolute size of the region.
+As with creating and expanding regions, this size must be a multiple of
+the container's extent-size, and will be rounded down if necessary.</p></dd></dl></div></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="idm5008"></a>2.4. Deleting LVM2 regions</h3></div></div></div><p>You can delete an existing LVM region as long as it is not currently a
+compatibility volume, an EVMS volume, or consumed by another EVMS plug-in.
+No options are available for deleting LVM regions.</p></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="renamereg2"></a>2.5. Renaming LVM2 regions</h3></div></div></div><p>You can rename an existing LVM2 region.  In the EVMS GUI and text-mode UIs, this
+is done using the <span class="command"><strong>modify properties</strong></span> command, which is available through the "Actions"
+menu or the context-sensitive pop-up menus.  In the EVMS CLI, this is done using the
+<span class="command"><strong>set</strong></span> command.</p><p>If the renamed LVM2 region has a compatibility volume on it, then the name of that
+compatibility volume will also change.  In order for this to work correctly, that volume must
+be unmounted before the name is changed.  Also, be sure to update your
+<code class="filename">/etc/fstab</code> file if the volume is listed, or the volume won't be mounted properly the next
+time the system boots.</p><p>If the renamed LVM2 region has an EVMS volume or another storage object built on it,
+then the region's name change will be transparent to the upper layers.  In this case, the
+rename can be done while the volume is mounted.</p></div></div><div class="navfooter"><hr><table width="100%" summary="Navigation footer"><tr><td width="40%" align="left"><a accesskey="p" href="apds01.html">Prev</a> </td><td width="20%" align="center"><a accesskey="u" href="apd.html">Up</a></td><td width="40%" align="right"> <a accesskey="n" href="ape.html">Next</a></td></tr><tr><td width="40%" align="left" valign="top">1. Container operations </td><td width="20%" align="center"><a accesskey="h" href="index.html">Home</a></td><td width="40%" align="right" valign="top"> Appendix E. The CSM plug-in</td></tr></table></div></body></html>

@@ -1,0 +1,306 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1"><title>4. Components of Linux Traffic Control</title><link rel="stylesheet" type="text/css" href="style.css"><meta name="generator" content="DocBook XSL Stylesheets V1.79.1"><link rel="home" href="index.html" title="Traffic Control HOWTO"><link rel="up" href="index.html" title="Traffic Control HOWTO"><link rel="prev" href="ar01s03.html" title="3. Traditional Elements of Traffic Control"><link rel="next" href="ar01s05.html" title="5. Software and Tools"></head><body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF"><div class="navheader"><table width="100%" summary="Navigation header"><tr><th colspan="3" align="center">4. Components of Linux Traffic Control</th></tr><tr><td width="20%" align="left"><a accesskey="p" href="ar01s03.html">Prev</a> </td><th width="60%" align="center"> </th><td width="20%" align="right"> <a accesskey="n" href="ar01s05.html">Next</a></td></tr></table><hr></div><div class="section"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="components"></a>4. Components of Linux Traffic Control</h2></div></div></div><p>
+  </p><p>
+  </p><p>
+  </p><div class="table"><a name="tb-c-components-correlation"></a><p class="title"><b>Table 1. Correlation between traffic control elements and Linux
+      components</b></p><div class="table-contents"><table class="table" summary="Correlation between traffic control elements and Linux
+      components" border="1"><colgroup><col align="left" class="elem"><col align="left" class="comp"></colgroup><thead><tr><th align="left">traditional element</th><th align="left">Linux component</th></tr></thead><tbody><tr><td align="left">enqueuing;</td><td align="left">FIXME: receiving packets from userspace and
+          network.</td></tr><tr><td align="left"><a class="link" href="ar01s03.html#e-shaping" title="3.1. Shaping">shaping</a></td><td align="left">The <a class="link" href="ar01s04.html#c-class" title="4.2. class"><code class="constant">class</code></a> offers shaping capabilities.</td></tr><tr><td align="left"><a class="link" href="ar01s03.html#e-scheduling" title="3.2. Scheduling">scheduling</a></td><td align="left">A <a class="link" href="ar01s04.html#c-qdisc" title="4.1. qdisc"><code class="constant">qdisc</code></a> is a scheduler.  Schedulers
+                                can be simple such as the FIFO or
+                                complex, containing classes and other
+                                qdiscs, such as HTB.</td></tr><tr><td align="left"><a class="link" href="ar01s03.html#e-classifying" title="3.3. Classifying">classifying</a></td><td align="left">The <a class="link" href="ar01s04.html#c-filter" title="4.3. filter"><code class="constant">filter</code></a> object performs the
+                                classification through the agency of a
+                                <a class="link" href="ar01s04.html#c-classifier" title="4.4. classifier"><code class="constant">classifier</code></a> object.  Strictly speaking,
+                                Linux classifiers cannot exist outside
+                                of a filter.</td></tr><tr><td align="left"><a class="link" href="ar01s03.html#e-policing" title="3.4. Policing">policing</a></td><td align="left">A <a class="link" href="ar01s04.html#c-police" title="4.5. policer"><code class="constant">policer</code></a> exists in the Linux traffic
+                                control implementation only as part of a
+                                <a class="link" href="ar01s04.html#c-filter" title="4.3. filter"><code class="constant">filter</code></a>.</td></tr><tr><td align="left"><a class="link" href="ar01s03.html#e-dropping" title="3.5. Dropping">dropping</a></td><td align="left">To <a class="link" href="ar01s04.html#c-drop" title="4.6. drop"><code class="constant">drop</code></a> traffic requires a
+                                <a class="link" href="ar01s04.html#c-filter" title="4.3. filter"><code class="constant">filter</code></a> with a <a class="link" href="ar01s04.html#c-police" title="4.5. policer"><code class="constant">policer</code></a> which
+                                uses <span class="quote">&#8220;<span class="quote">drop</span>&#8221;</span> as an action.</td></tr><tr><td align="left"><a class="link" href="ar01s03.html#e-marking" title="3.6. Marking">marking</a></td><td align="left">The <code class="constant">dsmark</code> <a class="link" href="ar01s04.html#c-qdisc" title="4.1. qdisc"><code class="constant">qdisc</code></a> is used for
+                                marking.</td></tr><tr><td align="left">enqueuing;</td><td align="left">Between the scheduler's <a class="link" href="ar01s04.html#c-qdisc" title="4.1. qdisc"><code class="constant">qdisc</code></a> and the <a class="link" href="ar01s02.html#o-nic" title="2.9. NIC, Network Interface Controller">network interface controller (NIC)</a> lies the <a class="link" href="ar01s04.html#c-driver-queue" title="4.9. Driver Queue (aka ring buffer)">driver queue</a>. The <a class="link" href="ar01s04.html#c-driver-queue" title="4.9. Driver Queue (aka ring buffer)">driver queue</a> gives the higher layers (IP stack and traffic control subsystem) a location to queue data asynchronously for the operation of the hardware.  The size of that queue is automatically set by <a class="xref" href="ar01s04.html#c-bql" title="4.10. Byte Queue Limits (BQL)">Byte Queue Limits (BQL)</a>.</td></tr></tbody></table></div></div><br class="table-break"><div class="section"><div class="titlepage"><div><div><h3 class="title"><a name="c-qdisc"></a>4.1. <code class="constant">qdisc</code></h3></div></div></div><p>
+      Simply put, a qdisc is a scheduler
+      (<a class="xref" href="ar01s03.html#e-scheduling" title="3.2. Scheduling">Section 3.2, &#8220;Scheduling&#8221;</a>).  Every output interface needs a
+      scheduler of some kind, and the default scheduler is a FIFO.
+      Other qdiscs available under Linux will rearrange the packets entering
+      the scheduler's queue in accordance with that scheduler's rules.
+    </p><p>
+      The qdisc is the major building block on which all of Linux traffic
+      control is built, and is also called a queuing discipline.
+    </p><p>
+      The <a class="link" href="ar01s07.html" title="7. Classful Queuing Disciplines (qdiscs)">classful qdiscs</a> can contain <a class="link" href="ar01s04.html#c-class" title="4.2. class"><code class="constant">class</code></a>es, and provide a handle
+      to which to attach <a class="link" href="ar01s04.html#c-filter" title="4.3. filter"><code class="constant">filter</code></a>s.  There is no prohibition on using a
+      classful qdisc without child classes, although this will usually consume
+      cycles and other system resources for no benefit.
+    </p><p>
+      The <a class="link" href="ar01s06.html" title="6. Classless Queuing Disciplines (qdiscs)">classless qdiscs</a> can contain no classes, nor is it possible to
+      attach filter to a classless qdisc.  Because a classless qdisc contains
+      no children of any kind, there is no utility to <a class="link" href="ar01s03.html#e-classifying" title="3.3. Classifying">classifying</a>.
+      This means that no filter can be attached to a classless qdisc.
+    </p><p>
+      A source of terminology confusion is the usage of the terms
+      <code class="constant">root</code> qdisc and <code class="constant">ingress</code> qdisc.  These are not
+      really queuing disciplines, but rather locations onto which traffic
+      control structures can be attached for egress (outbound traffic) and
+      ingress (inbound traffic).
+    </p><p>
+      Each interface contains both. The primary and more common is the
+      egress qdisc, known as the <code class="constant">root</code> qdisc.  It can contain any
+      of the queuing disciplines (<a class="link" href="ar01s04.html#c-qdisc" title="4.1. qdisc"><code class="constant">qdisc</code></a>s) with potential
+      <a class="link" href="ar01s04.html#c-class" title="4.2. class"><code class="constant">class</code></a>es and class structures.  The overwhelming majority of
+      documentation applies to the <code class="constant">root</code> qdisc and its children.  Traffic
+      transmitted on an interface traverses the egress or <code class="constant">root</code> qdisc.
+    </p><p>
+      For traffic accepted on an interface, the <code class="constant">ingress</code> qdisc is traversed.
+      With its limited utility, it allows no child <a class="link" href="ar01s04.html#c-class" title="4.2. class"><code class="constant">class</code></a> to be
+      created, and only exists as an object onto which a <a class="link" href="ar01s04.html#c-filter" title="4.3. filter"><code class="constant">filter</code></a> can be
+      attached.  For practical purposes, the <code class="constant">ingress</code> qdisc is merely a
+      convenient object onto which to attach a <a class="link" href="ar01s04.html#c-police" title="4.5. policer"><code class="constant">policer</code></a> to limit the
+      amount of traffic accepted on a network interface.
+    </p><p>
+      In short, you can do much more with an egress qdisc because it contains
+      a real qdisc and the full power of the traffic control system.  An
+      <code class="constant">ingress</code> qdisc can only support a policer.  The remainder of the
+      documentation will concern itself with traffic control structures
+      attached to the <code class="constant">root</code> qdisc unless otherwise specified.
+    </p></div><div class="section"><div class="titlepage"><div><div><h3 class="title"><a name="c-class"></a>4.2. <code class="constant">class</code></h3></div></div></div><p>
+      Classes only exist inside a classful <a class="link" href="ar01s04.html#c-qdisc" title="4.1. qdisc"><code class="constant">qdisc</code></a> (<span class="foreignphrase"><em class="foreignphrase">e.g.</em></span>, <a class="link" href="ar01s07.html#qc-htb" title="7.1. HTB, Hierarchical Token Bucket">HTB</a>
+      and <a class="link" href="ar01s07.html#qc-cbq" title="7.4. CBQ, Class Based Queuing (CBQ)">CBQ</a>).  Classes are immensely flexible and can always
+      contain either multiple children classes or a single child qdisc
+      <a href="#ftn.idm577" class="footnote" name="idm577"><sup class="footnote">[5]</sup></a>.
+      There is no prohibition against a class containing a classful qdisc
+      itself, which facilitates tremendously complex traffic control
+      scenarios.
+    </p><p>
+      Any class can also have an arbitrary number of <a class="link" href="ar01s04.html#c-filter" title="4.3. filter"><code class="constant">filter</code></a>s attached
+      to it, which allows the selection of a child class or the use of a
+      filter to reclassify or drop traffic entering a particular class.
+    </p><p>
+      A leaf class is a terminal class in a qdisc.  It contains a qdisc
+      (default <a class="link" href="ar01s06.html#qs-fifo" title="6.1. FIFO, First-In First-Out (pfifo and bfifo)">FIFO</a>) and will never contain a child class.  Any
+      class which contains a child class is an inner class (or root class) and
+      not a leaf class.
+    </p></div><div class="section"><div class="titlepage"><div><div><h3 class="title"><a name="c-filter"></a>4.3. <code class="constant">filter</code></h3></div></div></div><p>
+      The filter is the most complex component in the Linux
+      traffic control system.  The filter provides a convenient mechanism for
+      gluing together several of the key elements of traffic control.  The
+      simplest and most obvious role of the filter is to classify
+      (see <a class="xref" href="ar01s03.html#e-classifying" title="3.3. Classifying">Section 3.3, &#8220;Classifying&#8221;</a>) packets.  Linux filters allow the
+      user to classify packets into an output queue with either several
+      different filters or a single filter.
+    </p><div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem"><p>
+          A filter must contain a <a class="link" href="ar01s04.html#c-classifier" title="4.4. classifier"><code class="constant">classifier</code></a> phrase.
+        </p></li><li class="listitem"><p>
+          A filter may contain a <a class="link" href="ar01s04.html#c-police" title="4.5. policer"><code class="constant">policer</code></a> phrase.
+        </p></li></ul></div><p>
+      Filters can be attached either to classful <a class="link" href="ar01s04.html#c-qdisc" title="4.1. qdisc"><code class="constant">qdisc</code></a>s or to
+      <a class="link" href="ar01s04.html#c-class" title="4.2. class"><code class="constant">class</code></a>es, however the enqueued packet always enters the root
+      qdisc first.  After the filter attached to the root qdisc has been
+      traversed, the packet may be directed to any subclasses (which can have
+      their own filters) where the packet may undergo further classification.
+    </p><p>
+    </p></div><div class="section"><div class="titlepage"><div><div><h3 class="title"><a name="c-classifier"></a>4.4. classifier</h3></div></div></div><p>
+      Filter objects, which can be manipulated using <a class="link" href="ar01s05.html#s-iproute2-tc"><span class="command"><strong>tc</strong></span></a>, can use several
+      different classifying mechanisms, the most common of which is the
+      <code class="constant">u32</code> classifier.  The <code class="constant">u32</code> classifier allows the user to
+      select packets based on attributes of the packet.
+    </p><p>
+      The classifiers are tools which can be used as part of a <a class="link" href="ar01s04.html#c-filter" title="4.3. filter"><code class="constant">filter</code></a>
+      to identify characteristics of a packet or a packet's metadata.  The
+      Linux classfier object is a direct analogue to the basic operation and
+      elemental mechanism of traffic control <a class="link" href="ar01s03.html#e-classifying" title="3.3. Classifying">classifying</a>.
+    </p></div><div class="section"><div class="titlepage"><div><div><h3 class="title"><a name="c-police"></a>4.5. policer</h3></div></div></div><p>
+      This elemental mechanism is only used in Linux traffic control as part
+      of a <a class="link" href="ar01s04.html#c-filter" title="4.3. filter"><code class="constant">filter</code></a>.  A policer calls one action above and another
+      action below the specified rate.  Clever use of policers can simulate
+      a three-color meter.  See also
+      <a class="xref" href="ar01s10.html" title="10. Diagram">Section 10, &#8220;Diagram&#8221;</a>.
+    </p><p>
+      Although both <a class="link" href="ar01s03.html#e-policing" title="3.4. Policing">policing</a> and <a class="link" href="ar01s03.html#e-shaping" title="3.1. Shaping">shaping</a> are basic
+      elements of traffic control for limiting bandwidth usage a policer will
+      never delay traffic.  It can only perform an action based on specified
+      criteria.  See also
+      <a class="xref" href="ar01s05.html#ex-s-iproute2-tc-filter" title="Example 5. tc filter">Example 5, &#8220;<span class="command">tc</span> <code class="constant">filter</code>&#8221;</a>.
+    </p><p>
+    </p><p>
+    </p></div><div class="section"><div class="titlepage"><div><div><h3 class="title"><a name="c-drop"></a>4.6. <code class="constant">drop</code></h3></div></div></div><p>
+      This basic traffic control mechanism is only used in Linux traffic
+      control as part of a <a class="link" href="ar01s04.html#c-police" title="4.5. policer"><code class="constant">policer</code></a>.  Any policer attached to
+      any <a class="link" href="ar01s04.html#c-filter" title="4.3. filter"><code class="constant">filter</code></a> could have a <a class="link" href="ar01s04.html#c-drop" title="4.6. drop"><code class="constant">drop</code></a> action.
+    </p><div class="note" style="margin-left: 0.5in; margin-right: 0.5in;"><h3 class="title">Note</h3><p>
+      The only place in the Linux traffic control system where a packet can be
+      explicitly dropped is a policer.  A policer can limit packets enqueued
+      at a specific rate, or it can be configured to drop all traffic matching
+      a particular pattern
+      <a href="#ftn.idm639" class="footnote" name="idm639"><sup class="footnote">[6]</sup></a>.
+      </p></div><p>
+      There are, however, places within the traffic control system where a
+      packet may be dropped as a side effect.  For example, a packet will be
+      dropped if the scheduler employed uses this method to control flows as
+      the <a class="link" href="ar01s06.html#qs-gred" title="6.6. GRED, Generic Random Early Drop">GRED</a> does.
+    </p><p>
+      Also, a shaper or scheduler which runs out of its allocated buffer space
+      may have to drop a packet during a particularly bursty or overloaded
+      period.
+    </p><p>
+    </p></div><div class="section"><div class="titlepage"><div><div><h3 class="title"><a name="c-handle"></a>4.7. <code class="constant">handle</code></h3></div></div></div><p>
+      Every <a class="link" href="ar01s04.html#c-class" title="4.2. class"><code class="constant">class</code></a> and classful <a class="link" href="ar01s04.html#c-qdisc" title="4.1. qdisc"><code class="constant">qdisc</code></a> (see also
+      <a class="xref" href="ar01s07.html" title="7. Classful Queuing Disciplines (qdiscs)">Section 7, &#8220;Classful Queuing Disciplines (<code class="constant">qdisc</code>s)&#8221;</a>) requires a unique identifier within
+      the traffic control structure.  This unique identifier is known as a
+      handle and has two constituent members, a major number and a minor
+      number.  These numbers can be assigned arbitrarily by the user in
+      accordance with the following rules
+      <a href="#ftn.idm661" class="footnote" name="idm661"><sup class="footnote">[7]</sup></a>.
+    </p><p>
+    </p><div class="variablelist"><p class="title"><b>The numbering of handles for classes and qdiscs</b></p><dl class="variablelist"><dt><span class="term"><em class="parameter"><code>major</code></em></span></dt><dd><p>
+            This parameter is completely free of meaning to the kernel.  The
+            user may use an arbitrary numbering scheme, however all objects in
+            the traffic control structure with the same parent must share a
+            <em class="parameter"><code>major</code></em> handle number.  Conventional
+            numbering schemes start at 1 for objects attached directly to the
+            <code class="constant">root</code> qdisc.
+          </p></dd><dt><span class="term"><em class="parameter"><code>minor</code></em></span></dt><dd><p>
+            This parameter unambiguously identifies the object as a qdisc if
+            <em class="parameter"><code>minor</code></em> is 0.  Any other value identifies the
+            object as a class.  All classes sharing a parent must have unique
+            <em class="parameter"><code>minor</code></em> numbers.
+          </p></dd></dl></div><p>
+      The special handle ffff:0 is reserved for the <code class="constant">ingress</code> qdisc.
+    </p><p>
+      The handle is used as the target in <em class="parameter"><code>classid</code></em> and
+      <em class="parameter"><code>flowid</code></em> phrases of <span class="command"><strong>tc</strong></span> <a class="link" href="ar01s04.html#c-filter" title="4.3. filter"><code class="constant">filter</code></a> statements.
+      These handles are external identifiers for the objects, usable by
+      userland applications.  The kernel maintains internal identifiers for
+      each object.
+    </p></div><div class="section"><div class="titlepage"><div><div><h3 class="title"><a name="c-txqueuelen"></a>4.8. <code class="constant">txqueuelen</code></h3></div></div></div><p>
+          The current size of the transmission queue can be obtained from the
+          <span class="command"><strong>ip</strong></span> and <span class="command"><strong>ifconfig</strong></span> commands.
+          Confusingly, these commands name the transmission queue length
+          differently (emphasized text below):
+      </p><pre class="programlisting">
+$ifconfig eth0
+
+eth0      Link encap:Ethernet  HWaddr 00:18:F3:51:44:10
+          inet addr:69.41.199.58  Bcast:69.41.199.63 Mask:255.255.255.248
+          inet6 addr: fe80::218:f3ff:fe51:4410/64 Scope:Link
+          UP BROADCAST RUNNING MULTICAST  MTU:1500  Metric:1
+          RX packets:435033 errors:0 dropped:0 overruns:0 frame:0
+          TX packets:429919 errors:0 dropped:0 overruns:0 carrier:0
+          collisions:0 <span class="emphasis"><em>txqueuelen:1000</em></span>
+          RX bytes:65651219 (62.6 MiB)  TX bytes:132143593 (126.0 MiB)
+          Interrupt:23
+      </pre><pre class="programlisting">
+$ip link
+
+1: lo:  mtu 16436 qdisc noqueue state UNKNOWN
+    link/loopback 00:00:00:00:00:00 brd 00:00:00:00:00:00
+2: eth0:  mtu 1500 qdisc pfifo_fast state UP <span class="emphasis"><em>qlen 1000</em></span>
+    link/ether 00:18:f3:51:44:10 brd ff:ff:ff:ff:ff:ff
+      </pre><p>
+          The length of the transmission queue in Linux defaults to 1000
+          packets which could represent a large amount of buffering especially
+          at low bandwidths. (To understand why, see the discussion on latency
+          and throughput, specifically 
+          <a class="link" href="ar01s02.html#o-bufferbloat">bufferbloat</a>).</p><p>
+          More interestingly, <code class="constant">txqueuelen</code> is only used as a default queue
+          length for these queueing disciplines.
+      </p><div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem"><p>
+                  <code class="constant">pfifo_fast</code> (Linux default queueing discipline)
+              </p></li><li class="listitem"><p>
+                  <code class="constant">sch_fifo</code>
+              </p></li><li class="listitem"><p>
+                    <code class="constant">sch_gred</code>
+              </p></li><li class="listitem"><p>
+                    <code class="constant">sch_htb</code> (only for the default queue)
+              </p></li><li class="listitem"><p>
+                    <code class="constant">sch_plug</code>
+              </p></li><li class="listitem"><p>
+                    <code class="constant">sch_sfb</code>
+              </p></li><li class="listitem"><p>
+                    <code class="constant">sch_teql</code>
+              </p></li></ul></div><p>
+          Looking back at Figure 1, the txqueuelen parameter controls the size of the queues in the Queueing Discipline box for the QDiscs listed above. For most of these queueing disciplines, the &#8220;limit&#8221; argument on the tc command line overrides the txqueuelen default. In summary, if you do not use one of the above queueing disciplines or if you override the queue length then the txqueuelen value is meaningless.
+      </p><p>
+         The length of the transmission queue is configured with the ip or ifconfig commands.
+      </p><pre class="programlisting">
+ip link set txqueuelen 500 dev eth0
+      </pre><p>
+          Notice that the ip command uses &#8220;txqueuelen&#8221; but when displaying the interface details it uses &#8220;qlen&#8221;.
+      </p></div><div class="section"><div class="titlepage"><div><div><h3 class="title"><a name="c-driver-queue"></a>4.9. Driver Queue (aka ring buffer)</h3></div></div></div><p>
+              Between the IP stack and the network interface controller (NIC) lies the driver queue. This queue is typically implemented as a first-in, first-out (FIFO) ring buffer &#8211; just think of it as a fixed sized buffer. The driver queue does not contain packet data. Instead it consists of descriptors which point to other data structures called socket kernel buffers (SKBs) which hold the packet data and are used throughout the kernel.
+          </p><div class="mediaobject"><a name="img-Figure4"></a><object type="image/svg+xml" data="images/Figure4.svg"></object><div class="caption"><p><span class="command"><strong>Figure 4: </strong></span><span class="emphasis"><em>Partially full driver queue with descriptors pointing to SKBs</em></span></p></div></div><p>
+              The input source for the driver queue is the IP stack which queues complete IP packets. The packets may be generated locally or received on one NIC to be routed out another when the device is functioning as an IP router. Packets added to the driver queue by the IP stack are dequeued by the hardware driver and sent across a data bus to the NIC hardware for transmission.
+          </p><p>
+              The reason the driver queue exists is to ensure that whenever the system has data to transmit, the data is available to the NIC for immediate transmission. That is, the driver queue gives the IP stack a location to queue data asynchronously from the operation of the hardware. One alternative design would be for the NIC to ask the IP stack for data whenever the physical medium is ready to transmit. Since responding to this request cannot be instantaneous this design wastes valuable transmission opportunities resulting in lower throughput. The opposite approach would be for the IP stack to wait after a packet is created until the hardware is ready to transmit. This is also not ideal because the IP stack cannot move on to other work.
+          </p><p>
+              For detail how to set driver queue see <a class="link" href="ar01s05.html#s-ethtool" title="5.6. ethtool, Driver Queue">chapter 5.5</a>.
+          </p></div><div class="section"><div class="titlepage"><div><div><h3 class="title"><a name="c-bql"></a>4.10. Byte Queue Limits (<acronym class="acronym">BQL</acronym>)</h3></div></div></div><p>
+        Byte Queue Limits (BQL) is a new feature in recent Linux kernels (&gt; 3.3.0) which attempts to solve the problem of driver queue sizing automatically. This is accomplished by adding a layer which enables and disables queuing to the driver queue based on calculating the minimum buffer size required to avoid <a class="link" href="ar01s02.html#o-starv-lat" title="2.10. Starvation and Latency">starvation</a> under the current system conditions. Recall from earlier that the smaller the amount of queued data, the lower the maximum <a class="link" href="ar01s02.html#o-starv-lat" title="2.10. Starvation and Latency">latency</a> experienced by queued packets.
+    </p><p>
+        It is key to understand that the actual size of the driver queue is not changed by BQL. Rather BQL calculates a limit of how much data (in bytes) can be queued at the current time. Any bytes over this limit must be held or dropped by the layers above the driver queue..
+    </p><p>
+    The BQL mechanism operates when two events occur: when packets are enqueued to the driver queue and when a transmission to the wire has completed. A simplified version of the BQL algorithm is outlined below. LIMIT refers to the value calculated by BQL.
+    </p><pre class="programlisting">
+****
+** After adding packets to the queue
+****
+
+if the number of queued bytes is over the current LIMIT value then
+        disable the queueing of more data to the driver queue
+    </pre><p>
+        Notice that the amount of queued data can exceed LIMIT because data is queued before the LIMIT check occurs. Since a large number of bytes can be queued in a single operation when TSO, UFO or GSO (see chapter 2.9.1 aggiungi link for details) are enabled these throughput optimizations have the side effect of allowing a higher than desirable amount of data to be queued. If you care about <a class="link" href="ar01s02.html#o-starv-lat" title="2.10. Starvation and Latency">latency</a> you probably want to disable these features.
+    </p><p>
+       The second stage of BQL is executed after the hardware has completed a transmission (simplified pseudo-code):
+    </p><pre class="programlisting">
+****
+** When the hardware has completed sending a batch of packets
+** (Referred to as the end of an interval)
+****
+
+if the hardware was starved in the interval
+    increase LIMIT
+
+else if the hardware was busy during the entire interval (not starved) and there are bytes to transmit
+    decrease LIMIT by the number of bytes not transmitted in the interval
+
+if the number of queued bytes is less than LIMIT
+    enable the queueing of more data to the buffer
+    </pre><p>
+        As you can see, BQL is based on testing whether the device was starved. If it was starved, then LIMIT is increased allowing more data to be queued which reduces the chance of <a class="link" href="ar01s02.html#o-starv-lat" title="2.10. Starvation and Latency">starvation</a>. If the device was busy for the entire interval and there are still bytes to be transferred in the queue then the queue is bigger than is necessary for the system under the current conditions and LIMIT is decreased to constrain the <a class="link" href="ar01s02.html#o-starv-lat" title="2.10. Starvation and Latency">latency</a>.
+    </p><p>
+        A real world example may help provide a sense of how much BQL affects the amount of data which can be queued. On one of my servers the driver queue size defaults to 256 descriptors. Since the Ethernet MTU is 1,500 bytes this means up to 256 * 1,500 = 384,000 bytes can be queued to the driver queue (TSO, GSO etc are disabled or this would be much higher). However, the limit value calculated by BQL is 3,012 bytes. As you can see, BQL greatly constrains the amount of data which can be queued.
+    </p><p>
+        An interesting aspect of BQL can be inferred from the first word in the name &#8211; byte. Unlike the size of the driver queue and most other packet queues, BQL operates on bytes. This is because the number of bytes has a more direct relationship with the time required to transmit to the physical medium than the number of packets or descriptors since the later are variably sized.
+    </p><p>
+        BQL reduces network <a class="link" href="ar01s02.html#o-starv-lat" title="2.10. Starvation and Latency">latency</a> by limiting the amount of queued data to the minimum required to avoid <a class="link" href="ar01s02.html#o-starv-lat" title="2.10. Starvation and Latency">starvation</a>. It also has the very important side effect of moving the point where most packets are queued from the driver queue which is a simple FIFO to the queueing discipline (QDisc) layer which is capable of implementing much more complicated queueing strategies. The next section introduces the Linux QDisc layer.
+    </p><div class="section"><div class="titlepage"><div><div><h4 class="title"><a name="idm769"></a>4.10.1. Set BQL</h4></div></div></div><p>
+            The BQL algorithm is self tuning so you probably don&#8217;t need to mess with this too much. However, if you are concerned about optimal latencies at low bitrates then you may want override the upper limit on the calculated LIMIT value. BQL state and configuration can be found in a /sys directory based on the location and name of the NIC. On my server the directory for eth0 is:
+        </p><pre class="programlisting">
+/sys/devices/pci0000:00/0000:00:14.0/net/eth0/queues/tx-0/byte_queue_limits
+        </pre><p>
+            The files in this directory are:
+        </p><div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem"><p>
+                    <span class="emphasis"><em>hold_time:</em></span> Time between modifying LIMIT in milliseconds.
+                </p></li><li class="listitem"><p>
+                    <span class="emphasis"><em>inflight:</em></span> The number of queued but not yet transmitted bytes.
+                </p></li><li class="listitem"><p>
+                    <span class="emphasis"><em>limit:</em></span> The LIMIT value calculated by BQL. 0 if BQL is not supported in the NIC driver.
+                </p></li><li class="listitem"><p>
+                    <span class="emphasis"><em>limit_max:</em></span> A configurable maximum value for LIMIT. Set this value lower to optimize for <a class="link" href="ar01s02.html#o-starv-lat" title="2.10. Starvation and Latency">latency</a>.
+                </p></li><li class="listitem"><p>
+                    <span class="emphasis"><em>limit_min:</em></span> A configurable minimum value for LIMIT. Set this value higher to optimize for throughput.
+                </p></li></ul></div><p>
+            To place a hard upper limit on the number of bytes which can be queued write the new value to the limit_max fie.
+        </p><pre class="programlisting">
+echo "3000" &gt; limit_max
+        </pre></div></div><div class="footnotes"><br><hr style="width:100; text-align:left;margin-left: 0"><div id="ftn.idm577" class="footnote"><p><a href="#idm577" class="para"><sup class="para">[5] </sup></a>
+          A classful qdisc can only have children classes of its type.  For
+          example, an HTB qdisc can only have HTB classes as children.  A CBQ
+          qdisc cannot have HTB classes as children.
+        </p></div><div id="ftn.idm639" class="footnote"><p><a href="#idm639" class="para"><sup class="para">[6] </sup></a>
+          In this case, you'll have a <a class="link" href="ar01s04.html#c-filter" title="4.3. filter"><code class="constant">filter</code></a> which uses a
+          <a class="link" href="ar01s04.html#c-classifier" title="4.4. classifier"><code class="constant">classifier</code></a> to select the packets you wish to drop.  Then
+          you'll use a <a class="link" href="ar01s04.html#c-police" title="4.5. policer"><code class="constant">policer</code></a> with a with a drop action like this
+          <span class="command"><strong>police rate 1bps burst 1 action drop/drop</strong></span>.
+        </p></div><div id="ftn.idm661" class="footnote"><p><a href="#idm661" class="para"><sup class="para">[7] </sup></a>
+          I do not know the range nor base of these numbers.  I believe they
+          are u32 hexadecimal, but need to confirm this.
+        </p></div></div></div><div class="navfooter"><hr><table width="100%" summary="Navigation footer"><tr><td width="40%" align="left"><a accesskey="p" href="ar01s03.html">Prev</a> </td><td width="20%" align="center"> </td><td width="40%" align="right"> <a accesskey="n" href="ar01s05.html">Next</a></td></tr><tr><td width="40%" align="left" valign="top">3. Traditional Elements of Traffic Control </td><td width="20%" align="center"><a accesskey="h" href="index.html">Home</a></td><td width="40%" align="right" valign="top"> 5. Software and Tools</td></tr></table></div></body></html>

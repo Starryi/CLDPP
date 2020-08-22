@@ -1,0 +1,68 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1"><title>6. The buffermem parameters</title><link rel="stylesheet" type="text/css" href="style.css"><meta name="generator" content="DocBook XSL Stylesheets V1.79.1"><meta name="keywords" content="RedHat, redhat, maddy, linus, linux, Linux, Securing, Optimising, security, secure, openna, gerhard"><link rel="home" href="index.html" title="Securing and Optimizing Linux"><link rel="up" href="gen-optim.html" title="Chapter 6. Linux General Optimization"><link rel="prev" href="chap6sec68.html" title="5. The bdflush parameters"><link rel="next" href="chap6sec70.html" title="7. The ip_local_port_range parameters"></head><body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF"><div class="navheader"><table width="100%" summary="Navigation header"><tr><th colspan="3" align="center">6. The buffermem parameters</th></tr><tr><td width="20%" align="left"><a accesskey="p" href="chap6sec68.html">Prev</a> </td><th width="60%" align="center">Chapter 6. Linux General Optimization</th><td width="20%" align="right"> <a accesskey="n" href="chap6sec70.html">Next</a></td></tr></table><hr></div><div class="section"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="idm4592"></a>6. The buffermem parameters</h2></div></div></div><p>
+            The buffermem file is also closely related to the operation of the virtual memory <acronym class="acronym">VM</acronym> subsystem of the Linux kernel. The value in this 
+            file <code class="filename">/proc/sys/vm/buffermem</code> controls how much memory should be used for buffer memory in percentage. It is important to note that the percentage 
+            is calculated as a percentage of total system memory.
+            </p><p>
+            The default setup for the buffermem parameters under Red Hat Linux is:
+            <code class="computeroutput">"2 10 60"</code>
+            </p><div class="mediaobject"><img src="images/Version6.1.gif" alt="Version 6.1 only"></div><p>
+            To change the values of buffermem, type the following command on your terminal:
+
+            </p><pre class="screen">
+            [root@deep] /# <span class="command"><strong>echo</strong></span> "70 10 60" &gt;/proc/sys/vm/buffermem
+            </pre><p>
+            You may add the above commands to the <code class="filename">/etc/rc.d/rc.local</code> script file and you'll not have to type it again the next time you reboot your system.
+            </p><p>
+            </p><div class="mediaobject"><img src="images/Version6.2.gif" alt="Version 6.2 only"></div><p>
+            
+            Edit the <code class="filename">/etc/sysctl.conf</code> file and add the following line:
+            </p><pre class="screen">
+            # Improve virtual memory performance
+            vm.buffermem = 70 10 60
+            </pre><p>
+            You must restart your network for the change to take effect. The command to manually restart the network is the following:
+            </p><pre class="screen">
+            [root@deep] /# /etc/rc.d/init.d/network <span class="command"><strong>restart</strong></span>
+            </pre><p>            
+            </p><div class="literallayout"><p><code class="computeroutput"><br>
+            Setting network parameters	     [  OK  ]<br>
+            Bringing up interface lo	     [  OK  ]<br>
+            Bringing up interface eth0	     [  OK  ]<br>
+            Bringing up interface eth1	     [  OK  ]<br>
+            </code></p></div><p>
+            
+            According to the <code class="filename">/usr/src/linux/Documentation/sysctl/vm.txt</code> file, the first parameter 80 % means to use a minimum of 80 percent of memory for the buffer cache; the minimum percentage 
+            of memory that should be spent on buffer memory.The last two parameters 10 and 60 are unused by the system so we dont need to change the defaults.
+            </p><p>
+            Depending of the amount of RAM you have in the server the value of 80% may vary. When your server is highly loaded and when all application are used, you can know in detail how much memory are required and 
+            used by the system. 80 % for the buffermem parameters seem to be too much for systems under 256 MB of RAM. Doing a  <span class="command"><strong>free</strong></span> <code class="literal">-m</code> command on the prompt your system will 
+            display amount of free and used memory in the system. Once you have executed this command <span class="command"><strong>free</strong></span> -m, check for <code class="computeroutput">-/+ buffers/cache:</code>values 
+            and get the one related to the minimal (-) to set your value for buffermem.
+            </p><div class="example"><a name="idm4625"></a><p class="title"><b>Example 6.1. For 128 MB of RAM</b></p><div class="example-contents"><p>
+                </p><pre class="programlisting">
+              128 * 80% = 102.4 MB
+              128 - 102.4 = 25.6 MB
+              </pre><p>
+              
+                </p><pre class="screen">
+                [root@deep] /#<span class="command"><strong>free</strong></span> -m
+                </pre><p>
+                </p><pre class="literallayout"><code class="computeroutput">
+                              total       used       free     shared    buffers       cached
+                Mem:            124        121          3         30         43           48
+                -/+ buffers/cache:          29         95
+                Swap:           128          2        126
+                </code></pre><p>
+                The result shows us that the <code class="computeroutput">-/+ buffers/cache:</code> need 29 MB at minimum to run the system properly and with 128 MB of RAM set at 80% we have only 25.6 MB available. Hmmm! problem, i guess.
+                so we go back to the calculator again and do this:
+                </p><pre class="programlisting">
+                128 * 70% = 89.6
+                128 - 89.6 = 38.4 MB                
+              </pre><p>
+               well solved good!.
+              
+            </p></div></div><br class="example-break"><div class="tip" style="margin-left: 0.5in; margin-right: 0.5in;"><h3 class="title">
+<span class="inlinemediaobject"><img src="./images/Tip.gif" alt="Tip"></span>
+</h3><p>
+            Look at <code class="filename">/usr/src/linux/Documentation/sysctl/vm.txt</code> for more information on how to improve kernel parameters related to virtual memory.
+            </p></div></div><div class="navfooter"><hr><table width="100%" summary="Navigation footer"><tr><td width="40%" align="left"><a accesskey="p" href="chap6sec68.html">Prev</a> </td><td width="20%" align="center"><a accesskey="u" href="gen-optim.html">Up</a></td><td width="40%" align="right"> <a accesskey="n" href="chap6sec70.html">Next</a></td></tr><tr><td width="40%" align="left" valign="top">5. The bdflush parameters </td><td width="20%" align="center"><a accesskey="h" href="index.html">Home</a></td><td width="40%" align="right" valign="top"> 7. The ip_local_port_range parameters</td></tr></table></div></body></html>

@@ -1,0 +1,72 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1"><title>3. Compile and optimize</title><link rel="stylesheet" type="text/css" href="style.css"><meta name="generator" content="DocBook XSL Stylesheets V1.79.1"><meta name="keywords" content="RedHat, redhat, maddy, linus, linux, Linux, Securing, Optimising, security, secure, openna, gerhard"><link rel="home" href="index.html" title="Securing and Optimizing Linux"><link rel="up" href="soft-fileshrng.html" title="Chapter 31. Software -Server/File Sharing-Network"><link rel="prev" href="chap29sec281.html" title="2. Configure Samba"><link rel="next" href="chap29sec283.html" title="4. Configurations"></head><body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF"><div class="navheader"><table width="100%" summary="Navigation header"><tr><th colspan="3" align="center">3. Compile and optimize</th></tr><tr><td width="20%" align="left"><a accesskey="p" href="chap29sec281.html">Prev</a> </td><th width="60%" align="center">Chapter 31. Software -Server/File Sharing-Network</th><td width="20%" align="right"> <a accesskey="n" href="chap29sec283.html">Next</a></td></tr></table><hr></div><div class="section"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="idm21889"></a>3. Compile and optimize</h2></div></div></div><p>
+      Type the following commands on your terminal:
+      </p><pre class="programlisting">
+        CC="egcs" \
+        ./configure \
+        --prefix=/usr \
+        --libdir=/etc \
+        --with-lockdir=/var/lock/samba \
+        --with-privatedir=/etc \
+        --with-swatdir=/usr/share/swat \
+        --with-pam \
+        --with-mmap \
+        --without-sambabook
+      </pre><p>
+    </p><div class="caution" style="margin-left: 0.5in; margin-right: 0.5in;"><h3 class="title">
+        <span class="inlinemediaobject"><img src="./images/Caution.gif" alt="Caution"></span>
+
+      </h3><p>
+        The option  <code class="literal">--with-mmap</code> can give a large performance boost on some machines, while on others it makes no difference at all, and on some it may reduce performance.
+      </p></div><p>
+      This tells Samba to set itself up for this particular hardware setup with:
+      </p><div class="orderedlist"><ol class="orderedlist" type="i"><li class="listitem"><p>
+          Include PAM password database support for better security.
+        </p></li><li class="listitem"><p>
+        Include experimental MMAP support to improve Samba performance.
+        </p></li><li class="listitem"><p>
+        Don't install the book help that come with Samba distribution.
+        </p></li></ol></div><p>
+    </p><p>
+      Now, we must install Samba in the Linux server:
+
+      </p><pre class="screen">
+        [root@deep ] /source# <span class="command"><strong>make</strong></span> all
+        [root@deep ] /source# <span class="command"><strong>make install</strong></span>
+        [root@deep ] /source# <span class="command"><strong>install</strong></span> -m 755 script/mksmbpasswd.sh  /usr/bin/
+        [root@deep ] /source# <span class="command"><strong>rm</strong></span> -rf /usr/share/swat/      <a name="smsqco1"></a><span><img src="images/callouts/1.png" alt="1" border="0"></span>
+        [root@deep ] /source# <span class="command"><strong>rm</strong></span> -f  /usr/sbin/swat
+        [root@deep ] /source# <span class="command"><strong>rm</strong></span> -f  /usr/man/man8/swat.8
+        [root@deep ] /source# <span class="command"><strong>mkdir</strong></span> -p /var/lock/samba
+        [root@deep ] /source# <span class="command"><strong>mkdir</strong></span> -p /var/spool/samba    <a name="smsqco2"></a><span><img src="images/callouts/2.png" alt="2" border="0"></span>
+        [root@deep ] /source# <span class="command"><strong>chmod</strong></span> 1777 /var/spool/samba/ <a name="smsqco3"></a><span><img src="images/callouts/3.png" alt="3" border="0"></span>
+      </pre><p>
+      </p><div class="calloutlist"><table border="0" summary="Callout list"><tr><td width="5%" valign="top" align="left"><p><a href="#smsqco1"><span><img src="images/callouts/1.png" alt="1" border="0"></span></a> </p></td><td valign="top" align="left"><p>
+            If like me, you don't like to configure Samba in HTML.
+          </p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#smsqco2"><span><img src="images/callouts/2.png" alt="2" border="0"></span></a> </p></td><td valign="top" align="left"><p>
+            Only require if you are the intention to use printer sharing.
+          </p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#smsqco3"><span><img src="images/callouts/3.png" alt="3" border="0"></span></a> </p></td><td valign="top" align="left"><p>
+            Only require if you are the intention to use printer sharing.
+          </p></td></tr></table></div><p>
+
+      </p><div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem"><p>
+          The <span class="command"><strong>install</strong></span> command will install the script <code class="filename">mksmbpasswd.sh</code> under <code class="filename">/usr/bin/</code> directory. This script is needed to setup Samba users allowed to connect on our server 
+          via the <code class="filename">smbpasswd</code> file. See later in this documentation for how to setup and use Samba password.
+        </p></li><li class="listitem"><p>
+        The <span class="command"><strong>rm</strong></span> command will remove the <code class="filename">/usr/share/swat</code> directory and all the files under it, and it will also remove the <span class="command"><strong>swat</strong></span> binary program under 
+        <code class="filename">/usr/sbin/</code>. The <acronym class="acronym">SWAT</acronym> program is a web-based configuration utility that permits you to configure the <code class="filename">smb.conf</code> file of Samba via a web 
+        browser interface. Of course, in order to use the <acronym class="acronym">SWAT</acronym> utility you will need to have a web server running, such as Apache. The SWAT utility can open a security breach on your server and for this 
+        reason I recommend that you remove and not use it.
+        </p></li><li class="listitem"><p>
+        The <span class="command"><strong>mkdir</strong></span> command will create a <code class="filename">/var/spool/samba/</code> directory on your system for all print sharing jobs you may have. Of course this directory is only necessary 
+        if you intend to use Samba print sharing over your LAN. Since we have not configured our Samba server to use print sharing, we do not need to create this directory, <code class="filename">/var/spool/samba/</code> 
+        on our server, and we do not need to use the command <span class="command"><strong>chmod</strong></span> to change the <code class="literal">sticky</code> bit in <code class="filename">/var/spool/samba</code> so only the file's owner can delete a 
+        given file in this directory.
+        </p></li></ul></div><p>
+    </p><p>
+      Please do cleanup later:
+      </p><pre class="screen">
+        [root@deep ] /# <span class="command"><strong>cd</strong></span> /var/tmp
+        [root@deep ]/tmp# <span class="command"><strong>rm</strong></span> -rf samba-version/ samba-version.tar.gz
+      </pre><p>
+      The <span class="command"><strong>rm</strong></span> command will remove all the source files we have used to compile and install Samba. It will also remove the Samba compressed archive from the <code class="filename">/var/tmp</code> directory.
+    </p></div><div class="navfooter"><hr><table width="100%" summary="Navigation footer"><tr><td width="40%" align="left"><a accesskey="p" href="chap29sec281.html">Prev</a> </td><td width="20%" align="center"><a accesskey="u" href="soft-fileshrng.html">Up</a></td><td width="40%" align="right"> <a accesskey="n" href="chap29sec283.html">Next</a></td></tr><tr><td width="40%" align="left" valign="top">2. Configure Samba </td><td width="20%" align="center"><a accesskey="h" href="index.html">Home</a></td><td width="40%" align="right" valign="top"> 4. Configurations</td></tr></table></div></body></html>

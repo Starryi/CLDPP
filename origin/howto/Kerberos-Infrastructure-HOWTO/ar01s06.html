@@ -1,0 +1,59 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1"><title>6. Client Configuration</title><link rel="stylesheet" type="text/css" href="style.css"><meta name="generator" content="DocBook XSL Stylesheets V1.79.1"><link rel="home" href="index.html" title="Kerberos Infrastructure HOWTO"><link rel="up" href="index.html" title="Kerberos Infrastructure HOWTO"><link rel="prev" href="ar01s05.html" title="5. Kerberos Server Replication"><link rel="next" href="ar01s07.html" title="7. Programming With Kerberos"></head><body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF"><div class="navheader"><table width="100%" summary="Navigation header"><tr><th colspan="3" align="center">6. Client Configuration</th></tr><tr><td width="20%" align="left"><a accesskey="p" href="ar01s05.html">Prev</a> </td><th width="60%" align="center"> </th><td width="20%" align="right"> <a accesskey="n" href="ar01s07.html">Next</a></td></tr></table><hr></div><div class="section"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="client-configure"></a>6. Client Configuration</h2></div></div></div><div class="section"><div class="titlepage"><div><div><h3 class="title"><a name="client"></a>6.1. General GNU/Linux Client Configuration</h3></div></div></div><p>
+GNU/Linux distributions of Kerberos include a client package which contains all of the software and configuration files needed for setting up a GNU/Linux machine to be able to perform Kerberos authentications against a KDC. In Fedora derived GNU/Linux, this package is <span class="emphasis"><em>krb5-workstation</em></span>.  In order for your system to be capable of Kerberos authentication, including by authentication by kerberized applications, you must configure Kerberos on the system.
+</p><p>
+Configuration involves editing the <code class="filename">/etc/krb5.conf</code> file.  In this file, you must specify your realm, KDC's, administrative server, logging, default domain, and KDC information. You must also modify the <code class="filename">kdc.conf</code> file, which you are allowed to specify a location for in the <code class="filename">krb5.conf</code> file.  The default location is <code class="filename">/var/Kerberos/krb5kdc/kdc.conf</code>.  The <code class="filename">kdc.conf</code> file contains information about the encryption algorithm policy of the realm.
+</p><p>
+The configuration information for the system on which you wish to perform Kerberos authentications is the same information which was placed in the <code class="filename">/etc/krb5.conf</code> filename on the KDC.  Here are example <code class="filename"><a class="ulink" href="http://cryptnet.net/fdp/admin/kerby-infra/en/krb5.conf" target="_top">krb5.conf</a></code> and
+<code class="filename"><a class="ulink" href="http://cryptnet.net/fdp/admin/kerby-infra/en/kdc.conf" target="_top">kdc.conf</a></code> configuration files from a client for the Gnu University Dublin example.
+</p><p>
+Now, you can test Kerberos authentication using the <span class="application">kinit</span> command:
+</p><pre class="screen">
+bash$ kinit &lt;username&gt;
+</pre><p>
+</p><p>
+If your authentication fails, the best place to look for a description of the cause are the system log files on the client and the KDC log file on the KDC which authentication was performed against.  When trouble shooting authentication issues, it can be very helpful to have a terminal windows open to the KDC running a
+<span class="emphasis"><em>tail -f</em></span> on the KDC log. In our example <code class="filename">krb5.conf</code>, the location of the
+KDC log was <code class="filename">/var/log/Kerberos/krb5kdc.log</code>.
+</p></div><div class="section"><div class="titlepage"><div><div><h3 class="title"><a name="pam"></a>6.2. PAM</h3></div></div></div><p>
+PAM, or Pluggable Authentication Module, technology which is shipped with many distributions of GNU/Linux is capable of integration with Kerberos through the <span class="application">pam_krb5</span> module. In order to use Kerberos authentication with PAM you must install the <span class="application">pam_krb5</span> module and modify the pam configuration files.
+</p><p>
+The <span class="application">pam_krb5</span> module comes with sample configuration filenames which are located in <code class="filename">/usr/share/doc/pam_krb5-1.55/pam.d</code>.  The basic change that these configuration files make to allow PAM controlled services to authenticate against Kerberos is similar to the following:
+</p><p>
+</p><pre class="screen">
+auth       required     /lib/security/pam_krb5.so use_first_pass
+</pre><p>
+</p></div><div class="section"><div class="titlepage"><div><div><h3 class="title"><a name="apache"></a>6.3. Apache Web Server</h3></div></div></div><p>
+Kerberos can be used as an authentication mechanism for the Apache Web Server.  The <span class="application">mod_auth_kerb</span>
+application is an apache module which provides that functionality. Using that module, you will be able to set Kerberos as an authentication type for access control stanzas in the <code class="filename">httpd.conf</code> file.  Be aware that while Kerberos is being used, this is a less than ideal authentication mechanism because tickets are stored on the web server rather than on the client machine.  However, if your goals is to implement a single sign-on solution or consolidate accounts, there is value here. <span class="application">mod_auth_kerb</span> is capable of supporting Kerberos 4, however that is not covered in this howto because of the known weaknesses with version 4 of the protocol.
+</p><p>
+The <span class="application">mod_auth_kerb</span> website can be found at <a class="ulink" href="http://modauthkerb.sourceforge.net/" target="_top">http://modauthkerb.sourceforge.net/</a>. It is important to use the HTTPS protocol when accessing a site which uses <span class="application">mod_auth_kerb</span>, since <span class="application">mod_auth_kerb</span> uses the base auth mechanism.  Base auth uses base64 encoding which can easily be translated back to plaintext. Therefore it's important that the authentication exchange is SSL encrypted to ensure that the user name and password are protected when they are transmitted to the webserver.
+</p><p>
+To compile apache with the <span class="application">mod_auth_krb</span> module, you must take the following steps:
+</p><p>
+</p><pre class="screen">
+bash$ export 'LIBS=-L/usr/Kerberos/lib -lkrb5 -lcrypto -lcom_err'
+bash$ export 'CFLAGS=-DKRB5 -DKRB_DEF_REALM=\\\"GNUD.IE\\\"'
+bash$ export 'INCLUDES=-I/usr/Kerberos/include'
+bash$ mkdir apache_x.x.x/src/modules/kerberos
+bash$ cp mod_auth_kerb-x.x.x.c apache_x.x.x/src/modules/kerberos
+bash$ ./configure --prefix=/home/httpd --add-module=src/modules/Kerberos/mod_auth_kerb.c
+bash$ make
+bash$ make install
+</pre><p>
+</p><p>
+You should test apache to make sure that it works.  Once you have a known working copy of SSL enabled apache on the machine you can modify the <code class="filename">httpd.conf</code> filename to provide Kerberos authentication for a directory:
+</p><p>
+Here is an example stanza from the mod_auth_kerb apache modules which enables Kerberos 5 authentication for a directory:
+</p><pre class="screen">
+&lt;Directory "/home/httpd/htdocs/content"&gt;
+   AllowOverride None
+   AuthType KerberosV5
+   AuthName "Kerberos Login"
+   KrbAuthRealm GNUD.IE
+   require valid-user
+&lt;/Directory&gt;
+</pre><p>
+</p></div><div class="section"><div class="titlepage"><div><div><h3 class="title"><a name="microsoft"></a>6.4. Microsoft Windows</h3></div></div></div><p>
+Due to a flawed implementation of the Kerberos standard by Microsoft, there is limited compatibility between standard MIT Kerberos and Microsoft's version.  Microsoft has published a document which describes the limited ways in which Microsoft's broken version of Kerberos is able to interoperate with standard Kerberos. That document is available
+<a class="ulink" href="http://www.microsoft.com/windows2000/techinfo/planning/security/kerbsteps.asp" target="_top">here</a>.
+</p></div></div><div class="navfooter"><hr><table width="100%" summary="Navigation footer"><tr><td width="40%" align="left"><a accesskey="p" href="ar01s05.html">Prev</a> </td><td width="20%" align="center"> </td><td width="40%" align="right"> <a accesskey="n" href="ar01s07.html">Next</a></td></tr><tr><td width="40%" align="left" valign="top">5. Kerberos Server Replication </td><td width="20%" align="center"><a accesskey="h" href="index.html">Home</a></td><td width="40%" align="right" valign="top"> 7. Programming With Kerberos</td></tr></table></div></body></html>

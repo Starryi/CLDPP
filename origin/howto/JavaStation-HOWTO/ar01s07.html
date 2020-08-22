@@ -1,0 +1,164 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1"><title>7. Set up Your Server</title><link rel="stylesheet" type="text/css" href="style.css"><meta name="generator" content="DocBook XSL Stylesheets V1.79.1"><link rel="home" href="index.html" title="Linux on the Sun JavaStation &#8482; NC HOWTO"><link rel="up" href="index.html" title="Linux on the Sun JavaStation &#8482; NC HOWTO"><link rel="prev" href="ar01s06.html" title='6. "Out of the Box" JavaStation Boot File Solutions'><link rel="next" href="ar01s08.html" title="8. Booting Your JavaStation"></head><body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF"><div class="navheader"><table width="100%" summary="Navigation header"><tr><th colspan="3" align="center">7. Set up Your Server</th></tr><tr><td width="20%" align="left"><a accesskey="p" href="ar01s06.html">Prev</a> </td><th width="60%" align="center"> </th><td width="20%" align="right"> <a accesskey="n" href="ar01s08.html">Next</a></td></tr></table><hr></div><div class="sect1"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="ServerSetup-ServerSetupChapter"></a>7. Set up Your Server</h2></div></div></div><p>
+This chapter describes the configuration steps necessary for 
+the server machine to hand-off your <span class="productname">JavaStation</span>&#8482; 
+boot image.
+</p><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="ServerSetup-ServerPrefaceSection"></a>7.1. Preface</h3></div></div></div><p>
+It is now time to setup your server to deliver the <acronym class="acronym">OS</acronym> 
+and filesystem to the <span class="productname">JavaStation</span>&#8482;. 
+</p><p>
+In our examples here, we configure a Linux/SPARC server <span class="quote">&#8220;<span class="quote">lnxserv
+</span>&#8221;</span> at private IP 192.168.128.100 to deliver a boot image to 
+<span class="productname">JavaStation</span>&#8482; <span class="quote">&#8220;<span class="quote">java01</span>&#8221;</span> at 
+private IP 192.168.128.1. Both are on private network 192.168.128/24.  
+When using an <span class="quote">&#8220;<span class="quote">NFS-Root</span>&#8221;</span> Filesystem, the location on 
+the server of the filesystem in our sample is at <span class="quote">&#8220;<span class="quote">/path/to/nfsroot
+</span>&#8221;</span>.
+</p></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="ServerSetup-ConfigureRARPSection"></a>7.2. Setting up the <acronym class="acronym">RARP</acronym> service</h3></div></div></div><p>
+We first need to set up <acronym class="acronym">RARP</acronym> service on our server, 
+so the <span class="productname">JavaStation</span>&#8482; can auto-configure its 
+<acronym class="acronym">IP</acronym>. 
+</p><p>
+First, populate the <span class="quote">&#8220;<span class="quote">/etc/ethers</span>&#8221;</span> file with the mapping of 
+the mac address of the <span class="productname">JavaStation</span>&#8482; to its 
+hostname: 
+</p><pre class="screen">
+### /etc/ethers 
+8:0:20:82:7a:21  lnxserv  # 192.168.128.100 (server is not necessary,)
+#                         #                 (just for completeness)
+#
+#
+08:00:20:81:C2:ae java01   # 192.168.128.1 (JavaStation)
+#
+###
+</pre><p>
+Next, populate the <span class="quote">&#8220;<span class="quote">/etc/hosts</span>&#8221;</span> file with the <acronym class="acronym">IP
+</acronym> to hostname maps: 
+</p><pre class="screen">
+### /etc/hosts 
+192.168.128.100 lnxserv
+192.168.128.1 java01
+###
+</pre><p>
+Lastly, configure the <acronym class="acronym">RARP</acronym> cache to fill.
+On 2.2.x based systems, you do this with the /sbin/rarp command, so
+fill the cache at startup:
+</p><pre class="screen">
+### Part of rc.local
+#
+# If necessary, first load the rarp module to be able to fill the cache.
+# /sbin/insmod rarp
+#
+# Now we fill the rarp cache.  You better have the rarp command available.
+if [ -f /sbin/rarp ]; then
+        /sbin/rarp -f
+fi
+###
+</pre><p>
+On 2.4.x based systems, you must use the userland RARP daemon to answer
+RARP requests instead.
+</p></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="ServerSetup-ConfigureDHCPSection"></a>7.3. Setting up the <acronym class="acronym">DHCP</acronym> service</h3></div></div></div><p>
+You now need to configure your server to deliver <acronym class="acronym">DHCP</acronym> 
+service.  This will help identify the <span class="productname">JavaStation</span>&#8482;, 
+the network it is on, and where to get its boot image from. 
+</p><p>
+The following is a sample <span class="quote">&#8220;<span class="quote">dhcpd.conf</span>&#8221;</span> file for the 
+<span class="application">ISC DHCP server</span> software which ships 
+with most <span class="application">Linux/SPARC</span> distributions. 
+</p><pre class="screen">
+### Sample /etc/dhcpd.conf file for ISC DHCPD
+#
+deny unknown-clients;
+#
+subnet 192.168.128.0 netmask 255.255.255.0 
+{
+   range 192.168.128.1 192.168.128.150;
+}
+
+group 
+{
+   host java01 
+   {
+      hardware ethernet 08:00:20:81:C2:ae;
+      filename "C0A88003";        # "/tftpboot/xxx"
+      fixed-address java01;       # 192.168.128.1
+   }
+}
+#
+### End dhcpd.conf file
+</pre><p>
+A longer 
+<a class="ulink" href="http://dubinski-family.org/~jshowto/Files/conf/petes_dhcpd.conf.txt" target="_top">dhcpd.conf</a> from the ZLS is mirrored here for demonstration purposes.
+</p><p>
+Note: Some early versions of <span class="application">ISC DHCPD</span> are 
+reported to not work well.  It is recommended you use <span class="application">ISC 
+DHCPD Version 2.0 and above</span>.   If you still find youself
+having problems, there is a patch to the ISC DHCP server on the ZLS website.
+</p></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="ServerSetup-ConfigureNFSSection"></a>7.4. Set up <acronym class="acronym">NFS</acronym> service (<span class="quote">&#8220;<span class="quote">NFS-Root Options</span>&#8221;</span> 
+Only)</h3></div></div></div><p>
+When you are serving up an <span class="quote">&#8220;<span class="quote">NFS-Root</span>&#8221;</span> filesystem, you need 
+to share the filesystem you created to the <span class="productname">JavaStation
+</span>&#8482; client.  You do this with the <span class="quote">&#8220;<span class="quote">/etc/exports</span>&#8221;</span>
+file.
+</p><pre class="screen">
+###/etc/exports
+/path/to/nfsroot        java01(rw,no_root_squash)
+###
+</pre><p>
+Be sure your <acronym class="acronym">NFS</acronym> server gets properly started 
+up at boot-time.
+</p></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="ServerSetup-ConfigureTFTPSection"></a>7.5. Setting up for Boot with <acronym class="acronym">TFTP</acronym></h3></div></div></div><p>
+Now we need to set up the last step on our server: the <acronym class="acronym">TFTP
+</acronym> configuration.  For this step, you will need the kernel 
+you created (using the <span class="quote">&#8220;<span class="quote">NFS-Root</span>&#8221;</span> option) or the 
+piggybacked kernel/fs boot image (using the <span class="quote">&#8220;<span class="quote">Embedded-Root</span>&#8221;</span> 
+option), the appropriate <span class="application">PROLL</span>, and some 
+knowledge of hexadecimal numbering. 
+</p><p>
+The first thing you need to do is verify that <span class="quote">&#8220;<span class="quote">TFTPd</span>&#8221;</span> is 
+enabled in your <span class="quote">&#8220;<span class="quote">/etc/inetd.conf</span>&#8221;</span> file: 
+</p><pre class="screen">
+tftp	dgram	udp	wait	root	/usr/sbin/tcpd	in.tftpd
+</pre><p>
+Now, you move your copy of proll for your <span class="productname">JavaStation
+</span>&#8482; architecture, along your kernel or piggybacked kernel 
+image to /tftpboot. 
+</p><p>
+Now, you create of symbolic link from the hexidecimal version of your 
+<acronym class="acronym">IP</acronym> to your <span class="application">PROLL</span> image, 
+and a map from <span class="quote">&#8220;<span class="quote">HEXIP.PROL</span>&#8221;</span> to your real kernel image.  If 
+you are using <span class="quote">&#8220;<span class="quote">Embedded-Root</span>&#8221;</span> option, you point to your 
+<span class="quote">&#8220;<span class="quote">Embedded-Root</span>&#8221;</span> Filesystem plus Kernel image.  If you are 
+using the <span class="quote">&#8220;<span class="quote">NFS-Root</span>&#8221;</span> option, you need to point to the 
+normal <span class="quote">&#8220;<span class="quote">vmlinux.aout</span>&#8221;</span> image, plus have a separate map of 
+<acronym class="acronym">IP</acronym>-&gt;nfsroot location.  For sake of completeness, 
+you might also want a <span class="quote">&#8220;<span class="quote">HEXIP.SUN4M</span>&#8221;</span> -&gt; <span class="quote">&#8220;<span class="quote">HEXIP
+</span>&#8221;</span> map, as that is the custom way of dealing with net boot 
+situations with the Sun. 
+</p><p>
+Example for java01 booting from <span class="quote">&#8220;<span class="quote">NFS-Root</span>&#8221;</span>: 
+</p><pre class="screen">
+  $ ls -ld /tftpboot
+  -rw-r--r--   1 root     root        89608 Mar 20 10:15 proll.aout.krups.11
+  -rw-r--r--   1 root     root        52732 Mar 17 11:52 proll.aout.mrcoffee.11
+  lrwxrwxrwx   1 root     root           19 Mar 20 10:16 proll.krups -&gt; proll.aout.krups.11
+  lrwxrwxrwx   1 root     root           22 Mar 17 11:54 proll.mrcoffee -&gt; proll.aout.mrcoffee.11
+  lrwxrwxrwx   1 root     root           10 Apr  1 13:00 C0A88001.SUN4M -&gt; COA88001
+  lrwxrwxrwx   1 root     root           10 Apr  1 13:00 C0A88001 -&gt; proll.mrcoffee
+  lrwxrwxrwx   1 root     root           12 Apr  1 13:00 C0A88001.PROL -&gt; vmlinux.aout
+  -rw-r--r--   1 root     root      1456189 May 21 12:53 vmlinux.aout
+  -rw-r--r--   1 root     root      6743821 Apr  1 12:53 vmlinux_embed.aout
+  lrwxrwxrwx   1 root     root           18 Apr  1 12:53 192.168.128.1 -&gt; /path/to/nfsroot
+</pre><p>
+Example for java01 booting from <span class="quote">&#8220;<span class="quote">Embedded-Root</span>&#8221;</span> boot image: 
+</p><pre class="screen">
+  $ ls -ld /tftpboot
+  -rw-r--r--   1 root     root        89608 Mar 20 10:15 proll.aout.krups.11
+  -rw-r--r--   1 root     root        52732 Mar 17 11:52 proll.aout.mrcoffee.11
+  lrwxrwxrwx   1 root     root           19 Mar 20 10:16 proll.krups -&gt; proll.aout.krups.11
+  lrwxrwxrwx   1 root     root           22 Mar 17 11:54 proll.mrcoffee -&gt; proll.aout.mrcoffee.11
+  lrwxrwxrwx   1 root     root           10 Apr  1 13:00 C0A88001.SUN4M -&gt; COA88001
+  lrwxrwxrwx   1 root     root           10 Apr  1 13:00 C0A88001 -&gt; proll.mrcoffee
+  lrwxrwxrwx   1 root     root           12 Apr  1 13:00 C0A88001.PROL -&gt; vmlinux_embed.aout
+  -rw-r--r--   1 root     root      1456189 May 21 12:53 vmlinux.aout
+  -rw-r--r--   1 root     root      6743821 Apr  1 12:53 vmlinux_embed.aout
+</pre></div></div><div class="navfooter"><hr><table width="100%" summary="Navigation footer"><tr><td width="40%" align="left"><a accesskey="p" href="ar01s06.html">Prev</a> </td><td width="20%" align="center"> </td><td width="40%" align="right"> <a accesskey="n" href="ar01s08.html">Next</a></td></tr><tr><td width="40%" align="left" valign="top">6. "Out of the Box" JavaStation Boot File Solutions </td><td width="20%" align="center"><a accesskey="h" href="index.html">Home</a></td><td width="40%" align="right" valign="top"> 8. Booting Your JavaStation</td></tr></table></div></body></html>

@@ -1,0 +1,198 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 3.2 Final//EN">
+<HTML>
+<HEAD>
+ <META NAME="GENERATOR" CONTENT="LinuxDoc-Tools 0.9.72">
+ <TITLE>CVS-RCS-HOWTO Document for Linux (Source Code Control System): Setting up CVS </TITLE>
+ <LINK HREF="CVS-RCS-HOWTO-4.html" REL=next>
+ <LINK HREF="CVS-RCS-HOWTO-2.html" REL=previous>
+ <LINK HREF="CVS-RCS-HOWTO.html#toc3" REL=contents>
+</HEAD>
+<BODY>
+<A HREF="CVS-RCS-HOWTO-4.html">Next</A>
+<A HREF="CVS-RCS-HOWTO-2.html">Previous</A>
+<A HREF="CVS-RCS-HOWTO.html#toc3">Contents</A>
+<HR>
+<H2><A NAME="Setting up CVS"></A> <A NAME="s3">3.</A> <A HREF="CVS-RCS-HOWTO.html#toc3">Setting up CVS </A></H2>
+
+<P>First you need to install the CVS package. On Redhat Linux use:
+<HR>
+<PRE>
+cd /mnt/cdrom/Redhat/RPMS
+rpm -i rcs*.rpm
+rpm -i cvs*.rpm
+rpm -i openssh*.rpm
+To see the list of files installed do -
+rpm -qpl cvs*.rpm | less
+</PRE>
+<HR>
+
+and browse the output using j,k, CTRL+f, CTRL+D, CTRL+B, CTRL+U or using arrow keys, page up/down keys.
+See 'man less'.</P>
+<P>The Openssh is required if you want to use ssh (Secure Shell) with CVS.</P>
+<P>On other flavors of Unix, you may need to download the RCS and CVS tar balls
+and follow the README, INSTALL files to setup CVS.
+Visit 
+<A HREF="http://www.cyclic.com">http://www.cyclic.com</A>
+and 
+<A HREF="http://www.loria.fr/~molli/cvs-index.html">http://www.loria.fr/~molli/cvs-index.html</A></P>
+
+
+
+<H2><A NAME="CVS-Env"></A> <A NAME="ss3.1">3.1</A> <A HREF="CVS-RCS-HOWTO.html#toc3.1">Environment variables </A>
+</H2>
+
+<P>The following environment variables need to be setup in /etc/profile - default 
+values required for all users.
+If not set in /etc/profile, then you should add these to your 
+local profile file &nbsp;/.bash_profile.</P>
+<P>
+<HR>
+<PRE>
+export EDITOR=/bin/vi
+export CVSROOT=/home/cvsroot
+
+# WARNING!! WARNING: If you set CVSREAD to yes, checkout and update will try hard to 
+# make the files in your working directory read-only.  When this is not set,
+# the default behavior is to permit modification of your working files.
+#export CVSREAD=yes
+</PRE>
+<HR>
+
+And of course, individual users can <I>override</I> the environment variables 
+set in /etc/profile by resetting them in their local profile file &nbsp;/.bash_profile
+<HR>
+<PRE>
+# File ~/.bash_profile
+# Overriding env variables by resetting
+export EDITOR=/usr/bin/emacs
+export CVSROOT=/home/someotherdir/java/cvsroot
+</PRE>
+<HR>
+</P>
+<P>Create a directory to store the source code repository 
+and give read, write access to Unix group/user.
+Also make sure that the directory name of CVSROOT does not contain
+any blank spaces. For example CVSROOT should not be like '/home/my rootcvs'.
+<HR>
+<PRE>
+bash$ su - root
+bash# export CVSROOT=/home/cvsroot
+bash# groupadd --help
+bash# groupadd cvs
+bash# useradd --help
+bash# useradd -g cvs -d $CVSROOT cvs
+bash# mkdir $CVSROOT
+
+bash# ls -ld $CVSROOT   ... (you should see the listing)
+bash# chgrp -R cvs $CVSROOT
+bash# chmod o-rwx $CVSROOT
+bash# chmod ug+rwx $CVSROOT
+
+# To initialize the CVS repository and to put in source code files
+# do (but requires env CVSROOT to be set) :
+bash# cvs init
+
+# Add the unix users to the cvs group. Create supplementary groups for users.
+# Note that you MUST not put any blank spaces after comma separating the
+# group names in -G option.
+# In example below user tom belongs to groups cvs, users and staff and user
+# johnson belongs to group cvs only.
+bash# usermod --help
+bash# usermod -G cvs some_unix_username
+bash# usermod -G cvs,users,staff tom
+bash# usermod -G cvs,users,staroffice billclinton
+bash# usermod -G cvs johnson
+bash# exit    .... (logout of root superuser mode)
+
+# Login as a user and import files into cvs....
+bash$ su - billclinton
+bash$ export EDITOR=/bin/vi
+bash$ export CVSROOT=/home/cvsroot
+
+# WARNING! WARNING: If you set CVSREAD to yes, checkout and update will try hard to 
+# make the files in your working directory read-only.  When this is not set,
+# the default behavior is to permit modification of your working files.
+bash$ export CVSREAD=yes
+
+# Change directory is a must (MANDATORY)
+bash$ cd $HOME/somedir/anotherdir/directory/my_source_code_dir
+
+# Must give vendor tag and revision tag
+cvs import somedir/anotherdir/directory/my_source_code_dir vendor_1_0 rev_1_0
+
+# Also note that it is very important to give the directory tree starting
+# from the $HOME, that is, in above example starting from somedir.
+# For example I did:
+bash$ cd $HOME/howto/foobar
+bash$ cvs import howto/foobar vendor_1_0 rev_1_0
+
+# Another example is:
+bash$ cd $HOME/javafilesdir
+bash$ cvs import javafilesdir vendor_1_0 rev_1_0
+
+# A sample testing and verification:
+bash$ cd $HOME/howto/foobar
+bash$ cvs checkout myfoo.java
+</PRE>
+<HR>
+</P>
+<P><B>TROUBLESHOOTING:</B> When doing checkout it says module is unknown. It 
+is a common mistake not to change directory while doing cvs import. You 
+<B><I>MUST change directory</I></B> to the 
+source-code-directory and then do cvs import. For example:
+<HR>
+<PRE>
+bash$ cd $HOME/somedirectory/foobardir
+bash$ cvs import somedirectory/foobardir vendor_1_0 rev_1_0
+</PRE>
+<HR>
+</P>
+
+
+<H2><A NAME="clientbox"></A> <A NAME="ss3.2">3.2</A> <A HREF="CVS-RCS-HOWTO.html#toc3.2">Setup CVS on Client Box</A>
+</H2>
+
+<P>On client boxes where you want to use the CVS, you should install
+cvs packages and ssh package (if you want to use ssh).
+Setup the environment variables:
+<HR>
+<PRE>
+bash$ export CVSROOT=":ext:developer@cvs_server_box.domain.com:/home/cvsroot"
+bash$ export CVS_RSH="ssh"
+</PRE>
+<HR>
+
+The cvs_server_box.domain.com is the IP address of the remote CVS repository server
+and 'developer' is the user id.
+Another example using pserver is given below:
+<HR>
+<PRE>
+bash$ export CVSROOT=:pserver:username@cvs.tldp.org:/cvsroot
+bash$ export CVS_RSH="ssh"
+</PRE>
+<HR>
+
+See also 
+<A HREF="CVS-RCS-HOWTO-11.html#multiuser">multiuser</A>
+.</P>
+
+
+
+<H2><A NAME="RCS2CVS"></A> <A NAME="ss3.3">3.3</A> <A HREF="CVS-RCS-HOWTO.html#toc3.3">Migrate RCS to CVS </A>
+</H2>
+
+<P>To migrate the existing RCS files to CVS, use the following script from
+<A HREF="CVS-RCS-HOWTO-19.html#downloadsoftware">downloadsoftware</A>
+ 
+. Make sure that you installed the Korn shell package pdksh*.rpm from the Linux contrib cdrom.</P>
+<P><B>NOTE : <I>Get the Korn shell /bin/ksh by installing pdksh*.rpm from the Linux contrib cdrom</I></B></P>
+<P>Now the RCS is migrated to CVS as 'project'. You can start using the
+CVS commands on module 'project'.</P>
+
+
+<HR>
+<A HREF="CVS-RCS-HOWTO-4.html">Next</A>
+<A HREF="CVS-RCS-HOWTO-2.html">Previous</A>
+<A HREF="CVS-RCS-HOWTO.html#toc3">Contents</A>
+</BODY>
+</HTML>

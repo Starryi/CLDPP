@@ -1,0 +1,79 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1"><title>7. Routing Cache</title><link rel="stylesheet" type="text/css" href="style.css"><meta name="generator" content="DocBook XSL Stylesheets V1.79.1"><meta name="keywords" content="linux, ip, iproute2, ifconfig, firewall, ARP, NAT, route, routing, route selection, routing selection, network administration"><link rel="home" href="index.html" title="Guide to IP Layer Network Administration with Linux"><link rel="up" href="ch04.html" title="Chapter 4. IP Routing"><link rel="prev" href="ch04s06.html" title="6. Source Address Selection"><link rel="next" href="ch04s08.html" title="8. Routing Tables"></head><body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF"><div class="navheader"><table width="100%" summary="Navigation header"><tr><th colspan="3" align="center">7. Routing Cache</th></tr><tr><td width="20%" align="left"><a accesskey="p" href="ch04s06.html">Prev</a> </td><th width="60%" align="center">Chapter 4. IP Routing</th><td width="20%" align="right"> <a accesskey="n" href="ch04s08.html">Next</a></td></tr></table><hr></div><div class="section"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="routing-cache"></a>7. Routing Cache</h2></div></div></div><a class="indexterm" name="idm1847"></a><a class="indexterm" name="idm1849"></a><p>
+      The routing cache is also known as the forwarding information base (FIB).
+      This term may be familiar to users of other routing systems.
+    </p><p>
+      The routing cache stores recently used routing entries in a fast and
+      convenient hash lookup table, and is consulted before the routing
+      tables.  If the kernel finds a matching entry during route cache lookup,
+      it will forward the packet immediately and stop traversing the routing
+      tables.
+    </p><p>
+      Because the routing cache is maintained by the kernel separately from
+      the routing tables, manipulating the routing tables may not have an
+      immediate effect on the kernel's choice of path for a given packet.
+      To avoid a non-deterministic lag between the time that a new route
+      is entered into the kernel routing tables and the time that a new lookup
+      in those route tables is performed, use
+      <a class="link" href="apds02.html#tools-ip-route-flush-cache" title="2.10. ip route flush cache"><span class="command"><strong>ip route flush
+      cache</strong></span></a>.  Once the route cache has been emptied, new
+      route lookups (if not by a packet, then manually with
+      <a class="link" href="apds02.html#tools-ip-route-get" title="2.8. Programmatically fetching route information with ip route get"><span class="command"><strong>ip route
+      get</strong></span></a>) will result in a new lookup to the kernel routing
+      tables.
+    </p><p>
+      The following is a listing of the hash lookup keys 
+      in the routing cache and a description of each key.  Compare this list
+      with the elements identified in
+      <a class="xref" href="ch04s05.html#tb-routing-selection-adv" title="Table 4.1. Keys used for hash table lookups during route selection">Table 4.1, &#8220;Keys used for hash table lookups during route selection&#8221;</a>.
+    </p><div class="variablelist"><a name="list-routing-cache-lookup-keys"></a><dl class="variablelist"><dt><a name="list-routing-cache-lookup-keys-dst"></a><span class="term">dst, </span><span class="term">Destination Address</span></dt><dd><a class="indexterm" name="idm1866"></a><p>
+            The destination IP address of the packet.  This is the destination
+            address on the packet at the time of the route lookup. The address
+            is a host address.  All 32 bits are significant during this lookup.
+          </p></dd><dt><a name="list-routing-cache-lookup-keys-src"></a><span class="term">src, </span><span class="term">Source Address</span></dt><dd><a class="indexterm" name="idm1875"></a><p>
+            The source IP address of the packet.  This is the source address
+            on the packet at the time of the route lookup.  The address is a
+            host address.  All 32 bits are significant during this lookup.
+          </p></dd><dt><a name="list-routing-cache-lookup-keys-tos"></a><span class="term">tos, </span><span class="term">Type of Service</span></dt><dd><a class="indexterm" name="idm1884"></a><p>
+            The ToS marking on the packet.  If there is no ToS marking on the
+            packet (tos == 0), this lookup key is unused.  If there is a ToS
+            marking, the kernel will search for a match with this ToS value.
+            If no matching (dst, src, tos) is found, the kernel will continue
+            the search for a route by traversing the RPDB.
+          </p></dd><dt><a name="list-routing-cache-lookup-keys-fwmark"></a><span class="term">fwmark</span></dt><dd><a class="indexterm" name="idm1892"></a><p>
+            The mark on a packet added administratively by the packet
+            filtering engine (<span class="command"><strong>ipchains</strong></span> or
+            <span class="command"><strong>iptables</strong></span>).
+            This mark is not part of the physical IP packet, and only exists
+            as part of the data structure held in memory on the routing device
+            to represent the IP
+            packet.  If there is no fwmark on the packet, this lookup key is
+            unused.  When present, the kernel will search for a matching 
+            (dst, src, tos?, fwmark) entry.  If no matching entry is found,
+            the kernel will continue the search for a route by traversing the
+            RPDB.
+          </p></dd><dt><a name="list-routing-cache-lookup-keys-iif"></a><span class="term">iif, </span><span class="term">inbound interface</span></dt><dd><a class="indexterm" name="idm1903"></a><p>
+            The name of the interface on which the packet arrived.
+          </p></dd></dl></div><p>
+    </p><p>
+      The following attributes may be stored for each entry in the routing
+      cache.
+    </p><div class="variablelist"><a name="list-routing-cache-attrs"></a><dl class="variablelist"><dt><a name="list-routing-cache-attrs-cwnd"></a><span class="term">cwnd, </span><span class="term">FIXME Window</span></dt><dd><a class="indexterm" name="idm1915"></a><p>
+            FIXME.  A) I don't know what it is.
+                    B) I don't know how to describe it.
+          </p></dd><dt><a name="list-routing-cache-attrs-advmss"></a><span class="term">advmss, </span><span class="term">Advertised Maximum Segment Size</span></dt><dd><a class="indexterm" name="idm1924"></a><p>
+          </p></dd><dt><a name="list-routing-cache-attrs-src"></a><span class="term">src, </span><span class="term">(Preferred Local) Source Address</span></dt><dd><a class="indexterm" name="idm1933"></a><p>
+          </p></dd><dt><a name="list-routing-cache-attrs-mtu"></a><span class="term">mtu, </span><span class="term">Maximum Transmission Unit</span></dt><dd><a class="indexterm" name="idm1942"></a><p>
+          </p></dd><dt><a name="list-routing-cache-attrs-rtt"></a><span class="term">rtt, </span><span class="term">Round Trip Time</span></dt><dd><a class="indexterm" name="idm1951"></a><p>
+          </p></dd><dt><a name="list-routing-cache-attrs-rttvar"></a><span class="term">rttvar, </span><span class="term">Round Trip Time Variation</span></dt><dd><a class="indexterm" name="idm1960"></a><p>
+            FIXME.  Gotta find some references to this, too.
+          </p></dd><dt><a name="list-routing-cache-attrs-age"></a><span class="term">age</span></dt><dd><a class="indexterm" name="idm1968"></a><p>
+          </p></dd><dt><a name="list-routing-cache-attrs-users"></a><span class="term">users</span></dt><dd><a class="indexterm" name="idm1976"></a><p>
+          </p></dd><dt><a name="list-routing-cache-attrs-used"></a><span class="term">used</span></dt><dd><a class="indexterm" name="idm1984"></a><p>
+          </p></dd></dl></div><p>
+      Collectively the hash keys uniquely identify routes in the forwarding
+      information base (routing cache) and each entry provides attributes of
+      the route.
+    </p><p>
+    </p><p>
+    </p><p>
+    </p></div><div class="navfooter"><hr><table width="100%" summary="Navigation footer"><tr><td width="40%" align="left"><a accesskey="p" href="ch04s06.html">Prev</a> </td><td width="20%" align="center"><a accesskey="u" href="ch04.html">Up</a></td><td width="40%" align="right"> <a accesskey="n" href="ch04s08.html">Next</a></td></tr><tr><td width="40%" align="left" valign="top">6. Source Address Selection </td><td width="20%" align="center"><a accesskey="h" href="index.html">Home</a></td><td width="40%" align="right" valign="top"> 8. Routing Tables</td></tr></table></div></body></html>

@@ -1,0 +1,409 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 3.2 Final//EN">
+<HTML>
+<HEAD>
+ <META NAME="GENERATOR" CONTENT="LinuxDoc-Tools 0.9.72">
+ <TITLE>Modem-Dialup-NT HOW-TO: Quick Steps to Dialup Networking</TITLE>
+ <LINK HREF="Modem-Dialup-NT-HOWTO-4.html" REL=next>
+ <LINK HREF="Modem-Dialup-NT-HOWTO-2.html" REL=previous>
+ <LINK HREF="Modem-Dialup-NT-HOWTO.html#toc3" REL=contents>
+</HEAD>
+<BODY>
+<A HREF="Modem-Dialup-NT-HOWTO-4.html">Next</A>
+<A HREF="Modem-Dialup-NT-HOWTO-2.html">Previous</A>
+<A HREF="Modem-Dialup-NT-HOWTO.html#toc3">Contents</A>
+<HR>
+<H2><A NAME="s3">3.</A> <A HREF="Modem-Dialup-NT-HOWTO.html#toc3">Quick Steps to Dialup Networking</A></H2>
+
+<P>These quick steps will enable you to setup dial-up networking on Linux in just five minutes.</P>
+<P>You need the following packages:
+<UL>
+<LI> wvdial*.rpm</LI>
+<LI> ppp*.rpm</LI>
+</UL>
+
+You can check with <B>rpm -qa | grep -i  wvdial</B> for 
+the installed packages on redhat linux. Use equivalent package commands in case of
+other distributions like Debian or Slackware.</P>
+<P>The steps below are for MS Windows NT RAS server. The NT RAS requires
+<B>noauth</B> in wvdial file. The Linux RAS may need different settings.
+In the sample example given below, you should replace username <B>john</B> with the 
+user ID given to you to login into remote RAS server.</P>
+<P>
+<OL>
+<LI> Edit the file /etc/wvdial.conf and insert lines like
+<HR>
+<PRE>
+[Dialer myconnection]
+Username = john
+Password = passwordofjohn
+Phone = 982 1956
+Area Code = 713
+Inherits = Dialer Defaults
+Stupid mode = 1
+</PRE>
+<HR>
+
+Change john with whatever.
+
+
+</LI>
+<LI> Edit /etc/ppp/pap-secrets and insert lines like
+<HR>
+<PRE>
+# Secrets for authentication using PAP
+# client        server  secret                  IP addresses
+john            ppp0    passwordofjohn
+john            *       passwordofjohn
+</PRE>
+<HR>
+
+Change john with whatever.
+
+
+</LI>
+<LI> Edit /etc/ppp/chap-secrets and insert lines like
+<HR>
+<PRE>
+# Secrets for authentication using CHAP
+# client        server  secret                  IP addresses
+john            ppp0    passwordofjohn
+john            *       passwordofjohn
+</PRE>
+<HR>
+
+Change john with whatever.
+
+
+</LI>
+<LI> Edit /etc/ppp/options and insert lines like
+<HR>
+<PRE>
+lock
+defaultroute
+noipdefault
+idle 1200
+usepeerdns
+proxyarp
+</PRE>
+<HR>
+
+
+
+</LI>
+<LI> Create a new file /etc/ppp/ip-up and insert lines like
+<HR>
+<PRE>
+#!/bin/bash
+ 
+# This file /etc/ppp/ip-up should not be modified -- make local changes to
+# /etc/ppp/ip-up.local instead
+ 
+LOGDEVICE=$6
+REALDEVICE=$1
+ 
+export PATH=/sbin:/usr/sbin:/bin:/usr/bin
+ 
+[ -f /etc/sysconfig/network-scripts/ifcfg-${LOGDEVICE} ] &amp;&amp; /etc/sysconfig/network-scripts/ifup-post ifcfg-${LOGDEVICE}
+ 
+[ -x /etc/ppp/ip-up.local ] &amp;&amp; /etc/ppp/ip-up.local "$@"
+ 
+exit 0
+</PRE>
+<HR>
+
+
+
+</LI>
+<LI> Create a new file /etc/ppp/ip-up.local and insert lines like
+<HR>
+<PRE>
+#!/bin/sh
+ 
+echo "  "
+echo "Before doing route add......"
+echo "Output from netstat -nr is : "
+netstat -nr
+echo "  "
+ 
+echo " Doing route add now....  "
+# You should change the lines below and add the networks where 
+# your remote machines are ...
+route add -net 156.15.24.0 netmask 255.255.255.0 dev ppp0
+route add -net 172.28.36.0 netmask 255.255.255.0 dev ppp0
+route add -net 172.28.39.0 netmask 255.255.255.0 dev ppp0
+route add -net 172.28.26.0 netmask 255.255.255.0 dev ppp0
+ 
+echo "After doing route add......"
+echo "Output from netstat -nr is : "
+netstat -nr
+ 
+echo "  "
+</PRE>
+<HR>
+
+When <B>wvdial</B> is started it automatically starts the <B>pppd</B> 
+which automatically calls this script to 
+add route to your remote networks via the PPP link.
+See 'man pppd'.
+In the example above I have to connect to remote networks 156.15.24, 172.28.36,
+172.28.39 via the PPP link. You should replace these with your settings.
+
+You can also manually add or delete the route after starting the PPP.
+<HR>
+<PRE>
+bash$ su - root
+bash# route add -net 172.28.26.0 netmask 255.255.255.0 dev ppp0
+bash# route del -net 172.23.2.0 netmask 255.255.255.0 dev ppp0
+</PRE>
+<HR>
+
+
+
+</LI>
+<LI> Create a new file /etc/ppp/ip-down and insert lines like
+<HR>
+<PRE>
+#!/bin/bash
+ 
+# This file /etc/ppp/ip-down should not be modified -- make local changes to
+# /etc/ppp/ip-down.local instead
+ 
+LOGDEVICE=$6
+REALDEVICE=$1
+ 
+export PATH=/sbin:/usr/sbin:/bin:/usr/bin
+ 
+[ -x /etc/ppp/ip-down.local ] &amp;&amp; /etc/ppp/ip-down.local "$@"
+ 
+/etc/sysconfig/network-scripts/ifdown-post ifcfg-${LOGDEVICE}
+ 
+exit 0
+</PRE>
+<HR>
+
+
+
+</LI>
+<LI> Create a new file /etc/ppp/ip-down.local and insert lines like
+<HR>
+<PRE>
+#!/bin/sh
+ 
+echo "  "
+echo "Before doing route delete ......"
+echo "Output from netstat -nr is : "
+netstat -nr
+echo "  "
+ 
+echo " Doing route delete now....  "
+# Lines below should be same as in ip-up.local but with delete
+route del -net 156.15.24.0 netmask 255.255.255.0 dev ppp0
+route del -net 172.28.36.0 netmask 255.255.255.0 dev ppp0
+route del -net 172.23.2.0 netmask 255.255.255.0 dev ppp0
+ 
+echo "After doing route delete ......"
+echo "Output from netstat -nr is : "
+netstat -nr
+ 
+echo "  "
+</PRE>
+<HR>
+
+When <B>pppd</B> is stopped it automatically calls this script to clean up
+whatever ip-up script did. 
+See 'man pppd'.
+
+
+</LI>
+<LI> Edit /etc/ppp/peers/wvdial and insert lines like
+<HR>
+<PRE>
+noauth user john
+name wvdial
+</PRE>
+<HR>
+
+Change john with whatever.
+
+
+</LI>
+<LI> If you have an external modem, then just before dialing, 
+switch off/on the power to modem to reset it.
+<HR>
+<PRE>
+bash$ su - root
+bash# tail -f /var/log/messages
+
+Bring up another xterm shell window and 
+bash$ su - root
+bash# man pppd
+bash# man wvdial
+bash# cd /etc/ppp
+bash# nohup wvdial myconnection &amp;
+bash# tail -f nohup.out
+
+Bring up another xterm shell window and 
+bash$ su - root
+bash# ifconfig -a
+And you should see ppp device listed and up and running.
+bash# netstat -nr
+And you should see ppp device listed along with other interfaces.
+</PRE>
+<HR>
+
+
+
+</LI>
+<LI> By this step the <B>pppd</B> should have established the routes
+to remote networks with ip-up.local script. Also <B>pppd</B> should
+have created the /etc/ppp/resolv.conf for DNS servers. Now, try connect to remote host
+and verify connections.
+<HR>
+<PRE>
+bash$ su - root
+bash# tail -100 /var/log/messages | less
+bash# cat /etc/ppp/resolv.conf
+bash# ifconfig -a
+bash# netstat -nr
+I looked for route to network 156.15.24.0 (You should see your 
+network as per /etc/ppp/ip-up.local)
+bash# ping 156.15.24.68
+bash# telnet 156.15.24.68
+
+You can also edit /etc/hosts and add these hosts
+156.15.24.64    starship
+172.28.36.131   gemstone
+bash# ping starship
+bash# ping gemstone
+bash# telnet gemstone
+bash# ftp gemstone
+</PRE>
+<HR>
+
+
+
+</LI>
+<LI> To stop the PPP :
+<HR>
+<PRE>
+bash$ su - root
+bash# killall wvdial
+bash# killall pppd
+bash# man killall
+</PRE>
+<HR>
+
+
+
+</LI>
+<LI> Now enable non-root user to do dial-up networking with PPP.
+Make sure that the user belongs to the groups `uucp' and `dialout'.
+<HR>
+<PRE>
+bash$ su - root
+bash# su - someuser
+bash$ id
+uid=501(someuser) gid=501(maingid) groups=501(maingid),503(staroffice),505(staff)
+This shows the groups 'someuser' belongs.
+
+bash$ exit
+bash# usermod --help
+bash# usermod -g maingid -G staroffice,staff,uucp,dialout someuser
+bash# chgrp -R uucp /etc/ppp
+bash# chmod -R ug+r /etc/ppp
+bash# chmod -R o-rwx /etc/ppp
+bash# chmod go-rwx /etc/ppp/*secrets
+bash# chmod u+s /usr/sbin/pppd
+bash# su - someuser
+bash$ id
+This will display groups someuser belongs and you should see uucp.
+bash$ nohup wvdial myconnection &amp;
+bash$ tail -f nohup.out
+</PRE>
+<HR>
+
+It is very strongly recommended that you use wvdial as `normal' user, and make 
+sure that the user belongs to the groups `uucp' and `dialout'.
+
+
+</LI>
+<LI> See also the frontend tool for wvdial at 
+<A HREF="http://console-newsletter.hypermart.net/x-wvdial">X-wvdial</A>.
+
+
+</LI>
+<LI> If you do not have any other interface ethernet cards for Cable modem or
+DSL modem then you can setup telephone dial-up modem as the default route for all outside
+conections to internet. Assuming you only have modem connection via POTS (Plain Old Telephone
+System) you can do -
+<HR>
+<PRE>
+bash$ su - root
+bash# man route
+bash# ifconfig -a
+And look for the IP address of the ppp device, and use it below
+bash# route add default gw  IP_of_ppp_device
+For example -
+bash# route add default gw  172.28.36.3
+</PRE>
+<HR>
+
+</LI>
+</OL>
+</P>
+<H2><A NAME="troubleshoot"></A> <A NAME="ss3.1">3.1</A> <A HREF="Modem-Dialup-NT-HOWTO.html#toc3.1">Troubleshooting</A>
+</H2>
+
+<P>In case you have problems:
+<HR>
+<PRE>
+bash$ su - root
+bash# tail -f /var/log/messages
+And then start myconnection in /etc/wvdial.conf
+bash# wvdial myconnection
+
+bash# ifconfig -a
+Should list ppp
+
+bash# netstat -nr
+Should list ppp
+
+If you have multiple interfaces, like ethernet cards to DSL or Cable modem,
+to check which route is being used, do:
+bash# traceroute www.yahoo.com
+bash# traceroute remotehostname
+</PRE>
+<HR>
+</P>
+<H2><A NAME="graphictools"></A> <A NAME="ss3.2">3.2</A> <A HREF="Modem-Dialup-NT-HOWTO.html#toc3.2">Graphical Tools </A>
+</H2>
+
+<P>Preference should be given the console line commands as in previous section, but
+some people prefer GUI interface.
+You can use graphical tools like Linuxconf, KPPP, GnomePPP and many others.</P>
+<P><I><B>Note: I very strongly recommend using command-line console 
+commands 'wvdial' as demonstrated
+in previous sections, as they are lot simpler and easy to use.</B></I> </P>
+<P>
+<HR>
+<PRE>
+bash$ su - root
+bash# linuxconf &amp;
+And select Networking->Client Tasks->Routing &amp; Gateways->Set Other Routes to networks->Add network
+. Also select Networking->PPP
+
+bash# rp3 &amp;
+bash# rp3-config &amp;
+</PRE>
+<HR>
+</P>
+
+
+
+
+<HR>
+<A HREF="Modem-Dialup-NT-HOWTO-4.html">Next</A>
+<A HREF="Modem-Dialup-NT-HOWTO-2.html">Previous</A>
+<A HREF="Modem-Dialup-NT-HOWTO.html#toc3">Contents</A>
+</BODY>
+</HTML>

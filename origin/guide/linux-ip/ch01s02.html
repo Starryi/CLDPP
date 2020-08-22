@@ -1,0 +1,322 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1"><title>2. Reading Routes and IP Information</title><link rel="stylesheet" type="text/css" href="style.css"><meta name="generator" content="DocBook XSL Stylesheets V1.79.1"><meta name="keywords" content="linux, ip, iproute2, ifconfig, firewall, ARP, NAT, route, routing, route selection, routing selection, network administration"><link rel="home" href="index.html" title="Guide to IP Layer Network Administration with Linux"><link rel="up" href="ch01.html" title="Chapter 1. Basic IP Connectivity"><link rel="prev" href="ch01s01.html" title="1. IP Networking Control Files"><link rel="next" href="ch01s03.html" title="3. Changing IP Addresses and Routes"></head><body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF"><div class="navheader"><table width="100%" summary="Navigation header"><tr><th colspan="3" align="center">2. Reading Routes and IP Information</th></tr><tr><td width="20%" align="left"><a accesskey="p" href="ch01s01.html">Prev</a> </td><th width="60%" align="center">Chapter 1. Basic IP Connectivity</th><td width="20%" align="right"> <a accesskey="n" href="ch01s03.html">Next</a></td></tr></table><hr></div><div class="section"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="basic-reading"></a>2. Reading Routes and IP Information</h2></div></div></div><p>
+      Assuming an already configured machine named <code class="systemitem">tristan</code>, let's
+      <a class="link" href="ch01s02.html" title="2. Reading Routes and IP Information">look at the IP addressing and routing
+      table</a>.  Next we'll examine how the machine
+      communicates with computers (hosts) on the <a class="link" href="ch01s02.html#basic-local-network" title="2.1. Sending Packets to the Local Network">locally reachable network</a>.  We'll
+      then <a class="link" href="ch01s02.html#basic-default-gateway" title="2.2. Sending Packets to Unknown Networks Through the Default Gateway">send packets through our
+      default gateway to other networks</a>.  After learning what a default
+      route is, we'll <a class="link" href="ch01s02.html#ex-basic-static" title="Example 1.4. Sample routing table with a static route">look at a static
+      route</a>.
+    </p><p>
+      One of the first things to learn about a machine attached to an IP
+      network is its IP address.  We'll begin by looking at
+      a machine named <code class="systemitem">tristan</code> on the main desktop network (192.168.99.0/24).
+    </p><p>
+      The machine <code class="systemitem">tristan</code>
+      is alive on IP 192.168.99.35 and
+      has been properly configured by the system administrator.
+      By examining the
+      <a class="link" href="apds01.html" title="1. route"><span class="command"><strong>route</strong></span></a>
+      and <a class="link" href="apcs01.html" title="1. ifconfig"><span class="command"><strong>ifconfig</strong></span></a>
+      output we can learn a good deal about the network to which 
+      <code class="systemitem">tristan</code> is connected
+      <a href="#ftn.idm352" class="footnote" name="idm352"><sup class="footnote">[1]</sup></a>.
+    </p><div class="example"><a name="ex-basic-ifconfig"></a><p class="title"><b>Example 1.1. Sample <span class="command">ifconfig</span> output</b></p><div class="example-contents"><pre class="programlisting">
+<code class="prompt">[root@tristan]# </code><strong class="userinput"><code>ifconfig</code></strong>
+<code class="computeroutput">eth0      Link encap:Ethernet  HWaddr 00:80:C8:F8:4A:51  
+          inet addr:192.168.99.35  Bcast:192.168.99.255  Mask:255.255.255.0
+          UP BROADCAST RUNNING MULTICAST  MTU:1500  Metric:1
+          RX packets:27849718 errors:1 dropped:0 overruns:0 frame:0
+          TX packets:29968044 errors:5 dropped:0 overruns:2 carrier:3
+          collisions:0 txqueuelen:100 
+          RX bytes:943447653 (899.7 Mb)  TX bytes:2599122310 (2478.7 Mb)
+          Interrupt:9 Base address:0x1000 
+
+lo        Link encap:Local Loopback  
+          inet addr:127.0.0.1  Mask:255.0.0.0
+          UP LOOPBACK RUNNING  MTU:16436  Metric:1
+          RX packets:7028982 errors:0 dropped:0 overruns:0 frame:0
+          TX packets:7028982 errors:0 dropped:0 overruns:0 carrier:0
+          collisions:0 txqueuelen:0 
+          RX bytes:1206918001 (1151.0 Mb)  TX bytes:1206918001 (1151.0 Mb)
+</code>
+<code class="prompt">[root@tristan]# </code><strong class="userinput"><code>route -n</code></strong>
+<code class="computeroutput">Kernel IP routing table
+Destination     Gateway         Genmask         Flags Metric Ref    Use Iface
+192.168.99.0    0.0.0.0         255.255.255.0   U     0      0        0 eth0
+127.0.0.0       0.0.0.0         255.0.0.0       U     0      0        0 lo
+0.0.0.0         192.168.99.254  0.0.0.0         UG    0      0        0 eth0</code>
+      </pre></div></div><br class="example-break"><p>
+      For the moment, ignore the loopback interface (lo) and concentrate
+      on the Ethernet interface.  Examine the output of the
+      <span class="command"><strong>ifconfig</strong></span> command.  We can learn a great deal about
+      the IP network to which we are connected simply by reading the
+      <span class="command"><strong>ifconfig</strong></span> output.  For a thorough discussion of
+      <span class="command"><strong>ifconfig</strong></span>, see
+      <a class="xref" href="apcs01.html" title="1. ifconfig">Section 1, &#8220;<span class="command"><strong>ifconfig</strong></span>&#8221;</a>.
+    </p><p>
+      The IP address active on <code class="systemitem">tristan</code> is 192.168.99.35.  This means that
+      any IP packets created by <code class="systemitem">tristan</code> will have a
+      source address of 192.168.99.35.  Similarly any packet received by
+      <code class="systemitem">tristan</code> will have the destination address of 192.168.99.35.
+      When creating an outbound packet <code class="systemitem">tristan</code> will set the destination
+      address to the server's IP.  This gives the remote host and the
+      networking devices in between these hosts enough information to
+      carry packets between the two devices.
+    </p><p>
+      Because <code class="systemitem">tristan</code> will
+      advertise that it accepts packets with a destination address of
+      192.168.99.35, any frames (packets) appearing on the Ethernet
+      bound for 192.168.99.35 will reach <code class="systemitem">tristan</code>.  The process of
+      communicating the ownership of an IP address is called ARP.  Read
+      <a class="xref" href="ch02s01.html#ether-arp-overview" title="1.1. Overview of Address Resolution Protocol">Section 1.1, &#8220;Overview of Address Resolution Protocol&#8221;</a> for a complete discussion of
+      this process.
+    </p><p>
+      This is fundamental to IP networking.  It is fundamental that a host
+      be able to generate and receive packets on an IP address assigned to it.
+      This IP address is a unique identifier for the machine on the network to
+      which it is connected.
+    </p><p>
+      Common traffic to and from machines today is unicast IP traffic.
+      Unicast traffic is essentially a conversation between two hosts.
+      Though there may be routers between them, the two hosts are carrying
+      on a private conversation.  Examples of common unicast traffic
+      are protocols such as HTTP (web), SMTP (sending mail), POP3 (fetching
+      mail), IRC (chat), SSH (secure shell), and LDAP (directory access).
+      To participate in any of these kinds of traffic, 
+      <code class="systemitem">tristan</code> will send and receive packets on 192.168.99.35.
+    </p><p>
+      In contrast to unicast traffic, there is another common IP networking
+      technique called broadcasting.  Broadcast traffic is a way of addressing
+      all hosts in a given network range with a single destination IP address.
+      To continue the analogy of the unicast conversation, a broadcast is more
+      like shouting in a room.
+      Occasionally, network administrators will refer to broadcast techniques
+      and broadcasting as "chatty network traffic".
+    </p><p>
+      Broadcast techniques are used at the Ethernet layer and the IP layer, so
+      the cautious person talks about Ethernet broadcasts or IP broadcast.
+      Refer to
+      <a class="xref" href="ch02s01.html#ether-arp-overview" title="1.1. Overview of Address Resolution Protocol">Section 1.1, &#8220;Overview of Address Resolution Protocol&#8221;</a>, for more information on a common
+      use of broadcast Ethernet frames.
+    </p><p>
+      IP Broadcast techniques can be used to share information with all
+      partners on a network or to discover characteristics of other members of
+      a network.
+      SMB (Server Message Block) as implemented by Microsoft products and the
+      <a class="ulink" href="http://samba.org/" target="_top"><span class="command"><strong>samba</strong></span></a>
+      package makes extensive use of broadcasting techniques for discovery and
+      information sharing.  Dynamic Host Configuration Protocol
+      (<a class="ulink" href="http://www.isc.org/products/DHCP/" target="_top"><acronym class="acronym">DHCP</acronym></a>) 
+      also makes use of broadcasting techniques to manage IP addressing.
+    </p><p>
+      The IP broadcast address is, usually, correctly derived from the IP
+      address and network mask although it can be easily be set explicitly
+      to a different address.  Because the broadcast address
+      is used for autodiscovery (e.g, <acronym class="acronym">SMB</acronym> under
+      some protocols, an incorrect broadcast
+      address can inhibit a machine's ability to participate in networked
+      communication
+      <a href="#ftn.idm397" class="footnote" name="idm397"><sup class="footnote">[2]</sup></a>.
+    </p><p>
+      The netmask on the interface should match the netmask in the routing
+      table for the locally connected network.  Typically, the route and
+      the IP interface definition are calculated from the same configuration
+      data so they should match perfectly. 
+    </p><p>
+      If you are at all confused about how to address a network or how to read
+      either the traditional notation or the CIDR notation for network
+      addressing, see one of the CIDR/netmask references in
+      <a class="xref" href="apis01.html#links-general-ip" title="1.3. General IP Networking Resources">Section 1.3, &#8220;General IP Networking Resources&#8221;</a>.
+    </p><div class="section"><div class="titlepage"><div><div><h3 class="title"><a name="basic-local-network"></a>2.1. Sending Packets to the Local Network</h3></div></div></div><p>
+        We can see from the output above that the IP address 192.168.99.35
+        falls inside the address space 192.168.99.0/24.  We also note that
+        the machine <code class="systemitem">tristan</code>
+        will route packets bound for 192.168.99.0/24 directly onto the
+        Ethernet attached to eth0.  This line in the routing table
+        identifies a network available on the Ethernet attached to eth0
+        ("Iface") by its network address ("Destination") and size ("Genmask").
+      </p><pre class="programlisting">
+<code class="computeroutput">Destination     Gateway         Genmask         Flags Metric Ref    Use Iface
+192.168.99.0    0.0.0.0         255.255.255.0   U     0      0        0 eth0</code>
+      </pre><p>
+        Every host on the 192.168.99.0/24 network should share the network
+        address and netmask specified above.  No two hosts should share the
+        same IP address.
+      </p><p>
+        Currently, there are two hosts connected to the example desktop network.
+        Both <code class="systemitem">tristan</code> and <code class="systemitem">masq-gw</code> are connected to 192.168.99.0/24.  Thus,
+        192.168.99.254 (<code class="systemitem">masq-gw</code>) should be reachable from <code class="systemitem">tristan</code>.
+        Success of this test provides evidence that <code class="systemitem">tristan</code> is
+        configured properly.  N.B., Assume that the network
+        administrator has properly configured <code class="systemitem">masq-gw</code>.  Since the
+        <a class="link" href="ch04s03.html" title="3. Sending Packets Through a Gateway">default gateway</a> in any
+        network is an important host, testing reachability of the default
+        gateway also has a value in determining the proper operation of the
+        local network.
+      </p><p>
+        The <span class="command"><strong>ping</strong></span> tool, designed to take advantage of
+        Internet Control Message Protocol (<acronym class="acronym">ICMP</acronym>), can be
+        used to test reachability of IP addresses.  For a command summary
+        and examples of the use of <span class="command"><strong>ping</strong></span>, see
+        <a class="xref" href="apgs01.html" title="1. ping">Section 1, &#8220;<span class="command"><strong>ping</strong></span>&#8221;</a>.
+      </p><div class="example"><a name="ex-basic-ping"></a><p class="title"><b>Example 1.2. Testing reachability of a locally connected host with
+          <span class="command">ping</span></b></p><div class="example-contents"><pre class="programlisting">
+<code class="prompt">[root@tristan]# </code><strong class="userinput"><code>ping -c 1 -n 192.168.99.254</code></strong>
+<code class="computeroutput">PING 192.168.99.254 (192.168.99.254) from 192.168.99.35 : 56(84) bytes of data.
+
+--- 192.168.99.254 ping statistics ---
+1 packets transmitted, 0 packets received, 100% packet loss
+PING 192.168.99.254 (192.168.99.254) from 192.168.99.35 : 56(84) bytes of data.
+64 bytes from 192.168.99.254: icmp_seq=0 ttl=255 time=238 usec
+
+--- 192.168.99.254 ping statistics ---
+1 packets transmitted, 1 packets received, 0% packet loss
+round-trip min/avg/max/mdev = 0.238/0.238/0.238/0.000 ms</code>
+        </pre></div></div><br class="example-break"></div><div class="section"><div class="titlepage"><div><div><h3 class="title"><a name="basic-default-gateway"></a>2.2. Sending Packets to Unknown Networks Through the Default
+        Gateway</h3></div></div></div><p>
+        In <a class="xref" href="ch01s02.html#basic-local-network" title="2.1. Sending Packets to the Local Network">Section 2.1, &#8220;Sending Packets to the Local Network&#8221;</a>, we verified that hosts
+        connected to the same local network can reach each other and, 
+        importantly, the default gateway.  Now, let's see what happens to
+        packets which have a destination address outside the locally connected
+        network.
+      </p><p>
+        Assuming that the network administrator allows ping packets
+        from the desktop network into the public network,
+        <span class="command"><strong>ping</strong></span> can be invoked with the
+        record route option to show the path the packet travels from
+        <code class="systemitem">tristan</code> to <code class="systemitem">wan-gw</code> and back.
+      </p><div class="example"><a name="ex-basic-ping-non-local"></a><p class="title"><b>Example 1.3. Testing reachability of non-local hosts</b></p><div class="example-contents"><pre class="programlisting">
+<code class="prompt">[root@tristan]# </code><strong class="userinput"><code>ping -R -c 1 -n 205.254.211.254</code></strong>
+<code class="computeroutput">PING 205.254.211.254 (205.254.211.254) from 192.168.99.35 : 56(84) bytes of data.
+
+--- 205.254.211.254 ping statistics ---
+1 packets transmitted, 0 packets received, 100% packet loss
+PING 205.254.211.254 (205.254.211.254) from 192.168.99.35 : 56(84) bytes of data.
+64 bytes from 205.254.211.254: icmp_seq=0 ttl=255 time=238 usec
+RR:     192.168.99.35        <a class="co" name="ex-bpnl-tristan-out" href="ch01s02.html#ex-bpnl-tristan-out-text"><span><img src="images/callouts/1.png" alt="1" border="0"></span></a>
+        205.254.211.179      <a class="co" name="ex-bpnl-masq-gw-out" href="ch01s02.html#ex-bpnl-masq-gw-out-text"><span><img src="images/callouts/2.png" alt="2" border="0"></span></a>
+        205.254.211.254      <a class="co" name="ex-bpnl-wan-gw-in" href="ch01s02.html#ex-bpnl-bpnl-wan-gw-in-text"><span><img src="images/callouts/3.png" alt="3" border="0"></span></a>
+        205.254.211.254
+        192.168.99.254       <a class="co" name="ex-bpnl-masq-gw-in" href="ch01s02.html#ex-bpnl-masq-gw-in-text"><span><img src="images/callouts/4.png" alt="4" border="0"></span></a>
+        192.168.99.35        <a class="co" name="ex-bpnl-tristan-in" href="ch01s02.html#ex-bpnl-tristan-in-text"><span><img src="images/callouts/5.png" alt="5" border="0"></span></a>
+
+--- 192.168.99.254 ping statistics ---
+1 packets transmitted, 1 packets received, 0% packet loss
+round-trip min/avg/max/mdev = 0.238/0.238/0.238/0.000 ms</code>
+          </pre><div class="calloutlist"><table border="0" summary="Callout list"><tr><td width="5%" valign="top" align="left"><p><a name="ex-bpnl-tristan-out-text"></a><a href="#ex-bpnl-tristan-out"><span><img src="images/callouts/1.png" alt="1" border="0"></span></a> </p></td><td valign="top" align="left">
+                  As the packet passes through the IP stack on <code class="systemitem">tristan</code>,
+                  before hitting the Ethernet, <code class="systemitem">tristan</code> adds its IP to the
+                  list of IPs in the option field in the header.
+                </td></tr><tr><td width="5%" valign="top" align="left"><p><a name="ex-bpnl-masq-gw-out-text"></a><a href="#ex-bpnl-masq-gw-out"><span><img src="images/callouts/2.png" alt="2" border="0"></span></a> </p></td><td valign="top" align="left">
+                  This is <code class="systemitem">masq-gw</code>'s public IP address.
+                </td></tr><tr><td width="5%" valign="top" align="left"><p><a name="ex-bpnl-bpnl-wan-gw-in-text"></a><a href="#ex-bpnl-wan-gw-in"><span><img src="images/callouts/3.png" alt="3" border="0"></span></a> </p></td><td valign="top" align="left">
+                  Our intended destination!  (Anybody know why there are
+                  two entries in the record route output?)
+                </td></tr><tr><td width="5%" valign="top" align="left"><p><a name="ex-bpnl-masq-gw-in-text"></a><a href="#ex-bpnl-masq-gw-in"><span><img src="images/callouts/4.png" alt="4" border="0"></span></a> </p></td><td valign="top" align="left">
+                  This is <code class="systemitem">masq-gw</code>'s private IP address.
+                </td></tr><tr><td width="5%" valign="top" align="left"><p><a name="ex-bpnl-tristan-in-text"></a><a href="#ex-bpnl-tristan-in"><span><img src="images/callouts/5.png" alt="5" border="0"></span></a> </p></td><td valign="top" align="left">
+                  And finally, <code class="systemitem">tristan</code> will add its IP to the option field
+                  in the header of the IP packet just before the packet
+                  reaches the calling <span class="command"><strong>ping</strong></span> program.
+                </td></tr></table></div></div></div><br class="example-break"><p>
+        By testing reachability of the local network 192.168.99.0/24 and
+        an IP address outside our local network, we have verified the basic
+        elements of IP connectivity.
+      </p><p>
+        To summarize this section, we have:
+        </p><div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem"><p>
+             identified the IP address, network address and netmask in use
+             on <code class="systemitem">tristan</code> using the tools <span class="command"><strong>ifconfig</strong></span> and
+             <span class="command"><strong>route</strong></span>
+           </p></li><li class="listitem"><p>
+             verified that <code class="systemitem">tristan</code> can reach its default gateway
+           </p></li><li class="listitem"><p>
+              tested that packets bound for destinations outside our
+              local network reach the intended destination and return
+            </p></li></ul></div><p>
+      </p></div><div class="section"><div class="titlepage"><div><div><h3 class="title"><a name="basic-static"></a>2.3. Static Routes to Networks</h3></div></div></div><p>
+        Static routes instruct the kernel to route packets
+        for a known destination host or network to a router or
+        gateway different from the default gateway.
+        In the example network, the desktop machine <code class="systemitem">tristan</code> would need
+        a static route to reach hosts in the 192.168.98.0/24 network.
+        Note that the branch office network is reachable over an ISDN line.
+        The ISDN router's IP in <code class="systemitem">tristan</code>'s network is 192.168.99.1.  This
+        means that there are two gateways in the example desktop network,
+        one connected to a small branch office network, and the other
+        connected to the Internet.
+      </p><p>
+        Without a static route to the branch office network, <code class="systemitem">tristan</code> would
+        use <code class="systemitem">masq-gw</code> as the gateway, which is not the most efficient path for
+        packets bound for <code class="systemitem">morgan</code>.  Let's examine why a static route would
+        be better here.
+      </p><p>
+        If <code class="systemitem">tristan</code> generates a packet bound for <code class="systemitem">morgan</code> and
+        sends the packet to the default gateway, <code class="systemitem">masq-gw</code> will forward the
+        packet to <code class="systemitem">isdn-router</code> as well as generate an ICMP redirect message
+        to <code class="systemitem">tristan</code>.  This ICMP redirect message tells <code class="systemitem">tristan</code> to send
+        future packets with a destination address of 192.168.98.82 (<code class="systemitem">morgan</code>)
+        directly to <code class="systemitem">isdn-router</code>.  For a fuller discussion of ICMP redirect,
+        see
+        <a class="xref" href="ch04s10.html#routing-icmp-redirect" title="10.2. ICMP Redirects and Routing">Section 10.2, &#8220;ICMP Redirects and Routing&#8221;</a>.
+      </p><p>
+        The absence of a static route has caused two extra packets to be
+        generated on the Ethernet for no benefit.  Not only that, but
+        <code class="systemitem">tristan</code> will eventually expire the temporary route entry
+        <a href="#ftn.idm500" class="footnote" name="idm500"><sup class="footnote">[3]</sup></a>
+        for 192.168.98.82, which means that subsequent packets bound for
+        <code class="systemitem">morgan</code> will repeat this process
+        <a href="#ftn.idm504" class="footnote" name="idm504"><sup class="footnote">[4]</sup></a>.
+      </p><p>
+        To solve this problem, add a static route to <code class="systemitem">tristan</code>'s routing
+        table.  Below is a modified routing table (see
+        <a class="xref" href="ch01s03.html" title="3. Changing IP Addresses and Routes">Section 3, &#8220;Changing IP Addresses and Routes&#8221;</a> to learn how to change the routing
+        table).
+      </p><div class="example"><a name="ex-basic-static"></a><p class="title"><b>Example 1.4. Sample routing table with a static route</b></p><div class="example-contents"><pre class="programlisting">
+<code class="prompt">[root@tristan]# </code><strong class="userinput"><code>route -n</code></strong>
+<code class="computeroutput">Kernel IP routing table
+Destination     Gateway         Genmask         Flags Metric Ref    Use Iface
+192.168.99.0    0.0.0.0         255.255.255.0   U     0      0        0 eth0
+192.168.98.0    192.168.99.1    255.255.255.0   UG    0      0        0 eth0
+127.0.0.0       0.0.0.0         255.0.0.0       U     0      0        0 lo
+0.0.0.0         192.168.99.254  0.0.0.0         UG    0      0        0 eth0</code>
+        </pre></div></div><br class="example-break"><p>
+        According to this routing table, any packets with a destination
+        address in the 192.168.98.0/24 network will be routed to the
+        gateway 192.168.99.1 instead of the default gateway.  This will
+        prevent unnecessary ICMP redirect messages.
+      </p><p>
+        These are the basic tools for inspecting the IP
+        address and the routes on a linux machine.  Understanding
+        the output of these tools will help you understand how
+        machines fit into simple networks, and will be a base on which
+        you can build an understanding of more complex networks.
+      </p></div><div class="footnotes"><br><hr style="width:100; text-align:left;margin-left: 0"><div id="ftn.idm352" class="footnote"><p><a href="#idm352" class="para"><sup class="para">[1] </sup></a>
+          For BSD and UNIX users, the idiom <span class="command"><strong>netstat
+          -rn</strong></span> may be more familiar than the common
+          <span class="command"><strong>route -n</strong></span> on a linux machine.  Both of
+          these commands provide the same
+          basic information although the formatting is a bit different.  For a
+          fuller discussion of these, see either <a class="xref" href="apgs04.html" title="4. netstat">Section 4, &#8220;<span class="command"><strong>netstat</strong></span>&#8221;</a>
+          or <a class="xref" href="apds01.html" title="1. route">Section 1, &#8220;<span class="command"><strong>route</strong></span>&#8221;</a>.  For access to all of the routing
+          features of the linux kernel, use
+          <a class="link" href="apds02.html" title="2. ip route"><span class="command"><strong>ip route</strong></span></a>
+          instead.
+        </p></div><div id="ftn.idm397" class="footnote"><p><a href="#idm397" class="para"><sup class="para">[2] </sup></a>
+          An incorrect broadcast address often highlights a mismatch of
+          the configured IP address and netmask on an interface.  If in
+          doubt, be sure to use an
+          <a class="link" href="aphs01.html" title="1. ipcalc and other IP addressing calculators">IP calculator</a> to set the correct
+          netmask and broadcast addresses.
+        </p></div><div id="ftn.idm500" class="footnote"><p><a href="#idm500" class="para"><sup class="para">[3] </sup></a>
+            If the machine is a linux machine, then the temporary route entry
+            is stored in the routing cache.  Consult
+            <a class="xref" href="ch04s07.html" title="7. Routing Cache">Section 7, &#8220;Routing Cache&#8221;</a> for more information on the
+            routing cache.
+          </p></div><div id="ftn.idm504" class="footnote"><p><a href="#idm504" class="para"><sup class="para">[4] </sup></a>
+            It is quite reasonable to ignore ICMP redirect messages from
+            unknown hosts on the Internet, but ICMP redirect messages on a 
+            LAN indicate that a host has mismatched netmasks or missing
+            static routes.
+          </p></div></div></div><div class="navfooter"><hr><table width="100%" summary="Navigation footer"><tr><td width="40%" align="left"><a accesskey="p" href="ch01s01.html">Prev</a> </td><td width="20%" align="center"><a accesskey="u" href="ch01.html">Up</a></td><td width="40%" align="right"> <a accesskey="n" href="ch01s03.html">Next</a></td></tr><tr><td width="40%" align="left" valign="top">1. IP Networking Control Files </td><td width="20%" align="center"><a accesskey="h" href="index.html">Home</a></td><td width="40%" align="right" valign="top"> 3. Changing IP Addresses and Routes</td></tr></table></div></body></html>

@@ -1,0 +1,83 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1"><title>5. Removing an Old Disk</title><link rel="stylesheet" type="text/css" href="style.css"><meta name="generator" content="DocBook XSL Stylesheets V1.79.1"><link rel="home" href="index.html" title="LVM HOWTO"><link rel="up" href="ch13.html" title="Chapter 13. Recipes"><link rel="prev" href="ch13s04.html" title="4. Taking a Backup Using Snapshots"><link rel="next" href="ch13s06.html" title="6. Moving a volume group to another system"></head><body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF"><div class="navheader"><table width="100%" summary="Navigation header"><tr><th colspan="3" align="center">5. Removing an Old Disk</th></tr><tr><td width="20%" align="left"><a accesskey="p" href="ch13s04.html">Prev</a> </td><th width="60%" align="center">Chapter 13. Recipes</th><td width="20%" align="right"> <a accesskey="n" href="ch13s06.html">Next</a></td></tr></table><hr></div><div class="sect1"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="RemoveADisk"></a>5. Removing an Old Disk</h2></div></div></div><p>
+        Say you have an old IDE drive on /dev/hdb.  You want to remove that
+        old disk but a lot of files are on it.
+      </p><div class="caution" style="margin-left: 0.5in; margin-right: 0.5in;"><h3 class="title">Backup Your System</h3><p>
+          You should always backup your system before attempting a pvmove
+          operation.
+        </p></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="idm1272"></a>5.1. Distributing Old Extents to Existing Disks in Volume Group</h3></div></div></div><p>
+          If you have enough free extents on the other disks in the volume
+          group, you have it easy.  Simply run
+          </p><pre class="screen">
+<span class="command"><strong># pvmove /dev/hdb</strong></span>
+<code class="computeroutput">pvmove -- moving physical extents in active volume group "dev"
+pvmove -- WARNING: moving of active logical volumes may cause data loss!</code>
+<code class="prompt">pvmove -- do you want to continue? [y/n]</code> y
+<code class="computeroutput">pvmove -- 249 extents of physical volume "/dev/hdb" successfully moved</code>
+          </pre><p>
+          This will move the allocated physical extents from /dev/hdb onto
+          the rest of the disks in the volume group.
+        </p><div class="note" style="margin-left: 0.5in; margin-right: 0.5in;"><h3 class="title"><span class="command"><strong>pvmove</strong></span> is Slow</h3><p>
+            Be aware that pvmove is quite slow as it has to copy the
+            contents of a disk block by block to one or more disks.  If you
+            want more steady status reports from pvmove, use the
+            <code class="option">-v</code> flag.
+          </p></div><div class="sect3"><div class="titlepage"><div><div><h4 class="title"><a name="idm1285"></a>5.1.1. Remove the unused disk</h4></div></div></div><p>
+            We can now remove the old IDE disk from the volume group.
+            </p><pre class="screen">
+<span class="command"><strong># vgreduce dev /dev/hdb</strong></span>
+<code class="computeroutput">vgreduce -- doing automatic backup of volume group "dev"
+vgreduce -- volume group "dev" successfully reduced by physical volume:
+vgreduce -- /dev/hdb</code>
+            </pre><p>
+            The drive can now be either physically removed when the
+            machine is next powered down or reallocated to other users.
+          </p></div></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="idm1291"></a>5.2. Distributing Old Extents to a New Replacement Disk</h3></div></div></div><p>
+          If you do not have enough free physical extents to distribute
+          the old physical extents to, you will have to add a disk to the 
+          volume group and move the extents to it.
+        </p><div class="sect3"><div class="titlepage"><div><div><h4 class="title"><a name="idm1294"></a>5.2.1. Prepare the disk</h4></div></div></div><p>
+            First, you need to pvcreate the new disk to make it available
+            to LVM.  In this recipe we show that you don't need to
+            partition a disk to be able to use it.
+            </p><pre class="screen">
+<span class="command"><strong># pvcreate /dev/sdf</strong></span>
+<code class="computeroutput">pvcreate -- physical volume "/dev/sdf" successfully created</code>
+            </pre><p>
+          </p></div><div class="sect3"><div class="titlepage"><div><div><h4 class="title"><a name="idm1300"></a>5.2.2. Add it to the volume group</h4></div></div></div><p>
+            As developers use a lot of disk space this is a good volume
+            group to add it into.
+            </p><pre class="screen">
+<span class="command"><strong># vgextend dev /dev/sdf</strong></span>
+<code class="computeroutput">vgextend -- INFO: maximum logical volume size is 255.99 Gigabyte
+vgextend -- doing automatic backup of volume group "dev"
+vgextend -- volume group "dev" successfully extended</code>
+            </pre><p>
+          </p></div><div class="sect3"><div class="titlepage"><div><div><h4 class="title"><a name="idm1306"></a>5.2.3. Move the data</h4></div></div></div><p>
+            Next we move the data from the old disk onto the new one.
+            Note that it is not necessary to unmount the file system
+            before doing this.  Although it is *highly* recommended that
+            you do a full backup before attempting this operation in case
+            of a power outage or some other problem that may interrupt
+            it. The pvmove command can take a considerable amount of time
+            to complete and it also exacts a performance hit on the two
+            volumes so, although it isn't necessary, it is advisable to
+            do this when the volumes are not too busy.
+            </p><pre class="screen">
+<span class="command"><strong># pvmove /dev/hdb /dev/sdf</strong></span>
+<code class="computeroutput">pvmove -- moving physical extents in active volume group "dev"
+pvmove -- WARNING: moving of active logical volumes may cause data loss!</code>
+<code class="prompt">pvmove -- do you want to continue? [y/n]</code> y
+<code class="computeroutput">pvmove -- 249 extents of physical volume "/dev/hdb" successfully moved</code>
+            </pre><p>
+          </p></div><div class="sect3"><div class="titlepage"><div><div><h4 class="title"><a name="idm1314"></a>5.2.4. Remove the unused disk</h4></div></div></div><p>
+            We can now remove the old IDE disk from the volume group.
+            </p><pre class="screen">
+<span class="command"><strong># vgreduce dev /dev/hdb</strong></span>
+<code class="computeroutput">vgreduce -- doing automatic backup of volume group "dev"
+vgreduce -- volume group "dev" successfully reduced by physical volume:
+vgreduce -- /dev/hdb</code>
+            </pre><p>
+            The drive can now be either physically removed when the
+            machine is next powered down or reallocated to some other
+            users.
+          </p></div></div></div><div class="navfooter"><hr><table width="100%" summary="Navigation footer"><tr><td width="40%" align="left"><a accesskey="p" href="ch13s04.html">Prev</a> </td><td width="20%" align="center"><a accesskey="u" href="ch13.html">Up</a></td><td width="40%" align="right"> <a accesskey="n" href="ch13s06.html">Next</a></td></tr><tr><td width="40%" align="left" valign="top">4. Taking a Backup Using Snapshots </td><td width="20%" align="center"><a accesskey="h" href="index.html">Home</a></td><td width="40%" align="right" valign="top"> 6. Moving a volume group to another system</td></tr></table></div></body></html>

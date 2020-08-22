@@ -1,0 +1,42 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1"><title>14. Client: Configure Networking</title><link rel="stylesheet" type="text/css" href="style.css"><meta name="generator" content="DocBook XSL Stylesheets V1.79.1"><link rel="home" href="index.html" title="VPN HOWTO"><link rel="up" href="ch05.html" title="Chapter 5. Implementation"><link rel="prev" href="ch05s13.html" title="13. Client: Build the kernel"><link rel="next" href="ch05s15.html" title="15. Client: Configure pppd"></head><body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF"><div class="navheader"><table width="100%" summary="Navigation header"><tr><th colspan="3" align="center">14. Client: Configure Networking</th></tr><tr><td width="20%" align="left"><a accesskey="p" href="ch05s13.html">Prev</a> </td><th width="60%" align="center">Chapter 5. Implementation</th><td width="20%" align="right"> <a accesskey="n" href="ch05s15.html">Next</a></td></tr></table><hr></div><div class="sect1"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="idm590"></a>14. Client: Configure Networking</h2></div></div></div><p>
+Now we should setup the networking on our client box.  Let's assume that
+we've configured the external network and that it works.  Now we will configure
+the internal interface of the client to service our intranet.
+</p><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="idm593"></a>14.1. Interface</h3></div></div></div><p>
+We need to first bring up the internal network interface.  To do this,
+add the following to your <code class="filename">/etc/rc.d/rc.inet1</code> (or equivalent) file:
+</p><p>
+For 2.0 Kernels:
+</p><pre class="screen">
+/sbin/ifconfig eth1 192.168.10.253 broadcast 192.168.10.255 netmask 255.255.255.0
+/sbin/route add -net 192.168.10.0 netmask 255.255.255.0 dev eth1
+</pre><p>
+For 2.2 Kernels:
+</p><pre class="screen">
+/sbin/ifconfig eth1 192.168.10.253 broadcast 192.168.10.255 netmask 255.255.255.0
+</pre></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="idm601"></a>14.2. Filter rules</h3></div></div></div><p>
+To set up the remote office, we will want to set up our filter rules
+that allow traffic to go both directions through the tunnel.  Add the following
+lines to your <code class="filename">/etc/rc.d/rc.inet1</code> (or equivalent) file:
+</p><p>
+For 2.0 kernels:
+</p><pre class="screen">
+/sbin/ipfwadm -F -f
+/sbin/ipfwadm -F -p deny
+/sbin/ipfwadm -F -a accept -b -S 192.168.10.0/24 -D 192.168.0.0/16
+</pre><p>
+For 2.2 kernels:
+</p><pre class="screen">
+/sbin/ipchains -F forward
+/sbin/ipchains -P forward DENY
+/sbin/ipchains -A forward -j ACCEPT -b -s 192.168.10.0/24 -d 192.168.0.0/16
+</pre><p>
+You may have noticed that these lines look like what we have
+on the server.  That's because they are the same.  These rules
+just say where traffic is allowed to go between these
+two networks.
+</p></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="idm610"></a>14.3. Routing
+				</h3></div></div></div><p>
+The only extra routes that are needed are created by the script
+that bring the tunnel up.
+</p></div></div><div class="navfooter"><hr><table width="100%" summary="Navigation footer"><tr><td width="40%" align="left"><a accesskey="p" href="ch05s13.html">Prev</a> </td><td width="20%" align="center"><a accesskey="u" href="ch05.html">Up</a></td><td width="40%" align="right"> <a accesskey="n" href="ch05s15.html">Next</a></td></tr><tr><td width="40%" align="left" valign="top">13. Client: Build the kernel </td><td width="20%" align="center"><a accesskey="h" href="index.html">Home</a></td><td width="40%" align="right" valign="top"> 15. Client: Configure <span class="command"><strong>pppd</strong></span></td></tr></table></div></body></html>

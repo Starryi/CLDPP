@@ -1,0 +1,269 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1"><title>Chapter 2. Starting Off With a Sha-Bang</title><link rel="stylesheet" type="text/css" href="style.css"><meta name="generator" content="DocBook XSL Stylesheets V1.79.1"><link rel="home" href="index.html" title="Advanced Bash-Scripting Guide"><link rel="up" href="pt01.html" title="Part Part 1. Introduction"><link rel="prev" href="ch01.html" title="Chapter 1. Shell Programming!"><link rel="next" href="ch02s01.html" title="1. Invoking the script"></head><body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF"><div class="navheader"><table width="100%" summary="Navigation header"><tr><th colspan="3" align="center">Chapter 2. Starting Off With a Sha-Bang</th></tr><tr><td width="20%" align="left"><a accesskey="p" href="ch01.html">Prev</a> </td><th width="60%" align="center">Part Part 1. Introduction</th><td width="20%" align="right"> <a accesskey="n" href="ch02s01.html">Next</a></td></tr></table><hr></div><div class="chapter"><div class="titlepage"><div><div><h2 class="title"><a name="sha-bang"></a>Chapter 2. Starting Off With a Sha-Bang</h2></div></div></div><div class="toc"><p><b>Table of Contents</b></p><dl class="toc"><dt><span class="sect1"><a href="ch02s01.html">1. Invoking the script</a></span></dt><dt><span class="sect1"><a href="ch02s02.html">2. Preliminary Exercises</a></span></dt></dl></div><div class="epigraph"><p>Shell programming is a 1950s juke box . . .</p><p>--Larry Wall</p></div><p>In the simplest case, a script is nothing more than a list
+      of system commands stored in a file. At the very least, this saves
+      the effort of retyping that particular sequence of commands each
+      time it is invoked.</p><div class="example"><a name="ex1"></a><p class="title"><b>Example 2.1. <em class="firstterm">cleanup</em>: A script to clean up log
+      files in /var/log </b></p><div class="example-contents"><pre class="programlisting"># Cleanup
+# Run as root, of course.
+
+cd /var/log
+cat /dev/null &gt; messages
+cat /dev/null &gt; wtmp
+echo "Log files cleaned up."
+</pre></div></div><br class="example-break"><p>There is nothing unusual here, only a set of commands that
+      could just as easily have been invoked one by one from the
+      command-line on the console or in a terminal window.
+      The advantages of placing the commands in a script go far beyond
+      not having to retype them time and again. The script becomes a
+      <em class="firstterm">program</em> -- a <span class="emphasis"><em>tool</em></span> --
+      and it can easily be modified or customized for a particular
+      application.</p><div class="example"><a name="ex1a"></a><p class="title"><b>Example 2.2. <em class="firstterm">cleanup</em>: An improved clean-up
+      script</b></p><div class="example-contents"><pre class="programlisting">#!/bin/bash
+# Proper header for a Bash script.
+
+# Cleanup, version 2
+
+# Run as root, of course.
+# Insert code here to print error message and exit if not root.
+
+LOG_DIR=/var/log
+# Variables are better than hard-coded values.
+cd $LOG_DIR
+
+cat /dev/null &gt; messages
+cat /dev/null &gt; wtmp
+
+
+echo "Logs cleaned up."
+
+exit #  The right and proper method of "exiting" from a script.
+     #  A bare "exit" (no parameter) returns the exit status
+     #+ of the preceding command. 
+</pre></div></div><br class="example-break"><p>Now <span class="emphasis"><em>that's</em></span> beginning to look like a real
+      script. But we can go even farther . . .</p><div class="example"><a name="ex2"></a><p class="title"><b>Example 2.3. <em class="firstterm">cleanup</em>: An enhanced
+      and generalized version of above scripts.</b></p><div class="example-contents"><pre class="programlisting">#!/bin/bash
+# Cleanup, version 3
+
+#  Warning:
+#  -------
+#  This script uses quite a number of features that will be explained
+#+ later on.
+#  By the time you've finished the first half of the book,
+#+ there should be nothing mysterious about it.
+
+
+
+LOG_DIR=/var/log
+ROOT_UID=0     # Only users with $UID 0 have root privileges.
+LINES=50       # Default number of lines saved.
+E_XCD=86       # Can't change directory?
+E_NOTROOT=87   # Non-root exit error.
+
+
+# Run as root, of course.
+if [ "$UID" -ne "$ROOT_UID" ]
+then
+  echo "Must be root to run this script."
+  exit $E_NOTROOT
+fi  
+
+if [ -n "$1" ]
+# Test whether command-line argument is present (non-empty).
+then
+  lines=$1
+else  
+  lines=$LINES # Default, if not specified on command-line.
+fi  
+
+
+#  Stephane Chazelas suggests the following,
+#+ as a better way of checking command-line arguments,
+#+ but this is still a bit advanced for this stage of the tutorial.
+#
+#    E_WRONGARGS=85  # Non-numerical argument (bad argument format).
+#
+#    case "$1" in
+#    ""      ) lines=50;;
+#    *[!0-9]*) echo "Usage: `basename $0` lines-to-cleanup";
+#     exit $E_WRONGARGS;;
+#    *       ) lines=$1;;
+#    esac
+#
+#* Skip ahead to "Loops" chapter to decipher all this.
+
+
+cd $LOG_DIR
+
+if [ `pwd` != "$LOG_DIR" ]  # or   if [ "$PWD" != "$LOG_DIR" ]
+                            # Not in /var/log?
+then
+  echo "Can't change to $LOG_DIR."
+  exit $E_XCD
+fi  # Doublecheck if in right directory before messing with log file.
+
+# Far more efficient is:
+#
+# cd /var/log || {
+#   echo "Cannot change to necessary directory." &gt;&amp;2
+#   exit $E_XCD;
+# }
+
+
+
+
+tail -n $lines messages &gt; mesg.temp # Save last section of message log file.
+mv mesg.temp messages               # Rename it as system log file.
+
+
+#  cat /dev/null &gt; messages
+#* No longer needed, as the above method is safer.
+
+cat /dev/null &gt; wtmp  #  ': &gt; wtmp' and '&gt; wtmp'  have the same effect.
+echo "Log files cleaned up."
+#  Note that there are other log files in /var/log not affected
+#+ by this script.
+
+exit 0
+#  A zero return value from the script upon exit indicates success
+#+ to the shell.
+</pre></div></div><br class="example-break"><p>Since you may not wish to wipe out the entire system log,
+      this version of the script keeps the last section of the message
+      log intact. You will constantly discover ways of fine-tuning
+      previously written scripts for increased effectiveness.</p><p><a name="shabangref"></a>* * *</p><p><a name="magnumref"></a>The
+      <em class="firstterm"><a class="indexterm" name="idm200"></a> sha-bang</em>
+      (<span class="token">
+	<a class="indexterm" name="idm203"></a> #!</span>)
+
+	  <a href="#ftn.idm205" class="footnote" name="idm205"><sup class="footnote">[6]</sup></a>
+
+      at the head of a script tells your system that this file is a set
+      of commands to be fed to the command interpreter indicated. The
+      <span class="token">#!</span> is actually a two-byte
+
+        <a href="#ftn.idm214" class="footnote" name="idm214"><sup class="footnote">[7]</sup></a>
+
+	<a class="indexterm" name="idm219"></a>
+	<em class="firstterm">magic number</em>, a special marker that
+	designates a file type, or in this case an executable shell
+	script (type <strong class="userinput"><code>man magic</code></strong> for more
+	details on this fascinating topic). Immediately following
+	the <em class="firstterm">sha-bang</em> is a <em class="firstterm">path
+	name</em>. This is the path to the program that interprets
+	the commands in the script, whether it be a shell, a programming
+	language, or a utility. This command interpreter then executes
+	the commands in the script, starting at the top (the line
+	following the <em class="firstterm">sha-bang</em> line), and ignoring
+	comments.
+
+	  <a href="#ftn.idm226" class="footnote" name="idm226"><sup class="footnote">[8]</sup></a>
+
+	</p><pre class="programlisting">#!/bin/sh
+#!/bin/bash
+#!/usr/bin/perl
+#!/usr/bin/tcl
+#!/bin/sed -f
+#!/bin/awk -f</pre><p>Each of the above script header lines calls a different command
+      interpreter, be it <code class="filename">/bin/sh</code>, the default shell
+      (<span class="command"><strong>bash</strong></span> in a Linux system) or otherwise.
+
+        <a href="#ftn.idm242" class="footnote" name="idm242"><sup class="footnote">[9]</sup></a>
+
+      Using <strong class="userinput"><code>#!/bin/sh</code></strong>, the default Bourne shell
+      in most commercial variants of UNIX, makes the script <a class="link" href="ch36s09.html" title="9. Portability Issues">portable</a> to non-Linux machines,
+      though you <a class="link" href="ch34.html#binsh">sacrifice Bash-specific
+      features</a>.  The script will, however, conform to the
+      <acronym class="acronym">POSIX</acronym>
+
+	 <a href="#ftn.idm256" class="footnote" name="idm256"><sup class="footnote">[10]</sup></a>
+
+      <span class="command"><strong>sh</strong></span> standard.</p><p>Note that the path given at the <span class="quote">&#8220;<span class="quote">sha-bang</span>&#8221;</span> must
+      be correct, otherwise an error message -- usually <span class="quote">&#8220;<span class="quote">Command
+      not found.</span>&#8221;</span> -- will be the only result of running the
+      script.
+        <a href="#ftn.idm269" class="footnote" name="idm269"><sup class="footnote">[11]</sup></a>
+      
+      </p><p><span class="token">#!</span> can be omitted if the script consists only
+      of a set of generic system commands, using no internal
+      shell directives.  The second example, above, requires the
+      initial <span class="token">#!</span>, since the variable assignment line,
+      <strong class="userinput"><code>lines=50</code></strong>, uses a shell-specific construct.
+	<a href="#ftn.idm279" class="footnote" name="idm279"><sup class="footnote">[12]</sup></a>
+      Note again that <strong class="userinput"><code>#!/bin/sh</code></strong> invokes the default
+      shell interpreter, which defaults to <code class="filename">/bin/bash</code>
+      on a Linux machine.</p><div class="tip" style="margin-left: 0.5in; margin-right: 0.5in;"><h3 class="title">Tip</h3><p>This tutorial encourages a modular approach
+	to constructing a script. Make note of and collect
+	<span class="quote">&#8220;<span class="quote">boilerplate</span>&#8221;</span> code snippets that might be useful
+	in future scripts. Eventually you will build quite an extensive
+	library of nifty routines. As an example, the following script
+	prolog tests whether the script has been invoked with the correct
+	number of parameters.</p><pre class="programlisting">E_WRONG_ARGS=85
+script_parameters="-a -h -m -z"
+#                  -a = all, -h = help, etc.
+
+if [ $# -ne $Number_of_expected_args ]
+then
+  echo "Usage: `basename $0` $script_parameters"
+  # `basename $0` is the script's filename.
+  exit $E_WRONG_ARGS
+fi</pre><p>
+      </p><p>Many times, you will write a script that carries out one
+        particular task. The first script in this chapter is an
+        example. Later, it might occur to you to generalize
+        the script to do other, similar tasks. Replacing the literal
+        (<span class="quote">&#8220;<span class="quote">hard-wired</span>&#8221;</span>) constants by variables is a step in
+        that direction, as is replacing repetitive code blocks by <a class="link" href="ch24.html#functionref">functions</a>.</p></div><div class="footnotes"><br><hr style="width:100; text-align:left;margin-left: 0"><div id="ftn.idm205" class="footnote"><p><a href="#idm205" class="para"><sup class="para">[6] </sup></a>More commonly seen in the literature as
+	  <em class="firstterm">she-bang</em> or <em class="firstterm">sh-bang</em>.
+	  This derives from the concatenation of the tokens
+	  <em class="firstterm">sharp</em> (<span class="token">#</span>) and
+	  <em class="firstterm">bang</em> (<span class="token">!</span>).</p></div><div id="ftn.idm214" class="footnote"><p><a href="#idm214" class="para"><sup class="para">[7] </sup></a>Some flavors of UNIX (those based on 4.2 BSD)
+          allegedly take a four-byte magic number, requiring
+          a blank after the <span class="token">!</span> --
+	  <strong class="userinput"><code>#! /bin/sh</code></strong>. <a class="ulink" href="http://www.in-ulm.de/~mascheck/various/shebang/#details" target="_top">
+	  According to Sven Mascheck</a> this is probably a myth.</p></div><div id="ftn.idm226" class="footnote"><p><a href="#idm226" class="para"><sup class="para">[8] </sup></a>The <span class="token">#!</span> line in a shell script
+	      will be the first thing the command interpreter
+	      (<span class="command"><strong>sh</strong></span> or <span class="command"><strong>bash</strong></span>)
+	      sees. Since this line begins with a <span class="token">#</span>,
+	      it will be correctly interpreted as a comment when the
+	      command interpreter finally executes the script. The
+	      line has already served its purpose - calling the command
+	      interpreter.</p><p>If, in fact, the script includes an
+	      <span class="emphasis"><em>extra</em></span> <span class="token">#!</span> line, then
+	      <span class="command"><strong>bash</strong></span> will interpret it as a comment.
+	        </p><pre class="programlisting">#!/bin/bash
+
+echo "Part 1 of script."
+a=1
+
+#!/bin/bash
+# This does *not* launch a new script.
+
+echo "Part 2 of script."
+echo $a  # Value of $a stays at 1.</pre></div><div id="ftn.idm242" class="footnote"><p><a href="#idm242" class="para"><sup class="para">[9] </sup></a>This allows some cute tricks.</p><pre class="programlisting">#!/bin/rm
+# Self-deleting script.
+
+# Nothing much seems to happen when you run this... except that the file disappears.
+
+WHATEVER=85
+
+echo "This line will never print (betcha!)."
+
+exit $WHATEVER  # Doesn't matter. The script will not exit here.
+                # Try an echo $? after script termination.
+                # You'll get a 0, not a 85.</pre><p>Also, try starting a <code class="filename">README</code> file with a
+        <strong class="userinput"><code>#!/bin/more</code></strong>, and making it executable.
+        The result is a self-listing documentation file. (A <a class="link" href="ch19.html#heredocref">here document</a> using
+	<a class="link" href="ch16s01.html#catref">cat</a> is possibly a better alternative
+	-- see <a class="xref" href="ch19.html#ex71" title="Example 19.3. Multi-line message using cat">Example 19.3, &#8220;Multi-line message using <em class="firstterm">cat</em>&#8221;</a>).</p></div><div id="ftn.idm256" class="footnote"><p><a href="#idm256" class="para"><sup class="para">[10] </sup></a><a name="posix2ref"></a><span class="strong"><strong>P</strong></span>ortable
+	 <span class="strong"><strong>O</strong></span>perating
+	 <span class="strong"><strong>S</strong></span>ystem <span class="bold"><strong>I</strong></span>nterface, an attempt to
+	 standardize UNI<span class="strong"><strong>X</strong></span>-like
+	 OSes. The POSIX specifications are listed on the <a class="ulink" href="http://www.opengroup.org/onlinepubs/007904975/toc.htm" target="_top">Open
+	 Group site</a>.</p></div><div id="ftn.idm269" class="footnote"><p><a href="#idm269" class="para"><sup class="para">[11] </sup></a>To avoid this possibility, a script may begin
+	  with a <a class="link" href="ch17.html#envv2ref">#!/bin/env bash</a>
+	  <em class="firstterm">sha-bang</em> line. This may be
+	  useful on UNIX machines where <em class="firstterm">bash</em>
+	  is not located in <code class="filename">/bin</code></p></div><div id="ftn.idm279" class="footnote"><p><a href="#idm279" class="para"><sup class="para">[12] </sup></a>If <em class="firstterm">Bash</em> is your default
+	shell, then the <span class="token">#!</span> isn't necessary at the
+	beginning of a script.	However, if launching a script from
+	a different shell, such as <em class="firstterm">tcsh</em>,
+	then you <span class="emphasis"><em>will</em></span> need the
+	<span class="token">#!</span>.</p></div></div></div><div class="navfooter"><hr><table width="100%" summary="Navigation footer"><tr><td width="40%" align="left"><a accesskey="p" href="ch01.html">Prev</a> </td><td width="20%" align="center"><a accesskey="u" href="pt01.html">Up</a></td><td width="40%" align="right"> <a accesskey="n" href="ch02s01.html">Next</a></td></tr><tr><td width="40%" align="left" valign="top">Chapter 1. Shell Programming! </td><td width="20%" align="center"><a accesskey="h" href="index.html">Home</a></td><td width="40%" align="right" valign="top"> 1. Invoking the script</td></tr></table></div></body></html>

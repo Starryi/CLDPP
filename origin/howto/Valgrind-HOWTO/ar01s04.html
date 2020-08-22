@@ -1,0 +1,253 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1"><title>4. A Closer View</title><link rel="stylesheet" type="text/css" href="style.css"><meta name="generator" content="DocBook XSL Stylesheets V1.79.1"><link rel="home" href="index.html" title="Valgrind HOWTO"><link rel="up" href="index.html" title="Valgrind HOWTO"><link rel="prev" href="ar01s03.html" title="3. Getting it Installed"><link rel="next" href="ar01s05.html" title="5. Let's Go Deeper"></head><body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF"><div class="navheader"><table width="100%" summary="Navigation header"><tr><th colspan="3" align="center">4. A Closer View</th></tr><tr><td width="20%" align="left"><a accesskey="p" href="ar01s03.html">Prev</a> </td><th width="60%" align="center"> </th><td width="20%" align="right"> <a accesskey="n" href="ar01s05.html">Next</a></td></tr></table><hr></div><div class="sect1"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="closerview"></a>4. A Closer View</h2></div></div></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="whyvalgrind"></a>4.1. Why Valgrind?</h3></div></div></div><p>
+As said above, memory management is prone to errors that are too
+hard to detect. Common errors may be listed as:
+</p><p>
+</p><div class="orderedlist"><ol class="orderedlist" type="1"><li class="listitem"><p>Use of uninitialized memory</p></li><li class="listitem"><p>Reading/writing memory after it has been freed</p></li><li class="listitem"><p>Reading/writing off the end of malloc'd blocks</p></li><li class="listitem"><p>Reading/writing inappropriate areas on the stack</p></li><li class="listitem"><p>Memory leaks -- where pointers to malloc'd blocks are lost forever</p></li><li class="listitem"><p>Mismatched use of malloc/new/new[] vs free/delete/delete[]</p></li><li class="listitem"><p>Some misuses of the POSIX pthreads API</p></li></ol></div><p>
+</p><p>
+These errors usually lead to crashes.
+</p><p>
+This is a situation where we need Valgrind.  Valgrind works directly with the
+executables, with no need to recompile, relink or modify the program to be
+checked.  Valgrind decides whether the program should be modified to avoid memory
+leak, and also points out the spots of <span class="quote">&#8220;<span class="quote">leak.</span>&#8221;</span>
+</p><p>
+Valgrind simulates every single instruction your program executes.
+For this reason, Valgrind finds errors not only in your application but also in
+all supporting dynamically-linked (.so-format) libraries, including the GNU C
+library, the X client libraries, Qt if you work with KDE, and so on. That
+often includes libraries, for example the GNU C library, which may contain
+memory access violations.
+</p></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="usage"></a>4.2. Usage</h3></div></div></div><div class="sect3"><div class="titlepage"><div><div><h4 class="title"><a name="invoking"></a>4.2.1. Invoking Valgrind</h4></div></div></div><p>
+The checking may be performed by simply placing the word <span class="command"><strong>valgrind</strong></span>
+just before the normal command used to invoke the program. For example:
+</p><pre class="screen">
+#valgrind ps -ax
+</pre><p>
+Valgrind provides thousands of options. We deliberately avoid them, not
+to make this article boring.
+</p><p>
+The output contains the usual output of <span class="command"><strong>ps -ax</strong></span> also with the
+detailed report by valgrind. Any error (memory related) is pointed out in the error report.
+</p></div><div class="sect3"><div class="titlepage"><div><div><h4 class="title"><a name="erridentify"></a>4.2.2. How to Identify the Error from the Error Report</h4></div></div></div><p>
+Consider the output of Valgrind for some test program:
+</p><pre class="screen">
+   ==1353== Invalid read of size 4
+   ==1353==    at 0x80484F6: print (valg_eg.c:7)
+   ==1353==    by 0x8048561: main (valg_eg.c:16)
+   ==1353==    by 0x4026D177: __libc_start_main
+(../sysdeps/generic/libc-start.c   :129)
+   ==1353==    by 0x80483F1: free@@GLIBC_2.0 (in /home/deepu/valg/a.out)
+   ==1353==    Address 0x40C9104C is 0 bytes after a block of size 40
+alloc'd
+   ==1353==    at 0x40046824: malloc (vg_clientfuncs.c:100)
+   ==1353==    by 0x8048524: main (valg_eg.c:12)
+   ==1353==    by 0x4026D177: __libc_start_main
+(../sysdeps/generic/libc-start.c   :129)
+   ==1353==    by 0x80483F1: free@@GLIBC_2.0 (in /home/deepu/valg/a.out)
+</pre><p>
+</p><p>
+Here, 1353 is the process ID. This part of the error report says that
+a read error has occurred at line number 7, in the function
+<code class="function">print</code>. The function <code class="function">print</code> is called by function
+<code class="function">main</code>, and both are in the file <code class="filename">valg_eg.c</code>. 
+The function <code class="function">main</code> is called by the
+function <code class="function">__libc_start_main</code> at line 
+number 129, in <code class="filename">../sysdeps/generic/libc-start.c</code>.
+The function <code class="function">__libc_start_main</code> is called by <code class="function">free@@GLIBC_2.0</code> in the file <code class="filename">/home/deepu/valg/a.out.</code> Similarly details of calling <code class="function">malloc</code> are also given.
+</p></div><div class="sect3"><div class="titlepage"><div><div><h4 class="title"><a name="errortypes"></a>4.2.3. Types of Errors with Examples</h4></div></div></div><p>
+Valgrind can only really detect two types of errors:  use of illegal
+address and use of undefined values. Nevertheless, this is enough to
+discover all sorts of memory management problems in a program. Some common errors
+are given below.
+</p><div class="sect4"><div class="titlepage"><div><div><h5 class="title"><a name="uninit-mem"></a>4.2.3.1. Use of uninitialized memory</h5></div></div></div><p>
+Sources of uninitialized data are:
+</p><div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem"><p>local variables that have not been initialized.</p></li><li class="listitem"><p>The contents of malloc'd blocks, before writing something there.</p></li></ul></div><p>
+This is not a problem with <code class="function">calloc</code> since it initializes
+each allocated bytes with 0. The <code class="function">new</code> operator in C++ is similar
+to <code class="function">malloc</code>. Fields of the created object will be uninitialized.
+</p><p>
+Sample program:
+</p><pre class="programlisting">
+#include &lt;stdlib.h&gt;
+int main()
+{
+	int p, t;
+	if (p == 5)             /*Error occurs here*/
+		t = p+1;
+	return 0;
+}
+</pre><p>
+Here the value of <code class="literal">p</code> is uninitialized, therefore <code class="literal">p</code> may contain
+some random value (garbage), so an error may occur at the condition check.
+An uninitialized variable will cause error in 2 situations:
+</p><div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem"><p>When it is used to determine the outcome of a conditional branch. 
+Eg:'if (p == 5)' in the above program.</p></li><li class="listitem"><p>When it is used to generate a memory address.
+Eg: In the above program let there be an integer array a[10], and if you write 'a[p] = 1', it will generate an error.</p></li></ul></div></div><div class="sect4"><div class="titlepage"><div><div><h5 class="title"><a name="illegal-rw"></a>4.2.3.2. Illegal read/write</h5></div></div></div><p>
+Illegal read/write errors occurs when you try to read/write from/to
+an address that is not in the address range of your program.
+</p><p>
+Sample program:
+</p><pre class="programlisting">
+#include &lt;stdlib.h&gt;
+int main()
+{
+        int *p, i, a;
+        p = malloc(10*sizeof(int));
+        p[11] = 1;                /* invalid write error */
+        a = p[11];                /* invalid read error */
+                free(p);
+        return 0;
+}
+</pre><p>
+Here you are trying to read/write from/to address (p+sizeof(int)*11)
+which is not allocated to the program.
+</p></div><div class="sect4"><div class="titlepage"><div><div><h5 class="title"><a name="invalid-free"></a>4.2.3.3. Invalid free</h5></div></div></div><p>
+Valgrind keeps track of blocks allocated to your program with <code class="function">malloc/new</code>. So it can easily check whether argument to free/delete is valid or not.
+</p><p>
+Sample program:
+</p><pre class="programlisting">
+#include &lt;stdlib.h&gt;
+int main()
+{
+        int *p, i;
+        p = malloc(10*sizeof(int));
+        for(i = 0;i &lt; 10;i++)
+                p[i] = i;
+        free(p);
+        free(p);        /* Error: p has already been freed */
+        return 0;
+}
+</pre><p>
+Valgrind checks the address, which is given as argument to free. If it
+is an address that has already been freed you will be told that the free is
+invalid.
+</p></div><div class="sect4"><div class="titlepage"><div><div><h5 class="title"><a name="mismatcheduse"></a>4.2.3.4. Mismatched Use of Functions</h5></div></div></div><p>
+In C++ you can allocate and free memory using more than one function, but the following rules must be followed:
+</p><div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem"><p>If allocated with <code class="function">malloc</code>, <code class="function">calloc</code>, <code class="function">realloc</code>, <code class="function">valloc</code> or <code class="function">memalign</code>, you must deallocate with <code class="function">free</code>.</p></li><li class="listitem"><p>If allocated with <code class="function">new[]</code>, you must deallocate with <code class="function">delete[]</code>.</p></li><li class="listitem"><p>If allocated with <code class="function">new</code>, you must deallocate with <code class="function">delete</code>.</p></li></ul></div><p>
+Sample program:
+</p><pre class="programlisting">
+#include &lt;stdlib.h&gt;
+int main()
+{
+        int *p, i;
+        p = ( int* ) malloc(10*sizeof(int));
+        for(i = 0;i &lt; 10;i++)
+                p[i] = i;
+        delete(p);                /* Error: function mismatch */
+        return 0;
+}
+</pre><p>
+Output by valgrind is:
+</p><pre class="screen">
+             ==1066== ERROR SUMMARY: 1 errors from 1 contexts (suppressed:
+0 from 0)
+             ==1066== malloc/free: in use at exit: 0 bytes in 0 blocks.
+             ==1066== malloc/free: 1 allocs, 1 frees, 40 bytes allocated.
+             ==1066== For a detailed leak analysis,  rerun with:
+--leak-check=yes
+             ==1066== For counts of detected errors, rerun with: -v
+</pre><p>
+&gt;From the above <span class="quote">&#8220;<span class="quote">ERROR SUMMARY</span>&#8221;</span> it is clear that there is 0 bytes in 0 blocks
+in use at exit, which means that the malloc'd have been freed by
+<code class="function">delete</code>. Therefore this is not a problem in Linux, but this program may
+crash on some other platform.
+</p></div><div class="sect4"><div class="titlepage"><div><div><h5 class="title"><a name="inv-sys-call-parm"></a>4.2.3.5. Errors Occur Due to Invalid System Call Parameter</h5></div></div></div><p>
+Valgrind checks all parameters to system calls.
+</p><p>
+Sample program:
+</p><p>
+</p><pre class="programlisting">
+#include &lt;stdlib.h&gt;
+#include &lt;unistd.h&gt;
+int main()
+{
+        int *p;
+        p = malloc(10);
+        read(0, p, 100);        /* Error: unaddressable bytes */
+        free(p);
+        return 0;
+}
+</pre><p>
+</p><p>
+</p><pre class="screen">
+             ==1045== Syscall param read(buf) contains unaddressable
+byte(s)
+             ==1045==    at 0x4032AF44: __libc_read (in
+/lib/i686/libc-2.2.2.so)
+             ==1045==    by 0x4026D177: __libc_start_main
+(../sysdeps/generic/libc-start.c:129)
+             ==1045==    by 0x80483E1: read@@GLIBC_2.0 (in
+/home/deepu/valg/a.out)
+</pre><p>
+</p><p>
+Here, <code class="literal">buf = p</code> contains the address of a 10 byte block. The <code class="function">read</code> system call tries to read 100 bytes from standard input and place it at <code class="literal">p</code>. But the bytes after the first 10 are unaddressable.
+</p></div><div class="sect4"><div class="titlepage"><div><div><h5 class="title"><a name="memleak-detect"></a>4.2.3.6. Memory Leak Detection</h5></div></div></div><p>
+Consider the following program:
+</p><p>
+</p><pre class="programlisting">
+#include &lt;stdlib.h&gt;
+int main()
+{
+        int *p, i;
+        p = malloc(5*sizeof(int));
+        for(i = 0;i &lt; 5;i++)
+                p[i] = i;
+        return 0;
+}
+</pre><p>
+</p><p>
+</p><pre class="screen">
+             ==1048== LEAK SUMMARY:
+             ==1048==    definitely lost: 20 bytes in 1 blocks.
+             ==1048==    possibly lost:   0 bytes in 0 blocks.
+             ==1048==    still reachable: 0 bytes in 0 blocks.
+</pre><p>
+</p><p>
+In the above program <code class="literal">p</code> contains the address of a 20-byte block.
+But it is not freed anywhere in the program. So the pointer to this 20
+byte block is lost forever. This is known as memory leaking. We can get
+the leak summary by using the Valgrind option <code class="option">--leak-check=yes</code>.
+</p></div></div><div class="sect3"><div class="titlepage"><div><div><h4 class="title"><a name="error-suppress"></a>4.2.4. How to Suppress Errors</h4></div></div></div><p>
+Valgrind detects numerous problems in many programs which come
+pre-installed on your GNU/Linux system. You can't easily fix these, but you don't want to
+see these errors (and yes, there are many!). So Valgrind reads a list of errors
+to suppress at startup, from a suppression file ending in <code class="filename">.supp</code>.
+</p><p>
+Suppression files may be modified. This is useful if part of your
+project contains errors you can't or don't want to fix, yet you don't want to
+continuously be reminded of them.  The format of the file is as follows.
+</p><p>
+</p><pre class="programlisting">
+{
+             Error name
+             Type
+             fun:function name, which contains the error to suppress
+        fun:function name, which calls the function specified above
+}
+</pre><p>
+</p><p>
+</p><pre class="screen">
+Error name can be any name.
+             type=ValueN, if the error is an uninitialized value error.
+                 =AddrN, if it is an address error.(N=sizeof(data type))
+                 =Free, if it is a free error (eg:mismatched free)
+                 =Cond, if error is due to uninitialized CPU condition code.
+                 =Param, if it is an invalid system call parameter error.
+</pre><p>
+</p><p>
+You can then run the program with:
+
+</p><pre class="screen">
+valgrind --suppressions=path/to/the/supp_file.supp testprog
+</pre><p>
+
+The output will not contain the errors specified in the suppression file.
+</p></div></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="limitations-deps"></a>4.3. Limitations and Dependencies of Valgrind.</h3></div></div></div><p>
+No software is free from limitations. The same is the case of Valgrind,
+however most programs work fine. The limitations are listed below.
+</p><div class="orderedlist"><ol class="orderedlist" type="1"><li class="listitem"><p> Program runs 25 to 50 times slower.</p></li><li class="listitem"><p>Increased memory consumption.</p></li><li class="listitem"><p>Highly optimized code (compiled with -O1, -O2 options ) may sometimes cheat Valgrind.</p></li><li class="listitem"><p>Valgrind relies on dynamic linking mechanism.</p></li></ol></div><p>
+Valgrind is closely tied to details of the CPU, operating system and to
+a less extent, compiler and basic C libraries. Presently Valgrind works only
+on the Linux platform (kernels 2.2.X  or 2.4.X) on x86s. Glibc 2.1.X or
+2.2.X is also required for Valgrind.
+</p></div></div><div class="navfooter"><hr><table width="100%" summary="Navigation footer"><tr><td width="40%" align="left"><a accesskey="p" href="ar01s03.html">Prev</a> </td><td width="20%" align="center"> </td><td width="40%" align="right"> <a accesskey="n" href="ar01s05.html">Next</a></td></tr><tr><td width="40%" align="left" valign="top">3. Getting it Installed </td><td width="20%" align="center"><a accesskey="h" href="index.html">Home</a></td><td width="40%" align="right" valign="top"> 5. Let's Go Deeper</td></tr></table></div></body></html>

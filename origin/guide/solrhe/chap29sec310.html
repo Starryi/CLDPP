@@ -1,0 +1,113 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1"><title>7. Restoring files with dump</title><link rel="stylesheet" type="text/css" href="style.css"><meta name="generator" content="DocBook XSL Stylesheets V1.79.1"><meta name="keywords" content="RedHat, redhat, maddy, linus, linux, Linux, Securing, Optimising, security, secure, openna, gerhard"><link rel="home" href="index.html" title="Securing and Optimizing Linux"><link rel="up" href="whywhen.html" title="Chapter 33. Why's and When's of Backup and Restore"><link rel="prev" href="chap29sec309.html" title="6. Making backups with dump"><link rel="next" href="chap29sec311.html" title="8. Backing up and restoring over the network"></head><body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF"><div class="navheader"><table width="100%" summary="Navigation header"><tr><th colspan="3" align="center">7. Restoring files with dump</th></tr><tr><td width="20%" align="left"><a accesskey="p" href="chap29sec309.html">Prev</a> </td><th width="60%" align="center">Chapter 33. Why's and When's of Backup and Restore</th><td width="20%" align="right"> <a accesskey="n" href="chap29sec311.html">Next</a></td></tr></table><hr></div><div class="section"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="idm23976"></a>7. Restoring files with dump</h2></div></div></div><p>
+The restore command performs the inverse function of <span class="citerefentry"><span class="refentrytitle">dump</span>(8)</span>. It restores files or file systems from backups made with dump. A full backup of a file system 
+may be restored, and subsequent incremental backups layered on top of it. Single files and directory sub-trees may be restored from full, or partial backups. You have a number of possibile commands and options to restore backed up data 
+with the dump program. Below, detailed is a procedure that uses the full potential of the restore program with the most options possible. It is also done in interactive mode.
+</p><p>
+In an interactive restoration of files from a dump, the restore program provides a shell like interface that allows the user to move around the directory tree selecting files to be extracted,  after reading in the directory information 
+from the dump. The following is what we will see if we try to restore our <code class="filename">/home</code> directory:
+</p><p>
+First of all, with the following command we must move to the partition file system where we want to restore our backup. This is required, since the interactive mode of the restore program will restore our backups from the current partition file system where we 
+have executed the restore command from.
+</p><pre class="screen">
+[root@deep] /# <span class="command"><strong>cd</strong></span> /home
+</pre><p>
+To restore files from a dump in interactive mode, use the following command:
+</p><pre class="screen">
+[root@deep /home]# <span class="command"><strong>restore</strong></span> -i -f  /dev/st0
+</pre><p>
+</p><pre class="literallayout"><code class="computeroutput">
+restore &gt;
+</code></pre><p>
+A prompt will appear in your terminal, to list the current, or specified, directory. Use the <span class="command"><strong>ls</strong></span> command as shown below:
+</p><pre class="literallayout"><code class="computeroutput">
+restore &gt; <strong class="userinput"><code>ls</code></strong>
+.:
+admin/       lost+found/  named/       quota.group  quota.user   wahib/
+
+restore &gt;
+</code></pre><p>
+</p><p>
+To change the current working directory to the specified one, use the <span class="command"><strong>cd</strong></span> commands. <span class="emphasis"><em>In our example, we change to wahib directory</em></span>, as shown below:
+</p><pre class="literallayout"><code class="computeroutput">
+restore &gt; <span class="command"><strong>cd</strong></span> wahib
+restore &gt; ls
+./wahib:
+.Xdefaults     .bash_logout   .bashrc
+.bash_history  .bash_profile  Personal/
+
+restore &gt;
+</code></pre><p>
+</p><p>
+To add the current directory or file to the list of files to be extracted, use the <span class="command"><strong>add</strong></span> command. <span class="emphasis"><em>If a directory is specified, then it and all its descendents are added to the extraction list</em></span> as shown below:
+</p><pre class="literallayout"><code class="computeroutput">
+restore &gt; <strong class="userinput"><code>add</code></strong> Personal/
+restore &gt;
+</code></pre><p>
+</p><p>
+Files that are on the extraction list are prepended with a <code class="literal">*</code> when they are listed by the <span class="command"><strong>ls</strong></span> command:
+
+restore &gt; ls
+./wahib:
+ .Xdefaults      .bash_logout    .bashrc
+ .bash_history   .bash_profile  *Personal/
+</p><p>
+To delete the current directory or specified argument from the list of files to be extracted, use the <span class="command"><strong>delete</strong></span> command. <span class="emphasis"><em>If a directory is specified, then all its descendents including itself are deleted from the extraction list</em></span>, as shown below:
+
+
+
+</p><pre class="literallayout"><code class="computeroutput">
+restore &gt; <span class="command"><strong>cd</strong></span> Personal/
+restore &gt; ls
+./wahib/Personal:
+*Ad?le_Nakad.doc			*Overview.doc
+*BIMCOR/					*Resume/
+*My Webs/				*SAMS/
+*Contents.doc				*Templates/
+*Divers.doc				*bruno universite.doc
+*Linux/					*My Pictures/
+</code></pre><p>
+</p><pre class="literallayout"><code class="computeroutput">
+restore &gt; delete Resume/
+restore &gt; ls
+./wahib/Personal:
+*Ad?le_Nakad.doc			*Overview.doc
+*BIMCOR/					Resume/
+*My Webs/				*SAMS/
+*Contents.doc				*Templates/
+*Divers.doc				*bruno universite.doc
+*Linux/					*My Pictures/
+</code></pre><p>
+</p><div class="tip" style="margin-left: 0.5in; margin-right: 0.5in;"><h3 class="title">
+<span class="inlinemediaobject"><img src="./images/Tip.gif" alt="Tip"></span>
+</h3><p>
+The most expedient way to extract most of the files from a directory is to add the directory to the extraction list and then delete those files that are not needed.
+</p></div><p>
+</p><p>
+To extract all files in the extraction list from the dump, use the <span class="command"><strong>extract</strong></span> command. <span class="emphasis"><em>Restore will ask which volume the user wishes to mount.  The fastest way to extract a few files is to start with 
+the last volume and work towards the first volume</em></span>, as shown below:
+</p><pre class="literallayout"><code class="computeroutput">
+restore &gt; extract
+You have not read any tapes yet.
+Unless you know which volume your file(s) are on you should s<span class="command"><strong>tar</strong></span>t
+with the last volume and work towards the first.
+Specify next volume #: 1
+set owner/mode for '.'? [yn] y
+</code></pre><p>
+</p><p>
+To exit from the interactive restore mode after you have finished extracting your directories or files, use the <span class="command"><strong>quit</strong></span> command as shown below.
+</p><pre class="literallayout"><code class="computeroutput">
+/sbin/restore &gt; quit
+</code></pre><p>
+</p><div class="tip" style="margin-left: 0.5in; margin-right: 0.5in;"><h3 class="title">
+<span class="inlinemediaobject"><img src="./images/Tip.gif" alt="Tip"></span>
+</h3><p>
+Other methods of restoration exist with the dump program, consult the man page of dump for more information.
+</p></div><p>
+Further documentation, for more details, there are man pages you can read:
+
+</p><div class="variablelist"><dl class="variablelist"><dt><span class="term"><span class="citerefentry"><span class="refentrytitle">dump</span>(8)</span></span></dt><dd><p>
+ext2 filesystem backup
+</p></dd><dt><span class="term"><span class="citerefentry"><span class="refentrytitle">restore</span>(8)</span></span></dt><dd><p>
+restore files or file systems from backups made with dump
+    </p></dd></dl></div><p>
+</p></div><div class="navfooter"><hr><table width="100%" summary="Navigation footer"><tr><td width="40%" align="left"><a accesskey="p" href="chap29sec309.html">Prev</a> </td><td width="20%" align="center"><a accesskey="u" href="whywhen.html">Up</a></td><td width="40%" align="right"> <a accesskey="n" href="chap29sec311.html">Next</a></td></tr><tr><td width="40%" align="left" valign="top">6. Making backups with dump </td><td width="20%" align="center"><a accesskey="h" href="index.html">Home</a></td><td width="40%" align="right" valign="top"> 8. Backing up and restoring over the network</td></tr></table></div></body></html>

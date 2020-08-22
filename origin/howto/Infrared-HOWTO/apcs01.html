@@ -1,0 +1,116 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1"><title>1. Sniffer by Gerd Knorr</title><link rel="stylesheet" type="text/css" href="style.css"><meta name="generator" content="DocBook XSL Stylesheets V1.79.1"><meta name="keywords" content="laptop, notebook, pda, handheld, computer, mobile, linux, irda, remote"><link rel="home" href="index.html" title="Linux Infrared HOWTO"><link rel="up" href="apc.html" title="Appendix C. Serial Infrared Port Sniffers"><link rel="prev" href="apc.html" title="Appendix C. Serial Infrared Port Sniffers"><link rel="next" href="apcs02.html" title="2. sersniff"></head><body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF"><div class="navheader"><table width="100%" summary="Navigation header"><tr><th colspan="3" align="center">1. Sniffer by Gerd Knorr</th></tr><tr><td width="20%" align="left"><a accesskey="p" href="apc.html">Prev</a> </td><th width="60%" align="center">Appendix C. Serial Infrared Port Sniffers</th><td width="20%" align="right"> <a accesskey="n" href="apcs02.html">Next</a></td></tr></table><hr></div><div class="sect1"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="infrared-howto-s-sniffer"></a>1. Sniffer by Gerd Knorr</h2></div></div></div><p>
+   This program by courtesy of Gerd Knorr. You may use it to sniff the traffic 
+   which is going trough your IrDA port for details of the protocol 
+   (change the default ttyS1 in the source if necessary):
+</p><p>
+
+</p><pre class="programlisting">
+#include &lt;stdio.h&gt;
+#include &lt;stdlib.h&gt;
+#include &lt;unistd.h&gt;
+#include &lt;string.h&gt;
+#include &lt;fcntl.h&gt;
+#include &lt;termios.h&gt;
+#include &lt;ctype.h&gt;
+#include &lt;sys/types.h&gt;
+#include &lt;sys/time.h&gt;
+#include &lt;sys/ioctl.h&gt;
+
+#define BUFSIZE 1024
+
+int
+read_and_print(int fd, int sec, int usec)
+{
+    int         rc,l,i;
+    char        buf[BUFSIZE+1];
+    fd_set      set;
+    struct timeval  tv;
+    
+    if (sec || usec) {
+    FD_ZERO(&amp;set);
+    FD_SET(fd,&amp;set);
+    tv.tv_sec  = sec;
+
+    tv.tv_usec = usec;
+    if (0 == select(fd+1,&amp;set,NULL,NULL,&amp;tv))
+        return -1;
+    }
+    
+    switch (rc = read(fd,buf,BUFSIZE)) {
+    case 0:
+    printf("EOF");
+    exit(0);
+    break;
+    case -1:
+    perror("read");
+    exit(1);
+    default:
+    for (l = 0; l &lt; rc; l+= 16) {
+        printf("%04x  ",l);
+        for (i = l; i &lt; l+16; i++) {
+        if (i &lt; rc)
+            printf("%02x ",buf[i]);
+        else
+            printf("-- ");
+        if ((i%4) == 3)
+            printf(" ");
+        }
+        for (i = l; i &lt; l+16; i++) {
+
+        if (i &lt; rc)
+            printf("%c",isalnum(buf[i]) ? buf[i] : '.');
+        }
+        printf("\n");
+    }
+    break;
+    }
+    return rc;
+}
+
+void
+setlines(int fd, int rts, int dtr)
+{
+    int lines = 0;
+
+    if (rts) lines |= TIOCM_RTS;
+    if (dtr) lines |= TIOCM_DTR;
+    
+    ioctl(fd,TIOCMSET,&amp;lines);
+}
+
+int main(int argc, char *argv[])
+{
+    int         ser,i;
+    struct termios      saved_attributes,tattr;
+    struct winsize      win;
+    char        buf[16];
+    
+    if (-1 == (ser = open("/dev/ttyS1",O_RDWR))) {
+
+    perror("open /dev/ttyS1");
+    exit(1);
+    }
+    
+    /* Set the terminal mode */
+    tcgetattr (ser, &amp;tattr);
+    cfmakeraw (&amp;tattr);
+    cfsetospeed (&amp;tattr,B9600);
+    cfsetispeed (&amp;tattr,B9600);
+    tcsetattr (ser, 0, &amp;tattr);
+    
+    setlines(ser,0,0);
+#if 0
+    tcsendbreak(ser,0);
+#endif
+
+    /* main loop */
+    fprintf(stderr,"setup done\n");
+    while (-1 != read_and_print(ser,30,0)) {
+    usleep(100000);
+    }
+    
+    return 0;
+}
+</pre><p>
+
+</p></div><div class="navfooter"><hr><table width="100%" summary="Navigation footer"><tr><td width="40%" align="left"><a accesskey="p" href="apc.html">Prev</a> </td><td width="20%" align="center"><a accesskey="u" href="apc.html">Up</a></td><td width="40%" align="right"> <a accesskey="n" href="apcs02.html">Next</a></td></tr><tr><td width="40%" align="left" valign="top">Appendix C. Serial Infrared Port Sniffers </td><td width="20%" align="center"><a accesskey="h" href="index.html">Home</a></td><td width="40%" align="right" valign="top"> 2. sersniff</td></tr></table></div></body></html>

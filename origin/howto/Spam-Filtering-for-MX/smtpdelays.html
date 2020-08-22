@@ -1,0 +1,121 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1"><title>1. SMTP Transaction Delays</title><link rel="stylesheet" type="text/css" href="style.css"><meta name="generator" content="DocBook XSL Stylesheets V1.79.1"><meta name="keywords" content="anti-spam, anti-virus, bogus virus warnings, collateral spam, delivery status notification, dsn, exim, exim4, exiscan, exiscan-acl, greylisting, junk mail, sa-exim, smtp, spam, spamassassin, teergrubing, transaction delay"><link rel="home" href="index.html" title="Spam Filtering for Mail Exchangers"><link rel="up" href="techniques.html" title="Chapter 2. Techniques"><link rel="prev" href="techniques.html" title="Chapter 2. Techniques"><link rel="next" href="dnschecks.html" title="2. DNS Checks"></head><body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF"><div class="navheader"><table width="100%" summary="Navigation header"><tr><th colspan="3" align="center">1. SMTP Transaction Delays</th></tr><tr><td width="20%" align="left"><a accesskey="p" href="techniques.html">Prev</a> </td><th width="60%" align="center">Chapter 2. Techniques</th><td width="20%" align="right"> <a accesskey="n" href="dnschecks.html">Next</a></td></tr></table><hr></div><div class="section"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="smtpdelays"></a>1. SMTP Transaction Delays</h2></div></div></div><p>
+      As it turns out, one of the more effective ways of stopping spam
+      is by imposing transaction delays during an inbound SMTP
+      dialogue.  This is a primitive form of
+      <span class="emphasis"><em>teergrubing</em></span>, see: <a class="ulink" href="http://www.iks-jena.de/mitarb/lutz/usenet/teergrube.en.html" target="_top">http://www.iks-jena.de/mitarb/lutz/usenet/teergrube.en.html</a>
+    </p><p>
+      Most spam and nearly all e-mail borne virii are delivered
+      directly to your server by way of specialized SMTP client
+      software, optimized for sending out large amounts of mail in a
+      very short time.  Such clients are commonly known as
+      <a class="xref" href="gloss.html#ratware" title="Ratware">Ratware</a>.
+    </p><p>
+      In order to accomplish this task, ratware authors commonly take
+      a few shortcuts that, ahem, <span class="quote">&#8220;<span class="quote">diverge</span>&#8221;</span> a bit
+      from the RFC 2821 specification.  One of the intrinsic traits of
+      ratware is that it is notoriously impatient, especially with
+      slow-responding mail servers.  They may issue the
+      <span class="command"><strong>HELO</strong></span> or <span class="command"><strong>EHLO</strong></span> command
+      before the server has presented the initial SMTP banner, and/or
+      try to pipeline several SMTP commands before the server has
+      advertised the <span class="command"><strong>PIPELINING</strong></span> capability.
+    </p><p>
+      Certain <a class="xref" href="gloss.html#mta" title="Mail Transport Agent">Mail Transport Agent</a>s (such as Exim) automatically
+      treat such SMTP protocol violations as
+      <span class="emphasis"><em>synchronization errors</em></span>, and immediately
+      drop the incoming connection.  If you happen to be using such an
+      MTA, you may already see a lot of entries to this effect in your
+      log files.  In fact, chances are that if you perform any
+      time-consuming checks (such as 
+      <a class="xref" href="dnschecks.html" title="2. DNS Checks">DNS checks</a>) prior to presenting the initial
+      SMTP banner, such errors will occur frequently, as ratware
+      clients simply do not take the time to wait for your server to
+      come alive (Things to do, people to spam).
+    </p><p>
+      We can help along by imposing additional delays.  For instance,
+      you may decide to wait:
+    </p><div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem"><p>
+	  20 seconds before presenting the initial SMTP banner,
+	</p></li><li class="listitem"><p>
+	  20 seconds after the Hello (<span class="command"><strong>EHLO</strong></span> or
+	  <span class="command"><strong>HELO</strong></span>) greeting,
+	</p></li><li class="listitem"><p>
+	  20 seconds, after the <span class="command"><strong>MAIL FROM:</strong></span>
+	  command, and
+	</p></li><li class="listitem"><p>
+	  20 seconds after each <span class="command"><strong>RCPT TO:</strong></span> command.
+	</p></li></ul></div><p>
+      Where did 20 seconds come from, you ask.  Why not a minute?  Or
+      several minutes?  After all, RFC 2821 mandates that the sending
+      host (client) should wait up to several minutes for every SMTP
+      response.  The issue is that some receiving hosts, particularly
+      those that use Exim, may perform <a class="xref" href="smtpchecks.html#callback" title="3.2.4. Sender Callout Verification">Sender Callout Verification</a> in
+      response to incoming mail delivery attempts.  If you or one of
+      your users send mail to such a host, it will contact the <a class="xref" href="gloss.html#mx" title="Mail Exchanger">Mail Exchanger</a> (MX host) for your domain and start an SMTP
+      dialogue in order to validate the sender address.  The default
+      timeout of such <a class="xref" href="smtpchecks.html#callback" title="3.2.4. Sender Callout Verification">Sender Callout Verification</a>s is 30 seconds - if
+      you impose delays this long, the peer's sender callout
+      verification would fail, and in turn the original mail delivery
+      from you/your user might be rejected (usually with a temporary
+      failure, which means the message delivery will be retried for 5
+      days or so before the mail is finally returned to the sender).
+    </p><p>
+      In other words, 20 seconds is about as long as you can stall
+      before you start interfering with legitimate mail deliveries.
+    </p><p>
+      If you do not like imposing such delays on every SMTP
+      transaction (say, you have a very busy site and are low on
+      machine resources), you may choose to use
+      <span class="quote">&#8220;<span class="quote">selective</span>&#8221;</span> transaction delays.  In this case, you
+      could impose the delay:
+    </p><div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem"><p>
+	  If there is a problem with the peer's DNS information (see
+	  <a class="xref" href="dnschecks.html" title="2. DNS Checks">DNS checks</a>).
+	</p></li><li class="listitem"><p>
+	  After detecting some sign of trouble during the SMTP
+	  transaction (see <a class="xref" href="smtpchecks.html" title="3. SMTP checks">SMTP checks</a>).
+	</p></li><li class="listitem"><p>
+	  Only in the highest-numbered MX host in your DNS zone,
+	  i.e. the mail exchanger with the last priority.  Often,
+	  <a class="xref" href="gloss.html#ratware" title="Ratware">Ratware</a> specifically target these hosts,
+	  whereas legitimate MTAs will try the lower-numbered MX hosts
+	  first.
+	</p></li></ul></div><p>
+      In fact, selective transaction delays may be a good way to
+      incorporate some less conclusive checks that we will discuss in
+      the following sections.  You probably do not wish to reject the
+      mail outright based the results from e.g. the SPEWS <a class="link" href="dnschecks.html#dnsbl" title="2.1. DNS Blacklists">blacklist</a>, but on the other hand, it may
+      provide a strong enough indication of trouble that you can at
+      least impose transaction delays.  After all, legitimate mail
+      deliveries are not affected, other than being subjected to a
+      slight delay.
+    </p><p>
+      Conversely, if you find conclusive evidence of spamming (e.g. by
+      way of certain <a class="xref" href="smtpchecks.html" title="3. SMTP checks">SMTP checks</a>), and your server
+      can afford it, you may choose to impose an extended delay,
+      e.g. 15 minutes or so, before finally rejecting the delivery
+      <a href="#ftn.idm632" class="footnote" name="idm632"><sup class="footnote">[4]</sup></a>.
+      This is for little or no benefit other than slowing down the
+      spammer a little bit in their quest to reach as many people as
+      possible before DNS blacklists and other collaborative network
+      checks catch up.  In other words, pure altruism on your
+      side. :-)
+    </p><p>
+      In my own case, selective transaction delays and the resulting
+      SMTP synchronization errors account for nearly 50% of rejected
+      incoming delivery attempts.  This roughly translates into saying
+      that nearly 50% of incoming junk mail is stopped by SMTP
+      transaction delays alone.
+    </p><p>
+      See also <a class="link" href="qanda.html#qanda-adapt" title="Q:"><span class="emphasis"><em>What happens when
+      spammers adapt...</em></span></a>.
+    </p><div class="footnotes"><br><hr style="width:100; text-align:left;margin-left: 0"><div id="ftn.idm632" class="footnote"><p><a href="#idm632" class="para"><sup class="para">[4] </sup></a>
+	  Beware that while you are holding up an incoming SMTP
+	  delivery, you are also holding up a TCP socket on your
+	  server, as well as memory and other server resources.  If
+	  your server is generally busy, imposing SMTP transaction
+	  delays will make you more vulnerable to Denial-of-Service
+	  attacks.  A more <span class="quote">&#8220;<span class="quote">scalable</span>&#8221;</span> option may be to
+	  drop the connection once you have conclusive evidence that
+	  the sender is a ratware client.
+	</p></div></div></div><div class="navfooter"><hr><table width="100%" summary="Navigation footer"><tr><td width="40%" align="left"><a accesskey="p" href="techniques.html">Prev</a> </td><td width="20%" align="center"><a accesskey="u" href="techniques.html">Up</a></td><td width="40%" align="right"> <a accesskey="n" href="dnschecks.html">Next</a></td></tr><tr><td width="40%" align="left" valign="top">Chapter 2. Techniques </td><td width="20%" align="center"><a accesskey="h" href="index.html">Home</a></td><td width="40%" align="right" valign="top"> 2. DNS Checks</td></tr></table></div></body></html>

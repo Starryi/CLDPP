@@ -1,0 +1,55 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1"><title>3. Getting the console to work</title><link rel="stylesheet" type="text/css" href="style.css"><meta name="generator" content="DocBook XSL Stylesheets V1.79.1"><link rel="home" href="index.html" title="Custom Linux: A Porting Guide"><link rel="up" href="ch03.html" title="Chapter 3. Booting In The Dark"><link rel="prev" href="ch03s02.html" title="2. Modifying code using compiler flags"><link rel="next" href="ch04.html" title="Chapter 4. Linux Still Isn't Booting"></head><body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF"><div class="navheader"><table width="100%" summary="Navigation header"><tr><th colspan="3" align="center">3. Getting the console to work</th></tr><tr><td width="20%" align="left"><a accesskey="p" href="ch03s02.html">Prev</a> </td><th width="60%" align="center">Chapter 3. Booting In The Dark</th><td width="20%" align="right"> <a accesskey="n" href="ch04.html">Next</a></td></tr></table><hr></div><div class="sect1"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="idm205"></a>3. Getting the console to work</h2></div></div></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="idm207"></a>3.1. Forcing the kernel to boot our-way</h3></div></div></div><p>Once we discovered the kernel was indeed booting, but the console wasn't printing, it was time to begin.
+First, we forced the kernel to boot using a specified configuration for the serial port,
+in our case <code class="envar">9600n1</code>, and did not allow any command line options or boot time considerations etc.</p><p>The first place to go is <code class="filename">drivers/char/tty_io.c</code>, to <code class="function">console_init()</code>.
+This function determines the console configuration at startup. Here's a small part of it:
+
+</p><pre class="programlisting">
+
+memset(, 0, sizeof(struct termios));
+memcpy(tty_std_termios.c_cc, INIT_C_CC, NCCS);
+tty_std_termios.c_iflag = ICRNL | IGNPAR;
+tty_std_termios.c_oflag = OPOST | ONLCR;
+tty_std_termios.c_cflag = CLOCAL | B9600 | CS8 | CREAD;
+tty_std_termios.c_cflag &amp;= ~(CRTSCTS);
+tty_std_termios.c_lflag = ISIG | ICANON | ECHO | ECHOE | ECHOK | ECHOCTL | ECHOKE | IEXTEN;
+tty_std_termios.c_iflag = ICRNL | IXON;
+tty_std_termios.c_oflag = OPOST | ONLCR;
+tty_std_termios.c_cflag = B38400 | CS8 | CREAD | HUPCL;
+tty_std_termios.c_lflag = ISIG | ICANON | ECHO | ECHOE | ECHOK | ECHOCTL | ECHOKE | IEXTEN;
+
+</pre><p>
+
+The first (naive) thing we tried, was to configure the console the way we wanted.
+<span class="emphasis"><em>Of course, this didn't help us much ;-)</em></span></p><p>Disappointed but not discouraged, we remembered that we didn't have a bootloader yet, and that we didn't
+really know if any option was being  passed on to the kernel. <span class="quote">&#8220;<span class="quote">Maybe the kernel gets some garbage for command line?</span>&#8221;</span> 
+we (again, naively) thought. So we tried to stop the kernel from parsing command-line options, and manually
+inserted our command line. <span class="emphasis"><em>This didn't help us much ;-)</em></span></p></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="idm219"></a>3.2. Non-standard hardware - just say no!</h3></div></div></div><p>At that point, we didn't have a console, but we had time. So we dove a bit deeper into the console
+issues. Looking at <code class="filename">drivers/char/serial.c</code>, 
+we came across <code class="function">serial_console_setup()</code>. This function, apart from parsing command-line
+options, also configures the serial port by writing directly to it. Our hardware people 
+decided it was a good time to let us know that our serial port wasn't standard. The lines that are used for
+flow control were not connected.  We decided to remark-out the following line, which sets the RTS and DTR
+lines high, because we just didn't have them.
+
+</p><pre class="programlisting">serial_out(info, UART_MCR, UART_MCR_DTR | UART_MCR_RTS);</pre><p>
+<span class="emphasis"><em>Ofcourse, this didn't help us much :-(</em></span>
+The lesson learned here was <span class="emphasis"><em>check, check, check your hardware!</em></span>.  Custom boards might
+not be standard, and the porting will go a lot quicker if you know about it.</p></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="idm227"></a>3.3. Let there be light: calculating baud rate</h3></div></div></div><p>Finally, we decided to check the baudrate. Did Linux mean what we thought it meant when it said
+9600? Possibly not, since we didn't know how it computed that value. We've noticed that the file(s)
+<code class="filename">include/asm-ppc/pmppc_serial.h</code>  (replace pmppc with your board name) included a definition
+of <code class="envar">BAUDBASE</code>, which is later used for everything regarding serial ports. It was computed
+using the board's local bus frequency, bus clock to system clock ratio etc. This seemed wrong, so we checked 
+out what the base baud was in a vxWorks system we had running on the board, and changed it to:
+
+</p><pre class="programlisting">
+
+/*
+ * system clock = 33Mhz, serial clock = system clock / 4
+ * the following must hold: (divisor * BaudRate) == (System clock / 64)
+ */
+#define BASE_BAUD (33000000 / 4 / 16)
+
+</pre><p>
+
+A quick compilation, and a reboot later we had a booting kernel visible through our serial port.  Success!
+</p></div></div><div class="navfooter"><hr><table width="100%" summary="Navigation footer"><tr><td width="40%" align="left"><a accesskey="p" href="ch03s02.html">Prev</a> </td><td width="20%" align="center"><a accesskey="u" href="ch03.html">Up</a></td><td width="40%" align="right"> <a accesskey="n" href="ch04.html">Next</a></td></tr><tr><td width="40%" align="left" valign="top">2. Modifying code using compiler flags </td><td width="20%" align="center"><a accesskey="h" href="index.html">Home</a></td><td width="40%" align="right" valign="top"> Chapter 4. Linux Still Isn't Booting</td></tr></table></div></body></html>

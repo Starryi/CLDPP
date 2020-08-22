@@ -1,0 +1,74 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1"><title>9. Setting Up Swap Space</title><link rel="stylesheet" type="text/css" href="style.css"><meta name="generator" content="DocBook XSL Stylesheets V1.79.1"><link rel="home" href="index.html" title="Linux Partition HOWTO"><link rel="up" href="index.html" title="Linux Partition HOWTO"><link rel="prev" href="ar01s08.html" title="8. Recovering a Deleted Partition Table"><link rel="next" href="ar01s10.html" title="10. Appendix"></head><body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF"><div class="navheader"><table width="100%" summary="Navigation header"><tr><th colspan="3" align="center">9. Setting Up Swap Space</th></tr><tr><td width="20%" align="left"><a accesskey="p" href="ar01s08.html">Prev</a> </td><th width="60%" align="center"> </th><td width="20%" align="right"> <a accesskey="n" href="ar01s10.html">Next</a></td></tr></table><hr></div><div class="sect1"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="setting_up_swap"></a>9. Setting Up Swap Space</h2></div></div></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="swap_partitions"></a>9.1. Swap Files</h3></div></div></div><p>
+	Normally, there are only two steps to setting up swap space,
+	creating the partition and adding it to /etc/fstab. A typical fstab
+	entry for a swap partition at /dev/hda6 would look like this:
+</p><pre class="programlisting">
+/dev/hda6	swap	swap	defaults	0	0
+</pre><p>
+	The next time you reboot, the initialization scripts will activate
+	it automatically and there's nothing more to be done.
+</p><p>
+	However, if you want to make use of it right away, you'll need to
+	activate it maually. As root, type:
+</p><pre class="programlisting">
+<strong class="userinput"><code><span class="command"><strong>mkswap</strong></span> -f <code class="filename">/dev/hda6</code></code></strong>
+<strong class="userinput"><code><span class="command"><strong>swapon</strong></span> <code class="filename">/dev/hda6</code></code></strong>
+</pre></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="swapfiles"></a>9.2. Swap Files</h3></div></div></div><p>
+	There might be times when you've run out of swap space and it is not
+	practical to repartition a drive or add a new one. In this case, you
+	can use a regular file in an ordinary partition. All you have to do
+	is create a file of the size you want
+</p><p>
+
+<strong class="userinput"><code><span class="command"><strong>dd</strong></span> if=/dev/zero of=/var/my_swap bs=1024 count=131072</code></strong>
+</p><p>
+	and activate it
+</p><pre class="programlisting">
+	<strong class="userinput"><code><span class="command"><strong>mkswap</strong></span> -f /var/my_swap</code></strong>
+	<strong class="userinput"><code><span class="command"><strong>swapon</strong></span> /var/my_swap</code></strong>
+</pre><p>
+	This invocation creates a file called <code class="filename">my_swap</code>
+	in <code class="filename">/var</code>. It is 128 Mb long
+	(128 x 1024 = 131072). Initially, it is filled with zeros. However,
+	<span class="command"><strong>mkswap</strong></span> marks it as swap space and <span class="command"><strong>swapon</strong></span> tells
+	the kernel to start using it as swap space. When you are done with
+	it,
+</p><pre class="programlisting">
+<strong class="userinput"><code><span class="command"><strong>swapoff</strong></span> /var/my_swap</code></strong>
+<strong class="userinput"><code><span class="command"><strong>rm</strong></span> /var/my_swap</code></strong>
+</pre></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="multiple_swap_areas"></a>9.3. Multiple Swap Areas</h3></div></div></div><p>
+	More than one swap partition can be used on the same system.
+	Consider an example fstab where there is a single swap partition:
+</p><pre class="programlisting">
+/dev/hda5   /        ext3   defaults        1	1
+/dev/hda1   /boot    ext2   defaults        1	2
+none        /dev/pts devpts gid=5,mode=620  0	0
+none        /proc    proc   defaults        0	0
+/dev/hda7   /usr     ext3   defaults        1	2
+/dev/hda6   swap     swap   defaults        0	0
+</pre><p>
+	Imagine replacing the entry for the swap partition with these three lines:
+</p><pre class="programlisting">
+/dev/hda6   none    swap    sw,pri=3    0	0
+/dev/hdb2   none    swap    sw,pri=2    0	0
+/dev/hdc2   none    swap    sw,pri=1    0	0
+</pre><p>
+	This configuration would cause the kernel to use /dev/hda6 first. it
+	has the highest priority assigned to it (pri=3). The maximum
+	priority can be 32767 and the lowest 0. If that space were to max
+	out, the kernel would start using /dev/hdb2, and on to /dev/hdc2
+	after that. Why such a configuration? Imagine that the newest
+	(fastest) drives are given the highest priority. This will minimize
+	speed loss as swap space usage grows.
+</p><p>
+	It is possible to write to all three simulataneously. If each has
+	the same priority, the kernel will write to them much like a RAID,
+	with commensurate speed increases.
+</p><pre class="programlisting">
+/dev/hda6   none   swap   sw,pri=3   0   0
+/dev/hdb2   none   swap   sw,pri=3   0   0
+/dev/hdc2   none   swap   sw,pri=3   0   0
+</pre><p>
+	Notice that these three partitions are on separate drives, which is
+	ideal in terms of speed enhancement.
+</p></div></div><div class="navfooter"><hr><table width="100%" summary="Navigation footer"><tr><td width="40%" align="left"><a accesskey="p" href="ar01s08.html">Prev</a> </td><td width="20%" align="center"> </td><td width="40%" align="right"> <a accesskey="n" href="ar01s10.html">Next</a></td></tr><tr><td width="40%" align="left" valign="top">8. Recovering a Deleted Partition Table </td><td width="20%" align="center"><a accesskey="h" href="index.html">Home</a></td><td width="40%" align="right" valign="top"> 10. Appendix</td></tr></table></div></body></html>

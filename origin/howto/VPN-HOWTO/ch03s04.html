@@ -1,0 +1,108 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1"><title>4. Networking</title><link rel="stylesheet" type="text/css" href="style.css"><meta name="generator" content="DocBook XSL Stylesheets V1.79.1"><link rel="home" href="index.html" title="VPN HOWTO"><link rel="up" href="ch03.html" title="Chapter 3. Server"><link rel="prev" href="ch03s03.html" title="3. Restricting Users"><link rel="next" href="ch04.html" title="Chapter 4. Client"></head><body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF"><div class="navheader"><table width="100%" summary="Navigation header"><tr><th colspan="3" align="center">4. Networking</th></tr><tr><td width="20%" align="left"><a accesskey="p" href="ch03s03.html">Prev</a> </td><th width="60%" align="center">Chapter 3. Server</th><td width="20%" align="right"> <a accesskey="n" href="ch04.html">Next</a></td></tr></table><hr></div><div class="sect1"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="idm265"></a>4. Networking</h2></div></div></div><p>
+Now that your users have access to the system, we need to make sure that
+they have access to the network.  We do that by using the Linux kernel's
+firewalling rules and routing tables.  Using the <span class="command"><strong>route</strong></span> and
+<span class="command"><strong>ipfwadm</strong></span> commands, we can set up the kernel to handle network
+traffic in the appropriate ways.  For more info on <span class="command"><strong>ipfwadm</strong></span>,
+<span class="command"><strong>ipchains</strong></span> and <span class="command"><strong>route</strong></span> see the 
+<a class="ulink" href="http://www.tldp.org/HOWTO/Linux-Networking-HOWTO.html" target="_top">Linux Networking HOWTO</a>.</p><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="idm274"></a>4.1. The Kernel</h3></div></div></div><p>
+In order for any of this to work, you must have your kernel configured
+correctly.  If you don't know how to build your own kernel, then you
+should read the <a class="ulink" href="http://www.tldp.org/HOWTO/Kernel-HOWTO.html" target="_top">
+Kernel HOWTO</a>. You'll need to make sure that the following kernel options
+are turned on in addition to basic networking.  I use a 2.0.38 kernel
+in my system.
+</p><p>
+For 2.0 kernels:
+
+</p><div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem"><p>
+CONFIG_FIREWALL
+</p></li><li class="listitem"><p>
+CONFIG_IP_FORWARD
+</p></li><li class="listitem"><p>
+CONFIG_IP_FIREWALL
+</p></li><li class="listitem"><p>
+CONFIG_IP_ROUTER
+</p></li><li class="listitem"><p>
+CONFIG_IP_MASQUERADE (optional)
+</p></li><li class="listitem"><p>
+CONFIG_IP_MASQUERADE_ICMP (optional)
+</p></li><li class="listitem"><p>
+CONFIG_PPP
+</p></li></ul></div><p>
+</p><p>
+For 2.2 kernels:
+
+</p><div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem"><p>
+CONFIG_FIREWALL
+</p></li><li class="listitem"><p>
+CONFIG_IP_ADVANCED_ROUTER
+</p></li><li class="listitem"><p>
+CONFIG_IP_FIREWALL
+</p></li><li class="listitem"><p>
+CONFIG_IP_ROUTER
+</p></li><li class="listitem"><p>
+CONFIG_IP_MASQUERADE (optional)
+</p></li><li class="listitem"><p>
+CONFIG_IP_MASQUERADE_ICMP (optional)
+</p></li><li class="listitem"><p>
+CONFIG_PPP
+</p></li></ul></div><p>
+</p></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="idm310"></a>4.2. Filter Rules</h3></div></div></div><p>
+First, we write firewall filter rules that allow our users to access our
+internal nets, while restricting them from accessing the outside
+internet.  This sounds strange, but since the users
+already have access to the internet, why let them use the tunnel to
+access the net?  It wastes both bandwidth and processor resources.
+</p><p>
+The filter rules that we use depend upon which internal nets we use, 
+but translate to: "Allow traffic coming from our VPNs that is
+destined for our internal nets to go there."  So how do we do that?
+As always, it depends.  If you are running a 2.0 kernel, you use the
+tool called <span class="command"><strong>ipfwadm</strong></span>, but if you are using a
+2.2 kernel, you use the utility called <span class="command"><strong>ipchains</strong></span>.
+</p><p>
+To set the rules with <span class="command"><strong>ipfwadm</strong></span>, run it with options similar to
+the following:
+</p><pre class="screen">
+# /sbin/ipfwadm -F -f
+# /sbin/ipfwadm -F -p deny
+# /sbin/ipfwadm -F -a accept -S 192.168.13.0/24 -D 172.16.0.0/12
+</pre><p>
+To set the rules with <span class="command"><strong>ipchains</strong></span>, run it with options similar to
+the following:
+</p><pre class="screen">
+# /sbin/ipchains -F forward
+# /sbin/ipchains -P forward DENY
+# /sbin/ipchains -A forward -j ACCEPT -s 192.168.13.0/24 -d 172.16.0.0/12
+</pre><p>
+For those using 2.2 kernels, please read <a class="xref" href="ch06s01.html#ipv4forwarding" title="1.3. IPv4 Forwarding and 2.2 kernels">Section 1.3, &#8220;IPv4 Forwarding and 2.2 kernels&#8221;</a>.
+</p></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="idm324"></a>4.3. Routing</h3></div></div></div><p>
+Now that users are allowed to access our nets, we need to tell
+the kernel where to send the packets.  On my system, I have two ethernet
+cards, one is on the external network, while the other is on the
+internal network. This helps keep things secure, as outbound traffic is
+masqueraded by the gateway, and any incoming traffic is filtered and
+routed by the Cisco Router.  For most setups, the routing should be simple.
+</p><p>
+Next, route all traffic destined for the private networks out the
+internal interface, and all other traffic out the external interface.  The
+specific routing commands depend on which internal nets you are using.
+Below is an example of what they might look like.  These lines are of course
+in addition to your basic routes for your local nets.  I also doubt that you
+are using all 3 groups of internal numbers:
+</p><pre class="screen">
+Assuming that 172.16.254.254 is the internal gateway:
+
+# /sbin/route add -net 10.0.0.0 netmask 255.0.0.0 gw 172.16.254.254 dev eth1
+# /sbin/route add -net 172.16.0.0 netmask 255.240.0.0 gw 172.16.254.254 dev eth1
+# /sbin/route add -net 192.168.0.0 netmask 255.255.0.0 gw 172.16.254.254 dev eth1
+</pre><p>
+One additional note on routing.  If you are using two way routing for
+say, a remote office, then you will need to do one more thing.  You
+need to set up routes on the server that point back to the client.  The
+easiest way to accomplish this is to run a cron job every minute that
+quietly sets back routes.  If the client is not
+connected, <span class="command"><strong>route</strong></span> will just spit out an error (that you've
+conveniently sent to <code class="filename">/dev/null</code>.)
+</p></div></div><div class="navfooter"><hr><table width="100%" summary="Navigation footer"><tr><td width="40%" align="left"><a accesskey="p" href="ch03s03.html">Prev</a> </td><td width="20%" align="center"><a accesskey="u" href="ch03.html">Up</a></td><td width="40%" align="right"> <a accesskey="n" href="ch04.html">Next</a></td></tr><tr><td width="40%" align="left" valign="top">3. Restricting Users </td><td width="20%" align="center"><a accesskey="h" href="index.html">Home</a></td><td width="40%" align="right" valign="top"> Chapter 4. Client</td></tr></table></div></body></html>

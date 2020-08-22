@@ -1,0 +1,165 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1"><title>8.  Mount RPMs With FTPFS</title><link rel="stylesheet" type="text/css" href="style.css"><meta name="generator" content="DocBook XSL Stylesheets V1.79.1"><link rel="home" href="index.html" title="The Linux Kernel HOWTO"><link rel="up" href="index.html" title="The Linux Kernel HOWTO"><link rel="prev" href="ar01s07.html" title="7.  Tips and tricks"><link rel="next" href="ar01s09.html" title="9.  Linux Kernel Textbooks and Documents"></head><body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF"><div class="navheader"><table width="100%" summary="Navigation header"><tr><th colspan="3" align="center">8. 
+      Mount RPMs With FTPFS 
+    </th></tr><tr><td width="20%" align="left"><a accesskey="p" href="ar01s07.html">Prev</a> </td><th width="60%" align="center"> </th><td width="20%" align="right"> <a accesskey="n" href="ar01s09.html">Next</a></td></tr></table><hr></div><div class="sect1"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="ftpfs"></a>8. 
+      Mount RPMs With FTPFS 
+    </h2></div></div></div><p>
+      By this time, your kernel is compiled and running ok. You will have the 
+      need to access countless number of RPMs which you may need to install in 
+      near future. One way is to physically mount the Linux CDROMS, but there 
+      are more than 3 Linux cdroms and it is cumbersome to remove and change 
+      the Linux cdroms. Hence, here comes the FTPFS. 
+    </p><p>
+      If you want to automate the installing of RPMs, then consider the 
+      'apt-get' command. The apt-get automatically detects all the 
+      dependencies and downloads and installs or upgrades the packages 
+      automatically. See the section "Install, Update at Speed of Light" in 
+      <a class="xref" href="ar01s12.html" title="12.  Install, Upgrade at Speed of Light With apt-get (Redhat, Debian, Suse, Mandrake, Others)">Section 12, &#8220;
+      Install, Upgrade at Speed of Light With apt-get (Redhat, Debian, Suse, 
+      Mandrake, Others) 
+    &#8221;</a>
+    </p><p>
+      FTP File System is a Linux kernel module, enhancing the VFS with FTP 
+      volume mounting capabilities. That is, you can "mount" FTP shared 
+      directories in your very personal file system and take advantage of 
+      local files ops. It is at 
+      <a class="ulink" href="http://lufs.sourceforge.net/lufs" target="_top">
+        "http://lufs.sourceforge.net/lufs" 
+      </a>
+      and at 
+      <a class="ulink" href="http://ftpfs.sourceforge.net" target="_top">
+        "http://ftpfs.sourceforge.net" 
+      </a>
+      . 
+    </p><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="idm471"></a>8.1. 
+        Using the ftpfs 
+      </h3></div></div></div><p>
+        Download the ftpfs and install it on your system. The ftpfs is 
+        installed as a module in 
+        /lib/modules/2.4.18-19.8.0/kernel/fs/ftpfs/ftpfs.o. And also the 
+        command ftpmount is in /usr/bin/ftpmount. And you can do the 
+        following: 
+      </p><p>
+        Login as root (su - root) and run this script: 
+        </p><pre class="programlisting">
+	#!/bin/sh -x
+	# Use this script to mount ftp redhat cdroms rpms directory disk1,2,3
+	# Built rpm by name ftpfs.
+	# http://lufs.sourceforge.net/main/projects.html
+	# ftpmount --help
+	# Try this: ftpmount [user[:pass]@]host_name[:port][/root_dir] mount_point [-o]
+	# [-uid=id] [gid=id] [fmask=mask] [dmask=mask]
+	#ftpmount anonymous:pass@ftp.kernel.org /mnt/ftpfs
+	#mkdir -p /mnt/ftpfs /mnt/ftpfs/updates /mnt/ftpfs/rpms /mnt/ftpfs/contrib
+	# Redhat ftp mirror sites - http://www.redhat.com/download/mirror.html
+	FTPSITE="csociety-ftp.ecn.purdue.edu"
+	USER="anonymous:pass"
+	ftpmount $USER@$FTPSITE/pub/redhat/redhat  /mnt/ftpfs/site
+	ftpmount $USER@$FTPSITE/pub/redhat/redhat/linux/updates/8.0/en/os  /mnt/ftpfs/updates
+	ftpmount $USER@$FTPSITE/pub/redhat/redhat/linux/8.0/en/os/i386/RedHat /mnt/ftpfs/rpms
+	ftpmount $USER@$FTPSITE/pub/redhat-contrib /mnt/ftpfs/contrib
+        </pre><p>
+      </p></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="idm476"></a>8.2. 
+        The ftpfs Commands 
+      </h3></div></div></div><p>
+        Before you even start thinking about mounting FTP volumes, make sure 
+        you have a decent bandwidth or it's gonna suck. 
+      </p><div class="sect3"><div class="titlepage"><div><div><h4 class="title"><a name="idm479"></a>8.2.1. 
+          The autofs way - A must try! 
+        </h4></div></div></div><p>
+          If you were wise enough to install the autofs/automount bridge 
+          (check out the installation notes) there is a cool way to use ftpfs: 
+          just try to access any file/dir on the desired server under 
+          /mnt/ftpfs. 
+          </p><pre class="programlisting">
+	cd /mnt/ftpfs/[user:pass@]ftp_server[:port]
+          </pre><p>
+        </p><p>
+          Something like cd /mnt/ftpfs/ftp.kernel.org. And guess what? You're 
+          there! 
+        </p><p>
+          Normally you will only use this for anonymous ftp since you don't 
+          want your user/pass info to show up in the /mnt/ftpfs/ tree. 
+        </p></div><div class="sect3"><div class="titlepage"><div><div><h4 class="title"><a name="idm485"></a>8.2.2. 
+          The ftpmount way 
+        </h4></div></div></div><p>
+          <span class="emphasis"><em>
+            ftpmount [lsqb ]user[lsqb ]:password]@]hostname[lsqb ]:port ][lsqb 
+            ]/root_dir] mount_point [lsqb ]-own] [lsqb ]-uid=id] [lsqb 
+            ]-gid=id] [lsqb ]-fmask=mask] [lsqb ]-dmask=mask] [lsqb ]-active] 
+          </em></span>
+        </p><p>
+          </p><pre class="programlisting">
+	The parameters: [defaults]
+	    * user: The user to be used for logging on the FTP server. [anonymous]
+	    * password: The password for that user. [user@ftpfs.sourceforge.net]
+	    * hostname: The FTP server.
+	    * port: The port the server is listening on. [21]
+	    * root_dir: The directory on the FTP server you want to be mounted. This should be specified without the trailing slash (that is "/home/duru", not "/home/duru/"). [/]
+	    * mount_point: The local directory you want to mount the FTP server onto.
+	    * own: Flag to force ownership on all remote files. Useful for FTP servers that list user IDs instead of user names.
+	    * uid: The local user ID you want to be the owner of the mounted tree.
+	    * gid: The local group ID you want to own the mounted tree.
+	    * fmask: The numeric mode to be ORed on all mounted files.
+	    * dmask: The numeric mode to be ORed on all mounted dirs.
+	    * active: Flag to enable active mode for FTP transfers. Useful if you're behind some firewall and cannot connect to random ports.
+          </pre><p>
+        </p><p>
+          Eg: ftpmount mali@ftp.linuxnet.wox.org /mnt/ftpfs -uid=500 -gid=500 
+          -dmask=555 
+        </p><p>
+          It is generally a good idea not to provide your password as a 
+          parameter, since ftpmount will ask for it. 
+        </p></div><div class="sect3"><div class="titlepage"><div><div><h4 class="title"><a name="idm493"></a>8.2.3. 
+          The mount way 
+        </h4></div></div></div><p>
+          If for some reason you choose not to use ftpmount (you probably 
+          installed the kernel patch and are too lazy to install ftpmount 
+          too), here's the way to use good-ol mount: 
+        </p><p>
+          <span class="emphasis"><em>
+            mount -n -t ftpfs none mount_point -o ip=server_ip [lsqb 
+            ],user=user_name] [lsqb ],pass=password] [lsqb ],port=server_port] 
+            [lsqb ],root= root_dir] [lsqb ],own] [lsqb ],uid=id] [lsqb 
+            ],gid=id] [lsqb ],fmode=mask] [lsqb ],dmode=mask] [lsqb ],active] 
+          </em></span>
+        </p><p>
+          Please note that you have to provide the server's IP and that the 
+          only way to enter a password is in clear. For example, while 
+          testing, I used the following command: 
+        </p><p>
+          mount -n -t ftpfs none /mnt/ftpfs -o 
+          ip=127.0.0.1,user=mali,pass=my_pass 
+        </p></div><div class="sect3"><div class="titlepage"><div><div><h4 class="title"><a name="idm500"></a>8.2.4. 
+          Some notes 
+        </h4></div></div></div><p>
+          To unmount the volume, you go like 
+          </p><pre class="programlisting">
+	umount mount_point
+          </pre><p>
+        </p><p>
+          The own option (-o for ftpmount) forces ownership by the mounting 
+          user on all files. This is useful for accommodating servers with 
+          strange user/permissions management (SERVU &amp; stuff). 
+        </p><p>
+          A few words of wisdom: 
+          </p><div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem"><p>
+                Use -n mount option! I bet you don't want your user/password 
+                information listed in mtab. 
+              </p></li><li class="listitem"><p>
+                Don't push it! (pushing it = a dozen processes reading on the 
+                mount point) 
+              </p></li><li class="listitem"><p>
+                It works best for one process! While concurrent access (under 
+                normal circumstances) shouldn't cause any problem, the output 
+                is optimized for one process reading (the TCP connection is 
+                kept alive). So, if you're gonna watch a movie, you don't want 
+                other processes to access the mount point and kill the 
+                throughoutput (trust me!). 
+              </p></li><li class="listitem"><p>
+                The address in IP format sucks! - Go get ftpmount. 
+              </p></li></ul></div><p>
+        </p></div></div></div><div class="navfooter"><hr><table width="100%" summary="Navigation footer"><tr><td width="40%" align="left"><a accesskey="p" href="ar01s07.html">Prev</a> </td><td width="20%" align="center"> </td><td width="40%" align="right"> <a accesskey="n" href="ar01s09.html">Next</a></td></tr><tr><td width="40%" align="left" valign="top">7. 
+      Tips and tricks 
+     </td><td width="20%" align="center"><a accesskey="h" href="index.html">Home</a></td><td width="40%" align="right" valign="top"> 9. 
+      Linux Kernel Textbooks and Documents 
+    </td></tr></table></div></body></html>

@@ -1,0 +1,51 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1"><title>1. Multiple Ethernet Card per Machine</title><link rel="stylesheet" type="text/css" href="style.css"><meta name="generator" content="DocBook XSL Stylesheets V1.79.1"><meta name="keywords" content="RedHat, redhat, maddy, linus, linux, Linux, Securing, Optimising, security, secure, openna, gerhard"><link rel="home" href="index.html" title="Securing and Optimizing Linux"><link rel="up" href="tcp-ip.html" title="Chapter 8. TCP/IP -Network Management"><link rel="prev" href="tcp-ip.html" title="Chapter 8. TCP/IP -Network Management"><link rel="next" href="file-netfunc.html" title="Chapter 9. Files -Networking Functionality"></head><body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF"><div class="navheader"><table width="100%" summary="Navigation header"><tr><th colspan="3" align="center">1. Multiple Ethernet Card per Machine</th></tr><tr><td width="20%" align="left"><a accesskey="p" href="tcp-ip.html">Prev</a> </td><th width="60%" align="center">Chapter 8. <acronym class="acronym">TCP/IP</acronym> -Network Management</th><td width="20%" align="right"> <a accesskey="n" href="file-netfunc.html">Next</a></td></tr></table><hr></div><div class="section"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="idm5906"></a>1. Multiple Ethernet Card per Machine</h2></div></div></div><p>
+             You can use Linux as a gateway between two Ethernet networks. In that case, you might have two Ethernet cards on your server. To eliminate problems at boot time, the Linux kernel doesn't detect multiple cards 
+             automatically. If you happen to have two or more cards, you should specify the parameters of the cards in the <code class="filename">lilo.conf</code> file for a monolithic kernel or in the <code class="filename">conf.modules</code> file 
+             for a modularized kernel. The following are problems you may encounter with your network cards.
+             </p><p><b>Problem 1. </b>
+             If the driver(s) of the card(s) is/are being used as a loadable module <span class="emphasis"><em>modularized kernel</em></span>, in the case of <acronym class="acronym">PCI</acronym> drivers, the module will typically detect all of the installed cards 
+             automatically. For <acronym class="acronym"><acronym class="acronym">ISA</acronym></acronym> cards, you need to supply the <code class="literal">I/O</code> base address of the card so the module knows where to look. This information is stored in the file <code class="filename">/etc/conf.modules</code>.
+             
+             </p><div class="example"><a name="idm5920"></a><p class="title"><b>Example 8.1. Two ISA ethernet cards</b></p><div class="example-contents"><p>       
+
+             Consider we have two <acronym class="acronym">ISA</acronym> <code class="literal">3c509</code> cards, one at <code class="literal">I/O</code> <code class="literal">0x300</code> and one at <code class="literal">I/O</code> <code class="literal">0x320</code>.
+
+             For <acronym class="acronym">ISA</acronym> cards, edit the <code class="filename">conf.modules</code> file, <span class="command"><strong>vi</strong></span> <code class="filename">/etc/conf.modules</code> and add:
+             </p><pre class="programlisting">
+             alias eth0 3c509
+             alias eth1 3c509
+             options 3c509 io=0x300,0x320
+             </pre><p>
+             
+             This says that the <code class="literal">3c509</code> driver should be loaded for either <code class="literal">eth0</code> or <code class="literal">eth1</code> alias <code class="literal">eth0</code>, <code class="literal">eth1</code> and it should be loaded with 
+             the options <code class="literal">io=0x300,0x320</code> so that the drivers knows where to look for the cards. Note that <code class="literal">0x</code> is important,  things like <code class="literal">300h</code> as commonly used in the <acronym class="acronym">DOS</acronym> world wont work.
+             </p><p>
+             For <acronym class="acronym">PCI</acronym> cards, you typically only need the alias lines to correlate the <code class="literal">ethN</code> interfaces with the appropriate driver name, since the <code class="literal">I/O</code> base of a <acronym class="acronym">PCI</acronym> card can be safely 
+             detected.
+
+             For <acronym class="acronym">PCI</acronym> cards, edit the <code class="filename">conf.modules</code> file <span class="command"><strong>vi</strong></span> <code class="filename">/etc/conf.modules</code> and add:
+             </p><pre class="programlisting">
+             alias eth0 3c509
+             alias eth1 3c509
+             </pre><p>
+             </p></div></div><p><br class="example-break">
+             </p><p><b>Problem 2. </b>
+             If the drivers(s) of the card(s) is/are compiled into the kernel -<span class="emphasis"><em>monolithic kernel</em></span>, the <acronym class="acronym">PCI</acronym> probes will find all related cards automatically. <acronym class="acronym">ISA</acronym> cards 
+             will also find all related cards automatically, but in some circumstance <acronym class="acronym">ISA</acronym> cards still need to do the following. This information is stored in the file <code class="filename">/etc/lilo.conf</code>. The method 
+             is to pass boot-time arguments to the kernel, which is usually done by <code class="literal">LILO</code>.
+             For <acronym class="acronym">ISA</acronym> cards, edit the <code class="filename">lilo.conf</code> file, <span class="command"><strong>vi</strong></span> <code class="filename">/etc/lilo.conf</code> and add:
+             
+             </p><pre class="programlisting">
+             append=ether=0,0,eth1
+             </pre><p>
+             </p><div class="important" style="margin-left: 0.5in; margin-right: 0.5in;"><h3 class="title">
+<span class="inlinemediaobject"><img src="./images/Important.gif" alt="Important"></span>
+</h3><p>
+             First test your <acronym class="acronym">ISA</acronym> cards without the boot-time arguments in the <code class="filename">lilo.conf</code> file, and if this fails, use the boot-time arguments.
+             </p></div><p>
+             
+             In this case <code class="literal">eth0</code> and <code class="literal">eth1</code> will be assigned in the order that the cards are found at boot. Since we have recompiled the kernel, we must use the 
+             second method. If the drivers(s) is/are compiled into the kernel to install our second Ethernet card on the system. Remember that this is required only in some circumstance 
+             for <acronym class="acronym">ISA</acronym> cards, <acronym class="acronym">PCI</acronym> cards will be found automatically.
+             
+             </p></div><div class="navfooter"><hr><table width="100%" summary="Navigation footer"><tr><td width="40%" align="left"><a accesskey="p" href="tcp-ip.html">Prev</a> </td><td width="20%" align="center"><a accesskey="u" href="tcp-ip.html">Up</a></td><td width="40%" align="right"> <a accesskey="n" href="file-netfunc.html">Next</a></td></tr><tr><td width="40%" align="left" valign="top">Chapter 8. <acronym class="acronym">TCP/IP</acronym> -Network Management </td><td width="20%" align="center"><a accesskey="h" href="index.html">Home</a></td><td width="40%" align="right" valign="top"> Chapter 9. Files -Networking Functionality</td></tr></table></div></body></html>

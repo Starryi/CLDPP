@@ -1,0 +1,530 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1"><title>2. Parameter Substitution</title><link rel="stylesheet" type="text/css" href="style.css"><meta name="generator" content="DocBook XSL Stylesheets V1.79.1"><link rel="home" href="index.html" title="Advanced Bash-Scripting Guide"><link rel="up" href="ch10.html" title="Chapter 10. Manipulating Variables"><link rel="prev" href="ch10s01.html" title="1. Manipulating Strings"><link rel="next" href="ch11.html" title="Chapter 11. Loops and Branches"></head><body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF"><div class="navheader"><table width="100%" summary="Navigation header"><tr><th colspan="3" align="center">2. Parameter Substitution</th></tr><tr><td width="20%" align="left"><a accesskey="p" href="ch10s01.html">Prev</a> </td><th width="60%" align="center">Chapter 10. Manipulating Variables</th><td width="20%" align="right"> <a accesskey="n" href="ch11.html">Next</a></td></tr></table><hr></div><div class="sect1"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="Parameter-Substitution"></a>2. Parameter Substitution</h2></div></div></div><p><a name="paramsubref"></a></p><div class="variablelist"><a name="pssub"></a><p class="title"><b><a name="pssub1"></a>Manipulating and/or expanding variables</b></p><dl class="variablelist"><dt><span class="term">
+		  <strong class="userinput"><code>${parameter}</code></strong></span></dt><dd><p>Same as <em class="replaceable"><code>$parameter</code></em>, i.e.,
+		  value of the variable
+		  <em class="replaceable"><code>parameter</code></em>.
+		  In certain contexts, only the less ambiguous
+		  <em class="replaceable"><code>${parameter}</code></em> form
+		  works.</p><p>May be used for concatenating variables with strings.</p><pre class="programlisting">
+your_id=${USER}-on-${HOSTNAME}
+echo "$your_id"
+#
+echo "Old \$PATH = $PATH"
+PATH=${PATH}:/opt/bin  # Add /opt/bin to $PATH for duration of script.
+echo "New \$PATH = $PATH"
+</pre></dd><dt><span class="term"><a name="defparam1"></a><strong class="userinput"><code>${parameter-default}</code></strong>, </span><span class="term"><strong class="userinput"><code>${parameter:-default}</code></strong></span></dt><dd><p>If parameter not set, use default.</p><pre class="programlisting">var1=1
+var2=2
+# var3 is unset.
+
+echo ${var1-$var2}   # 1
+echo ${var3-$var2}   # 2
+#           ^          Note the $ prefix.
+
+
+
+echo ${username-`whoami`}
+# Echoes the result of `whoami`, if variable $username is still unset.</pre><div class="note" style="margin-left: 0.5in; margin-right: 0.5in;"><h3 class="title">Note</h3><p><a name="unddr"></a><em class="replaceable"><code>${parameter-default}</code></em>
+		  and <em class="replaceable"><code>${parameter:-default}</code></em>
+		  are almost equivalent. The extra <span class="token">:</span> makes
+		  a difference only when <em class="parameter"><code>parameter</code></em>
+		  has been declared, but is null.  </p></div><pre class="programlisting">#!/bin/bash
+# param-sub.sh
+
+#  Whether a variable has been declared
+#+ affects triggering of the default option
+#+ even if the variable is null.
+
+username0=
+echo "username0 has been declared, but is set to null."
+echo "username0 = ${username0-`whoami`}"
+# Will not echo.
+
+echo
+
+echo username1 has not been declared.
+echo "username1 = ${username1-`whoami`}"
+# Will echo.
+
+username2=
+echo "username2 has been declared, but is set to null."
+echo "username2 = ${username2:-`whoami`}"
+#                            ^
+# Will echo because of :- rather than just - in condition test.
+# Compare to first instance, above.
+
+
+#
+
+# Once again:
+
+variable=
+# variable has been declared, but is set to null.
+
+echo "${variable-0}"    # (no output)
+echo "${variable:-1}"   # 1
+#               ^
+
+unset variable
+
+echo "${variable-2}"    # 2
+echo "${variable:-3}"   # 3
+
+exit 0
+</pre><p>The <em class="firstterm">default parameter</em> construct
+		  finds use in providing <span class="quote">&#8220;<span class="quote">missing</span>&#8221;</span> command-line
+		  arguments in scripts.</p><p>
+		  </p><pre class="programlisting">DEFAULT_FILENAME=generic.data
+filename=${1:-$DEFAULT_FILENAME}
+#  If not otherwise specified, the following command block operates
+#+ on the file "generic.data".
+#  Begin-Command-Block
+#  ...
+#  ...
+#  ...
+#  End-Command-Block
+
+
+
+#  From "hanoi2.bash" example:
+DISKS=${1:-E_NOPARAM}   # Must specify how many disks.
+#  Set $DISKS to $1 command-line-parameter,
+#+ or to $E_NOPARAM if that is unset.</pre><p>
+		</p><p>See also <a class="xref" href="ch03.html#ex58" title="Example 3.4. Backup of all files changed in last day">Example 3.4, &#8220;Backup of all files changed in last day&#8221;</a>, <a class="xref" href="ch31.html#ex73" title="Example 31.2. Setting up a swapfile using /dev/zero">Example 31.2, &#8220;Setting up a swapfile using <code class="filename">/dev/zero</code>&#8221;</a>, and <a class="xref" href="apa.html#collatz" title="Example A.6. Collatz series">Example A.6, &#8220;Collatz series&#8221;</a>.</p><p>Compare this method with <a class="link" href="ch26.html#anddefault">using an <em class="firstterm">and
+		  list</em> to supply a default command-line
+		  argument</a>.</p></dd><dt><span class="term"><strong class="userinput"><code>${parameter=default}</code></strong>, </span><span class="term"><strong class="userinput"><code>${parameter:=default}</code></strong></span></dt><dd><p><a name="defparam"></a></p><p>If parameter not set, set it to
+		  <em class="firstterm">default</em>.</p><p>Both forms nearly equivalent. The <span class="token">:</span>
+		  makes a difference only when <code class="varname">$parameter</code>
+		  has been declared and is null,
+		    <a href="#ftn.idm6314" class="footnote" name="idm6314"><sup class="footnote">[51]</sup></a>
+		  as above.
+		    </p><pre class="programlisting">echo ${var=abc}   # abc
+echo ${var=xyz}   # abc
+# $var had already been set to abc, so it did not change.</pre></dd><dt><span class="term"><a name="paramaltv"></a><strong class="userinput"><code>${parameter+alt_value}</code></strong>, </span><span class="term"><strong class="userinput"><code>${parameter:+alt_value}</code></strong></span></dt><dd><p>If parameter set, use
+		    <strong class="userinput"><code>alt_value</code></strong>, else use null
+		    string.</p><p>Both forms nearly equivalent. The <span class="token">:</span>
+		    makes a difference only when
+		    <em class="parameter"><code>parameter</code></em>
+		    has been declared and is null, see below.</p><pre class="programlisting">echo "###### \${parameter+alt_value} ########"
+echo
+
+a=${param1+xyz}
+echo "a = $a"      # a =
+
+param2=
+a=${param2+xyz}
+echo "a = $a"      # a = xyz
+
+param3=123
+a=${param3+xyz}
+echo "a = $a"      # a = xyz
+
+echo
+echo "###### \${parameter:+alt_value} ########"
+echo
+
+a=${param4:+xyz}
+echo "a = $a"      # a =
+
+param5=
+a=${param5:+xyz}
+echo "a = $a"      # a =
+# Different result from   a=${param5+xyz}
+
+param6=123
+a=${param6:+xyz}
+echo "a = $a"      # a = xyz</pre></dd><dt><span class="term"><a name="qerrmsg"></a><strong class="userinput"><code>${parameter?err_msg}</code></strong>, </span><span class="term"><strong class="userinput"><code>${parameter:?err_msg}</code></strong></span></dt><dd><p>If parameter set, use it, else print
+                <em class="firstterm">err_msg</em> and <span class="emphasis"><em>abort
+                the script</em></span> with an <a class="link" href="ch06.html#exitstatusref">exit status</a> of
+                <span class="errorcode">1</span>.</p><p>Both forms nearly equivalent. The <span class="token">:</span>
+		  makes a difference only when <em class="parameter"><code>parameter</code></em>
+		  has been declared and is null, as above.</p></dd></dl></div><div class="example"><a name="ex6"></a><p class="title"><b>Example 10.7. Using parameter substitution and error messages</b></p><div class="example-contents"><pre class="programlisting">#!/bin/bash
+
+#  Check some of the system's environmental variables.
+#  This is good preventative maintenance.
+#  If, for example, $USER, the name of the person at the console, is not set,
+#+ the machine will not recognize you.
+
+: ${HOSTNAME?} ${USER?} ${HOME?} ${MAIL?}
+  echo
+  echo "Name of the machine is $HOSTNAME."
+  echo "You are $USER."
+  echo "Your home directory is $HOME."
+  echo "Your mail INBOX is located in $MAIL."
+  echo
+  echo "If you are reading this message,"
+  echo "critical environmental variables have been set."
+  echo
+  echo
+
+# ------------------------------------------------------
+
+#  The ${variablename?} construction can also check
+#+ for variables set within the script.
+
+ThisVariable=Value-of-ThisVariable
+#  Note, by the way, that string variables may be set
+#+ to characters disallowed in their names.
+: ${ThisVariable?}
+echo "Value of ThisVariable is $ThisVariable".
+
+echo; echo
+
+
+: ${ZZXy23AB?"ZZXy23AB has not been set."}
+#  Since ZZXy23AB has not been set,
+#+ then the script terminates with an error message.
+
+# You can specify the error message.
+# : ${variablename?"ERROR MESSAGE"}
+
+
+# Same result with:   dummy_variable=${ZZXy23AB?}
+#                     dummy_variable=${ZZXy23AB?"ZXy23AB has not been set."}
+#
+#                     echo ${ZZXy23AB?} &gt;/dev/null
+
+#  Compare these methods of checking whether a variable has been set
+#+ with "set -u" . . .
+
+
+
+echo "You will not see this message, because script already terminated."
+
+HERE=0
+exit $HERE   # Will NOT exit here.
+
+# In fact, this script will return an exit status (echo $?) of 1.
+</pre></div></div><br class="example-break"><div class="example"><a name="usagemessage"></a><p class="title"><b>Example 10.8. Parameter substitution and <span class="quote">&#8220;<span class="quote">usage</span>&#8221;</span> messages</b></p><div class="example-contents"><pre class="programlisting">#!/bin/bash
+# usage-message.sh
+
+: ${1?"Usage: $0 ARGUMENT"}
+#  Script exits here if command-line parameter absent,
+#+ with following error message.
+#    usage-message.sh: 1: Usage: usage-message.sh ARGUMENT
+
+echo "These two lines echo only if command-line parameter given."
+echo "command-line parameter = \"$1\""
+
+exit 0  # Will exit here only if command-line parameter present.
+
+# Check the exit status, both with and without command-line parameter.
+# If command-line parameter present, then "$?" is 0.
+# If not, then "$?" is 1.
+</pre></div></div><br class="example-break"><p><b>Parameter substitution and/or expansion. </b><a name="psub2"></a>The following expressions are
+		the complement to the <span class="command"><strong>match</strong></span>
+		<em class="replaceable"><code>in</code></em> <span class="command"><strong>expr</strong></span>
+		string operations (see <a class="xref" href="ch16s02.html#ex45" title="Example 16.9. Using expr">Example 16.9, &#8220;Using <em class="firstterm">expr</em>&#8221;</a>).
+		These particular ones are used mostly in parsing file
+		path names.</p><div class="variablelist"><a name="psorex"></a><p class="title"><b><a name="psorex1"></a>Variable length / Substring removal</b></p><dl class="variablelist"><dt><span class="term"><strong class="userinput"><code>${#var}</code></strong></span></dt><dd><p><strong class="userinput"><code>String length</code></strong> (number
+		    of characters in <code class="varname">$var</code>). For
+		    an <a class="link" href="ch27.html#arrayref">array</a>,
+		    <span class="command"><strong>${#array}</strong></span> is the length of the
+		    first element in the array.</p><div class="note" style="margin-left: 0.5in; margin-right: 0.5in;"><h3 class="title">Note</h3><p>
+		    Exceptions:
+
+		  </p><div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem"><p><a name="numposparam"></a></p><p>
+		      <span class="command"><strong>${#*}</strong></span> and
+		      <span class="command"><strong>${#@}</strong></span> give the <span class="emphasis"><em>number
+		      of positional parameters</em></span>.
+		    </p></li><li class="listitem"><p>
+		      For an array, <span class="command"><strong>${#array[*]}</strong></span> and
+		      <span class="command"><strong>${#array[@]}</strong></span> give the number
+		      of elements in the array.
+		    </p></li></ul></div><p>
+		  </p></div><div class="example"><a name="length"></a><p class="title"><b>Example 10.9. Length of a variable</b></p><div class="example-contents"><pre class="programlisting">#!/bin/bash
+# length.sh
+
+E_NO_ARGS=65
+
+if [ $# -eq 0 ]  # Must have command-line args to demo script.
+then
+  echo "Please invoke this script with one or more command-line arguments."
+  exit $E_NO_ARGS
+fi  
+
+var01=abcdEFGH28ij
+echo "var01 = ${var01}"
+echo "Length of var01 = ${#var01}"
+# Now, let's try embedding a space.
+var02="abcd EFGH28ij"
+echo "var02 = ${var02}"
+echo "Length of var02 = ${#var02}"
+
+echo "Number of command-line arguments passed to script = ${#@}"
+echo "Number of command-line arguments passed to script = ${#*}"
+
+exit 0
+</pre></div></div><br class="example-break"></dd><dt><span class="term"><a name="psorex2"></a><strong class="userinput"><code>${var#Pattern}</code></strong>, </span><span class="term"><strong class="userinput"><code>${var##Pattern}</code></strong></span></dt><dd><p><a name="psorexsh"></a></p><p><span class="command"><strong>${var#Pattern} </strong></span>
+		  Remove from <code class="varname">$var</code>
+		  the <span class="emphasis"><em>shortest</em></span> part of
+		  <code class="varname">$Pattern</code> that matches
+		  the <em class="replaceable"><code>front end</code></em> of
+		  <code class="varname">$var</code>.
+		</p><p><a name="psorexlo"></a></p><p><span class="command"><strong>${var##Pattern} </strong></span>
+		  Remove from <code class="varname">$var</code>
+		  the <span class="emphasis"><em>longest</em></span> part of
+		  <code class="varname">$Pattern</code> that matches
+		  the <em class="replaceable"><code>front end</code></em> of
+		  <code class="varname">$var</code>.
+		</p><p>A usage illustration from <a class="xref" href="apa.html#daysbetween" title="Example A.7. days-between: Days between two dates">Example A.7, &#8220;<em class="firstterm">days-between</em>: Days between two
+        dates&#8221;</a>:
+		</p><pre class="programlisting"># Function from "days-between.sh" example.
+# Strips leading zero(s) from argument passed.
+
+strip_leading_zero () #  Strip possible leading zero(s)
+{                     #+ from argument passed.
+  return=${1#0}       #  The "1" refers to "$1" -- passed arg.
+}                     #  The "0" is what to remove from "$1" -- strips zeros.</pre><p>
+		</p><p>Manfred Schwarb's more elaborate variation of the
+			above:</p><p>
+</p><pre class="programlisting">strip_leading_zero2 () # Strip possible leading zero(s), since otherwise
+{                      # Bash will interpret such numbers as octal values.
+  shopt -s extglob     # Turn on extended globbing.
+  local val=${1##+(0)} # Use local variable, longest matching series of 0's.
+  shopt -u extglob     # Turn off extended globbing.
+  _strip_leading_zero2=${val:-0}
+                       # If input was 0, return 0 instead of "".
+}</pre><p>
+		</p><p>Another usage illustration:</p><p>
+</p><pre class="programlisting">echo `basename $PWD`        # Basename of current working directory.
+echo "${PWD##*/}"           # Basename of current working directory.
+echo
+echo `basename $0`          # Name of script.
+echo $0                     # Name of script.
+echo "${0##*/}"             # Name of script.
+echo
+filename=test.data
+echo "${filename##*.}"      # data
+                            # Extension of filename.</pre><p>
+		</p></dd><dt><span class="term"><a name="pctpatref"></a><strong class="userinput"><code>${var%Pattern}</code></strong>, </span><span class="term"><strong class="userinput"><code>${var%%Pattern}</code></strong></span></dt><dd><p><a name="pctrep1"></a></p><p><span class="command"><strong>${var%Pattern}</strong></span>
+		  Remove from <code class="varname">$var</code>
+		  the <span class="emphasis"><em>shortest</em></span> part of
+		  <code class="varname">$Pattern</code> that matches
+		  the <em class="replaceable"><code>back end</code></em> of
+		  <code class="varname">$var</code>.  </p><p><a name="pctrep2"></a></p><p><span class="command"><strong>${var%%Pattern}</strong></span>
+		  Remove from <code class="varname">$var</code>
+		  the <span class="emphasis"><em>longest</em></span> part of
+		  <code class="varname">$Pattern</code> that matches
+		  the <em class="replaceable"><code>back end</code></em> of
+		  <code class="varname">$var</code>.  </p></dd></dl></div><p><a class="link" href="ch37s01.html#bash2ref">Version 2</a> of Bash added
+	      additional options.</p><div class="example"><a name="pattmatching"></a><p class="title"><b>Example 10.10. Pattern matching in parameter substitution</b></p><div class="example-contents"><pre class="programlisting">#!/bin/bash
+# patt-matching.sh
+
+# Pattern matching  using the # ## % %% parameter substitution operators.
+
+var1=abcd12345abc6789
+pattern1=a*c  # * (wild card) matches everything between a - c.
+
+echo
+echo "var1 = $var1"           # abcd12345abc6789
+echo "var1 = ${var1}"         # abcd12345abc6789
+                              # (alternate form)
+echo "Number of characters in ${var1} = ${#var1}"
+echo
+
+echo "pattern1 = $pattern1"   # a*c  (everything between 'a' and 'c')
+echo "--------------"
+echo '${var1#$pattern1}  =' "${var1#$pattern1}"    #         d12345abc6789
+# Shortest possible match, strips out first 3 characters  abcd12345abc6789
+#                                     ^^^^^               |-|
+echo '${var1##$pattern1} =' "${var1##$pattern1}"   #                  6789      
+# Longest possible match, strips out first 12 characters  abcd12345abc6789
+#                                    ^^^^^                |----------|
+
+echo; echo; echo
+
+pattern2=b*9            # everything between 'b' and '9'
+echo "var1 = $var1"     # Still  abcd12345abc6789
+echo
+echo "pattern2 = $pattern2"
+echo "--------------"
+echo '${var1%pattern2}  =' "${var1%$pattern2}"     #     abcd12345a
+# Shortest possible match, strips out last 6 characters  abcd12345abc6789
+#                                     ^^^^                         |----|
+echo '${var1%%pattern2} =' "${var1%%$pattern2}"    #     a
+# Longest possible match, strips out last 12 characters  abcd12345abc6789
+#                                    ^^^^                 |-------------|
+
+# Remember, # and ## work from the left end (beginning) of string,
+#           % and %% work from the right end.
+
+echo
+
+exit 0
+</pre></div></div><br class="example-break"><div class="example"><a name="rfe"></a><p class="title"><b>Example 10.11. Renaming file extensions<span class="token">:</span></b></p><div class="example-contents"><pre class="programlisting">#!/bin/bash
+# rfe.sh: Renaming file extensions.
+#
+#         rfe old_extension new_extension
+#
+# Example:
+# To rename all *.gif files in working directory to *.jpg,
+#          rfe gif jpg
+
+
+E_BADARGS=65
+
+case $# in
+  0|1)             # The vertical bar means "or" in this context.
+  echo "Usage: `basename $0` old_file_suffix new_file_suffix"
+  exit $E_BADARGS  # If 0 or 1 arg, then bail out.
+  ;;
+esac
+
+
+for filename in *.$1
+# Traverse list of files ending with 1st argument.
+do
+  mv $filename ${filename%$1}$2
+  #  Strip off part of filename matching 1st argument,
+  #+ then append 2nd argument.
+done
+
+exit 0
+</pre></div></div><br class="example-break"><div class="variablelist"><a name="exprepl"></a><p class="title"><b><a name="exprepl1"></a>Variable expansion / Substring
+	      replacement</b></p><dl class="variablelist"><dt><span class="term"></span></dt><dd><p>These constructs have been adopted from
+		  <em class="firstterm">ksh</em>.</p></dd><dt><span class="term"><strong class="userinput"><code>${var:pos}</code></strong></span></dt><dd><p>Variable <em class="replaceable"><code>var</code></em> expanded,
+		    starting from offset <em class="replaceable"><code>pos</code></em>.
+		  </p></dd><dt><span class="term"><strong class="userinput"><code>${var:pos:len}</code></strong></span></dt><dd><p>Expansion to a max of <em class="replaceable"><code>len</code></em>
+		    characters of variable <em class="replaceable"><code>var</code></em>, from offset
+		    <em class="replaceable"><code>pos</code></em>. See <a class="xref" href="apa.html#pw" title="Example A.13. password: Generating random 8-character passwords">Example A.13, &#8220;<em class="firstterm">password</em>: Generating random
+      8-character passwords&#8221;</a>
+		    for an example of the creative use of this operator.
+		  </p></dd><dt><span class="term"><strong class="userinput"><code>${var/Pattern/Replacement}</code></strong></span></dt><dd><p>First match of <em class="replaceable"><code>Pattern</code></em>,
+		    within <em class="replaceable"><code>var</code></em> replaced with
+		    <em class="replaceable"><code>Replacement</code></em>.</p><p>If <em class="replaceable"><code>Replacement</code></em> is
+		    omitted, then the first match of
+		    <em class="replaceable"><code>Pattern</code></em> is replaced by
+		    <span class="emphasis"><em>nothing</em></span>, that is, deleted.</p></dd><dt><span class="term"><strong class="userinput"><code>${var//Pattern/Replacement}</code></strong></span></dt><dd><p><b>Global replacement. </b><a name="psglob"></a>
+		    All matches of <em class="replaceable"><code>Pattern</code></em>,
+		    within <em class="replaceable"><code>var</code></em> replaced with
+		    <em class="replaceable"><code>Replacement</code></em>.</p><p>As above, if <em class="replaceable"><code>Replacement</code></em>
+		    is omitted, then all occurrences of
+		    <em class="replaceable"><code>Pattern</code></em> are replaced by
+		    <span class="emphasis"><em>nothing</em></span>, that is, deleted.</p><div class="example"><a name="ex7"></a><p class="title"><b>Example 10.12. Using pattern matching to parse arbitrary strings</b></p><div class="example-contents"><pre class="programlisting">#!/bin/bash
+
+var1=abcd-1234-defg
+echo "var1 = $var1"
+
+t=${var1#*-*}
+echo "var1 (with everything, up to and including first - stripped out) = $t"
+#  t=${var1#*-}  works just the same,
+#+ since # matches the shortest string,
+#+ and * matches everything preceding, including an empty string.
+# (Thanks, Stephane Chazelas, for pointing this out.)
+
+t=${var1##*-*}
+echo "If var1 contains a \"-\", returns empty string...   var1 = $t"
+
+
+t=${var1%*-*}
+echo "var1 (with everything from the last - on stripped out) = $t"
+
+echo
+
+# -------------------------------------------
+path_name=/home/bozo/ideas/thoughts.for.today
+# -------------------------------------------
+echo "path_name = $path_name"
+t=${path_name##/*/}
+echo "path_name, stripped of prefixes = $t"
+# Same effect as   t=`basename $path_name` in this particular case.
+#  t=${path_name%/}; t=${t##*/}   is a more general solution,
+#+ but still fails sometimes.
+#  If $path_name ends with a newline, then `basename $path_name` will not work,
+#+ but the above expression will.
+# (Thanks, S.C.)
+
+t=${path_name%/*.*}
+# Same effect as   t=`dirname $path_name`
+echo "path_name, stripped of suffixes = $t"
+# These will fail in some cases, such as "../", "/foo////", # "foo/", "/".
+#  Removing suffixes, especially when the basename has no suffix,
+#+ but the dirname does, also complicates matters.
+# (Thanks, S.C.)
+
+echo
+
+t=${path_name:11}
+echo "$path_name, with first 11 chars stripped off = $t"
+t=${path_name:11:5}
+echo "$path_name, with first 11 chars stripped off, length 5 = $t"
+
+echo
+
+t=${path_name/bozo/clown}
+echo "$path_name with \"bozo\" replaced  by \"clown\" = $t"
+t=${path_name/today/}
+echo "$path_name with \"today\" deleted = $t"
+t=${path_name//o/O}
+echo "$path_name with all o's capitalized = $t"
+t=${path_name//o/}
+echo "$path_name with all o's deleted = $t"
+
+exit 0
+</pre></div></div><br class="example-break"></dd><dt><span class="term"><strong class="userinput"><code>${var/#Pattern/Replacement}</code></strong></span></dt><dd><p>If <em class="firstterm">prefix</em> of
+		  <em class="replaceable"><code>var</code></em> matches
+		  <em class="replaceable"><code>Pattern</code></em>, then substitute
+		  <em class="replaceable"><code>Replacement</code></em> for
+		  <em class="replaceable"><code>Pattern</code></em>.</p></dd><dt><span class="term"><strong class="userinput"><code>${var/%Pattern/Replacement}</code></strong></span></dt><dd><p>If <em class="firstterm">suffix</em> of
+		  <em class="replaceable"><code>var</code></em> matches
+		  <em class="replaceable"><code>Pattern</code></em>, then substitute
+		  <em class="replaceable"><code>Replacement</code></em> for
+		  <em class="replaceable"><code>Pattern</code></em>.</p><div class="example"><a name="varmatch"></a><p class="title"><b>Example 10.13. Matching patterns at prefix or suffix of string</b></p><div class="example-contents"><pre class="programlisting">#!/bin/bash
+# var-match.sh:
+# Demo of pattern replacement at prefix / suffix of string.
+
+v0=abc1234zip1234abc    # Original variable.
+echo "v0 = $v0"         # abc1234zip1234abc
+echo
+
+# Match at prefix (beginning) of string.
+v1=${v0/#abc/ABCDEF}    # abc1234zip1234abc
+                        # |-|
+echo "v1 = $v1"         # ABCDEF1234zip1234abc
+                        # |----|
+
+# Match at suffix (end) of string.
+v2=${v0/%abc/ABCDEF}    # abc1234zip123abc
+                        #              |-|
+echo "v2 = $v2"         # abc1234zip1234ABCDEF
+                        #               |----|
+
+echo
+
+#  ----------------------------------------------------
+#  Must match at beginning / end of string,
+#+ otherwise no replacement results.
+#  ----------------------------------------------------
+v3=${v0/#123/000}       # Matches, but not at beginning.
+echo "v3 = $v3"         # abc1234zip1234abc
+                        # NO REPLACEMENT.
+v4=${v0/%123/000}       # Matches, but not at end.
+echo "v4 = $v4"         # abc1234zip1234abc
+                        # NO REPLACEMENT.
+
+exit 0			
+</pre></div></div><br class="example-break"></dd><dt><span class="term"><a name="varprefixm"></a><strong class="userinput"><code>${!varprefix*}</code></strong>, </span><span class="term"><strong class="userinput"><code>${!varprefix@}</code></strong></span></dt><dd><p>Matches <span class="emphasis"><em>names</em></span> of all
+		  previously declared variables beginning
+		    with <em class="parameter"><code>varprefix</code></em>.
+		      </p><pre class="programlisting"># This is a variation on indirect reference, but with a * or @.
+# Bash, version 2.04, adds this feature.
+
+xyz23=whatever
+xyz24=
+
+a=${!xyz*}         #  Expands to *names* of declared variables
+# ^ ^   ^           + beginning with "xyz".
+echo "a = $a"      #  a = xyz23 xyz24
+a=${!xyz@}         #  Same as above.
+echo "a = $a"      #  a = xyz23 xyz24
+
+echo "---"
+
+abc23=something_else
+b=${!abc*}
+echo "b = $b"      #  b = abc23
+c=${!b}            #  Now, the more familiar type of indirect reference.
+echo $c            #  something_else</pre><p>
+                  </p></dd></dl></div><div class="footnotes"><br><hr style="width:100; text-align:left;margin-left: 0"><div id="ftn.idm6314" class="footnote"><p><a href="#idm6314" class="para"><sup class="para">[51] </sup></a>If $parameter is null in a
+		      non-interactive script, it will terminate with a <a class="link" href="ape.html#exitcodesref"><span class="returnvalue">127</span>
+		      exit status</a> (the Bash error code for
+		      <span class="quote">&#8220;<span class="quote">command not found</span>&#8221;</span>).</p></div></div></div><div class="navfooter"><hr><table width="100%" summary="Navigation footer"><tr><td width="40%" align="left"><a accesskey="p" href="ch10s01.html">Prev</a> </td><td width="20%" align="center"><a accesskey="u" href="ch10.html">Up</a></td><td width="40%" align="right"> <a accesskey="n" href="ch11.html">Next</a></td></tr><tr><td width="40%" align="left" valign="top">1. Manipulating Strings </td><td width="20%" align="center"><a accesskey="h" href="index.html">Home</a></td><td width="40%" align="right" valign="top"> Chapter 11. Loops and Branches</td></tr></table></div></body></html>

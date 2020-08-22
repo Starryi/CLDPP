@@ -1,0 +1,94 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1"><title>The Linux Print2Win mini-HOWTO</title><link rel="stylesheet" type="text/css" href="style.css"><meta name="generator" content="DocBook XSL Stylesheets V1.79.1"><meta name="description" content="This howto contains the general configuration to get Linux printing to a Windows print share."></head><body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF"><div class="article"><div class="titlepage"><div><div><h2 class="title"><a name="Print2Win"></a>The Linux Print2Win mini-HOWTO</h2></div><div><div class="authorgroup"><div class="author"><h3 class="author"><span class="firstname">Marcelo</span> <span class="othername">Pereira</span> <span class="surname">da Silva</span></h3><div class="affiliation"><div class="address"><p><code class="email">&lt;<a class="email" href="mailto:marcelo@pereira.com">marcelo@pereira.com</a>&gt;</code></p></div></div></div></div></div><div><p class="releaseinfo">v1.1</p></div><div><p class="pubdate">Jan 2002</p></div><div><div class="revhistory"><table style="border-style:solid; width:100%;" summary="Revision History"><tr><th align="left" valign="top" colspan="3"><b>Revision History</b></th></tr><tr><td align="left">Revision 1.1</td><td align="left">2002-07-19</td><td align="left">ms</td></tr><tr><td align="left">Revision 1.0</td><td align="left">2002-01-01</td><td align="left">ms</td></tr></table></div></div><div><div class="abstract"><p class="title"><b>Abstract</b></p><p>
+        This howto contains the general configuration to get Linux printing to a
+        Windows print share.
+      </p></div></div></div><hr></div><div class="toc"><p><b>Table of Contents</b></p><dl class="toc"><dt><span class="section"><a href="#idm25">1. Introduction</a></span></dt><dt><span class="section"><a href="#idm29">2. Server (Windows)</a></span></dt><dt><span class="section"><a href="#idm32">3. Client (Linux)</a></span></dt><dd><dl><dt><span class="section"><a href="#idm35">3.1. Standard lpr</a></span></dt></dl></dd><dt><span class="section"><a href="#idm75">4. <code class="filename">/etc/printcap</code> Tips</a></span></dt><dt><span class="section"><a href="#idm95">5. License</a></span></dt><dt><span class="section"><a href="#idm99">6. Credits</a></span></dt></dl></div><div class="section"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="idm25"></a>1. Introduction</h2></div></div></div><p>
+      As we want the print service running, we'll set up all the
+      environment step by step, to avoid mistakes or bad configurations.
+    </p><p>
+      First, set up the server; when you have the server running, configure
+      the clients.
+    </p></div><div class="section"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="idm29"></a>2. Server (Windows)</h2></div></div></div><p>      
+      There is no special rules when configuring the server. Just install the
+      printer driver in the Windows server, test it to verify that the printer
+      is running properly, and share the printer.
+    </p></div><div class="section"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="idm32"></a>3. Client (Linux)</h2></div></div></div><p>
+      The client configuration is similar to Linux to Linux printing.
+    </p><div class="section"><div class="titlepage"><div><div><h3 class="title"><a name="idm35"></a>3.1. Standard lpr</h3></div></div></div><p>
+        The simplest way to do it is to add an entry to
+        <code class="filename">/etc/printcap</code>.  As a quick example, the entry
+        for a generic matrix printer would be:
+</p><pre class="screen"># EPSON LX300 
+epson:\
+:sd=/var/spool/lpd/epson:\
+:mx#0:\
+:sh:\
+:if=/var/spool/lpd/epson/filter:\
+:lp=/dev/null:</pre><p>
+      </p><div class="note" style="margin-left: 0.5in; margin-right: 0.5in;"><h3 class="title">Note</h3><p>
+          Make sure you are using the correct filter, or the right generic
+          one.
+        </p></div><p>
+        Be sure you have created the directory
+        <code class="filename">/var/spool/lpd/epson</code>, and the users you wish
+        to use the printer have the right access to this.
+      </p><p>
+        For example, assume the Windows print server is named <code class="systemitem">meriadoc</code>, with an <acronym class="acronym">IP</acronym> address of
+        <code class="literal">192.168.1.49</code>, and the printer is shared from
+        Windows as <code class="systemitem">epsonLX</code>.
+      </p><p>
+        So, you have to configure
+        <code class="filename">/var/spool/lpd/epson/.config</code> like this:
+</p><pre class="screen">share='\\meriadoc\epsonLX'
+hostip=192.168.1.49</pre><p>
+      </p><p>
+        Where:
+        </p><div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem"><p><code class="varname">share</code>='\\<em class="replaceable"><code>windows-print-server-name</code></em>\<em class="replaceable"><code>print-share-name</code></em>'</p></li><li class="listitem"><p><code class="varname">hostip</code>=<em class="replaceable"><code>windows-print-server-IP</code></em></p></li></ul></div><p>
+
+      </p><p>
+        Once your <code class="filename">/etc/printcap</code> is configured, you
+        have to enable the print share:
+</p><pre class="screen"><code class="prompt">[localhost]$</code> <strong class="userinput"><code>lpc up epson</code></strong>
+<code class="prompt">[localhost]$</code> <strong class="userinput"><code>lpc enable epson</code></strong></pre><p>
+      </p><p>
+        If everything is ok, you can send jobs to the queue:
+
+</p><pre class="screen"><code class="prompt">[localhost]$</code> <strong class="userinput"><code>lpr -Pepson <em class="replaceable"><code>file</code></em></code></strong></pre><p>
+      </p></div></div><div class="section"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="idm75"></a>4. <code class="filename">/etc/printcap</code> Tips</h2></div></div></div><p>
+      I have used the entry below in the first example, but this is not a
+      particularly good idea:
+</p><pre class="screen">...
+:lp=/dev/null:\</pre><p>
+    </p><p>
+      Because lpr does an <span class="quote">&#8220;<span class="quote">exclusive</span>&#8221;</span> open on the file you specify as lp=.
+      It does this in order to prevent multiple processes from trying to
+      print to the same printer at the same time.
+    </p><p>
+      The side effect of this is that in your case, <code class="literal">eng</code>
+      and <code class="literal">colour</code> can't print at the same time, (usually more
+      or less transparent since they probably print quickly and since they queue
+      you probably don't notice) but any other process that tries to write to
+      <code class="filename">/dev/null</code> will break!
+    </p><p>
+      On a single user system, probably not a big problem. I have a system with
+      over 50 printers. It would be a problem there.
+    </p><p>
+      The solution is to create a dummy printer for each. Eg:
+      <strong class="userinput"><code>touch /dev/eng</code></strong>.
+    </p><p>
+</p><pre class="screen"><code class="prompt">[localhost]$</code> <strong class="userinput"><code>touch /dev/eng</code></strong>
+<code class="prompt">[localhost]$</code> <strong class="userinput"><code>touch /dev/colour</code></strong></pre><p>
+    </p></div><div class="section"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="idm95"></a>5. License</h2></div></div></div><p>
+      This document, Print2Win-HOWTO,
+      is copyrighted (c) 2001-2002 by Marcelo Pereira da Silva.
+      Permission is granted to copy, distribute and/or modify this
+      document under the terms of the GNU Free Documentation License,
+      Version 1.1 or any later version published by the Free Software
+      Foundation; with no Invariant Sections, with no Front-Cover Texts,
+      and with no Back-Cover Texts. A copy of the license
+      is available at <a class="ulink" href="http://www.gnu.org/copyleft/fdl.html" target="_top">http://www.gnu.org/copyleft/fdl.html</a>.
+    </p></div><div class="section"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="idm99"></a>6. Credits</h2></div></div></div><p>
+      Thanks to all those who sent opinions about this document, to
+      everybody who told me some printing tips, to Rick Bressler, and a
+      special thanks to Harish Pillay, who wrote the first version of this
+      document.
+    </p></div></div></body></html>

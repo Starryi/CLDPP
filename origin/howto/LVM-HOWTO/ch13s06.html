@@ -1,0 +1,70 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1"><title>6. Moving a volume group to another system</title><link rel="stylesheet" type="text/css" href="style.css"><meta name="generator" content="DocBook XSL Stylesheets V1.79.1"><link rel="home" href="index.html" title="LVM HOWTO"><link rel="up" href="ch13.html" title="Chapter 13. Recipes"><link rel="prev" href="ch13s05.html" title="5. Removing an Old Disk"><link rel="next" href="ch13s07.html" title="7. Splitting a volume group"></head><body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF"><div class="navheader"><table width="100%" summary="Navigation header"><tr><th colspan="3" align="center">6. Moving a volume group to another system</th></tr><tr><td width="20%" align="left"><a accesskey="p" href="ch13s05.html">Prev</a> </td><th width="60%" align="center">Chapter 13. Recipes</th><td width="20%" align="right"> <a accesskey="n" href="ch13s07.html">Next</a></td></tr></table><hr></div><div class="sect1"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="recipemovevgtonewsys"></a>6. Moving a volume group to another system</h2></div></div></div><p>
+        It is quite easy to move a whole volume group to another system if,
+        for example, a user department acquires a new server. To do this we
+        use the vgexport and vgimport commands.
+      </p><div class="note" style="margin-left: 0.5in; margin-right: 0.5in;"><h3 class="title">Note</h3><p>
+          vgexport/vgimport is not necessary to move drives
+          from one system to another.  It is an administrative policy
+          tool to prevent access to volumes in the time it takes to
+          move them.
+        </p></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="idm1325"></a>6.1. Unmount the file system</h3></div></div></div><p>
+          First, make sure that no users are accessing files on the active
+          volume, then unmount it
+          </p><pre class="screen">
+<span class="command"><strong># unmount /mnt/design/users</strong></span>
+          </pre><p>
+        </p></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="idm1330"></a>6.2. Mark the volume group inactive</h3></div></div></div><p>
+          Marking the volume group inactive removes it from the kernel and
+          prevents any further activity on it.
+          </p><pre class="screen">
+<span class="command"><strong># vgchange -an design</strong></span>
+<code class="computeroutput">vgchange -- volume group "design" successfully deactivated</code>
+          </pre><p>
+        </p></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="idm1336"></a>6.3. Export the volume group</h3></div></div></div><p>
+          It is now necessary to export the volume group. This prevents it
+          from being accessed on the ``old'' host system and prepares it
+          to be removed.
+          </p><pre class="screen">
+<span class="command"><strong># vgexport design</strong></span>
+<code class="computeroutput">vgexport -- volume group "design" successfully exported</code>
+          </pre><p>
+          When the machine is next shut down, the disk can be unplugged
+          and then connected to it's new machine
+        </p></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="idm1342"></a>6.4. Import the volume group</h3></div></div></div><p>
+          When plugged into the new system it becomes /dev/sdb so an
+          initial pvscan shows:
+          </p><pre class="screen">
+<span class="command"><strong># pvscan</strong></span>
+<code class="computeroutput">pvscan -- reading all physical volumes (this may take a while...)
+pvscan -- inactive PV "/dev/sdb1"  is in EXPORTED VG "design" [996 MB / 996 MB free]
+pvscan -- inactive PV "/dev/sdb2"  is in EXPORTED VG "design" [996 MB / 244 MB free]
+pvscan -- total: 2 [1.95 GB] / in use: 2 [1.95 GB] / in no VG: 0 [0]</code>
+          </pre><p>
+          We can now import the volume group (which also activates it) and
+          mount the file system.
+        </p><p>
+          If you are importing on an LVM 2 system, run:
+          </p><pre class="screen">
+<span class="command"><strong># vgimport design</strong></span>
+<code class="computeroutput">  Volume group "vg" successfully imported</code>
+          </pre><p>
+        </p><p>
+          If you are importing on an LVM 1 system, add the PVs that need to be imported:
+          </p><pre class="screen">
+<span class="command"><strong># vgimport design /dev/sdb1 /dev/sdb2</strong></span>
+<code class="computeroutput">vgimport -- doing automatic backup of volume group "design"
+vgimport -- volume group "design" successfully imported and activated</code>
+          </pre><p>
+
+        </p></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="idm1356"></a>6.5. Activate the volume group</h3></div></div></div><p>
+          You must activate the volume group before you can access it.
+          </p><pre class="screen">
+<span class="command"><strong># vgchange -ay design</strong></span>
+          </pre><p>
+        </p></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="idm1361"></a>6.6. Mount the file system</h3></div></div></div><p>
+          </p><pre class="screen">
+<span class="command"><strong># mkdir -p /mnt/design/users
+# mount /dev/design/users /mnt/design/users</strong></span>
+          </pre><p>
+          The file system is now available for use.
+        </p></div></div><div class="navfooter"><hr><table width="100%" summary="Navigation footer"><tr><td width="40%" align="left"><a accesskey="p" href="ch13s05.html">Prev</a> </td><td width="20%" align="center"><a accesskey="u" href="ch13.html">Up</a></td><td width="40%" align="right"> <a accesskey="n" href="ch13s07.html">Next</a></td></tr><tr><td width="40%" align="left" valign="top">5. Removing an Old Disk </td><td width="20%" align="center"><a accesskey="h" href="index.html">Home</a></td><td width="40%" align="right" valign="top"> 7. Splitting a volume group</td></tr></table></div></body></html>

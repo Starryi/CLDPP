@@ -1,0 +1,235 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1"><title>3. The Solution</title><link rel="stylesheet" type="text/css" href="style.css"><meta name="generator" content="DocBook XSL Stylesheets V1.79.1"><link rel="home" href="index.html" title="C++ dlopen mini HOWTO"><link rel="up" href="index.html" title="C++ dlopen mini HOWTO"><link rel="prev" href="ar01s02.html" title="2. The Problem"><link rel="next" href="ar01s04.html" title="4. Source Code"></head><body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF"><div class="navheader"><table width="100%" summary="Navigation header"><tr><th colspan="3" align="center">3. The Solution</th></tr><tr><td width="20%" align="left"><a accesskey="p" href="ar01s02.html">Prev</a> </td><th width="60%" align="center"> </th><td width="20%" align="right"> <a accesskey="n" href="ar01s04.html">Next</a></td></tr></table><hr></div><div class="section"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="thesolution"></a>3. The Solution</h2></div></div></div><div class="section"><div class="titlepage"><div><div><h3 class="title"><a name="externC"></a>3.1. <code class="literal">extern "C"</code></h3></div></div></div><p>C++ has a special keyword to declare a function with C
+        bindings: <code class="literal">extern "C"</code>. A function declared
+        as <code class="literal">extern "C"</code> uses the function name as
+        symbol name, just as a C function. For that reason, only
+        non-member functions can be declared as <code class="literal">extern
+        "C"</code>, and they cannot be overloaded.</p><p>Although there are severe limitations, <code class="literal">extern
+        "C"</code> functions are very useful because they can be
+        dynamically loaded using <code class="function">dlopen</code> just like
+        a C function.</p><p>This does <span class="emphasis"><em>not</em></span> mean that functions
+        qualified as <code class="literal">extern "C"</code> cannot contain C++
+        code. Such a function is a full-featured C++ function which
+        can use C++ features and take any type of argument.</p></div><div class="section"><div class="titlepage"><div><div><h3 class="title"><a name="loadingfunctions"></a>3.2. Loading Functions</h3></div></div></div><p>In C++ functions are loaded just like in C, with
+        <code class="function">dlsym</code>. The functions you want to load
+        must be qualified as <code class="literal">extern "C"</code> to avoid
+        the symbol name being mangled.</p><div class="example"><a name="idm162"></a><p class="title"><b>Example 1. Loading a Function</b></p><div class="example-contents"><p>main.cpp:</p><pre class="programlisting">#include &lt;iostream&gt;
+#include &lt;dlfcn.h&gt;
+
+int main() {
+    using std::cout;
+    using std::cerr;
+
+    cout &lt;&lt; "C++ dlopen demo\n\n";
+
+    // open the library
+    cout &lt;&lt; "Opening hello.so...\n";
+    void* handle = dlopen("./hello.so", RTLD_LAZY);
+    
+    if (!handle) {
+        cerr &lt;&lt; "Cannot open library: " &lt;&lt; dlerror() &lt;&lt; '\n';
+        return 1;
+    }
+    
+    // load the symbol
+    cout &lt;&lt; "Loading symbol hello...\n";
+    typedef void (*hello_t)();
+
+    // reset errors
+    dlerror();
+    hello_t hello = (hello_t) dlsym(handle, "hello");
+    const char *dlsym_error = dlerror();
+    if (dlsym_error) {
+        cerr &lt;&lt; "Cannot load symbol 'hello': " &lt;&lt; dlsym_error &lt;&lt;
+            '\n';
+        dlclose(handle);
+        return 1;
+    }
+    
+    // use it to do the calculation
+    cout &lt;&lt; "Calling hello...\n";
+    hello();
+    
+    // close the library
+    cout &lt;&lt; "Closing library...\n";
+    dlclose(handle);
+}</pre><p>hello.cpp:</p><pre class="programlisting">#include &lt;iostream&gt;
+
+extern "C" void hello() {
+    std::cout &lt;&lt; "hello" &lt;&lt; '\n';
+}
+</pre></div></div><br class="example-break"><p>The function <code class="function">hello</code> is defined in
+        <code class="filename">hello.cpp</code>as <code class="literal">extern
+          "C"</code>; it is loaded in <code class="filename">main.cpp</code>
+        with the <code class="function">dlsym</code> call. The function must be
+        qualified as <code class="literal">extern "C"</code> because otherwise
+        we wouldn't know its symbol name.</p><div class="warning" style="margin-left: 0.5in; margin-right: 0.5in;"><h3 class="title">Warning</h3><p>There are two different forms of the
+          <code class="literal">extern "C"</code> declaration: <code class="literal">extern
+            "C"</code> as used above, and <code class="literal">extern "C" {
+            &#8230; }</code> with the declarations between the
+          braces. The first (inline) form is a declaration with extern
+          linkage and with C language linkage; the second only affects
+          language linkage. The following two declarations are thus
+          equivalent:
+          
+          </p><div class="informalexample"><pre class="programlisting">extern "C" int foo;
+extern "C" void bar();
+            </pre></div><p>
+            and
+          </p><div class="informalexample"><pre class="programlisting">extern "C" {
+     extern int foo;
+     extern void bar();
+}</pre></div><p>
+
+          As there is no difference between an
+          <code class="literal">extern</code> and a
+          non-<code class="literal">extern</code> <span class="emphasis"><em>function</em></span>
+          declaration, this is no problem as long as you are not
+          declaring any variables. If you declare
+          <span class="emphasis"><em>variables</em></span>, keep in mind that
+
+          </p><div class="informalexample"><pre class="programlisting">extern "C" int foo;</pre></div><p>
+            and
+          </p><div class="informalexample"><pre class="programlisting">extern "C" {
+    int foo;
+}</pre></div><p>
+          
+          are <span class="emphasis"><em>not</em></span> the same thing.</p><p>For further clarifications, refer to
+          [<span class="citation">ISO14882</span>], 7.5, with special attention
+          to paragraph 7, or to [<a class="citation" href="bi01.html#idm310"><span class="citation">STR2000</span></a>],
+          paragraph 9.2.4.</p><p>Before doing fancy things with extern variables, peruse
+          the documents listed in the <a class="link" href="ar01s06.html" title="6. See Also">see
+          also</a> section.</p></div></div><div class="section"><div class="titlepage"><div><div><h3 class="title"><a name="loadingclasses"></a>3.3. Loading Classes</h3></div></div></div><p>Loading classes is a bit more difficult because we need
+        an <span class="emphasis"><em>instance</em></span> of a class, not just a
+        pointer to a function.</p><p>We cannot create the instance of the class using
+        <code class="literal">new</code> because the class is not defined in the
+        executable, and because (under some circumstances) we don't
+        even know its name.</p><p>The solution is achieved through polymorphism. We define a
+        base, <span class="emphasis"><em>interface</em></span> class with virtual
+        members <span class="emphasis"><em>in the executable</em></span>, and a derived,
+        <span class="emphasis"><em>implementation</em></span> class <span class="emphasis"><em>in the
+          module</em></span>. Generally the interface class is
+        abstract (a class is abstract if it has pure virtual
+        functions).</p><p>As dynamic loading of classes is generally used for
+        plug-ins &#8212; which must expose a clearly defined interface
+        &#8212; we would have had to define an interface and derived
+        implementation classes anyway.</p><p>Next, while still in the module,  we define two additional helper
+        functions, known as <span class="emphasis"><em>class factory
+	    functions</em></span>. One of these functions creates an instance of 
+	the class and returns a pointer to it. The other function takes a
+        pointer to a class created by the factory and destroys
+        it. These two functions are qualified as <code class="literal">extern
+          "C"</code>.</p><p>To use the class from the module, load the two factory
+        functions using <code class="function">dlsym</code> just <a class="link" href="ar01s03.html#loadingfunctions" title="3.2. Loading Functions">as we loaded the hello
+        function</a>; then, we can create and destroy as many
+        instances as we wish.</p><div class="example"><a name="idm216"></a><p class="title"><b>Example 2. Loading a Class</b></p><div class="example-contents"><p>Here we use a generic <code class="classname">polygon</code>
+          class as interface and the derived class
+          <code class="classname">triangle</code> as implementation.</p><p>main.cpp:</p><pre class="programlisting">#include "polygon.hpp"
+#include &lt;iostream&gt;
+#include &lt;dlfcn.h&gt;
+
+int main() {
+    using std::cout;
+    using std::cerr;
+
+    // load the triangle library
+    void* triangle = dlopen("./triangle.so", RTLD_LAZY);
+    if (!triangle) {
+        cerr &lt;&lt; "Cannot load library: " &lt;&lt; dlerror() &lt;&lt; '\n';
+        return 1;
+    }
+
+    // reset errors
+    dlerror();
+    
+    // load the symbols
+    create_t* create_triangle = (create_t*) dlsym(triangle, "create");
+    const char* dlsym_error = dlerror();
+    if (dlsym_error) {
+        cerr &lt;&lt; "Cannot load symbol create: " &lt;&lt; dlsym_error &lt;&lt; '\n';
+        return 1;
+    }
+    
+    destroy_t* destroy_triangle = (destroy_t*) dlsym(triangle, "destroy");
+    dlsym_error = dlerror();
+    if (dlsym_error) {
+        cerr &lt;&lt; "Cannot load symbol destroy: " &lt;&lt; dlsym_error &lt;&lt; '\n';
+        return 1;
+    }
+
+    // create an instance of the class
+    polygon* poly = create_triangle();
+
+    // use the class
+    poly-&gt;set_side_length(7);
+        cout &lt;&lt; "The area is: " &lt;&lt; poly-&gt;area() &lt;&lt; '\n';
+
+    // destroy the class
+    destroy_triangle(poly);
+
+    // unload the triangle library
+    dlclose(triangle);
+}</pre><p>polygon.hpp:</p><pre class="programlisting">#ifndef POLYGON_HPP
+#define POLYGON_HPP
+
+class polygon {
+protected:
+    double side_length_;
+
+public:
+    polygon()
+        : side_length_(0) {}
+
+    virtual ~polygon() {}
+
+    void set_side_length(double side_length) {
+        side_length_ = side_length;
+    }
+
+    virtual double area() const = 0;
+};
+
+// the types of the class factories
+typedef polygon* create_t();
+typedef void destroy_t(polygon*);
+
+#endif</pre><p>triangle.cpp:</p><pre class="programlisting">#include "polygon.hpp"
+#include &lt;cmath&gt;
+
+class triangle : public polygon {
+public:
+    virtual double area() const {
+        return side_length_ * side_length_ * sqrt(3) / 2;
+    }
+};
+
+
+// the class factories
+
+extern "C" polygon* create() {
+    return new triangle;
+}
+
+extern "C" void destroy(polygon* p) {
+    delete p;
+}
+</pre></div></div><br class="example-break"><p>There are a few things to note when loading classes:</p><div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem"><p>You must provide <span class="emphasis"><em>both</em></span> a creation
+            and a destruction function; you must
+            <span class="emphasis"><em>not</em></span> destroy the instances using
+            <code class="literal">delete</code> from inside the executable, but
+            always pass it back to the module. This is due to the fact
+            that in C++ the operators <code class="literal">new</code> and
+            <code class="literal">delete</code> may be overloaded; this would
+            cause a non-matching <code class="literal">new</code> and
+            <code class="literal">delete</code> to be called, which could cause
+            anything from nothing to memory leaks and segmentation
+            faults. The same is true if different standard libraries
+            are used to link the module and the executable.</p></li><li class="listitem"><p>The destructor of the interface class should be
+            virtual in any case.  There <span class="emphasis"><em>might</em></span> be
+            very rare cases where that would not be necessary, but it
+            is not worth the risk, because the additional overhead can
+            generally be ignored.</p><p>If your base class needs no destructor, define an
+            empty (and <code class="literal">virtual</code>) one anyway;
+            otherwise you <span class="emphasis"><em>will have problems</em></span>
+            sooner or later; I can guarantee you that.  You can read
+            more about this problem in the comp.lang.c++ FAQ at <a class="ulink" href="http://www.parashift.com/c++-faq-lite/" target="_top">http://www.parashift.com/c++-faq-lite/</a>, in
+            section 20.</p></li></ul></div></div></div><div class="navfooter"><hr><table width="100%" summary="Navigation footer"><tr><td width="40%" align="left"><a accesskey="p" href="ar01s02.html">Prev</a> </td><td width="20%" align="center"> </td><td width="40%" align="right"> <a accesskey="n" href="ar01s04.html">Next</a></td></tr><tr><td width="40%" align="left" valign="top">2. The Problem </td><td width="20%" align="center"><a accesskey="h" href="index.html">Home</a></td><td width="40%" align="right" valign="top"> 4. Source Code</td></tr></table></div></body></html>

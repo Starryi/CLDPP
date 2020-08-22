@@ -1,0 +1,54 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1"><title>5. WebDAV server management</title><link rel="stylesheet" type="text/css" href="style.css"><meta name="generator" content="DocBook XSL Stylesheets V1.79.1"><link rel="home" href="index.html" title="Apache based WebDAV Server with LDAP and SSL"><link rel="up" href="index.html" title="Apache based WebDAV Server with LDAP and SSL"><link rel="prev" href="ar01s04.html" title="4. Configuring and Setting up the WebDAV services"><link rel="next" href="ar01s06.html" title="6. Implementing and using SSL to secure HTTP traffic"></head><body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF"><div class="navheader"><table width="100%" summary="Navigation header"><tr><th colspan="3" align="center">5. WebDAV server management</th></tr><tr><td width="20%" align="left"><a accesskey="p" href="ar01s04.html">Prev</a> </td><th width="60%" align="center"> </th><td width="20%" align="right"> <a accesskey="n" href="ar01s06.html">Next</a></td></tr></table><hr></div><div class="sect1"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="idm383"></a>5. WebDAV server management</h2></div></div></div><p>In this section we will discuss about the various management task - e.g. using LDAP for access control, and working with DAV method on Apache</p><p>Most of the configuration changes for the DAV will have to done using the <code class="filename">httpd.conf</code> file. This file is located at <code class="filename">/usr/local/apache/conf/httpd.conf</code> </p><p><code class="filename">httpd.conf</code> is a text based configuration file that Apache uses. It can b editted using any text editor - I preffer using vi. Please make backup copy of this file, before changing it.</p><p>After making changes to the <code class="filename">httpd.conf</code> the Apache server has to be restarted using the <span class="command"><strong>/usr/local/apache/bin/apachectl restart</strong></span> command. 
+However before restarting you test for the validity of the <code class="filename">httpd.conf</code> by using the <span class="command"><strong>/usr/local/apache/bin/apachectl configtest</strong></span> comand. </p><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="idm396"></a>5.1. Restricting access to DAV shares</h3></div></div></div><p>In the previous section when we created the DAVtest share, we used the LDAP for authentication purposes. However anyone
+who can authenticates using their LDAP useri/passwd will be able to access that folder. </p><p>Using the <span class="command"><strong>require</strong></span> directive in the httpd.conf file, we can limit access to certain individuals or groups of individuals.</p><p>If we look at the DAVtest configuration from the previosu section: 
+</p><pre class="screen">
+  &lt;Directory /usr/local/apache/htdocs/DAVtest&gt;
+  Dav On
+  #Options Indexes FollowSymLinks
+
+  AllowOverride None
+  order allow,deny
+  allow from all
+  AuthName "LDAP_userid_password_required"
+  AuthType Basic
+  &lt;Limit GET PUT POST DELETE PROPFIND PROPPATCH MKCOL COPY MOVE LOCK UNLOCK&gt;
+  Require valid-user
+  &lt;/Limit&gt;
+  LDAP_Server ldap.server.com
+  LDAP_Port 389
+  Base_DN "o=ROOT"
+
+  UID_Attr uid
+  &lt;/Directory&gt;
+</pre><p>
+We see that the <span class="command"><strong>require</strong></span> is set to <span class="command"><strong>valid-user</strong></span>. Which means any valid authenticated user
+has access to this folder. 
+</p><div class="sect3"><div class="titlepage"><div><div><h4 class="title"><a name="idm405"></a>5.1.1. Restricting access based on Individual UID(s)</h4></div></div></div><p>LDAP UID can be used to restrict access to DAV folder.</p><p><span class="command"><strong>require valid-user</strong></span> directive can be changed to <span class="command"><strong>require user 334455 445566</strong></span></p><p>This will restrict access to individuals with UID 334455 and 445566. Anyone else will not be able to access this folder.</p></div><div class="sect3"><div class="titlepage"><div><div><h4 class="title"><a name="idm412"></a>5.1.2. Restricting access based on groups of individuals.</h4></div></div></div><p><span class="command"><strong>require</strong></span> can also be used to restrict access to groups of individuals. This can be either done using LDAP groups or LDAP filters. The filter must be valid LDAP filter syntax.</p></div></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="idm416"></a>5.2. Restricting write access to DAV shares</h3></div></div></div><p>It maybe be required that the editting for the resources on the DAV shares be restricted to certain individual, however anyone can view the resources. This can be easily done using the <span class="command"><strong>&lt;Limit&gt;</strong></span> tags in the httpd.conf file</p><p> 
+</p><pre class="screen">
+  &lt;Directory /usr/local/apache/htdocs/DAVtest&gt;
+  Dav On
+  #Options Indexes FollowSymLinks
+
+  AllowOverride None
+  order allow,deny
+  allow from all
+  AuthName "LDAP_userid_password_required"
+  AuthType Basic
+  &lt;Limit GET PUT POST DELETE PROPFIND PROPPATCH MKCOL COPY MOVE LOCK UNLOCK&gt;
+  Require valid-user
+  &lt;/Limit&gt;
+  LDAP_Server ldap.server.com
+  LDAP_Port 389
+  Base_DN "o=ROOT"
+
+  UID_Attr uid
+  &lt;/Directory&gt;
+</pre><p>
+</p><p>You restrict write access to certain individuals by changing the <span class="command"><strong>&lt;limit&gt;</strong></span> to
+</p><pre class="screen">
+  &lt;Limit PUT POST DELETE PROPPATCH MKCOL COPY MOVE LOCK UNLOCK&gt;
+  Require 334455
+  &lt;/Limit&gt;
+</pre><p>
+</p><p>Basically we are limiting the PUT POST DELETE PROPPATH MKCOL COPY MOVE LOCK and UNLOCK to an individual who has the UID of 334455. Everyone else will be able to use the methods GET and PROPFIND on the resources, but not any other method.</p></div></div><div class="navfooter"><hr><table width="100%" summary="Navigation footer"><tr><td width="40%" align="left"><a accesskey="p" href="ar01s04.html">Prev</a> </td><td width="20%" align="center"> </td><td width="40%" align="right"> <a accesskey="n" href="ar01s06.html">Next</a></td></tr><tr><td width="40%" align="left" valign="top">4. Configuring and Setting up the
+ WebDAV services </td><td width="20%" align="center"><a accesskey="h" href="index.html">Home</a></td><td width="40%" align="right" valign="top"> 6. Implementing and using SSL to secure HTTP traffic</td></tr></table></div></body></html>

@@ -1,0 +1,187 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1"><title>2. More advanced if usage</title><link rel="stylesheet" type="text/css" href="style.css"><meta name="generator" content="DocBook XSL Stylesheets V1.79.1"><meta name="keywords" content="Linux, Scripts, linux, Bash, guide, Guide, Exercises, exercises, bash, scripting, Scripting, awk, sed, variables, functions, loops, conditionals"><link rel="home" href="index.html" title="Bash Guide for Beginners"><link rel="up" href="ch07.html" title="Chapter 7. Conditional statements"><link rel="prev" href="ch07s01.html" title="1. Introduction to if"><link rel="next" href="ch07s03.html" title="3. Using case statements"></head><body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF"><div class="navheader"><table width="100%" summary="Navigation header"><tr><th colspan="3" align="center">2. More advanced if usage</th></tr><tr><td width="20%" align="left"><a accesskey="p" href="ch07s01.html">Prev</a> </td><th width="60%" align="center">Chapter 7. Conditional statements</th><td width="20%" align="right"> <a accesskey="n" href="ch07s03.html">Next</a></td></tr></table><hr></div><div class="sect1"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="sect_07_02"></a>2. More advanced if usage</h2></div></div></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="sect_07_02_01"></a>2.1. if/then/else constructs</h3></div></div></div><div class="sect3"><div class="titlepage"><div><div><h4 class="title"><a name="sect_07_02_01_01"></a>2.1.1. Dummy example</h4></div></div></div><p>This is the construct to use to take one course of action if the <span class="command"><strong>if</strong></span> commands test true, and another if it tests false.  An example:</p><pre class="screen">
+<code class="prompt">freddy scripts&gt;</code> <span class="command"><strong><code class="varname">gender</code>=<em class="parameter"><code>"male"</code></em></strong></span>
+
+<code class="prompt">freddy scripts&gt;</code> <span class="command"><strong>if <em class="parameter"><code>[[ "$gender" == "f*" ]]</code></em></strong></span>
+<code class="prompt">More input&gt;</code> <span class="command"><strong>then echo <em class="parameter"><code>"Pleasure to meet you, Madame."</code></em></strong></span>
+<code class="prompt">More input&gt;</code> <span class="command"><strong>else echo <em class="parameter"><code>"How come the lady hasn't got a drink yet?"</code></em></strong></span>
+<code class="prompt">More input&gt;</code> <span class="command"><strong>fi</strong></span>
+How come the lady hasn't got a drink yet?
+
+<code class="prompt">freddy scripts&gt;</code>
+</pre><div class="important" style="margin-left: 0.5in; margin-right: 0.5in;"><h3 class="title">[] vs. [[]]</h3><p>Contrary to <em class="parameter"><code>[</code></em>, <em class="parameter"><code>[[</code></em> prevents word splitting of variable values.  So, if <code class="varname">VAR="var with spaces"</code>, you do not need to double quote <code class="varname">$VAR</code> in a test - eventhough using quotes remains a good habit.  Also, <em class="parameter"><code>[[</code></em> prevents pathname expansion, so literal strings with wildcards do not try to expand to filenames.  Using <em class="parameter"><code>[[</code></em>, <em class="parameter"><code>==</code></em> and <em class="parameter"><code>!=</code></em> interpret strings to the right as shell glob patterns to be matched against the value to the left, for instance: <em class="parameter"><code>[[ "value" == val* ]]</code></em>.</p></div><p>Like the <span class="command"><strong>CONSEQUENT-COMMANDS</strong></span> list following the <span class="command"><strong>then</strong></span> statement, the <span class="command"><strong>ALTERNATE-CONSEQUENT-COMMANDS</strong></span> list following the <span class="command"><strong>else</strong></span> statement can hold any UNIX-style command that returns an exit status.</p><p>Another example, extending the one from <a class="xref" href="ch07s01.html#sect_07_01_02_01" title="1.2.1. Testing exit status">Section 1.2.1, &#8220;Testing exit status&#8221;</a>:</p><pre class="screen">
+<code class="prompt">anny ~&gt;</code> <span class="command"><strong>su <em class="parameter"><code>-</code></em></strong></span>
+Password:
+<code class="prompt">[root@elegance root]#</code> <span class="command"><strong>if <em class="parameter"><code>! grep ^$USER</code></em> <code class="filename">/etc/passwd</code> 1&gt; <code class="filename">/dev/null</code></strong></span>
+<code class="prompt">&gt;</code> <span class="command"><strong>then echo <em class="parameter"><code>"your user account is not managed locally"</code></em></strong></span>
+<code class="prompt">&gt;</code> <span class="command"><strong>else echo <em class="parameter"><code>"your account is managed from the local /etc/passwd file"</code></em></strong></span>
+<code class="prompt">&gt;</code> <span class="command"><strong>fi</strong></span>
+your account is managed from the local /etc/passwd file
+<code class="prompt">[root@elegance root]#</code>
+</pre><p>We switch to the <span class="emphasis"><em>root</em></span> account to demonstrate the effect of the <span class="command"><strong>else</strong></span> statement - your <span class="emphasis"><em>root</em></span> is usually a local account while your own user account might be managed by a central system, such as an LDAP server.</p></div><div class="sect3"><div class="titlepage"><div><div><h4 class="title"><a name="sect_07_02_01_02"></a>2.1.2. Checking command line arguments</h4></div></div></div><p>Instead of setting a variable and then executing a script, it is frequently more elegant to put the values for the variables<a class="indexterm" name="idm5012"></a> on the command line.</p><p>We use the positional parameters<a class="indexterm" name="idm5016"></a> <code class="varname">$1</code>, <code class="varname">$2</code>, ..., <code class="varname">$N</code> for this purpose.  <code class="varname">$#</code> refers to the number of command line arguments<a class="indexterm" name="idm5023"></a>.  <code class="varname">$0</code> refers to the name of the script.</p><p>The following is a simple example:</p><div class="figure"><a name="idm5028"></a><p class="title"><b>Figure 7.1. Testing of a command line argument with if</b></p><div class="figure-contents"><div class="mediaobject"><img src="images/penguin.sh.png" alt='Simple if/then/else/fi construct: if [ "$1" == fish ]; then echo "Tux likes this"; else echo "Tux wants fish!"; fi'></div></div></div><br class="figure-break"><p>Here's another example, using two<a class="indexterm" name="idm5038"></a> arguments:</p><pre class="screen">
+<code class="prompt">anny ~&gt;</code> <span class="command"><strong>cat <code class="filename">weight.sh</code></strong></span>
+#!/bin/bash
+
+# This script prints a message about your weight if you give it your
+# weight in kilos and height in centimeters.
+
+weight="$1"
+height="$2"
+idealweight=$[$height - 110]
+
+if [ $weight -le $idealweight ] ; then
+  echo "You should eat a bit more fat."
+else
+  echo "You should eat a bit more fruit."
+fi
+
+<code class="prompt">anny ~&gt;</code> <span class="command"><strong>bash <code class="option">-x</code> <code class="filename">weight.sh</code> <em class="parameter"><code>55 169</code></em></strong></span>
++ weight=55
++ height=169
++ idealweight=59
++ '[' 55 -le 59 ']'
++ echo 'You should eat a bit more fat.'
+You should eat a bit more fat.
+</pre></div><div class="sect3"><div class="titlepage"><div><div><h4 class="title"><a name="sect_07_02_01_03"></a>2.1.3. Testing the number of arguments</h4></div></div></div><p>The following example<a class="indexterm" name="idm5053"></a> shows how to change the previous script so that it prints a message if more or less than 2 arguments are given:</p><pre class="screen">
+<code class="prompt">anny ~&gt;</code> <span class="command"><strong>cat <code class="filename">weight.sh</code></strong></span>
+#!/bin/bash
+
+# This script prints a message about your weight if you give it your
+# weight in kilos and height in centimeters.
+
+if [ ! $# == 2 ]; then
+  echo "Usage: $0 weight_in_kilos length_in_centimeters"
+  exit
+fi
+
+weight="$1"
+height="$2"
+idealweight=$[$height - 110]
+
+if [ $weight -le $idealweight ] ; then
+  echo "You should eat a bit more fat."
+else
+  echo "You should eat a bit more fruit."
+fi
+
+<code class="prompt">anny ~&gt;</code> <span class="command"><strong>weight.sh <em class="parameter"><code>70 150</code></em></strong></span>
+You should eat a bit more fruit.
+
+<code class="prompt">anny ~&gt;</code> <span class="command"><strong>weight.sh <em class="parameter"><code>70 150 33</code></em></strong></span>
+Usage: ./weight.sh weight_in_kilos length_in_centimeters
+</pre><p>The first argument is referred to as <code class="varname">$1</code>, the second as <code class="varname">$2</code> and so on.  The total number of arguments is stored in <code class="varname">$#</code>.</p><p>Check out <a class="xref" href="ch07s02.html#sect_07_02_05" title="2.5. Using the exit statement and if">Section 2.5, &#8220;Using the exit statement and if&#8221;</a> for a more elegant way to print usage messages.</p></div><div class="sect3"><div class="titlepage"><div><div><h4 class="title"><a name="sect_07_02_01_04"></a>2.1.4. Testing that a file exists</h4></div></div></div><p>This test is done in a lot of scripts<a class="indexterm" name="idm5075"></a>, because there's no use in starting a lot of programs if you know they're not going to work:</p><pre class="screen">
+#!/bin/bash
+
+# This script gives information about a file.
+
+FILENAME="$1"
+
+echo "Properties for $FILENAME:"
+
+if [ -f $FILENAME ]; then
+  echo "Size is $(ls -lh $FILENAME | awk '{ print $5 }')"
+  echo "Type is $(file $FILENAME | cut -d":" -f2 -)"
+  echo "Inode number is $(ls -i $FILENAME | cut -d" " -f1 -)"
+  echo "$(df -h $FILENAME | grep -v Mounted | awk '{ print "On",$1", \
+which is mounted as the",$6,"partition."}')"
+else
+  echo "File does not exist."
+fi
+</pre><p>Note that the file is referred to using a variable; in this case it is the first argument to the script.  Alternatively, when no arguments are given, file locations are usually stored in variables at the beginning of a script, and their content is referred to using these variables.  Thus, when you want to change a file name in a script, you only need to do it once.</p><div class="tip" style="margin-left: 0.5in; margin-right: 0.5in;"><h3 class="title">Filenames with spaces</h3><p>The above example will fail if the value of <code class="varname">$1</code> can be parsed as multiple words.  In that case, the <span class="command"><strong>if</strong></span> command can be fixed either using double quotes around the filename, or by using <em class="parameter"><code>[[</code></em> instead of <em class="parameter"><code>[</code></em>.</p></div></div></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="sect_07_02_02"></a>2.2. if/then/elif/else constructs</h3></div></div></div><div class="sect3"><div class="titlepage"><div><div><h4 class="title"><a name="sect_07_02_02_01"></a>2.2.1. General</h4></div></div></div><p>This is the full form of the <span class="command"><strong>if</strong></span> statement:</p><div class="cmdsynopsis"><p><code class="command">if TEST-COMMANDS; then</code> </p></div><div class="cmdsynopsis"><p><code class="command">CONSEQUENT-COMMANDS;</code> </p></div><div class="cmdsynopsis"><p><code class="command">elif MORE-TEST-COMMANDS; then</code> </p></div><div class="cmdsynopsis"><p><code class="command">MORE-CONSEQUENT-COMMANDS;</code> </p></div><div class="cmdsynopsis"><p><code class="command">else ALTERNATE-CONSEQUENT-COMMANDS;</code> </p></div><div class="cmdsynopsis"><p><code class="command">fi</code> </p></div><p>The <span class="command"><strong>TEST-COMMANDS</strong></span> list is executed, and if its return status is zero, the <span class="command"><strong>CONSEQUENT-COMMANDS</strong></span> list is executed.  If
+<span class="command"><strong>TEST-COMMANDS</strong></span> returns a non-zero status, each <span class="command"><strong>elif</strong></span> list is executed in turn, and if its exit status is zero, the corresponding <span class="command"><strong>MORE-CONSEQUENT-COMMANDS</strong></span> is executed and the command completes.  If <span class="command"><strong>else</strong></span> is followed by an <span class="command"><strong>ALTERNATE-CONSEQUENT-COMMANDS</strong></span> list, and the final command in the final <span class="command"><strong>if</strong></span> or <span class="command"><strong>elif</strong></span> clause has a non-zero exit status, then <span class="command"><strong>ALTERNATE-CONSEQUENT-COMMANDS</strong></span> is executed.  The return status is the exit status of the last command executed, or zero if no condition tested true.</p></div><div class="sect3"><div class="titlepage"><div><div><h4 class="title"><a name="sect_07_02_02_02"></a>2.2.2. Example</h4></div></div></div><p>This is an example that you can put in your crontab for daily execution:</p><pre class="screen">
+<code class="prompt">anny /etc/cron.daily&gt;</code> <span class="command"><strong>cat <code class="filename">disktest.sh</code></strong></span>
+#!/bin/bash
+
+# This script does a very simple test for checking disk space.
+
+space=`df -h | awk '{print $5}' | grep % | grep -v Use | sort -n | tail -1 | cut -d "%" -f1 -`
+alertvalue="80"
+
+if [ "$space" -ge "$alertvalue" ]; then
+  echo "At least one of my disks is nearly full!" | mail -s "daily diskcheck" root
+else
+  echo "Disk space normal" | mail -s "daily diskcheck" root
+fi
+</pre></div></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="sect_07_02_03"></a>2.3. Nested if statements</h3></div></div></div><p>Inside the <span class="command"><strong>if</strong></span> statement, you can use another <span class="command"><strong>if</strong></span> statement.  You may use as many levels of nested <span class="command"><strong>if</strong></span>s as you can logically manage.</p><p>This is an example testing leap years:</p><pre class="screen">
+<code class="prompt">anny ~/testdir&gt;</code> <span class="command"><strong>cat <code class="filename">testleap.sh</code></strong></span>
+#!/bin/bash
+# This script will test if we're in a leap year or not.
+
+year=`date +%Y`
+
+if [ $[$year % 400] -eq "0" ]; then
+  echo "This is a leap year.  February has 29 days."
+elif [ $[$year % 4] -eq 0 ]; then
+        if [ $[$year % 100] -ne 0 ]; then
+          echo "This is a leap year, February has 29 days."
+        else
+          echo "This is not a leap year.  February has 28 days."
+        fi
+else
+  echo "This is not a leap year.  February has 28 days."
+fi
+
+<code class="prompt">anny ~/testdir&gt;</code> <span class="command"><strong>date</strong></span>
+Tue Jan 14 20:37:55 CET 2003
+
+<code class="prompt">anny ~/testdir&gt;</code> <span class="command"><strong>testleap.sh</strong></span>
+This is not a leap year.
+</pre></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="sect_07_02_04"></a>2.4. Boolean operations</h3></div></div></div><p>The above script can be shortened using the Boolean operators <span class="quote">&#8220;<span class="quote">AND</span>&#8221;</span> (&amp;&amp;) and <span class="quote">&#8220;<span class="quote">OR</span>&#8221;</span> (||).</p><div class="figure"><a name="idm5143"></a><p class="title"><b>Figure 7.2. Example using Boolean operators</b></p><div class="figure-contents"><div class="mediaobject"><img src="images/leaptest.sh.png" alt='year=`date +%Y`; if (( ("$year" % 400) == "0" )) || (( ("$year" % 4 == "0") &amp;&amp; ("$year" % 100 != "0") )); then echo "this is a leap year."; else echo "not a leap year"; fi'></div></div></div><br class="figure-break"><p>We use the double brackets for testing<a class="indexterm" name="idm5153"></a> an arithmetic expression, see <a class="xref" href="ch03s04.html#sect_03_04_05" title="4.6. Arithmetic expansion">Section 4.6, &#8220;Arithmetic expansion&#8221;</a>.  This is equivalent to the <span class="command"><strong>let</strong></span> statement.  You will get stuck using square brackets here, if you try something like <span class="command"><strong>$[$year % 400]</strong></span>, because here, the square brackets don't represent an actual command by themselves.</p><p>Among other editors, <span class="command"><strong>gvim</strong></span> is one of those supporting colour schemes according to the file format; such editors are useful for detecting errors in your code.</p></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="sect_07_02_05"></a>2.5. Using the exit statement and if</h3></div></div></div><p>We already briefly met the <span class="command"><strong>exit</strong></span> statement in <a class="xref" href="ch07s02.html#sect_07_02_01_03" title="2.1.3. Testing the number of arguments">Section 2.1.3, &#8220;Testing the number of arguments&#8221;</a>.  It terminates execution of the entire script.  It is most often used if the input requested from the user is incorrect, if a statement did not run successfully or if some other error occurred.</p><p>The <span class="command"><strong>exit</strong></span> statement takes an optional argument<a class="indexterm" name="idm5168"></a>.  This argument is the integer exit status code, which is passed back to the parent and stored in the <code class="varname">$?</code> variable.</p><p>A zero argument<a class="indexterm" name="idm5173"></a> means that the script ran successfully.  Any other value may be used by programmers to pass back different messages to the parent, so that different actions can be taken according to failure or success of the child process.  If no argument is given to the <span class="command"><strong>exit</strong></span> command, the parent shell uses the current value of the <code class="varname">$?</code> variable.</p><p>Below is an example with a slightly adapted <code class="filename">penguin.sh</code> script, which sends its exit status back to the parent, <code class="filename">feed.sh</code>:</p><pre class="screen">
+<code class="prompt">anny ~/testdir&gt;</code> <span class="command"><strong>cat <code class="filename">penguin.sh</code></strong></span>
+#!/bin/bash
+                                                                                                 
+# This script lets you present different menus to Tux.  He will only be happy
+# when given a fish.  We've also added a dolphin and (presumably) a camel.
+                                                                                                 
+if [ "$menu" == "fish" ]; then
+  if [ "$animal" == "penguin" ]; then
+    echo "Hmmmmmm fish... Tux happy!"
+  elif [ "$animal" == "dolphin" ]; then
+    echo "Pweetpeettreetppeterdepweet!"
+  else
+    echo "*prrrrrrrt*"
+  fi
+else
+  if [ "$animal" == "penguin" ]; then
+    echo "Tux don't like that.  Tux wants fish!"
+    exit 1
+  elif [ "$animal" == "dolphin" ]; then
+    echo "Pweepwishpeeterdepweet!"
+    exit 2
+  else
+    echo "Will you read this sign?!"
+    exit 3
+  fi
+fi
+</pre><p>This script is called upon in the next one, which therefore exports its variables <code class="varname">menu</code> and <code class="varname">animal</code>:</p><pre class="screen">
+<code class="prompt">anny ~/testdir&gt;</code> <span class="command"><strong>cat <code class="filename">feed.sh</code></strong></span>
+#!/bin/bash
+# This script acts upon the exit status given by penguin.sh
+                                                                                                 
+export menu="$1"
+export animal="$2"
+                                                                                                 
+feed="/nethome/anny/testdir/penguin.sh"
+                                                                                                 
+$feed $menu $animal
+                                                                                                 
+case $? in
+                                                                                                 
+1)
+  echo "Guard: You'd better give'm a fish, less they get violent..."
+  ;;
+2)
+  echo "Guard: It's because of people like you that they are leaving earth all the time..."
+  ;;
+3)
+  echo "Guard: Buy the food that the Zoo provides for the animals, you ***, how
+do you think we survive?"
+  ;;
+*)
+  echo "Guard: Don't forget the guide!"
+  ;;
+esac
+                                                                                                 
+<code class="prompt">anny ~/testdir&gt;</code> <span class="command"><strong>./feed.sh <em class="parameter"><code>apple penguin</code></em></strong></span>
+Tux don't like that.  Tux wants fish!
+Guard: You'd better give'm a fish, less they get violent...
+</pre><p>As you can see, exit status codes can be chosen freely.  Existing commands usually have a series of defined codes; see the programmer's manual for each command for more information.</p></div></div><div class="navfooter"><hr><table width="100%" summary="Navigation footer"><tr><td width="40%" align="left"><a accesskey="p" href="ch07s01.html">Prev</a> </td><td width="20%" align="center"><a accesskey="u" href="ch07.html">Up</a></td><td width="40%" align="right"> <a accesskey="n" href="ch07s03.html">Next</a></td></tr><tr><td width="40%" align="left" valign="top">1. Introduction to if </td><td width="20%" align="center"><a accesskey="h" href="index.html">Home</a></td><td width="40%" align="right" valign="top"> 3. Using case statements</td></tr></table></div></body></html>

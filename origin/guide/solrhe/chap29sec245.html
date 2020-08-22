@@ -1,0 +1,214 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1"><title>9. Configure the /etc/httpd/conf/httpd.conf file</title><link rel="stylesheet" type="text/css" href="style.css"><meta name="generator" content="DocBook XSL Stylesheets V1.79.1"><meta name="keywords" content="RedHat, redhat, maddy, linus, linux, Linux, Securing, Optimising, security, secure, openna, gerhard"><link rel="home" href="index.html" title="Securing and Optimizing Linux"><link rel="up" href="netweb-Apache.html" title="Chapter 29. Software -Network Server, web/Apache"><link rel="prev" href="chap29sec244.html" title="8. Post install Configuration"><link rel="next" href="chap29sec246.html" title="10. Configure the /etc/logrotate.d/apache file"></head><body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF"><div class="navheader"><table width="100%" summary="Navigation header"><tr><th colspan="3" align="center">9. Configure the <code class="filename">/etc/httpd/conf/httpd.conf</code> file</th></tr><tr><td width="20%" align="left"><a accesskey="p" href="chap29sec244.html">Prev</a> </td><th width="60%" align="center">Chapter 29. Software -Network Server, web/Apache</th><td width="20%" align="right"> <a accesskey="n" href="chap29sec246.html">Next</a></td></tr></table><hr></div><div class="section"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="idm19232"></a>9. Configure the <code class="filename">/etc/httpd/conf/httpd.conf</code> file</h2></div></div></div><p>
+      The <code class="filename">httpd.conf</code> file is the main configuration file for the Apache web server. A lot options exist, and it's important to read the documentation that comes with Apache for more information on different settings 
+      and parameters. The following configuration example is a minimal working configuration file for Apache, with <acronym class="acronym">SSL</acronym> support. Also, it's important to note that we only comment the parameters that relate to security 
+      and optimization, and leave all the others to your own research.
+    </p><p>
+      Edit the <code class="filename">httpd.conf</code> file, <span class="command"><strong>vi</strong></span> <code class="filename">/etc/httpd/conf/httpd.conf</code> and add/change:
+    </p><pre class="programlisting">
+      ### Section 1: Global Environment
+      #
+      ServerType standalone
+      ServerRoot "/etc/httpd"
+      PidFile /var/run/httpd.pid
+      ResourceConfig /dev/null
+      AccessConfig /dev/null
+      Timeout 300
+      KeepAlive On
+      MaxKeepAliveRequests 0
+      KeepAliveTimeout 15
+      MinSpareServers 16
+      MaxSpareServers 64
+      StartServers 16
+      MaxClients 512
+      MaxRequestsPerChild 100000
+
+      ### Section 2: 'Main' server configuration
+      #
+      Port 80
+
+      &lt;IfDefine SSL&gt;
+      Listen 80
+      Listen 443
+      &lt;/IfDefine&gt;
+
+      User www
+      Group www
+      ServerAdmin admin@openna.com
+      ServerName www.openna.com
+      DocumentRoot "/home/httpd/ona"
+
+      &lt;Directory /&gt;
+      Options None
+      AllowOverride None
+      Order deny,allow
+      Deny from all
+      &lt;/Directory&gt;
+
+      &lt;Directory "/home/httpd/ona"&gt;
+      Options None
+      AllowOverride None
+      Order allow,deny
+      Allow from all
+      &lt;/Directory&gt;
+
+      &lt;Files .pl&gt;
+      Options None
+      AllowOverride None
+      Order deny,allow
+      Deny from all
+      &lt;/Files&gt;
+
+      &lt;IfModule mod_dir.c&gt;
+      DirectoryIndex index.htm index.html index.php index.php3 default.html index.cgi
+      &lt;/IfModule&gt;
+
+      #&lt;IfModule mod_include.c&gt;
+      #Include conf/mmap.conf
+      #&lt;/IfModule&gt;
+
+      UseCanonicalName On
+
+      &lt;IfModule mod_mime.c&gt;
+      TypesConfig /etc/httpd/conf/mime.types
+      &lt;/IfModule&gt;
+
+      DefaultType text/plain
+      HostnameLookups Off
+
+      ErrorLog /var/log/httpd/error_log
+      LogLevel warn
+      LogFormat "%h %l %u %t \"%r\" %&gt;s %b \"%{Referer}i\" \"%{User-Agent}i\"" combined
+      SetEnvIf Request_URI \.gif$ gif-image
+      CustomLog /var/log/httpd/access_log combined env=!gif-image
+      ServerSignature Off
+
+      &lt;IfModule mod_alias.c&gt;
+      ScriptAlias /cgi-bin/  "/home/httpd/cgi-bin/"
+      &lt;Directory "/home/httpd/cgi-bin"&gt;
+      AllowOverride None
+      Options None
+      Order allow,deny
+      Allow from all
+      &lt;/Directory&gt;
+      &lt;/IfModuleGT;
+
+      &lt;IfModule mod_mime.c&gt;
+      AddEncoding x-compress Z
+      AddEncoding x-gzip gz tgz
+
+      AddType application/x-tar .tgz
+      &lt;/IfModule&gt;
+
+      ErrorDocument 500 "The server made a boo boo.
+      ErrorDocument 404 http://192.168.1.1/error.htm
+      ErrorDocument 403 "Access Forbidden -- Go away.
+
+      &lt;IfModule mod_setenvif.c&gt;
+      BrowserMatch "Mozilla/2" nokeepalive
+      BrowserMatch "MSIE 4\.0b2;" nokeepalive downgrade-1.0 force-response-1.0
+      BrowserMatch "RealPlayer 4\.0" force-response-1.0
+      BrowserMatch "Java/1\.0" force-response-1.0
+      BrowserMatch "JDK/1\.0" force-response-1.0
+      &lt;/IfModule&gt;
+
+      ### Section 3: Virtual Hosts
+      #
+      &lt;IfDefine SSL&gt;
+      AddType application/x-x509-ca-cert .crt
+      AddType application/x-pkcs7-crl    .crl
+      &lt;/IfDefine&gt;
+
+      &lt;IfModule mod_ssl.c&gt;
+      SSLPassPhraseDialog     builtin
+      SSLSessionCache         dbm:/var/run/ssl_scache
+      SSLSessionCacheTimeout  300
+
+      SSLMutex  file:/var/run/ssl_mutex
+
+      SSLRandomSeed startup builtin
+      SSLRandomSeed connect builtin
+
+      SSLLog      /var/log/httpd/ssl_engine_log
+      SSLLogLevel warn
+      &lt;/IfModule&gt;
+
+      &lt;IfDefine SSL&gt;
+      &lt;VirtualHost _default_:443&gt;
+
+      DocumentRoot "/home/httpd/ona"
+      ServerName www.openna.com
+      ServerAdmin admin@openna.com
+      ErrorLog /var/log/httpd/error_log
+
+      SSLEngine on
+      SSLCipherSuite ALL:!ADH:RC4+RSA:+HIGH:+MEDIUM:+LOW:+SSLv2:+EXP:+eNULL
+
+      SSLCertificateFile      /etc/ssl/certs/server.crt
+      SSLCertificateKeyFile   /etc/ssl/private/server.key
+      SSLCACertificatePath    /etc/ssl/certs
+      SSLCACertificateFile    /etc/ssl/certs/ca.crt
+      SSLCARevocationPath     /etc/ssl/crl
+      SSLVerifyClient none
+      SSLVerifyDepth  10
+
+      SSLOptions +ExportCertData +StrictRequire
+      SetEnvIf User-Agent ".*MSIE.*" nokeepalive ssl-unclean-shutdown
+      SetEnvIf Request_URI \.gif$ gif-image
+      CustomLog /var/log/httpd/ssl_request_log \
+      "%t %h %{SSL_PROTOCOL}x %{SSL_CIPHER}x \"%r\" %b" env=!gif-image
+      &lt;/VirtualHost&gt;
+      &lt;/IfDefine&gt;
+    </pre><p>
+      This tells <code class="filename">httpd.conf</code> file to set itself up for this particular configuration setup with:
+    </p><div class="glosslist"><dl><dt><span class="glossterm"><code class="envar">ServerType standalone</code></span></dt><dd class="glossdef"><p>
+          The option <code class="envar">ServerType</code> specifies how Apache should run on the system. You can run it from the super-server inetd, or as standalone daemon. It's highly recommended to run Apache in standalone type for 
+          better performance and speed.
+        </p></dd><dt><span class="glossterm"><code class="envar">ServerRoot "/etc/httpd"</code></span></dt><dd class="glossdef"><p>
+        The option <code class="envar">ServerRoot</code> specifies the directory in which the configuration files of the Apache server lives. It allows Apache to know where it can find its configuration files when it starts.
+      </p></dd><dt><span class="glossterm"><code class="envar">PidFile</code> <code class="filename">/var/run/httpd.pid</code></span></dt><dd class="glossdef"><p>
+        The option <code class="envar">PidFile</code> specifies the location where the server will record the process id of the daemon when it starts. This option is only required when you configure Apache in standalone mode.
+      </p></dd><dt><span class="glossterm"><code class="envar">ResourceConfig</code> <code class="filename">/dev/null</code></span></dt><dd class="glossdef"><p>
+        The option <code class="envar">ResourceConfig</code> specifies the location of the old <code class="filename">srm.conf</code> file that Apache read after it finished reading the <code class="filename">httpd.conf</code> file. When you set the location 
+        to <code class="filename">/dev/null,</code> Apache allows you to include the content of this file in <code class="filename">httpd.conf</code> file, and in this manner, you have just one file that handles all your configuration 
+        parameters for simplicity.
+      </p></dd><dt><span class="glossterm"><code class="envar">AccessConfig</code> <code class="filename">/dev/null</code></span></dt><dd class="glossdef"><p>
+        The option <code class="envar">AccessConfig</code> specifies the location of the old <code class="filename">access.conf</code> file that Apache read after it finished reading the <code class="filename">srm.conf</code> file. When you set the location to <code class="filename">/dev/null</code>,
+        Apache allows you to include the content of this file in <code class="filename">httpd.conf</code> file, and in this manner, you have just one file that handles all your configuration parameters for simplicity.
+      </p></dd><dt><span class="glossterm"><code class="envar">Timeout 300</code></span></dt><dd class="glossdef"><p>
+        The option <code class="envar">Timeout</code> specifies the amount of time Apache will wait for a GET, POST, PUT request and ACKs on transmissions. You can safely leave this option on its default values.
+      </p></dd><dt><span class="glossterm"><code class="envar">KeepAlive On</code></span></dt><dd class="glossdef"><p>
+        The option <code class="envar">KeepAlive</code>, if set to <code class="envar">On</code>, specifies enabling persistent connections on this web server. For better performance, it's recommended to set this option to <code class="envar">On</code>, and allow more than one request per connection.
+      </p></dd><dt><span class="glossterm"><code class="envar">MaxKeepAliveRequests 0</code></span></dt><dd class="glossdef"><p>
+        The option <code class="envar">MaxKeepAliveRequests</code> specifies the number of requests allowed per connection when the <code class="envar">KeepAlive</code> option above is set to <code class="envar">On.</code> When the value of this option is set to <code class="envar">0</code> then unlimited 
+        requests are allowed on the server. For server performance, it's recommended to allow unlimited requests.
+      </p></dd><dt><span class="glossterm"><code class="envar">KeepAliveTimeout 15</code></span></dt><dd class="glossdef"><p>
+        The option <code class="envar">KeepAliveTimeout</code> specifies how much time, in seconds, Apache will wait for a subsequent request before closing the connection. The value of <code class="envar">15</code> seconds is a good average for server performance.
+      </p></dd><dt><span class="glossterm"><code class="envar">MinSpareServers 16</code></span></dt><dd class="glossdef"><p>
+        The option <code class="envar">MinSpareServers</code> specifies the minimum number of idle child server processes for Apache, which is not handling a request. This is an important tuning parameter regarding the performance of the Apache web server. For 
+        high load operation, a value of <code class="envar">16</code> is recommended by various benchmarks on the Internet.
+      </p></dd><dt><span class="glossterm"><code class="envar">MaxSpareServers 64</code></span></dt><dd class="glossdef"><p>
+        The option <code class="envar">MaxSpareServers</code> specifies the maximum number of idle child server processes for Apache, which is not handling a request. This is also an important tuning parameter regarding the performance of the Apache web 
+        server. For high load operation, a value of <code class="envar">64</code> is recommended by various benchmarks on the Internet.
+      </p></dd><dt><span class="glossterm"><code class="envar">StartServers 16</code></span></dt><dd class="glossdef"><p>
+        The option <code class="envar">StartServers</code> specifies the number of child server processes that will be created by Apache on start-up. This is, again, an important tuning parameter regarding the performance of the Apache web server. For high 
+        load operation, a value of <code class="envar">16</code> is recommended by various benchmarks on the Internet.
+      </p></dd><dt><span class="glossterm"><code class="envar">MaxClients 512</code></span></dt><dd class="glossdef"><p>
+        The option <code class="envar">MaxClients</code> specifies the number of simultaneous requests that can be supported by Apache. This too is an important tuning parameter regarding the performance of the Apache web server. For high load 
+        operation, a value of <code class="envar">512</code> is recommended by various benchmarks on the Internet.
+      </p></dd><dt><span class="glossterm"><code class="envar">MaxRequestsPerChild 100000</code></span></dt><dd class="glossdef"><p>
+        The option <code class="envar">MaxRequestsPerChild</code> specifies the number of requests that an individual child server process will handle. This too is an important tuning parameter regarding the performance of the Apache web server.
+      </p></dd><dt><span class="glossterm"><code class="envar">User www</code></span></dt><dd class="glossdef"><p>
+        The option <code class="envar">User</code> specifies the <acronym class="acronym">UID</acronym> that Apache server will run as. It's important to create a new user that has minimal access to the system, and functions just for the purpose of running the 
+        web server daemon.
+      </p></dd><dt><span class="glossterm"><code class="envar">Group www</code></span></dt><dd class="glossdef"><p>
+        The option <code class="envar">Group</code> specifies the <acronym class="acronym">GID</acronym> the Apache server will run as. It's important to create a new group that has minimal access to the system and functions just for the purpose of running the web server daemon.
+      </p></dd><dt><span class="glossterm"><code class="envar">DirectoryIndex index.htm index.html index.php index.php3 default.html index.cgi</code></span></dt><dd class="glossdef"><p>
+        The option <code class="envar">DirectoryIndex</code> specifies the files to use by Apache as a pre-written <acronym class="acronym">HTML</acronym> directory index. In other words, if Apache can't find the default index page to display, it'll try the next entry in this parameter, if 
+        available. To improve performance of your web server it's recommended to list the most used default index pages of your web site first.
+      </p></dd><dt><span class="glossterm"><code class="envar">Include conf/mmap.conf</code></span></dt><dd class="glossdef"><p>
+        The option <code class="envar">Include</code> specifies the location of other files that you can include from within the server configuration files <code class="filename">httpd.conf</code>. In our case, we include the <code class="filename">mmap.conf</code> file located 
+        under <code class="filename">/etc/httpd/conf</code> directory. This file <code class="filename">mmap.conf</code> maps files into memory for faster serving. See the section on <a class="link" href="chap29sec259.html" title="22. Optimizing Apache">Optimizing Apache</a> for more information.
+      </p></dd><dt><span class="glossterm"><code class="envar">HostnameLookups Off</code></span></dt><dd class="glossdef"><p>
+        The option <code class="envar">HostnameLookups</code>, if set to <code class="envar">Off</code>, specifies the disabling of <acronym class="acronym">DNS</acronym> lookups. It's recommended to set this option to <code class="envar">Off</code> in order to save the network traffic time, and to improve 
+        the performance of your Apache web server.
+      </p></dd></dl></div></div><div class="navfooter"><hr><table width="100%" summary="Navigation footer"><tr><td width="40%" align="left"><a accesskey="p" href="chap29sec244.html">Prev</a> </td><td width="20%" align="center"><a accesskey="u" href="netweb-Apache.html">Up</a></td><td width="40%" align="right"> <a accesskey="n" href="chap29sec246.html">Next</a></td></tr><tr><td width="40%" align="left" valign="top">8. Post install Configuration </td><td width="20%" align="center"><a accesskey="h" href="index.html">Home</a></td><td width="40%" align="right" valign="top"> 10. Configure the <code class="filename">/etc/logrotate.d/apache</code> file</td></tr></table></div></body></html>

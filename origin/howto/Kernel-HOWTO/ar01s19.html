@@ -1,0 +1,755 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1"><title>19.  Appendix E - Troubleshoot Common Mistakes</title><link rel="stylesheet" type="text/css" href="style.css"><meta name="generator" content="DocBook XSL Stylesheets V1.79.1"><link rel="home" href="index.html" title="The Linux Kernel HOWTO"><link rel="up" href="index.html" title="The Linux Kernel HOWTO"><link rel="prev" href="ar01s18.html" title="18.  Appendix D - Post Kernel Building"></head><body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF"><div class="navheader"><table width="100%" summary="Navigation header"><tr><th colspan="3" align="center">19. 
+      Appendix E - Troubleshoot Common Mistakes 
+    </th></tr><tr><td width="20%" align="left"><a accesskey="p" href="ar01s18.html">Prev</a> </td><th width="60%" align="center"> </th><td width="20%" align="right"> </td></tr></table><hr></div><div class="sect1"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="troubleshoot"></a>19. 
+      Appendix E - Troubleshoot Common Mistakes 
+    </h2></div></div></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="idm1281"></a>19.1. 
+        Kernel Compiles OK but make modules fail 
+      </h3></div></div></div><p>
+        Sympton: The kernel compiles ok producing bzImage but 'make modules' 
+        fails. 
+      </p><p>
+        Solution: This problem is most tricky - there can be many subtle 
+        reasons. May be related to Linux distro or dependencies of packages 
+        are not uptodate. This one is very peculiar of Redhat distribution but 
+        may happen to other distributions. There are some "left over" files 
+        which are hanging and causing problems. The remedy is to do 'make 
+        mrproper' and 'make clean' and then do 'make modules'. But you may 
+        want to copy the saved config file as shown below: 
+        </p><pre class="programlisting">
+bash# cd /usr/src/linux 
+bash# mkdir /usr/src/kernelconfigs ;
+bash# cp /usr/src/linux/.config  /usr/src/kernelconfigs/.config.save;
+bash# cp /usr/src/linux/.config  /usr/src/linux/configs/.config.save  # ExtraSafe
+bash# cp /boot/config*  /usr/src/linux/configs/  # ExtraSafe
+bash# make clean
+bash# make mrproper  # "MUST DO THIS mrproper", otherwise you will face hell lot of problems !!
+bash# make clean
+bash# cp /usr/src/kernelconfigs/.config.save .config  # In case you want to reuse the config file ??
+	  	</pre><p>
+      </p><div class="sect3"><div class="titlepage"><div><div><h4 class="title"><a name="idm1286"></a>19.1.1. 
+          Wrong Config File Copied 
+        </h4></div></div></div><p>
+          If the 'make mrproper' in above section does not fix this problem, 
+          then you are trapped by some other subtle problems. May be something 
+          is seriously wrong with config file. You might have started with a 
+          wrong CPU config file - you might have chosen ATHLON CPU type for 
+          your Pentium machine or Cyrix CPU for your Athlon machine. Start all 
+          over again, if you have Athlon CPU then copy the athlon.config or if 
+          you have Intel 686 CPU then copy the i686.config file. Copy from the 
+          default vanilla config file from /usr/src/linux/configs 
+          </p><pre class="programlisting">
+	bash# cp /usr/src/linux/configs/kernel-2.4.18-i686.config  /usr/src/linux/.config
+	Or for athlon processors
+	bash# cp /usr/src/linux/configs/kernel-2.4.18-athlon.config  /usr/src/linux/.config
+			  </pre><p>
+          Now follow instructions in "Quick Steps" chapter at 
+          <a class="xref" href="ar01s02.html" title="2.  Quick Steps - Kernel Compile">Section 2, &#8220;
+      Quick Steps - Kernel Compile 
+    &#8221;</a>
+          . 
+        </p></div><div class="sect3"><div class="titlepage"><div><div><h4 class="title"><a name="idm1291"></a>19.1.2. 
+          Packages Not In Sync 
+        </h4></div></div></div><p>
+          Still having problems? If above section does not fix the problems, 
+          then you are trapped by some other subtle problems. Are you sure you 
+          have all the dependencies of packages taken care of ?? Are all the 
+          dependent packages in sync with each other? Did you install any 
+          package with "--nodeps" option? You should automate the dependencies 
+          with powerful tool like apt-get ( See the section "Install, Update 
+          at Speed of Light" in 
+          <a class="xref" href="ar01s12.html" title="12.  Install, Upgrade at Speed of Light With apt-get (Redhat, Debian, Suse, Mandrake, Others)">Section 12, &#8220;
+      Install, Upgrade at Speed of Light With apt-get (Redhat, Debian, Suse, 
+      Mandrake, Others) 
+    &#8221;</a>
+          ). Manually trying to sync up hundreds of libraries and packages is 
+          a heck of a work, use apt-get . Refer to the section "Install, 
+          Update at Speed of Light" in 
+          <a class="xref" href="ar01s12.html" title="12.  Install, Upgrade at Speed of Light With apt-get (Redhat, Debian, Suse, Mandrake, Others)">Section 12, &#8220;
+      Install, Upgrade at Speed of Light With apt-get (Redhat, Debian, Suse, 
+      Mandrake, Others) 
+    &#8221;</a>
+          ). 
+        </p></div></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="idm1296"></a>19.2. 
+        Compiles OK but does not boot 
+      </h3></div></div></div><p>
+        Sympton: If the kernel compiles ok but booting never works and it 
+        always complains with a kernel panic about /sbin/modprobe. 
+      </p><p>
+        Solution: You did not create initrd image file. See the Appendix A at 
+        <a class="xref" href="ar01s15.html" title="15.  Appendix A - Creating initrd.img file">Section 15, &#8220;
+      Appendix A - Creating initrd.img file 
+    &#8221;</a>
+        . 
+      </p><p>
+        Also, you must do 'make modules' and 'make modules_install' in 
+        addition to creating the initrd image file. Even if you had run 'make 
+        modules' before, try running again for the second time (does not 
+        hurt). Give 'make modules' and 'make modules_install' once again to 
+        make sure for certain that all the loadable modules are put in place. 
+      </p></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="idm1302"></a>19.3. 
+        The System Hangs at LILO 
+      </h3></div></div></div><p>
+        <span class="emphasis"><em>
+          Sympton: 
+        </em></span>
+        After you build the kernel and reboot, the system hangs just before 
+        LILO. 
+      </p><p>
+        <span class="emphasis"><em>
+          Reason: 
+        </em></span>
+        Probably you did not set the BIOS to pick up the proper Primary Master 
+        IDE and Secondary Slave IDE hard disk partition. 
+      </p><p>
+        <span class="emphasis"><em>
+          Solution: 
+        </em></span>
+        Power on the machine and press DEL key to do setup of the BIOS (Basic 
+        Input Output system). Select the IDE settings and set proper primary 
+        hard disk partition and slave drives. When the system boots it looks 
+        for the primary IDE hard disk and the Master Boot Record partition. It 
+        reads the MBR and starts loading the Linux Kernel from the hard disk 
+        partition. 
+      </p></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="idm1310"></a>19.4. 
+        No init found 
+      </h3></div></div></div><p>
+        The following mistake is commited very frequently by new users. 
+      </p><p>
+        If your new kernel does not boot and you get - 
+        </p><pre class="programlisting">
+	Warning: unable to open an initial console
+	Kernel panic: no init found. Try passing init= option to kernel
+        </pre><p>
+        The problem is that you 
+        <span class="emphasis"><em>
+          did not 
+        </em></span>
+        set the "root=" parameter properly in the /etc/lilo.conf. In my case, 
+        I used root=/dev/hda1 which is having the root partition "/". You must 
+        properly point the root device in your lilo.conf, it can be like 
+        /dev/hdb2 or /dev/hda7. 
+      </p><p>
+        There may be errors just before this Kernel panic. Look for and read 
+        any error messages just above the like 'Kernel panic:'. The failure 
+        may be due to any error messages just before this one (it is 
+        cummulative effect). For example, before the 'Kernel panic' error you 
+        might have got error like 'kernel-module version mismatch' or 
+        'something-else-some-other-error-message'. Try to correct the FIRST 
+        error reported by the system. 
+      </p><p>
+        The kernel looks for the init command which is located in /sbin/init. 
+        And /sbin directory lives on the root partition. For details see - 
+        </p><pre class="programlisting">
+	bash# man init
+        </pre><p>
+        See the 
+        <a class="xref" href="ar01s17.html" title="17.  Appendix C - GRUB Details And A Sample grub.conf">Section 17, &#8220;
+      Appendix C - GRUB Details And A Sample grub.conf 
+    &#8221;</a>
+        file and see the 
+        <a class="xref" href="ar01s16.html" title="16.  Appendix B - Sample lilo.conf">Section 16, &#8220;
+      Appendix B - Sample lilo.conf 
+    &#8221;</a>
+        . 
+      </p></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="idm1321"></a>19.5. 
+        Lot of Compile Errors 
+      </h3></div></div></div><p>
+        The 'make', 'make bzImage', 'make modules' or 'make modules_install' 
+        gives compile problems. You should give 'make mrproper' before doing 
+        make. 
+        </p><pre class="programlisting">
+	bash# make clean &amp;&amp; make mrproper # "MUST DO THIS mrproper", otherwise you will face hell lot of problems !!
+        </pre><p>
+        If this problem persists, then try menuconfig instead of xconfig. 
+        Sometimes GUI version xconfig causes some problems: 
+        </p><pre class="programlisting">
+	bash# export TERM=VT100
+	bash# make menuconfig  # Newer, uses ncurses/curses, may fail if not installed
+        </pre><p>
+      </p></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="idm1326"></a>19.6. 
+        The 'depmod' gives "Unresolved symbol error messages" 
+      </h3></div></div></div><p>
+        When you run 
+        <code class="literal">
+          depmod 
+        </code>
+        it gives "Unresolved symbols". A sample error message is given here to 
+        demonstrate the case: 
+        </p><pre class="programlisting">
+	bash$ su - root
+	bash# man depmod
+	bash# depmod
+	depmod: *** Unresolved symbols in /lib/modules/version/kernel/drivers/md/linear.o
+	depmod: *** Unresolved symbols in /lib/modules/version/kernel/drivers/md/multipath.o
+	depmod: *** Unresolved symbols in /lib/modules/version/kernel/drivers/md/raid0.o
+	depmod: *** Unresolved symbols in /lib/modules/version/kernel/drivers/md/raid1.o
+	depmod: *** Unresolved symbols in /lib/modules/version/kernel/drivers/md/raid5.o
+        </pre><p>
+      </p><p>
+        <span class="emphasis"><em>
+          Reason: 
+        </em></span>
+        You did not make modules and install the modules after building the 
+        new kernel with 
+        <code class="literal">
+          "make bzImage" 
+        </code>
+        . 
+      </p><p>
+        <span class="emphasis"><em>
+          Solution: 
+        </em></span>
+        After you build the new kernel, you must do: 
+        </p><pre class="programlisting">
+	bash$ su - root
+	bash# cd /usr/src/linux
+	bash# make modules
+	bash# make modules_install
+        </pre><p>
+      </p></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="idm1337"></a>19.7. 
+        Kernel Does Not Load Module - "Unresolved symbols" Error Messages 
+      </h3></div></div></div><p>
+        When you boot kernel and system tries to load any modules and you get 
+        "Unresolved symbol : __some_function_name" then it means that you did 
+        not clean compile the modules and kernel. It is mandatory that you 
+        should do 
+        <span class="emphasis"><em>
+          make clean 
+        </em></span>
+        and make the modules. Do this - 
+        </p><pre class="programlisting">
+		bash# cd /usr/src/linux
+		bash# make dep
+		bash# make clean
+		bash# make mrproper  # "MUST DO THIS mrproper", otherwise you will face hell lot of problems !!
+		bash# make clean
+		bash# nohup make bzImage &amp;  
+		bash# tail -f nohup.out     (.... to monitor the progress) 
+		bash# make modules
+		bash# make modules_install
+        </pre><p>
+      </p></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="idm1342"></a>19.8. 
+        Kernel fails to load a module 
+      </h3></div></div></div><p>
+        If the kernel fails to load a module (say loadable module for network 
+        card or other devices), then you may want to try to build the driver 
+        for device right into the kernel. Sometimes 
+        <span class="emphasis"><em>
+          <span class="emphasis"><em>
+            loadable module will NOT work 
+          </em></span>
+        </em></span>
+        and the driver needs to be built right inside the kernel. For example 
+        - some network cards do not support loadable module feature - you MUST 
+        build the driver of the network card right into linux kernel. Hence, 
+        in 'make xconfig' you MUST not select loadable module for this device. 
+      </p></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="idm1347"></a>19.9. 
+        Loadable modules 
+      </h3></div></div></div><p>
+        You can install default loadable modules with - 
+      </p><p>
+        The step given below may not be required but is needed 
+        <span class="emphasis"><em>
+          ONLY FOR EMERGENCIES 
+        </em></span>
+        where your /lib/modules files are damaged. If you already have the 
+        /lib/modules directory and in case you want replace them use the 
+        --force to replace the package and select appropriate cpu 
+        architecture. 
+      </p><p>
+        For new versions of linux redhat linux 6.0 and later, the kernel 
+        modules are included with kernel-2.2*.rpm. Install the loadable 
+        modules and the kernel with 
+        </p><pre class="programlisting">
+		This will list the already installed package.
+	bash# rpm -qa | grep -i kernel
+		
+	bash# rpm -U --force  /mnt/cdrom/Redhat/RPMS/kernel-2.2.14-5.0.i686.rpm
+	(or)
+	bash# rpm -U --force  /mnt/cdrom/Redhat/RPMS/kernel-2.2.14-5.0.i586.rpm
+	(or)
+	bash# rpm -U --force  /mnt/cdrom/Redhat/RPMS/kernel-2.2.14-5.0.i386.rpm
+        </pre><p>
+      </p><p>
+        This is only for old versions of redhat linux 5.2 and before. Boot new 
+        kernel and install the loadable modules from RedHat Linux "contrib" 
+        cdrom 
+        </p><pre class="programlisting">
+	bash# rpm -i /mnt/cdrom/contrib/kernel-modules*.rpm 
+	....(For old linux systems which do not have insmod pre-installed) 
+        </pre><p>
+      </p></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="idm1356"></a>19.10. 
+        See Kernel Documentations 
+      </h3></div></div></div><p>
+        More problems. You can read the /usr/src/linux/README (at least once) 
+        and also /usr/src/linux/Documentation. 
+        </p><pre class="programlisting">
+	bash [/] # cd /usr/src/linux/Documentation
+	  
+	bash [/usr/src/linux/Documentation] # ls *.txt
+	  
+	binfmt_misc.txt  ioctl-number.txt           nbd.txt               serial-console.txt
+	cachetlb.txt     IO-mapping.txt             nfsroot.txt           sgi-visws.txt
+	cciss.txt        IRQ-affinity.txt           nmi_watchdog.txt      smart-config.txt
+	computone.txt    isapnp.txt                 oops-tracing.txt      smp.txt
+	cpqarray.txt     java.txt                   paride.txt            sonypi.txt
+	devices.txt      kernel-doc-nano-HOWTO.txt  parport-lowlevel.txt  specialix.txt
+	digiboard.txt    kernel-docs.txt            parport.txt           spinlocks.txt
+	digiepca.txt     kernel-parameters.txt      pci.txt               stallion.txt
+	DMA-mapping.txt  kmod.txt                   pcwd-watchdog.txt     svga.txt
+	dnotify.txt      locks.txt                  pm.txt                swsusp.txt
+	exception.txt    logo.txt                   ramdisk.txt           sx.txt
+	floppy.txt       magic-number.txt           riscom8.txt           sysrq.txt
+	ftape.txt        mandatory.txt              rtc.txt               unicode.txt
+	hayes-esp.txt    mca.txt                    SAK.txt               VGA-softcursor.txt
+	highuid.txt      md.txt                     sched-coding.txt      watchdog-api.txt
+	i810_rng.txt     memory.txt                 sched-design.txt      watchdog.txt
+	ide.txt          modules.txt                scsi-generic.txt      zorro.txt
+	initrd.txt       mtrr.txt                   scsi.txt
+        </pre><p>
+      </p></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="idm1360"></a>19.11. 
+        make clean 
+      </h3></div></div></div><p>
+        If your new kernel does really weird things after a routine kernel 
+        upgrade, chances are you forgot to 
+        <code class="literal">
+          make clean 
+        </code>
+        before compiling the new kernel. Symptoms can be anything from your 
+        system outright crashing, strange I/O problems, to crummy performance. 
+        Make sure you do a 
+        <code class="literal">
+          make dep 
+        </code>
+        , too. 
+      </p></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="idm1365"></a>19.12. 
+        Huge or slow kernels 
+      </h3></div></div></div><p>
+        If your kernel is sucking up a lot of memory, is too large, and/or 
+        just takes forever to compile even when you've got your new 
+        Quadbazillium-III/4400 working on it, you've probably got lot of 
+        unneeded stuff (device drivers, filesystems, etc) configured. If you 
+        don't use it, don't configure it, because it does take up memory. The 
+        most obvious symptom of kernel bloat is extreme swapping in and out of 
+        memory to disk; if your disk is making a lot of noise and it's not one 
+        of those old Fujitsu Eagles that sound like a jet landing when 
+        turned off, look over your kernel configuration. 
+      </p><p>
+        You can find out how much memory the kernel is using by taking the 
+        total amount of memory in your machine and subtracting from it the 
+        amount of ``total mem'' in 
+        <code class="literal">
+          /proc/meminfo 
+        </code>
+        or the output of the command ` 
+        <code class="literal">
+          free 
+        </code>
+        '. 
+      </p></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="idm1371"></a>19.13. 
+        The parallel port doesn't work/my printer doesn't work 
+      </h3></div></div></div><p>
+        Configuration options for PCs are: First, under the category `General 
+        Setup', select `Parallel port support' and `PC-style hardware'. Then 
+        under `Character devices', select `Parallel printer support'. 
+      </p><p>
+        Then there are the names. Linux 2.2 names the printer devices 
+        differently than previous releases. The upshot of this is that if you 
+        had an 
+        <code class="literal">
+          lp1 
+        </code>
+        under your old kernel, it's probably an 
+        <code class="literal">
+          lp0 
+        </code>
+        under your new one. Use ` 
+        <code class="literal">
+          dmesg 
+        </code>
+        ' or look through the logs in 
+        <code class="literal">
+          /var/log 
+        </code>
+        to find out. 
+      </p></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="idm1379"></a>19.14. 
+        Kernel doesn't compile 
+      </h3></div></div></div><p>
+        If it does not compile, then it is likely that a patch failed, or your 
+        source is somehow corrupt. Your version of gcc also might not be 
+        correct, or could also be corrupt (for example, the include files 
+        might be in error). Make sure that the symbolic links which Linus 
+        describes in the 
+        <code class="literal">
+          README 
+        </code>
+        are set up correctly. In general, if a standard kernel does not 
+        compile, something is seriously wrong with the system, and 
+        reinstallation of certain tools is probably necessary. 
+      </p><p>
+        In some cases, gcc can crash due to hardware problems. The error 
+        message will be something like ``xxx exited with signal 15'' and it 
+        will generally look very mysterious. I probably would not mention 
+        this, except that it happened to me once - I had some bad cache 
+        memory, and the compiler would occasionally barf at random. Try 
+        reinstalling gcc first if you experience problems. You should only get 
+        suspicious if your kernel compiles fine with external cache turned 
+        off, a reduced amount of RAM, etc. 
+      </p><p>
+        It tends to disturb people when it's suggested that their hardware has 
+        problems. Well, I'm not making this up. There is an FAQ for it -- it's 
+        at 
+        <a class="ulink" href="http://www.bitwizard.nl/sig11" target="_top">
+          "http://www.bitwizard.nl/sig11" 
+        </a>
+        . 
+      </p></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="idm1386"></a>19.15. 
+        New version of the kernel doesn't seem to boot 
+      </h3></div></div></div><p>
+        You did not run LILO, or it is not configured correctly. One thing 
+        that ``got'' me once was a problem in the config file; it said ` 
+        <code class="literal">
+          boot = /dev/hda1 
+        </code>
+        ' instead of ` 
+        <code class="literal">
+          boot = /dev/hda 
+        </code>
+        ' (This can be really annoying at first, but once you have a working 
+        config file, you shouldn't need to change it.). 
+      </p></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="idm1391"></a>19.16. 
+        You forgot to run LILO, or system doesn't boot at all 
+      </h3></div></div></div><p>
+        Ooops! The best thing you can do here is to boot off of a floppy disk 
+        or CDROM and prepare another bootable floppy (such as ` 
+        <code class="literal">
+          make zdisk 
+        </code>
+        ' would do). You need to know where your root ( 
+        <code class="literal">
+          / 
+        </code>
+        ) filesystem is and what type it is (e.g. second extended, minix). In 
+        the example below, you also need to know what filesystem your 
+        <code class="literal">
+          /usr/src/linux 
+        </code>
+        source tree is on, its type, and where it is normally mounted. 
+      </p><p>
+        In the following example, 
+        <code class="literal">
+          / 
+        </code>
+        is 
+        <code class="literal">
+          /dev/hda1 
+        </code>
+        , and the filesystem which holds 
+        <code class="literal">
+          /usr/src/linux 
+        </code>
+        is 
+        <code class="literal">
+          /dev/hda3 
+        </code>
+        , normally mounted at 
+        <code class="literal">
+          /usr 
+        </code>
+        . Both are second extended filesystems. The working kernel image in 
+        <code class="literal">
+          /usr/src/linux/arch/i386/boot 
+        </code>
+        is called 
+        <code class="literal">
+          bzImage 
+        </code>
+        . 
+      </p><p>
+        The idea is that if there is a functioning 
+        <code class="literal">
+          bzImage 
+        </code>
+        , it is possible to use that for the new floppy. Another alternative, 
+        which may or may not work better (it depends on the particular method 
+        in which you messed up your system) is discussed after the example. 
+      </p><p>
+        First, boot from a boot/root disk combo or rescue disk, and mount the 
+        filesystem which contains the working kernel image: 
+      </p><p>
+        mkdir /mnt mount -t ext2 /dev/hda3 /mnt 
+      </p><p>
+        If 
+        <code class="literal">
+          mkdir 
+        </code>
+        tells you that the directory already exists, just ignore it. Now, 
+        <code class="literal">
+          cd 
+        </code>
+        to the place where the working kernel image was. Note that /mnt + 
+        /usr/src/linux/arch/i386/boot - /usr = /mnt/src/linux/arch/i386/boot 
+        Place a formatted disk in drive ``A:'' (not your boot or root disk!), 
+        dump the image to the disk, and configure it for your root filesystem: 
+      </p><p>
+        cd /mnt/src/linux/arch/i386/boot dd if=bzImage of=/dev/fd0 rdev 
+        /dev/fd0 /dev/hda1 
+      </p><p>
+        <code class="literal">
+          cd 
+        </code>
+        to 
+        <code class="literal">
+          / 
+        </code>
+        and unmount the normal 
+        <code class="literal">
+          /usr 
+        </code>
+        filesystem: 
+      </p><p>
+        cd / umount /mnt 
+      </p><p>
+        You should now be able to reboot your system as normal from this 
+        floppy. Don't forget to run lilo (or whatever it was that you did 
+        wrong) after the reboot! 
+      </p><p>
+        As mentioned above, there is another common alternative. If you 
+        happened to have a working kernel image in 
+        <code class="literal">
+          / 
+        </code>
+        ( 
+        <code class="literal">
+          /vmlinuz 
+        </code>
+        for example), you can use that for a boot disk. Supposing all of the 
+        above conditions, and that my kernel image is 
+        <code class="literal">
+          /vmlinuz 
+        </code>
+        , just make these alterations to the example above: change 
+        <code class="literal">
+          /dev/hda3 
+        </code>
+        to 
+        <code class="literal">
+          /dev/hda1 
+        </code>
+        (the 
+        <code class="literal">
+          / 
+        </code>
+        filesystem), 
+        <code class="literal">
+          /mnt/src/linux 
+        </code>
+        to 
+        <code class="literal">
+          /mnt 
+        </code>
+        , and 
+        <code class="literal">
+          if=bzImage 
+        </code>
+        to 
+        <code class="literal">
+          if=vmlinuz 
+        </code>
+        . The note explaining how to derive 
+        <code class="literal">
+          /mnt/src/linux 
+        </code>
+        may be ignored. 
+      </p><p>
+        Using LILO with big drives (more than 1024 cylinders) can cause 
+        problems. See the LILO mini-HOWTO or documentation for help on that. 
+      </p></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="idm1432"></a>19.17. 
+        It says `warning: bdflush not running' 
+      </h3></div></div></div><p>
+        This can be a severe problem. Starting with a kernel release after 
+        Linux v1.0 (around 20 Apr 1994), a program called ` 
+        <code class="literal">
+          update 
+        </code>
+        ' which periodically flushes out the filesystem buffers, was 
+        upgraded/replaced. Get the sources to ` 
+        <code class="literal">
+          bdflush 
+        </code>
+        ' (you should find it where you got your kernel source), and install 
+        it (you probably want to run your system under the old kernel while 
+        doing this). It installs itself as ` 
+        <code class="literal">
+          update 
+        </code>
+        ' and after a reboot, the new kernel should no longer complain. 
+      </p></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="idm1438"></a>19.18. 
+        I can't get my IDE/ATAPI CD-ROM drive to work 
+      </h3></div></div></div><p>
+        Strangely enough, lot of people cannot get their ATAPI drives working, 
+        probably because there are a number of things that can go wrong. 
+      </p><p>
+        If your CD-ROM drive is the only device on a particular IDE interface, 
+        it must be jumpered as ``master'' or ``single.'' Supposedly, this is 
+        the most common error. 
+      </p><p>
+        Creative Labs (for one) has put IDE interfaces on their sound cards 
+        now. However, this leads to the interesting problem that while some 
+        people only have one interface to being with, many have two IDE 
+        interfaces built-in to their motherboards (at IRQ15, usually), so a 
+        common practice is to make the soundblaster interface a third IDE port 
+        (IRQ11, or so I'm told). 
+      </p><p>
+        This causes problems with older Linux versions like 1.3 and below. in 
+        that versions Linux don't support a third IDE interface. To get around 
+        this, you have a few choices. 
+      </p><p>
+        If you have a second IDE port already, chances are that you are not 
+        using it or it doesn't already have two devices on it. Take the ATAPI 
+        drive off the sound card and put it on the second interface. You can 
+        then disable the sound card's interface, which saves an IRQ anyway. 
+      </p><p>
+        If you don't have a second interface, jumper the sound card's 
+        interface (not the sound card's sound part) as IRQ15, the second 
+        interface. It should work. 
+      </p></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="idm1446"></a>19.19. 
+        It says weird things about obsolete routing requests 
+      </h3></div></div></div><p>
+        Get new versions of the 
+        <code class="literal">
+          route 
+        </code>
+        program and any other programs which do route manipulation. 
+        <code class="literal">
+          /usr/include/linux/route.h 
+        </code>
+        (which is actually a file in 
+        <code class="literal">
+          /usr/src/linux 
+        </code>
+        ) has changed. 
+      </p></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="idm1452"></a>19.20. 
+        ``Not a compressed kernel Image file'' 
+      </h3></div></div></div><p>
+        Don't use the 
+        <code class="literal">
+          vmlinux 
+        </code>
+        file created in 
+        <code class="literal">
+          /usr/src/linux 
+        </code>
+        as your boot image; 
+        <code class="literal">
+          [..]/arch/i386/boot/bzImage 
+        </code>
+        is the right one. 
+      </p></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="idm1458"></a>19.21. 
+        Problems with console terminal after upgrade to Linux v1.3.x 
+      </h3></div></div></div><p>
+        Change the word 
+        <code class="literal">
+          dumb 
+        </code>
+        to 
+        <code class="literal">
+          linux 
+        </code>
+        in the console termcap entry in 
+        <code class="literal">
+          /etc/termcap 
+        </code>
+        . You may also have to make a terminfo entry. 
+      </p></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="idm1464"></a>19.22. 
+        Can't seem to compile things after kernel upgrade 
+      </h3></div></div></div><p>
+        The linux kernel source includes a number of include files (the things 
+        that end with 
+        <code class="literal">
+          .h 
+        </code>
+        ) which are referenced by the standard ones in 
+        <code class="literal">
+          /usr/include 
+        </code>
+        . They are typically referenced like this (where 
+        <code class="literal">
+          xyzzy.h 
+        </code>
+        would be something in 
+        <code class="literal">
+          /usr/include/linux 
+        </code>
+        ): #include &lt;linux/xyzzy.h&gt; Normally, there is a link called 
+        <code class="literal">
+          linux 
+        </code>
+        in 
+        <code class="literal">
+          /usr/include 
+        </code>
+        to the 
+        <code class="literal">
+          include/linux 
+        </code>
+        directory of your kernel source ( 
+        <code class="literal">
+          /usr/src/linux/include/linux 
+        </code>
+        in the typical system). If this link is not there, or points to the 
+        wrong place, most things will not compile at all. If you decided that 
+        the kernel source was taking too much room on the disk and deleted it, 
+        this will obviously be a problem. Another way it might go wrong is 
+        with file permissions; if your 
+        <code class="literal">
+          root 
+        </code>
+        has a umask which doesn't allow other users to see its files by 
+        default, and you extracted the kernel source without the 
+        <code class="literal">
+          p 
+        </code>
+        (preserve filemodes) option, those users also won't be able to use the 
+        C compiler. Although you could use the 
+        <code class="literal">
+          chmod 
+        </code>
+        command to fix this, it is probably easier to re-extract the include 
+        files. You can do this the same way you did the whole source at the 
+        beginning, only with an additional argument: 
+      </p><p>
+        blah# tar zxvpf linux.x.y.z.tar.gz linux/include Note: `` 
+        <code class="literal">
+          make config 
+        </code>
+        '' will recreate the 
+        <code class="literal">
+          /usr/src/linux 
+        </code>
+        link if it isn't there. 
+      </p></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="idm1481"></a>19.23. 
+        Increasing limits 
+      </h3></div></div></div><p>
+        The following few 
+        <span class="emphasis"><em>
+          example 
+        </em></span>
+        commands may be helpful to those wondering how to increase certain 
+        soft limits imposed by the kernel: 
+        </p><pre class="programlisting">
+			echo 4096 &gt; /proc/sys/kernel/file-max 
+			echo 12288 &gt; /proc/sys/kernel/inode-max 
+			echo 300 400 500 &gt; /proc/sys/vm/freepages 
+        </pre><p>
+      </p></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="idm1486"></a>19.24. 
+        Where To Report Bugs? 
+      </h3></div></div></div><p>
+        See 'Quick Steps - Kernel Compile' in the 
+        <a class="xref" href="ar01s02.html#reportbugs" title="2.8.  Where to Report Bugs ?">Section 2.8, &#8220;
+        Where to Report Bugs ? 
+      &#8221;</a>
+        . 
+      </p></div></div><div class="navfooter"><hr><table width="100%" summary="Navigation footer"><tr><td width="40%" align="left"><a accesskey="p" href="ar01s18.html">Prev</a> </td><td width="20%" align="center"> </td><td width="40%" align="right"> </td></tr><tr><td width="40%" align="left" valign="top">18. 
+      Appendix D - Post Kernel Building 
+     </td><td width="20%" align="center"><a accesskey="h" href="index.html">Home</a></td><td width="40%" align="right" valign="top"> </td></tr></table></div></body></html>

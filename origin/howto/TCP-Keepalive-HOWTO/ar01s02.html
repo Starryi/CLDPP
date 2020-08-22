@@ -1,0 +1,131 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1"><title>2. TCP keepalive overview</title><link rel="stylesheet" type="text/css" href="style.css"><meta name="generator" content="DocBook XSL Stylesheets V1.79.1"><link rel="home" href="index.html" title="TCP Keepalive HOWTO"><link rel="up" href="index.html" title="TCP Keepalive HOWTO"><link rel="prev" href="ar01s01.html" title="1. Introduction"><link rel="next" href="ar01s03.html" title="3. Using TCP keepalive under Linux"></head><body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF"><div class="navheader"><table width="100%" summary="Navigation header"><tr><th colspan="3" align="center">2. TCP keepalive overview</th></tr><tr><td width="20%" align="left"><a accesskey="p" href="ar01s01.html">Prev</a> </td><th width="60%" align="center"> </th><td width="20%" align="right"> <a accesskey="n" href="ar01s03.html">Next</a></td></tr></table><hr></div><div class="sect1"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="overview"></a>2. TCP keepalive overview</h2></div></div></div><p>
+    In order to understand what TCP keepalive (which we will just call
+    keepalive) does, you need do nothing more than read the name: keep TCP
+    alive. This means that you will be able to check your connected socket (also
+    known as TCP sockets), and determine whether the connection is still up and
+    running or if it has broken.
+  </p><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="whatis"></a>2.1. What is TCP keepalive?</h3></div></div></div><p>
+      The keepalive concept is very simple: when you set up a TCP connection,
+      you associate a set of timers. Some of these timers deal with the
+      keepalive procedure. When the keepalive timer reaches zero, you send your
+      peer a keepalive probe packet with no data in it and the ACK flag turned
+      on. You can do this because of the TCP/IP specifications, as a sort of
+      duplicate ACK, and the remote endpoint will have no arguments, as TCP is a
+      stream-oriented protocol. On the other hand, you will receive a reply from
+      the remote host (which doesn't need to support keepalive at all, just
+      TCP/IP), with no data and the ACK set.
+    </p><p>
+      If you receive a reply to your keepalive probe, you can assert that the
+      connection is still up and running without worrying about the user-level
+      implementation. In fact, TCP permits you to handle a stream, not packets,
+      and so a zero-length data packet is not dangerous for the user program.
+    </p><p>
+      This procedure is useful because if the other peers lose their connection
+      (for example by rebooting) you will notice that the connection is broken,
+      even if you don't have traffic on it. If the keepalive probes are not
+      replied to by your peer, you can assert that the connection cannot be
+      considered valid and then take the correct action.
+    </p></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="whyuse"></a>2.2. Why use TCP keepalive?</h3></div></div></div><p>
+      You can live quite happily without keepalive, so if you're reading this,
+      you may be trying to understand if keepalive is a possible solution for
+      your problems. Either that or you've really got nothing more interesting
+      to do instead, and that's okay too. :)
+    </p><p>
+      Keepalive is non-invasive, and in most cases, if you're in doubt, you can
+      turn it on without the risk of doing something wrong. But do remember that
+      it generates extra network traffic, which can have an impact on routers
+      and firewalls.
+    </p><p>
+      In short, use your brain and be careful.
+    </p><p>
+      In the next section we will distinguish between the two target tasks for
+      keepalive:
+      </p><div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem"><p>Checking for dead peers</p></li><li class="listitem"><p>Preventing disconnection due to network inactivity</p></li></ul></div><p>
+    </p></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="checkdeadpeers"></a>2.3. Checking for dead peers</h3></div></div></div><p>
+      Keepalive can be used to advise you when your peer dies before it is able
+      to notify you. This could happen for several reasons, like kernel panic or
+      a brutal termination of the process handling that peer. Another scenario
+      that illustrates when you need keepalive to detect peer death is when the
+      peer is still alive but the network channel between it and you has gone
+      down. In this scenario, if the network doesn't become operational again,
+      you have the equivalent of peer death. This is one of those situations
+      where normal TCP operations aren't useful to check the connection status.
+    </p><p>
+      Think of a simple TCP connection between Peer A and Peer B: there is the
+      initial three-way handshake, with one SYN segment from A to B, the SYN/ACK
+      back from B to A, and the final ACK from A to B. At this time, we're in a
+      stable status: connection is established, and now we would normally wait
+      for someone to send data over the channel. And here comes the problem:
+      unplug the power supply from B and instantaneously it will go down,
+      without sending anything over the network to notify A that the connection
+      is going to be broken. A, from its side, is ready to receive data, and has
+      no idea that B has crashed. Now restore the power supply to B and wait for
+      the system to restart. A and B are now back again, but while A knows about
+      a connection still active with B, B has no idea. The situation resolves
+      itself when A tries to send data to B over the dead connection, and B
+      replies with an RST packet, causing A to finally to close the connection.
+    </p><p>
+      Keepalive can tell you when another peer becomes unreachable without the
+      risk of false-positives. In fact, if the problem is in the network between
+      two peers, the keepalive action is to wait some time and then retry,
+      sending the keepalive packet before marking the connection as broken.
+    </p><p>
+      </p><pre class="screen">
+    _____                                                     _____
+   |     |                                                   |     |
+   |  A  |                                                   |  B  |
+   |_____|                                                   |_____|
+      ^                                                         ^
+      |---&gt;---&gt;---&gt;-------------- SYN --------------&gt;---&gt;---&gt;---|
+      |---&lt;---&lt;---&lt;------------ SYN/ACK ------------&lt;---&lt;---&lt;---|
+      |---&gt;---&gt;---&gt;-------------- ACK --------------&gt;---&gt;---&gt;---|
+      |                                                         |
+      |                                       system crash ---&gt; X
+      |
+      |                                     system restart ---&gt; ^
+      |                                                         |
+      |---&gt;---&gt;---&gt;-------------- PSH --------------&gt;---&gt;---&gt;---|
+      |---&lt;---&lt;---&lt;-------------- RST --------------&lt;---&lt;---&lt;---|
+      |                                                         |
+
+      </pre><p>
+    </p></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="preventingdisconnection"></a>2.4. Preventing disconnection due to network inactivity</h3></div></div></div><p>
+      The other useful goal of keepalive is to prevent inactivity from
+      disconnecting the channel. It's a very common issue, when you are behind a
+      NAT proxy or a firewall, to be disconnected without a reason. This
+      behavior is caused by the connection tracking procedures implemented in
+      proxies and firewalls, which keep track of all connections that pass
+      through them. Because of the physical limits of these machines, they can
+      only keep a finite number of connections in their memory. The most common
+      and logical policy is to keep newest connections and to discard old and
+      inactive connections first.
+    </p><p>
+      Returning to Peers A and B, reconnect them. Once the channel is open, wait
+      until an event occurs and then communicate this to the other peer. What if
+      the event verifies after a long period of time? Our connection has its
+      scope, but it's unknown to the proxy. So when we finally send data, the
+      proxy isn't able to correctly handle it, and the connection breaks up.
+    </p><p>
+      Because the normal implementation puts the connection at the top of the
+      list when one of its packets arrives and selects the last connection in
+      the queue when it needs to eliminate an entry, periodically sending
+      packets over the network is a good way to always be in a polar position
+      with a minor risk of deletion.
+    </p><p>
+      </p><pre class="screen">
+    _____           _____                                     _____
+   |     |         |     |                                   |     |
+   |  A  |         | NAT |                                   |  B  |
+   |_____|         |_____|                                   |_____|
+      ^               ^                                         ^
+      |---&gt;---&gt;---&gt;---|----------- SYN -------------&gt;---&gt;---&gt;---|
+      |---&lt;---&lt;---&lt;---|--------- SYN/ACK -----------&lt;---&lt;---&lt;---|
+      |---&gt;---&gt;---&gt;---|----------- ACK -------------&gt;---&gt;---&gt;---|
+      |               |                                         |
+      |               | &lt;--- connection deleted from table      |
+      |               |                                         |
+      |---&gt;- PSH -&gt;---| &lt;--- invalid connection                 |
+      |               |                                         |
+
+      </pre><p>
+    </p></div></div><div class="navfooter"><hr><table width="100%" summary="Navigation footer"><tr><td width="40%" align="left"><a accesskey="p" href="ar01s01.html">Prev</a> </td><td width="20%" align="center"> </td><td width="40%" align="right"> <a accesskey="n" href="ar01s03.html">Next</a></td></tr><tr><td width="40%" align="left" valign="top">1. Introduction </td><td width="20%" align="center"><a accesskey="h" href="index.html">Home</a></td><td width="40%" align="right" valign="top"> 3. Using TCP keepalive under Linux</td></tr></table></div></body></html>

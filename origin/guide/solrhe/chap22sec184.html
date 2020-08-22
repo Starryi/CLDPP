@@ -1,0 +1,92 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1"><title>12. Limit queue processing to root</title><link rel="stylesheet" type="text/css" href="style.css"><meta name="generator" content="DocBook XSL Stylesheets V1.79.1"><meta name="keywords" content="RedHat, redhat, maddy, linus, linux, Linux, Securing, Optimising, security, secure, openna, gerhard"><link rel="home" href="index.html" title="Securing and Optimizing Linux"><link rel="up" href="soser-mailn.html" title="Chapter 22. Software -Server/Mail Network"><link rel="prev" href="chap22sec183.html" title="11. The /etc/mail/aliases file"><link rel="next" href="chap22sec185.html" title="13. Sendmail Administrative Tools"></head><body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF"><div class="navheader"><table width="100%" summary="Navigation header"><tr><th colspan="3" align="center">12. Limit queue processing to <code class="literal">root</code></th></tr><tr><td width="20%" align="left"><a accesskey="p" href="chap22sec183.html">Prev</a> </td><th width="60%" align="center">Chapter 22. Software -Server/Mail Network</th><td width="20%" align="right"> <a accesskey="n" href="chap22sec185.html">Next</a></td></tr></table><hr></div><div class="section"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="idm12660"></a>12. Limit queue processing to <code class="literal">root</code></h2></div></div></div><p>
+         Ordinarily, anyone may process the queue with the  -q switch. To limit queue processing to <code class="literal">root</code> and the owner of the queue directory, you must specify 
+         the <code class="envar">restrictqrun</code> option in the <code class="filename">/etc/mail/sendmail.cf</code> file.
+         </p><p>
+         Edit the <code class="filename">sendmail.cf</code> file, <span class="command"><strong>vi</strong></span> <code class="filename">/etc/mail/sendmail.cf</code> and change the line:
+         </p><pre class="programlisting">
+         O PrivacyOptions=authwarnings,goaway,restrictmailq
+         </pre><p>
+         To read:
+         </p><pre class="programlisting">
+         O PrivacyOptions=authwarnings,goaway,restrictmailq,restrictqrun
+         </pre><p>
+         </p><p>
+         Now re-start the sendmail process manually for the change to take effect:
+         </p><pre class="screen">
+         [root@deep] /# /etc/rc.d/init.d/sendmail <span class="command"><strong>restart</strong></span>
+         </pre><p>
+         </p><pre class="literallayout"><code class="computeroutput">
+         Shutting down sendmail:                                    	[  OK  ]
+         Starting sendmail:                                    		[  OK  ]
+         </code></pre><p>
+         Any non-privileged user who attempts to process the queue will get this message:
+         </p><pre class="screen">
+         [user@deep /]$ /usr/sbin/sendmail -q
+         </pre><p>
+         </p><pre class="literallayout"><code class="computeroutput">
+         You do not have permission to process the queue
+         </code></pre><p>
+         </p><div class="section"><div class="titlepage"><div><div><h3 class="title"><a name="idm12681"></a>12.1. The <acronym class="acronym">SMTP</acronym> greeting message</h3></div></div></div><p>
+         When Sendmail accepts an incoming <acronym class="acronym">SMTP</acronym> connection it sends a greeting message to the other host. This message identifies the local machine and is the first thing it sends to say it is ready.
+         </p><p>
+         Edit the <code class="filename">sendmail.cf</code> file, <span class="command"><strong>vi</strong></span> <code class="filename">/etc/mail/sendmail.cf</code> and change the line:
+         </p><pre class="programlisting">
+         O SmtpGreetingMessage=$j Sendmail $v/$Z; $b
+         </pre><p>
+         To read:
+         </p><pre class="programlisting">
+         O SmtpGreetingMessage=$j
+         </pre><p>
+         Now re-start the sendmail process manually for the change to take effect:
+         </p><pre class="screen">
+         [root@deep] /# /etc/rc.d/init.d/sendmail <span class="command"><strong>restart</strong></span>
+         </pre><p>
+         </p><pre class="literallayout">
+         Shutting down sendmail:                                    	[  OK  ]
+         Starting sendmail:                                    		[  OK  ]
+         <code class="computeroutput"></code></pre><p>
+         </p><div class="tip" style="margin-left: 0.5in; margin-right: 0.5in;"><h3 class="title">
+<span class="inlinemediaobject"><img src="./images/Tip.gif" alt="Tip"></span>
+</h3><p>
+         This change doesn't actually affect anything, but was recommended by folks in the <code class="literal">news.admin.net-abuse.email</code> newsgroup as a legal precaution. It modifies the banner, which Sendmail displays upon receiving a connection.
+         </p></div><p>
+         Do set the immutable bit on important Sendmail files, important Sendmail files can be set immutable for better security with the <span class="command"><strong>chattr</strong></span> command of Linux. A file with the <code class="literal">+i</code> attribute 
+         cannot be modified, deleted or renamed. No link can be created to this file, and no data can be written to the file. Only the super-user can set or clear this attribute.
+         </p><div class="procedure"><ol class="procedure" type="1"><li class="step"><p>
+         Set the immutable bit on the <code class="filename">sendmail.cf</code> file:
+         </p><pre class="screen">
+         [root@deep] /# <span class="command"><strong>chattr</strong></span>  +i /etc/mail/sendmail.cf
+         </pre><p>
+          </p></li><li class="step"><p>
+         Set the immutable bit on the <code class="filename">local-host-names</code> file:
+         </p><pre class="screen">
+         [root@deep] /# <span class="command"><strong>chattr</strong></span>  +i /etc/mail/local-host-names
+         </pre><p>
+         </p></li><li class="step"><p>
+         Set the immutable bit on the <code class="filename">aliases</code> file:
+         </p><pre class="screen">
+         [root@deep] /# <span class="command"><strong>chattr</strong></span>  +i /etc/mail/aliases
+         </pre><p>
+         </p></li><li class="step"><p>
+         Set the immutable bit on the <code class="filename">access</code> file:
+         </p><pre class="screen">
+         [root@deep] /# <span class="command"><strong>chattr</strong></span>  +i /etc/mail/access
+         </pre><p>
+         </p></li></ol></div><p>
+         Further documentation and for more details, there are several man pages you can read:
+         </p><div class="variablelist"><dl class="variablelist"><dt><span class="term"><span class="citerefentry"><span class="refentrytitle">aliases</span>(5)</span></span></dt><dd><p>
+         - aliases file for sendmail
+         </p></dd><dt><span class="term"><span class="citerefentry"><span class="refentrytitle">makemap</span>(8)</span></span></dt><dd><p>
+         - create database maps for sendmail
+         </p></dd><dt><span class="term"><span class="citerefentry"><span class="refentrytitle">sendmail</span>(8)</span></span></dt><dd><p>
+         - an electronic mail transport agent
+         </p></dd><dt><span class="term"><span class="citerefentry"><span class="refentrytitle">mailq</span>(1)</span></span></dt><dd><p>
+         - print the mail queue
+         </p></dd><dt><span class="term"><span class="citerefentry"><span class="refentrytitle">newaliases</span>(1)</span></span></dt><dd><p>
+         - rebuild the data base for the mail aliases file
+         </p></dd><dt><span class="term"><span class="citerefentry"><span class="refentrytitle">mailstats</span>(8)</span></span></dt><dd><p>
+         - display mail statistics
+         </p></dd><dt><span class="term"><span class="citerefentry"><span class="refentrytitle">praliases</span>(8)</span></span></dt><dd><p>
+         - display system mail aliases
+         </p></dd></dl></div><p>
+         </p></div></div><div class="navfooter"><hr><table width="100%" summary="Navigation footer"><tr><td width="40%" align="left"><a accesskey="p" href="chap22sec183.html">Prev</a> </td><td width="20%" align="center"><a accesskey="u" href="soser-mailn.html">Up</a></td><td width="40%" align="right"> <a accesskey="n" href="chap22sec185.html">Next</a></td></tr><tr><td width="40%" align="left" valign="top">11. The <code class="filename">/etc/mail/aliases</code> file </td><td width="20%" align="center"><a accesskey="h" href="index.html">Home</a></td><td width="40%" align="right" valign="top"> 13. Sendmail Administrative Tools</td></tr></table></div></body></html>

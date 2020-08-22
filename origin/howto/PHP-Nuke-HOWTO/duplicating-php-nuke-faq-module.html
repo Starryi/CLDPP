@@ -1,0 +1,447 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN""http://www.w3.org/TR/html4/loose.dtd">
+<HTML
+><HEAD
+><TITLE
+>Duplicating the PHP-Nuke FAQ module</TITLE
+><META
+NAME="GENERATOR"
+CONTENT="Modular DocBook HTML Stylesheet Version 1.79"><LINK
+REL="HOME"
+TITLE="PHP-Nuke: Management and Programming"
+HREF="index.html"><LINK
+REL="UP"
+TITLE="Duplicating PHP-Nuke modules"
+HREF="duplicating-php-nuke-modules.html"><LINK
+REL="PREVIOUS"
+TITLE="Duplicating PHP-Nuke modules"
+HREF="duplicating-php-nuke-modules.html"><LINK
+REL="NEXT"
+TITLE="Security "
+HREF="security.html"></HEAD
+><BODY
+CLASS="SECT1"
+BGCOLOR="#FFFFFF"
+TEXT="#000000"
+LINK="#0000FF"
+VLINK="#840084"
+ALINK="#0000FF"
+><DIV
+CLASS="NAVHEADER"
+><TABLE
+SUMMARY="Header navigation table"
+WIDTH="100%"
+BORDER="0"
+CELLPADDING="0"
+CELLSPACING="0"
+><TR
+><TH
+COLSPAN="3"
+ALIGN="center"
+>PHP-Nuke: Management and Programming</TH
+></TR
+><TR
+><TD
+WIDTH="10%"
+ALIGN="left"
+VALIGN="bottom"
+><A
+HREF="duplicating-php-nuke-modules.html"
+ACCESSKEY="P"
+>Prev</A
+></TD
+><TD
+WIDTH="80%"
+ALIGN="center"
+VALIGN="bottom"
+>Chapter 22. Duplicating <SPAN
+CLASS="APPLICATION"
+>PHP-Nuke</SPAN
+> modules</TD
+><TD
+WIDTH="10%"
+ALIGN="right"
+VALIGN="bottom"
+><A
+HREF="security.html"
+ACCESSKEY="N"
+>Next</A
+></TD
+></TR
+></TABLE
+><HR
+ALIGN="LEFT"
+WIDTH="100%"></DIV
+><DIV
+CLASS="SECT1"
+><H1
+CLASS="SECT1"
+><A
+NAME="DUPLICATING-PHP-NUKE-FAQ-MODULE"
+>22.1. Duplicating the <SPAN
+CLASS="APPLICATION"
+>PHP-Nuke</SPAN
+> FAQ module</A
+></H1
+><P
+>Suppose you would like to have two FAQ modules. You might of course ask why on earth you would want such a complication in your <SPAN
+CLASS="APPLICATION"
+>PHP-Nuke</SPAN
+> site, but if you recall that <SPAN
+CLASS="APPLICATION"
+>PHP-Nuke</SPAN
+> lets you decide for each module individually whether to all visitors, only registered ones, or only administrators to view it, you will find out that two identical FAQ modules would be a simple way to have two FAQs, one only for administrators and one for all users. </P
+><P
+>We will now follow the steps outlined above for the purpose of duplicating the FAQ module:</P
+><P
+></P
+><UL
+><LI
+><P
+>We copy the whole directory modules/FAQ to modules/Admin_FAQ</P
+></LI
+><LI
+><P
+>We also copy:</P
+><P
+></P
+><UL
+><LI
+><P
+>admin/modules/adminfaq.php to admin/modules/adminfaq2.php,</P
+></LI
+><LI
+><P
+>admin/links/links.faq.php to admin/links/links.faq2.php and</P
+></LI
+><LI
+><P
+>admin/case/case.adminfaq.php to admin/case/case.adminfaq2.php.</P
+></LI
+></UL
+></LI
+><LI
+><P
+>Code inspection reveals that the only tables used by the FAQ module are faqAnswer and faqCategories.</P
+></LI
+><LI
+><P
+>The relevant part of nuke.sql that creates and populates faqAnswer and faqCategories is easily located. After we append a &#8220;2&#8221; at the table names and copy it to nuke2.sql, the latter will have the following content:</P
+><TABLE
+BORDER="1"
+BGCOLOR="#E0E0E0"
+WIDTH="90%"
+><TR
+><TD
+><FONT
+COLOR="#000000"
+><PRE
+CLASS="SCREEN"
+># 
+# Table structure for table `nuke_faqAnswer2`
+# 
+  
+CREATE TABLE nuke_faqAnswer2 (
+  id tinyint(4) NOT NULL auto_increment,
+  id_cat tinyint(4) NOT NULL default '0',
+  question varchar(255) default ",
+  answer text,
+  PRIMARY KEY  (id),
+  KEY id (id), 
+  KEY id_cat (id_cat)
+) TYPE=MyISAM;
+#
+# Dumping data for table `nuke_faqAnswer2`
+#
+# --------------------------------------------------------
+#
+# Table structure for table `nuke_faqCategories2`
+#
+CREATE TABLE nuke_faqCategories2 (
+  id_cat tinyint(3) NOT NULL auto_increment,
+  categories varchar(255) default NULL,
+  flanguage varchar(30) NOT NULL default ",
+  PRIMARY KEY  (id_cat),
+  KEY id_cat (id_cat)
+) TYPE=MyISAM;
+#
+# Dumping data for table `nuke_faqCategories2`
+#
+# --------------------------------------------------------</PRE
+></FONT
+></TD
+></TR
+></TABLE
+></LI
+><LI
+><P
+>We run the nuke2.sql file from the MySQL prompt::</P
+><TABLE
+BORDER="1"
+BGCOLOR="#E0E0E0"
+WIDTH="90%"
+><TR
+><TD
+><FONT
+COLOR="#000000"
+><PRE
+CLASS="SCREEN"
+>mysql -u dbuname -p dbname &#60; nuke2.sql</PRE
+></FONT
+></TD
+></TR
+></TABLE
+></LI
+><LI
+><P
+>This will create the nuke_faqAnswer2 and nuke_faqCategories2 tables in the database dbname (remember to replace dbuname and dbname with their real values from your config.php!). Since the FAQ module does not come with preset categories and answers, the tables are not populated with data.</P
+></LI
+><LI
+><P
+>We edit all files under modules/Admin-FAQ and also the administrative files admin/modules/adminfaq2.php, admin/links/links.faq2.php and admin/case/case.adminfaq2.php: we change all references to faqAnswer or faqCategories to faqAnswer2 and faqCategories2 respectively.</P
+></LI
+><LI
+><P
+>In admin/case/case.adminfaq.php we change </P
+><TABLE
+BORDER="1"
+BGCOLOR="#E0E0E0"
+WIDTH="90%"
+><TR
+><TD
+><FONT
+COLOR="#000000"
+><PRE
+CLASS="SCREEN"
+>include ("admin/modules/adminfaq.php");</PRE
+></FONT
+></TD
+></TR
+></TABLE
+><P
+>to </P
+><TABLE
+BORDER="1"
+BGCOLOR="#E0E0E0"
+WIDTH="90%"
+><TR
+><TD
+><FONT
+COLOR="#000000"
+><PRE
+CLASS="SCREEN"
+>include ("admin/modules/adminfaq2.php");</PRE
+></FONT
+></TD
+></TR
+></TABLE
+></LI
+></UL
+><P
+>Finally, we activate the Admin-FAQ module and specify that it can be viewed only by administrators.</P
+><DIV
+CLASS="CAUTION"
+><P
+></P
+><TABLE
+CLASS="CAUTION"
+WIDTH="100%"
+BORDER="0"
+><TR
+><TD
+WIDTH="25"
+ALIGN="CENTER"
+VALIGN="TOP"
+><IMG
+SRC="../images/caution.png"
+HSPACE="5"
+ALT="Caution"></TD
+><TH
+ALIGN="LEFT"
+VALIGN="MIDDLE"
+><B
+>Don't forget the "op"s!</B
+></TH
+></TR
+><TR
+><TD
+>&nbsp;</TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+>If you want your duplicate module to perform slightly different functions than the original one, there is no way around to creating duplicate "op" functions to be called from the "switch($op)" part of the admin file. In our example, this would mean that  we would change</P
+><TABLE
+BORDER="1"
+BGCOLOR="#E0E0E0"
+WIDTH="100%"
+><TR
+><TD
+><FONT
+COLOR="#000000"
+><PRE
+CLASS="SCREEN"
+>switch($op) {
+ case "FaqCatSave":
+   FaqCatSave($id_cat, $categories, $flanguage); /* Multilingual Code : added variable */
+   break;
+ case "FaqCatGoSave":
+   FaqCatGoSave($id, $question, $answer);
+   break;
+ case "FaqCatAdd":
+   FaqCatAdd($categories, $flanguage); /* Multilingual Code : added variable */
+   break;
+ case "FaqCatGoAdd":
+   FaqCatGoAdd($id_cat, $question, $answer);
+   break;
+ case "FaqCatEdit":
+   FaqCatEdit($id_cat);
+   break;
+ case "FaqCatGoEdit":
+   FaqCatGoEdit($id);
+   break;
+ case "FaqCatDel":
+   FaqCatDel($id_cat, $ok);
+   break;
+ case "FaqCatGoDel":
+   FaqCatGoDel($id, $ok);
+   break;
+ case "FaqAdmin":
+   FaqAdmin();
+   break;
+ case "FaqCatGo":
+   FaqCatGo($id_cat);
+   break;
+}
+} else {
+ echo "Access Denied";
+}</PRE
+></FONT
+></TD
+></TR
+></TABLE
+><P
+>in the admin/modules/adminfaq.php file, to: </P
+><TABLE
+BORDER="1"
+BGCOLOR="#E0E0E0"
+WIDTH="100%"
+><TR
+><TD
+><FONT
+COLOR="#000000"
+><PRE
+CLASS="SCREEN"
+>switch($op) {
+ case "FaqCatSave2":
+   FaqCatSave2($id_cat, $categories, $flanguage); /* Multilingual Code : added variable */
+   break;
+ case "FaqCatGoSave2":
+   FaqCatGoSave2($id, $question, $answer);
+   break;
+ case "FaqCatAdd2":
+   FaqCatAdd2($categories, $flanguage); /* Multilingual Code : added variable */
+   break;
+ case "FaqCatGoAdd2":
+   FaqCatGoAdd2($id_cat, $question, $answer);
+   break;
+ case "FaqCatEdit2":
+   FaqCatEdit2($id_cat);
+   break;
+ case "FaqCatGoEdit2":
+   FaqCatGoEdit2($id);
+   break;
+ case "FaqCatDel2":
+   FaqCatDel2($id_cat, $ok);
+   break;
+ case "FaqCatGoDel2":
+   FaqCatGoDel2($id, $ok);
+   break;
+ case "FaqAdmin2":
+   FaqAdmin2();
+   break;
+ case "FaqCatGo2":
+   FaqCatGo2($id_cat);
+   break;
+}
+} else {
+ echo "Access Denied";
+}</PRE
+></FONT
+></TD
+></TR
+></TABLE
+><P
+>and then program the new functionality into the new functions (the ones with the 2 suffix in their name).</P
+></TD
+></TR
+></TABLE
+></DIV
+></DIV
+><DIV
+CLASS="NAVFOOTER"
+><HR
+ALIGN="LEFT"
+WIDTH="100%"><TABLE
+SUMMARY="Footer navigation table"
+WIDTH="100%"
+BORDER="0"
+CELLPADDING="0"
+CELLSPACING="0"
+><TR
+><TD
+WIDTH="33%"
+ALIGN="left"
+VALIGN="top"
+><A
+HREF="duplicating-php-nuke-modules.html"
+ACCESSKEY="P"
+>Prev</A
+></TD
+><TD
+WIDTH="34%"
+ALIGN="center"
+VALIGN="top"
+><A
+HREF="index.html"
+ACCESSKEY="H"
+>Home</A
+></TD
+><TD
+WIDTH="33%"
+ALIGN="right"
+VALIGN="top"
+><A
+HREF="security.html"
+ACCESSKEY="N"
+>Next</A
+></TD
+></TR
+><TR
+><TD
+WIDTH="33%"
+ALIGN="left"
+VALIGN="top"
+>Duplicating <SPAN
+CLASS="APPLICATION"
+>PHP-Nuke</SPAN
+> modules</TD
+><TD
+WIDTH="34%"
+ALIGN="center"
+VALIGN="top"
+><A
+HREF="duplicating-php-nuke-modules.html"
+ACCESSKEY="U"
+>Up</A
+></TD
+><TD
+WIDTH="33%"
+ALIGN="right"
+VALIGN="top"
+>Security</TD
+></TR
+></TABLE
+></DIV
+></BODY
+></HTML
+>

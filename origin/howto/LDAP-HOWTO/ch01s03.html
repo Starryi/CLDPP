@@ -1,0 +1,46 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1"><title>3. LDAP backends, objects and attributes</title><link rel="stylesheet" type="text/css" href="style.css"><meta name="generator" content="DocBook XSL Stylesheets V1.79.1"><link rel="home" href="index.html" title="LDAP Linux HOWTO"><link rel="up" href="ch01.html" title="Chapter 1. Introduction"><link rel="prev" href="ch01s02.html" title="2. How does LDAP work ?"><link rel="next" href="ch01s04.html" title="4. New versions of this document"></head><body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF"><div class="navheader"><table width="100%" summary="Navigation header"><tr><th colspan="3" align="center">3. LDAP backends, objects and attributes</th></tr><tr><td width="20%" align="left"><a accesskey="p" href="ch01s02.html">Prev</a> </td><th width="60%" align="center">Chapter 1. Introduction</th><td width="20%" align="right"> <a accesskey="n" href="ch01s04.html">Next</a></td></tr></table><hr></div><div class="section"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="LdapBackends"></a>3. LDAP backends, objects and attributes</h2></div></div></div><p>The LDAP server daemon is called <span class="emphasis"><em>Slapd</em></span>. <span class="emphasis"><em>Slapd</em></span> 
+supports a variety of different <span class="command"><strong>database backends</strong></span> which you can use.</p><p>They include the <span class="command"><strong>primary choice BDB</strong></span>, a high-performance transactional database backend; LDBM, a lightweight DBM based backend; SHELL, a backend interface to arbitrary shell scripts and PASSWD, a simple backend interface to the passwd(5) file.</p><p>BDB utilizes <a class="ulink" href="http://www.sleepycat.com/" target="_top">Sleepycat</a> Berkeley DB 4. LDBM utilizes 
+either <a class="ulink" href="http://www.sleepycat.com/" target="_top">Berkeley DB</a> or <a class="ulink" href="http://www.gnu.org/software/gdbm/" target="_top">GDBM</a>.</p><p>BDB transactional backend is suited for multi-user read/write database access, 
+with any mix of read and write operations. BDB is used in applications that require:
+
+</p><div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem"><p>Transactions, including making multiple changes to the 
+database atomically and rolling back uncommitted changes when necessary.</p></li><li class="listitem"><p>Ability to recover from systems crashes and hardware failures without
+losing any committed transactions.</p></li></ul></div><p> </p><p>In this document I assume that you choose the <span class="command"><strong>BDB database.</strong></span></p><p>To import and export directory information between LDAP-based directory servers, 
+or to describe a set of changes which are to be applied to a directory, the 
+file format known as LDIF, for LDAP Data Interchange Format, is typically used.
+A LDIF file stores information in object-oriented hierarchies of entries. The
+LDAP software package you're going to get comes with an utility to convert LDIF
+files to the BDB format</p><p>A common LDIF file looks like this:</p><pre class="screen">
+dn: o=TUDelft, c=NL
+o: TUDelft
+objectclass: organization
+dn: cn=Luiz Malere, o=TUDelft, c=NL
+cn: Luiz Malere
+sn: Malere
+mail: malere@yahoo.com
+objectclass: person
+</pre><p>As you can see each entry is uniquely identified by a distinguished name, or 
+DN. The DN consists of the name of the entry plus a path of names tracing the 
+entry back to the top of the directory hierarchy (just like a tree).</p><p>In LDAP, an <span class="command"><strong>object class</strong></span> defines the collection of <span class="command"><strong>attributes</strong></span> that can be used
+to define an entry. The LDAP standard provides these basic types of object classes:</p><div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem"><p>Groups in the directory, including unordered lists of individual objects
+or groups of objects.</p></li><li class="listitem"><p>Locations, such as the country name and description.</p></li><li class="listitem"><p>Organizations in the directory.</p></li><li class="listitem"><p>People in the directory.</p></li></ul></div><p>An entry can belong to more than one object class. For example, the entry for a
+ person is defined by the <span class="emphasis"><em>person</em></span> object class, but may also be 
+defined by attributes in the inetOrgPerson, groupOfNames, and organization objectclasses.
+The server's object class structure (it's schema) determines the total list of required and 
+allowed attributes for a particular entry.</p><p>Directory data is represented as attribute-value pairs. Any specific piece of 
+information is associated with a descriptive attribute.</p><p>For instance, the commonName, or cn, attribute is used to store a person's name
+. A person named Jonas Salk can be represented in the directory as</p><pre class="screen">cn: Jonas Salk</pre><p>Each person entered in the directory is defined by the collection of attributes
+ in the <span class="emphasis"><em>person</em></span> object class. Other attributes used to define this 
+entry could include:</p><pre class="screen">
+givenname: Jonas
+surname: Salk
+mail: jonass@airius.com
+</pre><p>Required attributes include the attributes that must be present in entries 
+using the object class. All entries require the objectClass attribute, which 
+lists the object classes to which an entry belongs.</p><p>Allowed attributes include the attributes that may be present in entries using
+the object class. For example, in the person object class, the cn and sn 
+attributes are required. The description, telephoneNumber, seeAlso, and 
+userpassword attributes are allowed but are not required.</p><p>Each attribute has a corresponding syntax definition. The syntax definition 
+describes the type of information provided by the attribute, for instance:</p><div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem"><p>bin binary.</p></li><li class="listitem"><p>ces case exact string (case must match during comparisons).</p></li><li class="listitem"><p>cis case ignore string (case is ignored during comparisons).</p></li><li class="listitem"><p>tel telephone number string (like cis but blanks and dashes `- ' are 
+ignored during comparisons).</p></li><li class="listitem"><p>dn distinguished name.</p></li></ul></div><p><span class="command"><strong>Note: </strong></span>Usually objectclass and attribute definitions reside on schema files, on the 
+subdirectory <span class="emphasis"><em>schema</em></span> under the OpenLDAP installation home.</p></div><div class="navfooter"><hr><table width="100%" summary="Navigation footer"><tr><td width="40%" align="left"><a accesskey="p" href="ch01s02.html">Prev</a> </td><td width="20%" align="center"><a accesskey="u" href="ch01.html">Up</a></td><td width="40%" align="right"> <a accesskey="n" href="ch01s04.html">Next</a></td></tr><tr><td width="40%" align="left" valign="top">2. How does LDAP work ? </td><td width="20%" align="center"><a accesskey="h" href="index.html">Home</a></td><td width="40%" align="right" valign="top"> 4. New versions of this document</td></tr></table></div></body></html>

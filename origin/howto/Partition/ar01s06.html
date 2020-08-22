@@ -1,0 +1,77 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1"><title>6. Labels</title><link rel="stylesheet" type="text/css" href="style.css"><meta name="generator" content="DocBook XSL Stylesheets V1.79.1"><link rel="home" href="index.html" title="Linux Partition HOWTO"><link rel="up" href="index.html" title="Linux Partition HOWTO"><link rel="prev" href="ar01s05.html" title="5. Partitioning with fdisk"><link rel="next" href="ar01s07.html" title="7. Formatting an ext2/3 partition"></head><body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF"><div class="navheader"><table width="100%" summary="Navigation header"><tr><th colspan="3" align="center">6. Labels</th></tr><tr><td width="20%" align="left"><a accesskey="p" href="ar01s05.html">Prev</a> </td><th width="60%" align="center"> </th><td width="20%" align="right"> <a accesskey="n" href="ar01s07.html">Next</a></td></tr></table><hr></div><div class="sect1"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="labels"></a>6. Labels</h2></div></div></div><p>
+	In linux, hard drives are referred to as devices, and devices are
+	pseudo files in <code class="filename">/dev</code>. For
+	example, the first partition of the second lowest numbered SCSI
+	drive is <code class="filename">/dev/sdb1</code>. If the drive referred to as
+	<code class="filename">/dev/sda</code> is removed from the chain, then the
+	latter partition is automatically renamed
+	<code class="filename">/dev/sda1</code> at reboot.
+</p><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="volumelabels"></a>6.1. Volume Labels</h3></div></div></div><p>
+	Volume labels make it possible for partitions to retain a consistent
+	name regardless of where they are connected, and regardless of
+	whatever else is connected. Labels are not mandatory for a linux
+	volume. Each can be a maximum of 16 characters long.
+</p><p>
+	There are three tools to make volume labels: mke2fs, tune2fs and e2label.
+</p><div class="sect3"><div class="titlepage"><div><div><h4 class="title"><a name="labelinvocation"></a>6.1.1. Simple Invocation</h4></div></div></div><p>
+	<span class="command"><strong>e2label</strong></span> <code class="filename">/dev/hdb1</code> <code class="filename">pubsw</code>
+</p><p>
+	<span class="command"><strong>tune2fs</strong></span> -L <code class="filename">pubsw</code> <code class="filename">/dev/hdb1</code> 
+</p><p>
+	Either of thse two commands will label the first partition of the
+	second drive "pubsw". That label stays with that particular
+	partition, even if the drive is moved to another controller or even
+	another computer.
+</p><p>
+	<span class="command"><strong>mke2fs</strong></span>	<code class="filename">pubsw</code> 
+			<code class="filename">/dev/hdb1</code> 
+</p><p>
+	<span class="command"><strong>mke2fs</strong></span> -L	<code class="filename">pubsw</code> 
+				<code class="filename">/dev/hdb1</code> 
+</p><p>
+	will do the same thing as the first two commands - after they make
+	the file system. This means that either of these last two commands
+	will delete any existing data in the partition.
+</p></div><div class="sect3"><div class="titlepage"><div><div><h4 class="title"><a name="howtousevolumelabels"></a>6.1.2. How to Use</h4></div></div></div><p>
+	Here is a sample fstab. This is a text file located in /etc, which
+	is usually set up during the installation of the operating system.
+	it describes where each partition wil be mounted, and how it will be
+	mounted. It can be modified by you, either through a utility or
+	manually, when you add/remove devices.
+</p><p>
+</p><pre class="programlisting">
+LABEL=/        /                    ext3    defaults        1 1
+LABEL=/boot    /boot                ext2    defaults        1 2
+none           /dev/pts             devpts  gid=5,mode=620  0 0
+none           /dev/shm             tmpfs   defaults        0 0
+LABEL=HOME     /home                ext3    defaults        1 2
+none           /proc                proc    defaults        0 0
+none           /sys                 sysfs   defaults        0 0
+LABEL=/usr     /usr                 ext3    defaults        1 2
+/dev/hdc1      /k-space             ext3    defaults        1 2
+/dev/hda6      swap                 swap    defaults        0 0
+/dev/hdd       /media/cdrecorder    auto    pamconsole,ro,exec,noauto,managed 0 0
+/dev/fd0       /media/floppy        auto    pamconsole,exec,noauto,managed 0 0
+</pre><p>
+</p><p>
+	The leftmost column lists devices and the second column lists mount
+	points. This example contains a mixture of devices and labels. The
+	master drive of the second controller is always mounted on <code class="filename">/k-space</code>.
+	The partition labeled "HOME" is always mounted on <code class="filename">/home</code>, regardless
+	of which drive it is on or which partition number it has. Notice
+	that it is permissible to use mount points as labels, such as "/usr"
+</p></div></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="devicelabels"></a>6.2. Device Labels</h3></div></div></div><p>
+	<span class="command"><strong>devlabel</strong></span> is a script which creates symbolic links to devices. For
+	example,
+</p><p>
+	<span class="command"><strong>devlabel</strong></span> -d <code class="filename">/dev/hdb1</code>
+			 -s <code class="filename">/dev/home</code>
+</p><p>
+	will create a link from <code class="filename">/dev/hdb1</code> to <code class="filename">/dev/home</code>. Crucially, it stores a
+	unique identifier for the hardware that was on <code class="filename">/dev/hdb1</code> and stores that identifier along with
+	the link name that you specified in /etc/sysconfig/devlabel. If the
+	hardware is later moved to <code class="filename">/dev/hdc1</code>,
+	its unique identifier will be queried (using
+	/usr/bin/partition_uuid), matched to its entry in
+	/etc/sysconfig/devlabel, and again linked to <code class="filename">/dev/home</code>.
+</p></div></div><div class="navfooter"><hr><table width="100%" summary="Navigation footer"><tr><td width="40%" align="left"><a accesskey="p" href="ar01s05.html">Prev</a> </td><td width="20%" align="center"> </td><td width="40%" align="right"> <a accesskey="n" href="ar01s07.html">Next</a></td></tr><tr><td width="40%" align="left" valign="top">5. Partitioning with fdisk </td><td width="20%" align="center"><a accesskey="h" href="index.html">Home</a></td><td width="40%" align="right" valign="top"> 7. Formatting an ext2/3 partition</td></tr></table></div></body></html>

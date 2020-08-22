@@ -1,0 +1,516 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1"><title>8. Network Security</title><link rel="stylesheet" type="text/css" href="style.css"><meta name="generator" content="DocBook XSL Stylesheets V1.79.1"><link rel="home" href="index.html" title="Linux Security HOWTO"><link rel="up" href="index.html" title="Linux Security HOWTO"><link rel="prev" href="ar01s07.html" title="7. Kernel Security"><link rel="next" href="ar01s09.html" title="9. Security Preparation (before you go on-line)"></head><body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF"><div class="navheader"><table width="100%" summary="Navigation header"><tr><th colspan="3" align="center">8. Network Security</th></tr><tr><td width="20%" align="left"><a accesskey="p" href="ar01s07.html">Prev</a> </td><th width="60%" align="center"> </th><td width="20%" align="right"> <a accesskey="n" href="ar01s09.html">Next</a></td></tr></table><hr></div><div class="sect1"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="network-security"></a>8. Network Security</h2></div></div></div><p>
+Network security is becoming more and more important as people spend
+more and more time connected. Compromising network security is often
+much easier than compromising physical or local security, and is much more common. 
+</p><p>
+There are a number of good tools to assist with network security, and
+more and more of them are shipping with Linux distributions. 
+</p><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="idm835"></a>8.1. Packet Sniffers</h3></div></div></div><p>
+One of the most common ways intruders gain access to more systems on
+your network is by employing a packet sniffer on a already compromised 
+host. This "sniffer" just listens on the Ethernet port for things like 
+<code class="literal">passwd</code> and <code class="literal">login</code> and <code class="literal">su</code> in the packet stream 
+and then logs the traffic after that. This way, attackers gain passwords
+for systems they are not even attempting to break into. Clear-text
+passwords are very vulnerable to this attack. 
+</p><p>
+Example: Host A has been compromised. Attacker installs a
+sniffer. Sniffer picks up admin logging into Host B from Host C. It
+gets the admins personal password as they login to B. Then, the admin
+does a <code class="literal">su</code> to fix a problem. They now have the root password for Host 
+B. Later the admin lets someone <code class="literal">telnet</code> from his account to Host Z on
+another site. Now the attacker has a password/login on Host Z. 
+</p><p>
+In this day and age, the attacker doesn't even need to compromise a
+system to do this: they could also bring a laptop or pc into a
+building and tap into your net. 
+</p><p>
+Using <code class="literal">ssh</code> or other encrypted password methods thwarts this
+attack. Things like APOP for POP accounts also prevents this
+attack. (Normal POP logins are very vulnerable to this, as is anything
+that sends clear-text passwords over the network.)
+</p></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="idm847"></a>8.2. System services and tcp_wrappers</h3></div></div></div><p>
+Before you put your Linux system on <span class="emphasis"><em>ANY</em></span> network the first thing to
+look at is what services you need to offer. Services that you do not
+need to offer should be disabled so that you have one less thing to
+worry about and attackers have one less place to look for a hole. 
+</p><p>
+There are a number of ways to disable services under Linux. You can
+look at your <code class="literal">/etc/inetd.conf</code> file and see what services are being
+offered by your <code class="literal">inetd</code>. Disable any that you do not need by commenting
+them out (<code class="literal">#</code> at the beginning of the line), and then sending
+your inetd process a SIGHUP. 
+</p><p>
+You can also remove (or comment out) services in your <code class="literal">/etc/services</code>
+file. This will mean that local clients will also be unable to find
+the service (i.e., if you remove <code class="literal">ftp</code>, and try and ftp to a remote site
+from that machine it will fail with an "unknown service" message). It's
+usually not worth the trouble to remove services from <code class="literal">/etc/services</code>, since it provides no
+additional security. If a local person wanted to use <code class="literal">ftp</code> even though
+you had commented it out, they would make their own client that used
+the common FTP port and would still work fine.  
+</p><p>
+Some of the services you might want to leave enabled are:
+</p><p>
+
+</p><div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem"><p>
+<code class="literal">ftp</code>
+</p></li><li class="listitem"><p>
+<code class="literal">telnet</code> (or <code class="literal">ssh</code>)
+</p></li><li class="listitem"><p>
+mail, such as <code class="literal">pop-3</code> or <code class="literal">imap</code>
+</p></li><li class="listitem"><p>
+<code class="literal">identd</code>
+</p></li></ul></div><p>
+
+</p><p>
+If you know you are not going to use some particular package, you can
+also delete it entirely. <code class="literal">rpm -e packagename</code> under
+the Red Hat distribution will erase an entire package. Under Debian
+<code class="literal">dpkg --remove</code> does the same thing. 
+</p><p>
+Additionally, you really want to disable the rsh/rlogin/rcp utilities,
+including login (used by <code class="literal">rlogin</code>), shell (used by <code class="literal">rcp</code>),
+and exec (used
+by <code class="literal">rsh</code>) from being started in <code class="literal">/etc/inetd.conf</code>.
+These protocols are extremely insecure and have been the cause of exploits
+in the past.
+</p><p>
+You should check <code class="literal">/etc/rc.d/rc[0-9].d</code> (on Red Hat;
+<code class="literal">/etc/rc[0-9].d</code> on Debian), and see if any of the servers started in those
+directories are not needed. The files in those directories are
+actually symbolic links to files in the directory
+<code class="literal">/etc/rc.d/init.d</code> (on Red Hat; <code class="literal">/etc/init.d</code> on Debian).
+Renaming the files in the <code class="literal">init.d</code> directory 
+disables all the symbolic links that point to that file.  If you
+only wish to disable a service for a particular run level, rename the
+appropriate symbolic link by replacing  the upper-case <code class="literal">S</code> with a lower-case
+<code class="literal">s</code>, like this:
+</p><p>
+
+</p><pre class="screen">
+       root#  cd /etc/rc6.d
+       root#  mv S45dhcpd s45dhcpd
+</pre><p>
+
+</p><p>
+If you have BSD-style <code class="literal">rc</code> files, you will want to check
+<code class="literal">/etc/rc*</code> for programs you don't need.
+</p><p>
+Most Linux distributions ship with tcp_wrappers "wrapping" all your
+TCP services. A tcp_wrapper (<code class="literal">tcpd</code>) is invoked from <code class="literal">inetd</code> instead of
+the real server. <code class="literal">tcpd</code> then checks the host that is requesting the
+service, and either executes the real server, or denies access from that
+host. <code class="literal">tcpd</code> allows you to restrict access to your TCP services. You
+should make a <code class="literal">/etc/hosts.allow</code> and add in only those hosts that need
+to have access to your machine's services. 
+</p><p>
+If you are a home dial up user, we suggest you deny ALL. <code class="literal">tcpd</code> also logs
+failed attempts to access services, so this can alert you if
+you are under attack. If you add new services, you should be sure to
+configure them to use tcp_wrappers if they are TCP-based.  For example, a normal
+dial-up user can prevent outsiders from connecting to his machine,
+yet still have the ability to retrieve mail, and make network
+connections to the Internet.  To do this, you might add the following
+to your <code class="literal">/etc/hosts.allow</code>:
+</p><p>
+ALL: 127.
+</p><p>
+And of course /etc/hosts.deny would contain:
+</p><p>
+ALL: ALL
+</p><p>
+which will prevent external connections to your machine, yet still
+allow you from the inside to connect to servers on the Internet.
+</p><p>
+Keep in mind that tcp_wrappers only protects services executed from
+<code class="literal">inetd</code>, and a select few others.  There very well may be other
+services running on your machine.  You can use <code class="literal">netstat -ta</code> to
+find a list of all the services your machine is offering.
+</p></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="idm914"></a>8.3. Verify Your DNS Information</h3></div></div></div><p>
+Keeping up-to-date DNS information about all hosts on your network can 
+help to increase security.  If an unauthorized host
+becomes connected to your network, you can recognize it by its lack of 
+a DNS entry.  Many services can be configured to not accept
+connections from hosts that do not have valid DNS entries.
+</p></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="idm917"></a>8.4. identd</h3></div></div></div><p>
+<code class="literal">identd</code> is a small program that typically runs out of your
+<code class="literal">inetd</code> server. It keeps track of what user is running what TCP
+service, and then reports this to whoever requests it. 
+</p><p>
+Many people misunderstand the usefulness of <code class="literal">identd</code>, and so disable it
+or block all off site requests for it. <code class="literal">identd</code> is not there to help out
+remote sites. There is no way of knowing if the data you get from the
+remote <code class="literal">identd</code> is correct or not. There is no authentication in <code class="literal">identd</code>
+requests. 
+</p><p>
+Why would you want to run it then? Because it helps <span class="emphasis"><em>you</em></span> out, and is
+another data-point in tracking. If your <code class="literal">identd</code> is un compromised, then
+you know it's telling remote sites the user-name or uid of people using
+TCP services. If the admin at a remote site comes back to you and
+tells you user so-and-so was trying to hack into their site, you can
+easily take action against that user. If you are not running <code class="literal">identd</code>,
+you will have to look at lots and lots of logs, figure out who was on
+at the time, and in general take a lot more time to track down the
+user.
+</p><p>
+The <code class="literal">identd</code> that ships with most distributions is more configurable
+than many people think. You can disable it for specific users
+(they can make a <code class="literal">.noident</code> file), you can log all
+<code class="literal">identd</code> requests (We recommend it), you can even have identd
+return a uid instead of a user name or even NO-USER.
+</p></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="idm935"></a>8.5. Configuring and Securing the Postfix MTA</h3></div></div></div><p>
+The Postfix mail server was written by Wietse Venema, author of 
+Postfix and several other staple Internet security products, as an "attempt to 
+provide an alternative to the widely-used Sendmail program. Postfix attempts 
+to be fast, easy to administer, and hopefully secure, while at the same time 
+being sendmail compatible enough to not upset your users." 
+</p><p>
+Further information on postfix can be found at the 
+<a class="ulink" href="http://www.postfix.org" target="_top">Postfix home</a> and in the 
+<a class="ulink" href="http://www.linuxsecurity.com/feature_stories/feature_story-91.html" target="_top">Configuring and Securing Postfix</a>.
+</p></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="idm941"></a>8.6. SATAN, ISS, and Other Network Scanners</h3></div></div></div><p>
+There are a number of different software packages out there that do
+port and service-based scanning of machines or networks. SATAN, ISS,
+SAINT, and Nessus are some of the more well-known ones. This software
+connects to the target machine (or all the target machines on a
+network) on all the ports they can, and try to determine what service
+is running there. Based on this information, you can tell if the
+machine is vulnerable to a specific exploit on that server. 
+</p><p>
+SATAN (Security Administrator's Tool for Analyzing Networks) is a port
+scanner with a web interface. It can be configured to do light,
+medium, or strong checks on a machine or a network of machines. It's a
+good idea to get SATAN and scan your machine or network, and fix the
+problems it finds. Make sure you get the copy of SATAN from <a class="ulink" href="http://metalab.unc.edu/pub/packages/security/Satan-for-Linux/" target="_top">metalab</a> or a reputable FTP or web site. There was a Trojan
+copy of SATAN that was distributed out on the net. <a class="ulink" href="http://www.trouble.org/~zen/satan/satan.html" target="_top">http://www.trouble.org/~zen/satan/satan.html</a>. Note that SATAN
+has not been updated in quite a while, and some of the other tools
+below might do a better job. 
+</p><p>
+ISS (Internet Security Scanner) is another port-based scanner. It is
+faster than Satan, and thus might be better for large
+networks. However, SATAN tends to provide more information. 
+</p><p>
+Abacus is a suite of tools to provide host-based security and
+intrusion detection. Look at it's home page on the web for more
+information. <a class="ulink" href="http://www.psionic.com/abacus" target="_top">http://www.psionic.com/abacus/</a> 
+</p><p>
+SAINT is a updated version of SATAN. It is web-based and has many more 
+up-to-date tests than SATAN. You can find out more about it at:
+<a class="ulink" href="http://www.wwdsi.com/saint" target="_top">http://www.wwdsi.com/~saint</a>
+</p><p>
+Nessus is a free security scanner. It has a GTK graphical interface
+for ease of use. It is also designed with a very nice plug in setup for 
+new port-scanning tests. For more information, take a look at: <a class="ulink" href="http://www.nessus.org/" target="_top">http://www.nessus.org</a>
+</p><div class="sect3"><div class="titlepage"><div><div><h4 class="title"><a name="idm954"></a>8.6.1. Detecting Port Scans</h4></div></div></div><p>
+There are some tools designed to alert you to probes by SATAN and ISS
+and other scanning software. However, if you liberally use tcp_wrappers, and
+look over your log files regularly, you should be able
+to notice such probes. Even on the lowest setting, SATAN still leaves
+traces in the logs on a stock Red Hat system. 
+</p><p>
+There are also "stealth" port scanners.  A packet with the TCP ACK bit 
+set (as is done with established connections) will likely get through
+a packet-filtering firewall.  The returned RST packet from a port that 
+<span class="emphasis"><em>_had no established session_</em></span> can be taken as proof of life on
+that port.  I don't think TCP wrappers will detect this.
+</p><p>
+You might also look at SNORT, which is a free IDS (Intrusion Detection
+System), which can detect other network intrusions. <a class="ulink" href="http://www.snort.org" target="_top">http://www.snort.org</a>
+</p></div></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="idm961"></a>8.7. sendmail, qmail and MTA's</h3></div></div></div><p>
+One of the most important services you can provide is a mail
+server. Unfortunately, it is also one of the most vulnerable to attack,
+simply due to the number of tasks it must perform and the privileges it
+typically needs. 
+</p><p>
+If you are using <code class="literal">sendmail</code> it is very important to keep up on current
+versions. <code class="literal">sendmail</code> has a long long history of security
+exploits. Always make sure you are running the most recent version from
+<a class="ulink" href="http://www.sendmail.org/" target="_top">http://www.sendmail.org</a>.
+</p><p>
+Keep in mind that sendmail does not have to be running in order for you
+to send mail.  If you are a home user, you can disable sendmail entirely,
+and simply use your mail client to send mail.  You might also choose to 
+remove the "-bd" flag from the sendmail startup file, thereby disabling
+incoming requests for mail.  In other words, you can execute sendmail
+from your startup script using the following instead:
+
+</p><pre class="screen">
+		# /usr/lib/sendmail -q15m
+</pre><p>
+
+This will cause sendmail to flush the mail queue every fifteen minutes
+for any messages that could not be successfully delivered on the first
+attempt.
+</p><p>
+Many administrators choose not to use sendmail, and instead choose one
+of the other mail transport agents. You might consider switching over 
+to <code class="literal">qmail</code>. <code class="literal">qmail</code> was designed with security in mind 
+from the ground up. It's fast, stable, and secure. Qmail can be found at
+<a class="ulink" href="http://www.qmail.org" target="_top">http://www.qmail.org</a>
+</p><p>
+In direct competition to qmail is "postfix", written by Wietse Venema,
+the author of tcp_wrappers and other security tools.  Formerly called
+vmailer, and sponsored by IBM, this is also a mail transport agent
+written from the ground up with security in mind.  You can find more
+information about postfix at <a class="ulink" href="http:/www.postfix.org" target="_top">http://www.postfix.org</a>
+</p></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="idm976"></a>8.8. Denial of Service Attacks</h3></div></div></div><p>
+A "Denial of Service" (DoS) attack is one where the attacker tries to make
+some resource too busy to answer legitimate requests, or to deny
+legitimate users access to your machine.
+</p><p>
+Denial of service attacks have increased greatly in recent years. Some
+of the more popular and recent ones are listed below. Note that new
+ones show up all the time, so this is just a few examples. Read the
+Linux security lists and the bugtraq list and archives for more
+current information.
+</p><p>
+
+</p><div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem"><p>
+<span class="emphasis"><em>SYN Flooding</em></span> - SYN flooding is a network
+denial of service attack. It takes advantage of a "loophole" in the
+way TCP connections are created. The newer Linux kernels (2.0.30 and
+up) have several configurable options to prevent SYN flood attacks
+from denying people access to your machine or services. See <a class="xref" href="ar01s07.html" title="7. Kernel Security">Section 7, &#8220;Kernel Security&#8221;</a> for proper kernel
+protection options. 
+</p></li><li class="listitem"><p>
+<span class="emphasis"><em>Pentium "F00F" Bug</em></span> - It was recently discovered that a series of
+assembly codes sent to a genuine Intel Pentium processor would reboot
+the machine.  This affects every machine with a Pentium processor (not
+clones, not Pentium Pro or PII), no matter what operating system it's
+running. Linux kernels 2.0.32 and up contain a work around for this
+bug, preventing it from locking your machine. Kernel 2.0.33 has an
+improved version of the kernel fix, and is suggested over 2.0.32.  If
+you are running on a Pentium, you should upgrade now!
+</p></li><li class="listitem"><p>
+<span class="emphasis"><em>Ping Flooding</em></span> - Ping flooding is a simple brute-force denial
+of service attack. The attacker sends a "flood" of ICMP packets to
+your machine. If they are doing this from a host with better bandwidth
+than yours, your machine will be unable to send anything on the
+network. A variation on this attack, called "smurfing", sends ICMP
+packets to a host with <span class="emphasis"><em>your</em></span> machine's return IP, allowing them to
+flood you less detectably.  You can find more information about the
+"smurf" attack at <a class="ulink" href="http://www.quadrunner.com/~chuegen/smurf.txt" target="_top"> http://www.quadrunner.com/~chuegen/smurf.txt</a>
+</p><p>
+If you are ever under a ping flood attack, use a tool like <code class="literal">tcpdump</code> to
+determine where the packets are coming from (or appear to be coming
+from), then contact your provider with this information. Ping floods
+can most easily be stopped at the router level or by using a firewall.
+</p></li><li class="listitem"><p>
+<span class="emphasis"><em>Ping o' Death</em></span> - The Ping o' Death attack sends
+ICMP ECHO REQUEST packets that are too large to fit in the kernel data
+structures intended to store them.  Because sending a
+single, large (65,510 bytes) "ping" packet to many systems will cause
+them to hang or even crash, this problem was quickly dubbed the "Ping
+o' Death."  This one has long been fixed, and is no longer anything to 
+worry about.
+</p></li><li class="listitem"><p>
+<span class="emphasis"><em>Teardrop / New Tear</em></span> - One of the most recent exploits
+involves a bug present in the IP fragmentation code on Linux and
+Windows platforms.  It is fixed in kernel version 2.0.33, and does not 
+require selecting any kernel compile-time options to utilize the fix.
+Linux is apparently not vulnerable to the "newtear" exploit.
+</p></li></ul></div><p>
+
+You can find code for most exploits, and a more in-depth description of how
+they work, at <a class="ulink" href="http://www.rootshell.com" target="_top">http://www.rootshell.com</a> using their search engine.
+</p></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="idm1003"></a>8.9. NFS (Network File System) Security. </h3></div></div></div><p>
+NFS is a very widely-used file sharing protocol. It allows servers
+running <code class="literal">nfsd</code> and <code class="literal">mountd</code> to "export" entire file systems
+to other machines using NFS filesystem support built in to their kernels
+(or some other client support if they are not Linux machines).
+<code class="literal">mountd</code> keeps track of mounted file systems in <code class="literal">/etc/mtab</code>,
+and can display them with <code class="literal">showmount</code>. 
+</p><p>
+Many sites use NFS to serve home directories to users, so that 
+no matter what machine in the cluster they login to, they will have
+all their home files. 
+</p><p>
+There is some small amount of security allowed in exporting
+file systems. You can make your <code class="literal">nfsd</code> map the remote root user (uid=0)
+to the <code class="literal">nobody</code> user, denying them total access to the files
+exported. However, since individual users have access to their own (or
+at least the same uid) files, the remote root user can login or <code class="literal">su</code> to
+their account and have total access to their files. This is only a
+small hindrance to an attacker that has access to mount your remote
+file systems. 
+</p><p>
+If you must use NFS, make sure you export to only those machines that
+you really need to. Never export your entire root
+directory; export only directories you need to export.
+</p><p>
+See the NFS HOWTO for more information on NFS, available at <a class="ulink" href="http://metalab.unc.edu/mdw/HOWTO/NFS-HOWTO.html" target="_top">http://metalab.unc.edu/mdw/HOWTO/NFS-HOWTO.html</a>
+</p></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="idm1019"></a>8.10. NIS (Network Information Service) (formerly YP). </h3></div></div></div><p>
+Network Information service (formerly YP) is a means of distributing
+information to a group of machines. The NIS master holds the
+information tables and converts them into NIS map files. These maps
+are then served over the network, allowing NIS client machines to get
+login, password, home directory and shell information (all the
+information in a standard <code class="literal">/etc/passwd</code> file). This allows users to
+change their password once and have it take effect on all the machines 
+in the NIS domain.
+</p><p>
+NIS is not at all secure. It was never meant to be. It was meant to be
+handy and useful. Anyone that can guess the name of your NIS domain
+(anywhere on the net) can get a copy of your passwd file, and use
+"crack" and "John the Ripper" against your users' passwords. Also, it is
+possible to spoof NIS and do all sorts of nasty tricks. If you must
+use NIS, make sure you are aware of the dangers. 
+</p><p>
+There is a much more secure replacement for NIS, called NIS+. 
+Check out the NIS HOWTO for more information: <a class="ulink" href="http://metalab.unc.edu/mdw/HOWTO/NIS-HOWTO.html" target="_top">http://metalab.unc.edu/mdw/HOWTO/NIS-HOWTO.html</a> 
+</p></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="idm1026"></a>8.11. Firewalls</h3></div></div></div><p>
+Firewalls are a means of controlling what information is allowed into
+and out of your local network. Typically the firewall host is
+connected to the Internet and your local LAN, and the only access from 
+your LAN to the Internet is through the firewall. This way the
+firewall can control what passes back and forth from the Internet and
+your LAN. 
+</p><p>
+There are a number of types of firewalls and methods of setting them up. Linux
+machines make pretty good firewalls. Firewall code can be
+built right into 2.0 and higher kernels. The user-space tools <code class="literal">ipfwadm</code> for 2.0 
+kernels and <code class="literal">ipchains</code> for 2.2 kernels, 
+allows you to change, on the fly, the types of network traffic you allow.
+You can also log particular types of network traffic. 
+</p><p>
+Firewalls are a very useful and important technique in securing your
+network. However, never think that because you have a firewall, you don't
+need to secure the machines behind it. This is a fatal mistake. Check
+out the very good <code class="literal">Firewall-HOWTO</code> at your latest metalab archive for
+more information on firewalls and Linux. <a class="ulink" href="http://metalab.unc.edu/mdw/HOWTO/Firewall-HOWTO.html" target="_top">http://metalab.unc.edu/mdw/HOWTO/Firewall-HOWTO.html</a>
+</p><p>
+More information can also be found in the IP-Masquerade
+mini-howto: <a class="ulink" href="http://metalab.unc.edu/mdw/HOWTO/mini/IP-Masquerade.html" target="_top">http://metalab.unc.edu/mdw/HOWTO/mini/IP-Masquerade.html</a> 
+</p><p>
+More information on <code class="literal">ipfwadm</code> (the tool that lets you change settings on 
+your firewall, can be found at it's home page: <a class="ulink" href="http://www.xos.nl/linux/ipfwadm/" target="_top">http://www.xos.nl/linux/ipfwadm/</a>
+</p><p>
+If you have no experience with firewalls, and plan to set up one for
+more than just a simple security policy, the Firewalls book by O'Reilly
+and Associates or other online firewall document is mandatory reading.
+Check out <a class="ulink" href="http://www.ora.com" target="_top">http://www.ora.com</a>
+for more information.  The National Institute of Standards and Technology
+have put together an excellent document on firewalls.  Although dated 1995,
+it is still quite good.  You can find it at
+<a class="ulink" href="http://csrc.nist.gov/nistpubs/800-10/main.html" target="_top">http://csrc.nist.gov/nistpubs/800-10/main.html</a>.  Also of interest:
+</p><p>
+
+</p><div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem"><p>
+ The Freefire Project -- a list of freely-available firewall tools,
+available at <a class="ulink" href="http://sites.inka.de/sites/lina/freefire-l/index_en.html" target="_top">http://sites.inka.de/sites/lina/freefire-l/index_en.html</a> 
+</p></li><li class="listitem"><p>
+ SunWorld Firewall Design -- written by the authors of the O'Reilly
+book, this provides a rough introduction to the different firewall types.
+It's available at <a class="ulink" href="http://www.sunworld.com/swol-01-1996/swol-01-firewall.html" target="_top">http://www.sunworld.com/swol-01-1996/swol-01-firewall.html</a> 
+</p></li><li class="listitem"><p>
+Mason - the automated firewall builder for Linux. This is a
+firewall script that learns as you do the things you need to do on
+your network! More info at: <a class="ulink" href="http://www.pobox.com/~wstearns/mason/" target="_top">http://www.pobox.com/~wstearns/mason/</a>
+</p></li></ul></div><p>
+
+</p></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="idm1054"></a>8.12. IP Chains - Linux Kernel 2.2.x Firewalling</h3></div></div></div><p>
+Linux IP Firewalling Chains is an update to the 2.0 Linux firewalling
+code for the 2.2 kernel.  It has many more features than
+previous implementations, including:
+</p><div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem"><p>
+ More flexible packet manipulations
+</p></li><li class="listitem"><p>
+ More complex accounting
+</p></li><li class="listitem"><p>
+ Simple policy changes possible atomically
+</p></li><li class="listitem"><p>
+ Fragments can be explicitly blocked, denied, etc.
+</p></li><li class="listitem"><p>
+ Logs suspicious packets.
+</p></li><li class="listitem"><p>
+ Can handle protocols other than ICMP/TCP/UDP. 
+</p></li></ul></div><p>
+If you are currently using <code class="literal">ipfwadm</code> on your 2.0 kernel, there are scripts
+available to convert the <code class="literal">ipfwadm</code> command format to the format <code class="literal">ipchains</code> uses.
+</p><p>
+Be sure to read the IP Chains HOWTO for further information.  It is
+available at <a class="ulink" href="http://www.adelaide.net.au/~rustcorp/ipfwchains/ipfwchains.html" target="_top">http://www.adelaide.net.au/~rustcorp/ipfwchains/ipfwchains.html</a>
+</p></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="idm1076"></a>8.13. Netfilter - Linux Kernel 2.4.x Firewalling</h3></div></div></div><p>
+In yet another set of advancements to the kernel IP packet filtering code, 
+netfilter allows users to set up, maintain, and inspect the packet filtering 
+rules in the new 2.4 kernel. 
+</p><p>
+The netfilter subsystem is a complete rewrite of previous packet filtering 
+implementations including ipchains and ipfwadm. Netfilter provides a large 
+number of improvements, and it has now become an even more mature and robust 
+solution for protecting corporate networks.
+</p><p>
+
+</p><pre class="programlisting">
+iptables
+</pre><p>
+ is the command-line interface used to manipulate
+the firewall tables within the kernel.
+</p><p>
+Netfilter provides a raw framework for manipulating packets as they traverse
+through various parts of the kernel. Part of this framework includes support for
+masquerading, standard packet filtering, and now more complete network
+address translation. It even includes improved support for load balancing
+requests for a particular service among a group of servers behind the 
+firewall.
+</p><p>
+The stateful inspection features are especially powerful. Stateful inspection
+provides the ability to track and control the flow of communication passing
+through the filter. The ability to keep track of state and context information
+about a session makes rules simpler and tries to interpret higher-level protocols.
+</p><p>
+Additionally, small modules can be developed to perform additional specific
+functions, such as passing packets to programs in userspace for processing
+then reinjecting back into the normal packet flow. The ability to develop these
+programs in userspace reduces the level of complexity that was previously
+associated with having to make changes directly at the kernel level.
+</p><p>
+Other IP Tables references include:
+</p><p>
+
+</p><div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem"><p>
+<span class="emphasis"><em><a class="ulink" href="http://www.linuxsecurity.com/feature_stories/feature_story-94.html" target="_top">Oskar Andreasson IP Tables Tutorial</a></em></span> -- Oskar Andreasson speaks 
+with LinuxSecurity.com about his comprehensive IP Tables tutorial and
+how this document can be used to build a robust firewall for your organization.
+</p></li><li class="listitem"><p>
+<span class="emphasis"><em><a class="ulink" href="http://www.linuxsecurity.com/feature_stories/feature_story-93.html" target="_top">Hal Burgiss Introduces Linux Security Quick-Start Guides</a></em></span> -- Hal Burgiss has written two authoritative guides on securing Linux, 
+including managing firewalling.
+</p></li><li class="listitem"><p>
+<span class="emphasis"><em><a class="ulink" href="http://netfilter.samba.org" target="_top">Netfilter Homepage</a></em></span> -- The netfilter/iptables homepage.
+</p></li><li class="listitem"><p>
+<span class="emphasis"><em><a class="ulink" href="http://www.linuxsecurity.com/feature_stories/kernel-netfilter.html" target="_top">Linux Kernel 2.4 Firewalling Matures: netfilter</a></em></span> -- This
+LinuxSecurity.com article describes the basics of packet filtering, how to
+get started using iptables, and a list of the new features available in
+the latest generation of firewalling for Linux.
+</p></li></ul></div><p>
+
+</p></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="idm1104"></a>8.14. VPNs - Virtual Private Networks</h3></div></div></div><p>
+VPN's are a way to establish a "virtual" network on top of some
+already-existing network. This virtual network often is encrypted and
+passes traffic only to and from some known entities that have joined
+the network. VPNs are often used to connect someone working at home
+over the public Internet to an internal company network. 
+</p><p>
+If you are running a Linux masquerading firewall and need to pass MS
+PPTP (Microsoft's VPN point-to-point product) packets, there is a
+Linux kernel patch out to do just that. See: <a class="ulink" href="ftp://ftp.rubyriver.com/pub/jhardin/masquerade/ip_masq_vpn.html" target="_top">ip-masq-vpn</a>.
+</p><p>
+There are several Linux VPN solutions available:
+
+</p><div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem"><p>
+ vpnd. See the <a class="ulink" href="http://sunsite.dk/vpnd/" target="_top">http://sunsite.dk/vpnd/</a>.
+</p></li><li class="listitem"><p>
+ Free S/Wan, available at <a class="ulink" href="http://www.xs4all.nl/~freeswan/" target="_top">http://www.xs4all.nl/~freeswan/</a>
+</p></li><li class="listitem"><p>
+ ssh can be used to construct a VPN.  See the VPN mini-howto
+for more information.
+</p></li><li class="listitem"><p>
+ vps (virtual private server) at <a class="ulink" href="http://www.strongcrypto.com" target="_top">http://www.strongcrypto.com</a>.
+</p></li><li class="listitem"><p>
+yawipin at <a class="ulink" href="mailto:http://yavipin.sourceforge.net" target="_top">http://yavipin.sourceforge.net</a>
+</p></li></ul></div><p>
+
+</p><p>
+See also the section on IPSEC for pointers and more information.
+</p></div></div><div class="navfooter"><hr><table width="100%" summary="Navigation footer"><tr><td width="40%" align="left"><a accesskey="p" href="ar01s07.html">Prev</a> </td><td width="20%" align="center"> </td><td width="40%" align="right"> <a accesskey="n" href="ar01s09.html">Next</a></td></tr><tr><td width="40%" align="left" valign="top">7. Kernel Security </td><td width="20%" align="center"><a accesskey="h" href="index.html">Home</a></td><td width="40%" align="right" valign="top"> 9. Security Preparation (before you go on-line)</td></tr></table></div></body></html>

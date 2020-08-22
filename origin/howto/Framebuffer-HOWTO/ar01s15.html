@@ -1,0 +1,46 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1"><title>15. How do I convert XFree86 mode-lines into framebuffer device timings?</title><link rel="stylesheet" type="text/css" href="style.css"><meta name="generator" content="DocBook XSL Stylesheets V1.79.1"><link rel="home" href="index.html" title="Framebuffer HOWTO"><link rel="up" href="index.html" title="Framebuffer HOWTO"><link rel="prev" href="ar01s14.html" title="14. Setting up the X11 FBdev driver"><link rel="next" href="ar01s16.html" title="16. Changing the Linux Logo"></head><body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF"><div class="navheader"><table width="100%" summary="Navigation header"><tr><th colspan="3" align="center">15. How do I convert XFree86 mode-lines into framebuffer device timings?</th></tr><tr><td width="20%" align="left"><a accesskey="p" href="ar01s14.html">Prev</a> </td><th width="60%" align="center"> </th><td width="20%" align="right"> <a accesskey="n" href="ar01s16.html">Next</a></td></tr></table><hr></div><div class="section"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="idm1274"></a>15. How do I convert XFree86 mode-lines into framebuffer device timings?</h2></div></div></div><p>If you have XFree86 (X11) installed on your machine, and
+			you can use it successfully, it is a simple matter to
+			convert the mode-lines in your XF86Config file to the
+			required timings needed by the framebuffer
+			devices.</p><p>The framebuffer device requires the following
+			fields:</p><div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem"><p><code class="code">pixclock</code> - pixel clock in
+					pico seconds</p></li><li class="listitem"><p><code class="code">left_margin</code> - time between
+					sync to display</p></li><li class="listitem"><p><code class="code">right_margin</code> - time
+					between display to
+					sync</p></li><li class="listitem"><p><code class="code">upper_margin</code> - time
+					between sync to
+					display</p></li><li class="listitem"><p><code class="code">lower_margin</code> - time
+					between display to
+					sync</p></li><li class="listitem"><p><code class="code">hsync_len</code> - horizontal
+					sync length </p></li><li class="listitem"><p><code class="code">vsync_len</code> - vertical sync
+					length</p></li></ul></div><p>An XFree86 mode line has the following fields:</p><div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem"><p><code class="code">Modeline "1280x1024" DCF HR SH1
+						SH2 HFL VR SV1 SV2
+						VFL</code></p></li></ul></div><p>It is necessary to do some simple calculations to
+			translate the XF86 mode-lines into a set of framebuffer
+			device timings. As an example, we shall examine how to
+			convert a mode-line taken from my XF86Config file:</p><div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem"><p><code class="code">Modeline "1280x1024" 110.0 1280
+						1328 1512 1712 1024 1025 1028
+						1054</code></p></li></ul></div><p>First, calculate the required pixclock rate. XFree86 uses
+			megahertz whilst framebuffer devices uses picoseconds
+			(Why, I don't know). Divide one million by DCF.  For
+			example: <code class="code">1,000,000 / 110.0 =
+				9090.9091</code></p><p>Now we need to calculate the horizontal timings:</p><div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem"><p><code class="code">left_margin = HFL -
+						SH2</code></p></li><li class="listitem"><p><code class="code">right_margin = SH1 -
+						HR</code></p></li><li class="listitem"><p><code class="code">hsync_len = SH2 -
+						SH1</code></p></li></ul></div><p>In our example, this would be:</p><div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem"><p><code class="code">left_margin = 1712 - 1512 =
+						200</code></p></li><li class="listitem"><p><code class="code">right_margin = 1328 - 1280 =
+						48</code></p></li><li class="listitem"><p><code class="code">hsync_len = 1512 - 1328 =
+						184</code></p></li></ul></div><p>And now we need to calculate the vertical timings.</p><div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem"><p><code class="code">upper_margin = VFL -
+						SV2</code></p></li><li class="listitem"><p><code class="code">lower_margin = SV1 -
+						VR</code></p></li><li class="listitem"><p><code class="code">vsync_len = SV2 -
+						SV1</code></p></li></ul></div><p>For our example, this would be:</p><div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem"><p><code class="code">upper_margin = 1054 - 1028 =
+						26</code></p></li><li class="listitem"><p><code class="code">lower_margin = 1025 - 1024 =
+						1</code></p></li><li class="listitem"><p><code class="code">vsync_len = 1028 - 1025 =
+						3</code></p></li></ul></div><p>Now we can use this information to set up the framebuffer
+			for the desired mode. For example, for the matroxfb
+			framebuffer driver, it requires the following:</p><div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem"><p><code class="code">video=matrox:xres:&lt;&gt;,yres:&lt;&gt;,depth:&lt;&gt;,left:&lt;&gt;,right:&lt;&gt;,hslen:&lt;&gt;,upper:&lt;&gt;,lower:&lt;&gt;,vslen:&lt;&gt;</code></p></li></ul></div><p>I put into my <code class="code">/etc/lilo.conf</code> the following line:</p><div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem"><p><code class="code">append =
+						"video=matroxfb:xres:1280,yres:1024,depth:32,left:200,right:48,hslen:184,upper:26,lower:0,vslen:3"</code></p></li></ul></div><p>Note that in this case the pixel clock isn't used. It's
+			only necessary if you don't like the default pixel
+			clock rates.  You can supply this as a parameter as
+			well. Setting the pixclock is documented in other parts
+			of this HOWTO.</p></div><div class="navfooter"><hr><table width="100%" summary="Navigation footer"><tr><td width="40%" align="left"><a accesskey="p" href="ar01s14.html">Prev</a> </td><td width="20%" align="center"> </td><td width="40%" align="right"> <a accesskey="n" href="ar01s16.html">Next</a></td></tr><tr><td width="40%" align="left" valign="top">14. Setting up the X11 FBdev driver </td><td width="20%" align="center"><a accesskey="h" href="index.html">Home</a></td><td width="40%" align="right" valign="top"> 16. Changing the Linux Logo</td></tr></table></div></body></html>

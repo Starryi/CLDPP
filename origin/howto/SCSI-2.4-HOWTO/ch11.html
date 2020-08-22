@@ -1,0 +1,70 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1"><title>Chapter 11. Raw devices</title><link rel="stylesheet" type="text/css" href="style.css"><meta name="generator" content="DocBook XSL Stylesheets V1.79.1"><link rel="home" href="index.html" title="The Linux 2.4 SCSI subsystem HOWTO"><link rel="up" href="index.html" title="The Linux 2.4 SCSI subsystem HOWTO"><link rel="prev" href="ch10s01.html" title="1. Pseudo drivers"><link rel="next" href="ch12.html" title="Chapter 12. Devfs pseudo file system"></head><body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF"><div class="navheader"><table width="100%" summary="Navigation header"><tr><th colspan="3" align="center">Chapter 11. Raw devices</th></tr><tr><td width="20%" align="left"><a accesskey="p" href="ch10s01.html">Prev</a> </td><th width="60%" align="center"> </th><td width="20%" align="right"> <a accesskey="n" href="ch12.html">Next</a></td></tr></table><hr></div><div class="chapter"><div class="titlepage"><div><div><h1 class="title"><a name="rawdev"></a>Chapter 11. Raw devices</h1></div></div></div><p>
+A raw device can be bound to an existing block device (e.g. a disk) and be
+used to perform "raw" IO with that existing block device. Such "raw" IO
+bypasses the caching that is normally associated with block devices. 
+Hence a raw device offers a more "direct" route to the physical device
+and allows an application more control over the timing of IO to that
+physical device. This makes raw devices suitable for complex applications
+like Database Management Systems that typically do their own caching.
+</p><p>
+Raw devices are character devices (major number 162). The first
+minor number (i.e. 0) is reserved as a control interface and is usually
+found at <code class="filename">/dev/rawctl</code>. A utility called <span class="command"><strong>raw
+</strong></span> (see <span class="command"><strong>man raw</strong></span>) can be used to bind a raw
+device to an existing block device. These "existing block devices" may be
+disks or cdroms/dvds whose underlying interface can be anything supported
+by Linux (e.g. IDE/ATA or SCSI).
+</p><p>
+A sequence of commands listing the raw devices and then binding
+a SCSI disk partition followed by binding the whole disk looks
+like this on my system:
+</p><pre class="programlisting">
+$ ls -lR /dev/raw*
+crw-r--r--    1 root     root     162,   0 Dec  6 06:54 /dev/rawctl
+
+/dev/raw:
+total 0
+crw-r--r--    1 root     root     162,   1 Dec  6 06:54 raw1
+crw-r--r--    1 root     root     162,   2 Dec  6 06:54 raw2
+crw-r--r--    1 root     root     162,   3 Dec  6 06:54 raw3
+crw-r--r--    1 root     root     162,   4 Dec  6 06:54 raw4
+$
+$ raw -qa
+$
+$ raw /dev/raw/raw1 /dev/sda3
+/dev/raw/raw1:  bound to major 8, minor 3
+$ raw /dev/raw/raw2 /dev/sda
+/dev/raw/raw2:  bound to major 8, minor 0
+$ raw -qa
+/dev/raw/raw1:  bound to major 8, minor 3
+/dev/raw/raw2:  bound to major 8, minor 0
+</pre><p>
+</p><p>
+The normal array of system calls for character devices are available on
+raw devices. The size of the transfer for read(2) and write(2) must be
+an integral multiple of the physical device's block size. For a disk
+this will be its sector size which is normally 512 bytes. The data buffer
+given to read() and write() system calls must be aligned to the block 
+size. The lseek(2) call needs to align its file read/write offset to a block
+boundary as well. The pread(3) call (see <span class="command"><strong>man pread</strong></span>)
+combines a read() and an lseek() and can be useful with raw devices (ditto with 
+pwrite() ). Care should be taken with offsets greater than 2 GB (or perhaps
+4 GB) on 32 bit architectures where the "off_t" type is 32 bits long.
+One solution is to use the _llseek() call (see <span class="command"><strong>man llseek</strong></span>).
+</p><p>
+Unix utilities such as recent versions of <span class="command"><strong>dd</strong></span> and 
+<span class="command"><strong>lmdd</strong></span> (from the lmbench suite of programs) can be used
+to move data to and from "raw" devices as they meet the above-mentioned
+block alignment requirements. Recent versions of the <span class="command"><strong>sg_dd</strong></span>
+command in the sg_utils package can access both raw and sg devices.
+</p><p>
+Also note that if the physical device has an odd number of sectors (as 
+shown by <span class="command"><strong>blockdev --getsize /dev/raw/raw*</strong></span>), the last
+sector will not be accessible using raw IO.
+</p><div class="warning" style="margin-left: 0.5in; margin-right: 0.5in;"><h3 class="title">Warning</h3><p>
+If a block device is being accessed via a bound raw device and also via
+its normal block interface then there is no cache coherency between the
+two access mechanisms. For example if <code class="filename">/dev/sda1</code> was
+both mounted and being accessed via a bound raw device then there could be
+data inconsistencies.
+</p></div></div><div class="navfooter"><hr><table width="100%" summary="Navigation footer"><tr><td width="40%" align="left"><a accesskey="p" href="ch10s01.html">Prev</a> </td><td width="20%" align="center"> </td><td width="40%" align="right"> <a accesskey="n" href="ch12.html">Next</a></td></tr><tr><td width="40%" align="left" valign="top">1. Pseudo drivers </td><td width="20%" align="center"><a accesskey="h" href="index.html">Home</a></td><td width="40%" align="right" valign="top"> Chapter 12. Devfs pseudo file system</td></tr></table></div></body></html>

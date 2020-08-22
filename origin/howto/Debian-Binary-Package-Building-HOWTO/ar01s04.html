@@ -1,0 +1,82 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1"><title>4. Hands On</title><link rel="stylesheet" type="text/css" href="style.css"><meta name="generator" content="DocBook XSL Stylesheets V1.79.1"><link rel="home" href="index.html" title="Debian Binary Package Building HOWTO"><link rel="up" href="index.html" title="Debian Binary Package Building HOWTO"><link rel="prev" href="ar01s03.html" title="3. Package Structure"><link rel="next" href="ar01s05.html" title="5. Double Check"></head><body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF"><div class="navheader"><table width="100%" summary="Navigation header"><tr><th colspan="3" align="center">4. Hands On</th></tr><tr><td width="20%" align="left"><a accesskey="p" href="ar01s03.html">Prev</a> </td><th width="60%" align="center"> </th><td width="20%" align="right"> <a accesskey="n" href="ar01s05.html">Next</a></td></tr></table><hr></div><div class="sect1"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="idm88"></a>4. Hands On</h2></div></div></div><p>
+	 Now it is time to get practical ourselves.
+	 I have a simple shell script named 'linuxstatus' which I want to install
+as '/usr/bin/linuxstatus'.
+
+    So first let's create a directory named 'debian' next to the file 'linuxstatus'.
+</p><pre class="screen">
+$ mkdir -p ./debian/usr/bin
+$ cp linuxstatus ./debian/usr/bin
+</pre><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="idm92"></a>4.1. control</h3></div></div></div><p>
+Let's start with the control file. The version number must have a dash with
+an additional Debian package version number, e.g. '1.1-1'. If your program consists
+e.g. only of portable shell scripts, use 'all' as its 'Architecture'.
+</p><p>
+
+For 'Depends' you might need to find out to which package a certain file or program
+your new package relies onto belongs to.
+You can use 'dpkg -S &lt;file&gt;' for this to find this out, e.g.:
+</p><pre class="screen">
+$ dkpg -S /bin/cat
+coreutils: /bin/cat
+</pre><p>
+Then to find out more about package 'coreutils' you can use
+the command 'apt-cache showpkg coreutils', which will tell you
+among other things the current version number that is installed
+on the system.</p><p>
+
+As a side note, there are two more ways to find the same information.
+There is a web page where you can search for Debian files: <a class="ulink" href="http://www.debian.org/distrib/packages" target="_top">http://www.debian.org/distrib/packages</a>.
+Go to the bottom of that page to fill out the web form.</p><p>
+
+Last not least there is a nice GUI application named 'kpackage',
+which provides convenient package browsing options and also allows
+to search after packages given individual file names.
+</p><p>
+
+'Suggests', 'Conflicts', and 'Replaces' etc. can be left out if not needed.
+</p><p>
+So here is the result of our first 'control' file:
+</p><pre class="programlisting">Package: linuxstatus
+Version: 1.1-1
+Section: base
+Priority: optional
+Architecture: all
+Depends: bash (&gt;= 2.05a-11), textutils (&gt;= 2.0-12), awk, procps (&gt;= \
+1:2.0.7-8), sed (&gt;= 3.02-8), grep (&gt;= 2.4.2-3), coreutils (&gt;= 5.0-5)
+Maintainer: Chr. Clemens Lee &lt;clemens@kclee.de&gt;
+Description: Linux system information
+ This script provides a broad overview of different
+ system aspects.</pre><p>
+The 'control' file gets copied into a directory called 'DEBIAN' inside the other
+'debian' directory.
+</p><pre class="screen">
+$ mkdir -p debian/DEBIAN
+$ find ./debian -type d | xargs chmod 755   # this is necessary on Debian Woody, don't ask me why
+$ cp control debian/DEBIAN
+</pre><p>
+If you expect your package to have a bigger audience in the future
+it might help to read this
+<a class="ulink" href="http://people.debian.org/~walters/descriptions.html" target="_top">Writing Debian package descriptions</a>
+article.
+</p></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="idm108"></a>4.2. dpkg-deb</h3></div></div></div><p>
+Now it is almost done. Just type:
+</p><pre class="screen">
+$ dpkg-deb --build debian
+dpkg-deb: building package `linuxstatus' in `debian.deb'.
+$ mv debian.deb linuxstatus_1.1-1_all.deb
+</pre><p>
+Uh, that was all easier than expected. Now we just have to install this package on our box
+and we are done:
+</p><pre class="screen">
+root# dpkg -i ./linuxstatus_1.1-1_all.deb
+</pre><p>
+Type '<code class="literal">linuxstatus</code>' or '<code class="literal">ls -l /usr/bin/linuxstatus</code>' to see if it worked.
+If you don't like your package any more, just type '<code class="literal">dpkg -r linuxstatus</code>'
+and check again that the package is deinstalled. If you install a newer version
+you don't have to remove the old one first, thought.</p><p>
+
+If you are curious about the version numbering scheme and 
+naming conventions for a Debian package, have a read at 
+<a class="ulink" href="http://www.debian.org/doc/manuals/reference/ch-system.en.html#s-pkgname" target="_top">this section</a> in <a class="ulink" href="http://www.debian.org/doc/manuals/reference/reference.en.html" target="_top">The Debian Reference</a>.
+</p></div></div><div class="navfooter"><hr><table width="100%" summary="Navigation footer"><tr><td width="40%" align="left"><a accesskey="p" href="ar01s03.html">Prev</a> </td><td width="20%" align="center"> </td><td width="40%" align="right"> <a accesskey="n" href="ar01s05.html">Next</a></td></tr><tr><td width="40%" align="left" valign="top">3. Package Structure </td><td width="20%" align="center"><a accesskey="h" href="index.html">Home</a></td><td width="40%" align="right" valign="top"> 5. Double Check</td></tr></table></div></body></html>

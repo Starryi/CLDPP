@@ -1,0 +1,1159 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 3.2 Final//EN">
+<HTML>
+<HEAD>
+ <META NAME="GENERATOR" CONTENT="LinuxDoc-Tools 0.9.72">
+ <TITLE>Java CGI HOWTO</TITLE>
+</HEAD>
+<BODY>
+<H1>Java CGI HOWTO</H1>
+
+<H2>by David H. Silber
+<CODE>
+<A HREF="mailto:javacgi-document@orbits.com">javacgi-document@orbits.com</A></CODE></H2>v0.5, 1 December 1998
+<HR>
+<EM>This HOWTO document explains how to set up your server to allow CGI programs
+written in Java and how to use Java to write CGI programs.
+Although HOWTO documents are targetted towards use with the Linux operating
+system, this particular one is not dependant on the particular version of
+unix used.</EM>
+<HR>
+<H2><A NAME="s1">1. Introduction</A></H2>
+
+<P>Because of the way that Java is designed the programmer does not have
+easy access to the system's environment variables.
+Because of the way that the Java Development Kit (JDK) is set up, 
+it is necessary to use multiple tokens to invoke a program,
+which does not mesh very well with the standard HTML forms/CGI
+manner of operations.
+There are ways around these limitations, and I have implemented one of
+them.
+Read further for details.</P>
+<P>Since I wrote the previous paragraph in 1996, there have been many
+changes in the Java technology.
+It is likely that a better solution to running server-side Java programs
+is now available -- perhaps you should take a look at servlets.</P>
+
+
+
+<H2><A NAME="ss1.1">1.1 Prior Knowledge</A>
+</H2>
+
+<P>I am assuming that you have a general knowledge of HTML and CGI concepts
+and at least a minimal knowledge of your HTTP server.
+You should also know how to program in Java, or a lot of this will not make
+sense.</P>
+
+
+
+<H2><A NAME="ss1.2">1.2 This Document</A>
+</H2>
+
+<P>The latest version of this document can be read at
+<A HREF="http://www.orbits.com/software/Java_CGI.html">http://www.orbits.com/software/Java_CGI.html</A>.</P>
+
+
+
+<H2><A NAME="ss1.3">1.3 The Package</A>
+</H2>
+
+<P>The latest version of the package described here can be accessed via
+anonymous FTP at
+<A HREF="ftp://ftp.orbits.com/pub/software/java_cgi-0.5.tgz">ftp://ftp.orbits.com/pub/software/java_cgi-0.5.tgz</A>.
+The package distribution includes SGML source for this document.</P>
+<P>The package is distributed under the terms of the GNU Library General
+Public License.  This document can be distributed under the terms of the
+Linux HOWTO copyright notice.</P>
+<P>If you use this software, please make some reference to
+<A HREF="http://www.orbits.com/software/Java_CGI.html">http://www.orbits.com/software/Java_CGI.html</A>, so that others
+will be able to find the Java CGI classes.</P>
+<P>I have run out of time to maintain and support this package, so this
+will probably be its final release.
+If anyone out there is sufficiently enamoured of this software that
+they wish to take over the maintenace of it, please contact me at
+<CODE>
+<A HREF="mailto:javacgi-document@orbits.com">javacgi-document@orbits.com</A></CODE>.</P>
+
+
+
+<H2><A NAME="mailing-list"></A> <A NAME="ss1.4">1.4 The Mailing List </A>
+</H2>
+
+<P>I have created a majordomo list to allow people to help each-other work
+through their mutual problems in installing and using this software.
+Send a message to 
+<CODE>
+<A HREF="mailto:javacgi-request@orbits.com">javacgi-request@orbits.com</A></CODE>,
+containing the word <EM>subscribe</EM>.</P>
+
+
+
+<H2><A NAME="install-long"></A> <A NAME="s2">2. Setting Up Your Server to Run Java CGI Programs (With Explanations) </A></H2>
+
+<P>This section will lead you through installing my <EM>Java CGI</EM> package
+with copious explanations so that you know what the effects of your
+actions will be.
+If you just want to install the programs and don't care about the
+whys &amp; wherefores, skip to 
+<A HREF="#install-short">Setting Up Your Server to Run Java CGI Programs (The Short Form)</A>.</P>
+
+
+
+<H2><A NAME="ss2.1">2.1 System Requirements</A>
+</H2>
+
+<P>This software should work on any unix-like web server that has the Java
+Development Kit installed.
+I am using it on a <EM>Debian Linux</EM> system running
+<EM>apache</EM> as the HTTP daemon.
+If you find that it does not run on your server, please contact the
+mailing list.
+See 
+<A HREF="#mailing-list">The Mailing List</A> for details.</P>
+<P>Unfortunatly, the Java run-time interpreter seems to be something of a 
+memory hog -- you may want to throw another few megabytes of RAM onto
+your server if you will be using Java CGI programs a lot.</P>
+
+
+
+<H2><A NAME="ss2.2">2.2 Java CGI Add-On Software</A>
+</H2>
+
+<P>The software that I wrote to aid in this is called <EM>Java CGI</EM>.
+You can get it from
+<A HREF="ftp://ftp.orbits.com/pub/software/java_cgi-0.5.tgz">ftp://ftp.orbits.com/pub/software/java_cgi-0.5.tgz</A>.
+(The version number may have changed.)</P>
+
+
+
+<H2><A NAME="ss2.3">2.3 Unpacking the Source</A>
+</H2>
+
+<P>Find a convenient directory to unpack this package into.
+(If you don't already have a standard place to put packages,
+I suggest that you use <CODE>/usr/local/src</CODE>.)
+Unpack the distribution with this command:
+<PRE>
+gzip -dc java_cgi-0.5.tgz | tar -xvf -
+</PRE>
+
+This will create a directory called <CODE>java_cgi-0.5</CODE>.
+In there you will find the files referenced in the rest of this document.
+(If the version number has changed, use the instructions from within
+that distribution from this point on.)</P>
+
+
+
+<H2><A NAME="make-programs"></A> <A NAME="ss2.4">2.4 Decide On Your Local Path Policies </A>
+</H2>
+
+<P>You need to decide where you want your Java CGI
+programs to live.  Generally, you will want to put them in a directory in
+parallel with your <CODE>cgi-bin</CODE> directory.  My <EM>apache</EM>
+server came configured to use <CODE>/var/www/cgi-bin</CODE> as the
+<CODE>cgi-bin</CODE> directory, so I use <CODE>/var/www/javacgi</CODE> as the
+directory to put Java CGI programs in.  You probably do not want to
+put your Java CGI programs into one of the existing
+<CODE>CLASSPATH</CODE> directories.
+Edit the Makefile to reflect your system configuration.
+Make sure that you are logged in as the root user and run <CODE>make install</CODE>.
+This will compile the Java programs, modify the <CODE>java.cgi</CODE> script
+to fit in with your system and install the programs in the appropriate
+places.
+If you want the HTML version of this documentation and an HTML test document
+in addition, run <CODE>make all</CODE> instead.</P>
+
+
+
+<H2><A NAME="install-test"></A> <A NAME="ss2.5">2.5 Testing your installation. </A>
+</H2>
+
+<P>Installed from the distribution are HTML documents called
+<CODE>javacgitest.html</CODE>, <CODE>javaemailtest.html</CODE> and
+<CODE>javahtmltest.html</CODE>.
+If you installed <CODE>all</CODE> in the previous section, it will be in the
+directory you specified for WEBDIR in the <CODE>Makefile</CODE>.
+If you didn't, you can run <CODE>make test</CODE> to build them from
+<CODE>javacgitest.html-dist</CODE>, <CODE>javaemailtest.html-dist</CODE> and
+<CODE>javahtmltest.html-dist</CODE>.</P>
+<P>When you are sure that your installation is working correctly, you may
+wish to remove <CODE>CGI_Test.class</CODE>, <CODE>Email_Test.class</CODE> and
+<CODE>HTML_Test.class</CODE> from
+your JAVACGI directory and <CODE>javacgitest.html</CODE>,
+<CODE>javaemailtest.html</CODE> and <CODE>javahtmltest.html</CODE>
+from your WEBDIR directory as they show the
+user information that is normally only available to the server.</P>
+
+
+
+<H2><A NAME="install-short"></A> <A NAME="s3">3. Setting Up Your Server to Run Java CGI Programs (The Short Form) </A></H2>
+
+<P>
+<UL>
+<LI>Get the <EM>Java CGI</EM> package from
+<A HREF="ftp://ftp.orbits.com/pub/software/java_cgi-0.5.tgz">ftp://ftp.orbits.com/pub/software/java_cgi-0.5.tgz</A>.
+(The version number may have changed.)</LI>
+<LI>Unpack the distribution with this command:
+<PRE>
+gzip -dc java_cgi-0.5.tgz | tar -xvf -
+</PRE>
+
+(If the version number has changed, use the instructions from within
+that distribution from this point on.)</LI>
+<LI>Edit the <CODE>Makefile</CODE> you will find in the newly created directory
+<CODE>java_cgi-0.5</CODE> as appropriate to your system.</LI>
+<LI>As root, run <CODE>make install</CODE>.
+This will compile the Java programs, apply your system-specific information
+and install the various files.
+If you want the HTML version of this documentation and an HTML test document,
+run <CODE>make all</CODE> instead.</LI>
+<LI>You should be ready to go.</LI>
+</UL>
+</P>
+
+
+
+<H2><A NAME="s4">4. Executing a Java CGI Program</A></H2>
+
+
+
+
+
+<H2><A NAME="ss4.1">4.1 Obstacles to Running Java Programs Under the CGI Model</A>
+</H2>
+
+<P>There are two main problems in running a Java program from a web server:</P>
+
+
+
+<H3>You can't run Java programs like ordinary executables.</H3>
+
+<P>You need to run the Java run-time interpreter and provide the initial
+class (program to run) on the command-line.
+With an HTML form, there is no provision for sending a command-line
+to the web server.</P>
+
+
+
+<H3>Java does not have general access to the environment.</H3>
+
+<P>Every environment variable that will be needed by the Java program 
+must be explicitly passed in.
+There is no method similar to the <B>C</B> <CODE>getenv()</CODE> function.</P>
+
+
+
+<H2><A NAME="ss4.2">4.2 Overcoming Problems in Running Java CGI Programs</A>
+</H2>
+
+<P>To deal with these obstacles, I wrote a shell CGI program that provides
+the information needed by the Java interpreter.</P>
+
+
+
+<H3>The java.cgi script.</H3>
+
+<P>This shell script manages the interaction between the HTTP daemon and the
+Java CGI program that you wish to use.
+It extracts the name of the program that you want to run from the
+server-provided data.
+It collects all of the environment data into a temporary file.
+Then, it runs the Java run-time interpreter with the name of the file of
+environment information and the program name added to the command-line.</P>
+<P>The <CODE>java.cgi</CODE> script was configured and installed in
+<A HREF="#make-programs">Decide On Your Local Path Policies</A>.</P>
+
+
+
+<H3>Invoking java.cgi from an HTML form.</H3>
+
+<P>My forms that use Java CGI programs specify a form action as follows:
+<PRE>
+&lt;form action="/cgi-bin/java.cgi/CGI_Test" method="POST">
+</PRE>
+
+Where <CODE>/cgi-bin/</CODE> is your local CGI binary directory,
+<CODE>java.cgi</CODE> is the Java front-end that allows us to run Java programs
+over the web
+and <CODE>CGI_Test</CODE> is an example of the name of the Java program to run.</P>
+
+
+
+<H2><A NAME="s5">5. Using the Java CGI Classes.</A></H2>
+
+<P>There are currently three main classes supported --
+<A HREF="#cgi-class">CGI</A>,
+<A HREF="#email-class">Email</A> and
+<A HREF="#html-class">HTML</A>.
+I am considering adding classes to deal with MIME-formatted input and
+output -- MIMEin &amp; MIMEout, respectively.</P>
+<P>There are also a few support and test classes.
+<A HREF="#cgi-test-class">CGI_Test</A>,
+<A HREF="#email-test-class">Email_Test</A> and
+<A HREF="#email-test-class">HTML_Test</A> are intended to be used to
+test your installation.
+They can also be used as a starting-point for your own Java programs
+which use this class library.
+The 
+<A HREF="#text-class">Text</A> class is the superclass for both the
+<CODE>Email</CODE> and the <CODE>HTML</CODE> classes.  </P>
+
+
+
+<H2><A NAME="cgi-class"></A> <A NAME="ss5.1">5.1 CGI</A>
+</H2>
+
+
+
+
+
+<H3>Class Syntax</H3>
+
+<P><CODE>public class CGI</CODE></P>
+
+
+
+<H3>Class Description</H3>
+
+<P>The CGI class holds the ``CGI Information'' -- Environment variables
+set by the web server and the name/value sent from a
+form when its  <B>submit</B> action is selected.
+All information is stored in a <CODE>Properties</CODE> class object.</P>
+<P>This class is in the ``Orbits.net'' package.</P>
+
+
+
+<H3>Member Summary</H3>
+
+<P>
+<HR>
+<PRE>
+        CGI()         //  Constructor.
+        getNames()    //  Get the list of names.
+        getValue()    //  Get form value by specifying name.
+</PRE>
+<HR>
+</P>
+
+
+
+<H3>See Also</H3>
+
+<P><CODE>CGI_Test</CODE>.</P>
+
+
+
+<H3>CGI()</H3>
+
+<P>
+<DL>
+<DT><B>Purpose</B><DD>
+<P>Constructs an object which contains the available CGI data.</P>
+<DT><B>Syntax</B><DD>
+<P><CODE>public CGI()</CODE></P>
+<DT><B>Description</B><DD>
+<P>When a CGI object is constructed, all available CGI
+information is sucked-up into storage local to the new object.</P>
+</DL>
+</P>
+
+
+
+<H3>getNames()</H3>
+
+<P>
+<DL>
+<DT><B>Purpose</B><DD>
+<P>List the names which are defined to have corresponding values.</P>
+<DT><B>Syntax</B><DD>
+<P><CODE>public Enumeration getKeys ()</CODE></P>
+<DT><B>Description</B><DD>
+<P>Provides the full list of names for which coresponding
+values are defined.</P>
+<DT><B>Returns</B><DD>
+<P>An <CODE>Enumeration</CODE> of all the names defined.</P>
+</DL>
+</P>
+
+
+
+<H3>getValue()</H3>
+
+<P>
+<DL>
+<DT><B>Purpose</B><DD>
+<P>Retrieves the <B>value</B> associated with the <B>name</B>
+specified.</P>
+<DT><B>Syntax</B><DD>
+<P><CODE>public String getValue ( String name )</CODE></P>
+<DT><B>Description</B><DD>
+<P>This method provides the corespondence between the
+<CODE>names</CODE> and <CODE>values</CODE> sent from an HTML form.</P>
+<DT><B>Parameter</B><DD>
+<P>
+<DL>
+<DT><B>name</B><DD>
+<P>The key by which values are selected.</P>
+</DL>
+</P>
+<DT><B>Returns</B><DD>
+<P>A <CODE>String</CODE> containing the value.</P>
+</DL>
+</P>
+
+
+
+<H2><A NAME="cgi-test-class"></A> <A NAME="ss5.2">5.2 CGI_Test</A>
+</H2>
+
+<P>This class provides both an example of how to use the <CODE>CGI</CODE> class
+and a test program which can be used to confirm that the <EM>Java CGI</EM>
+package is functioning correctly.</P>
+
+
+
+<H3>Member Summary</H3>
+
+<P>
+<HR>
+<PRE>
+        main()      //  Program main().
+</PRE>
+<HR>
+</P>
+
+
+
+<H3>See Also</H3>
+
+<P><CODE>CGI</CODE>.</P>
+
+
+
+<H3>main()</H3>
+
+<P>
+<DL>
+<DT><B>Purpose</B><DD>
+<P>Provide a <CODE>main()</CODE> method.</P>
+<DT><B>Syntax</B><DD>
+<P><CODE>public static void main( String argv[] )</CODE></P>
+<DT><B>Description</B><DD>
+<P>This is the entry point for a CGI program which does
+nothing but return a list of the available name/value pairs and their
+current values.</P>
+<DT><B>Parameter </B><DD>
+<P>
+<DL>
+<DT><B>argv[]</B><DD>
+<P>Arguments passed to the program by
+the <CODE>java.cgi</CODE> script.
+Currently unused.</P>
+</DL>
+</P>
+</DL>
+</P>
+
+
+
+<H2><A NAME="email-class"></A> <A NAME="ss5.3">5.3 Email</A>
+</H2>
+
+
+
+
+
+<H3>Class Syntax</H3>
+
+<P><CODE>public class Email extends Text</CODE></P>
+
+
+
+<H3>Class Description</H3>
+
+<P>Messages are built up with the <CODE>Text</CODE> class <CODE>add*()</CODE> methods
+and the e-mail-specific methods added by this class.
+When complete, the message is sent to its destination.</P>
+<P>This class is in the ``Orbits.net'' package.</P>
+
+
+
+<H3>Member Summary</H3>
+
+<P>
+<HR>
+<PRE>
+        Email()      //  Constructor.
+        send()       //  Send the e-mail message.
+        sendTo()     //  Add a destination for message.
+        subject()    //  Set the Subject: for message.
+</PRE>
+<HR>
+</P>
+
+
+
+<H3>See Also</H3>
+
+<P><CODE>Email_Test, Text</CODE>.</P>
+
+
+
+<H3>Email()</H3>
+
+<P>
+<DL>
+<DT><B>Purpose</B><DD>
+<P>Constructs an object which will contain an email message.</P>
+<DT><B>Syntax</B><DD>
+<P><CODE>public Email()</CODE></P>
+<DT><B>Description</B><DD>
+<P>Sets up an empty message to be completed by the Email methods.</P>
+<DT><B>See Also</B><DD>
+<P><CODE>Text</CODE>.</P>
+</DL>
+</P>
+
+
+
+<H3>send()</H3>
+
+<P>
+<DL>
+<DT><B>Purpose</B><DD>
+<P>Send the e-mail message.</P>
+<DT><B>Syntax</B><DD>
+<P><CODE>public void send ()</CODE></P>
+<DT><B>Description</B><DD>
+<P>This formats and sends the message.
+If no destination address has been set, there is no action taken.</P>
+</DL>
+</P>
+
+
+
+<H3>sendTo()</H3>
+
+<P>
+<DL>
+<DT><B>Purpose</B><DD>
+<P>Add a destination for this message.</P>
+<DT><B>Syntax</B><DD>
+<P><CODE>public String sendTo ( String address )</CODE></P>
+<DT><B>Description</B><DD>
+<P>Add <CODE>address</CODE> to the list of destinations for
+this method.
+There is no set limit to the number of destinations an e-mail message may have.
+I'm sure that if you build up the list large enough, you can 
+exceed the size of the parameter list that the <EM>Mail Transport
+Agent</EM> can accept or use up your memory.</P>
+<DT><B>Parameter/</B><DD>
+<P>
+<DL>
+<DT><B>address</B><DD>
+<P>A destination to send this message to.</P>
+</DL>
+</P>
+</DL>
+</P>
+
+
+
+<H3>subject()</H3>
+
+<P>
+<DL>
+<DT><B>Purpose</B><DD>
+<P>Set the subject for this message.</P>
+<DT><B>Syntax</B><DD>
+<P><CODE>public void subject ( String subject )</CODE></P>
+<DT><B>Description</B><DD>
+<P>This method sets the text for the e-mail's <CODE>Subject:</CODE>
+line.
+If called more than once, the latest subject set is the one that is used.</P>
+<DT><B>Parameter</B><DD>
+<P>
+<DL>
+<DT><B>subject</B><DD>
+<P>The text of this message's <CODE>Subject:</CODE> line.</P>
+</DL>
+</P>
+</DL>
+</P>
+
+
+
+<H2><A NAME="email-test-class"></A> <A NAME="ss5.4">5.4 Email_Test</A>
+</H2>
+
+<P>This class provides both an example of how to use the <CODE>Email</CODE> class
+and a test program which can be used to confirm that the <EM>Java CGI</EM>
+package is functioning correctly.</P>
+
+
+
+<H3>Member Summary</H3>
+
+<P>
+<HR>
+<PRE>
+        main()      //  Program main().
+</PRE>
+<HR>
+</P>
+
+
+
+<H3>See Also</H3>
+
+<P><CODE>Email</CODE>.</P>
+
+
+
+<H3>main()</H3>
+
+<P>
+<DL>
+<DT><B>Purpose</B><DD>
+<P>Provide a <CODE>main()</CODE> method.</P>
+<DT><B>Syntax</B><DD>
+<P><CODE>public static void main( String argv[] )</CODE></P>
+<DT><B>Description</B><DD>
+<P>This is the entry point for a CGI program which returns
+a list of the available name/value pairs and their current values.
+It will also send this list to the address specified in the <CODE>Email</CODE>
+variable.</P>
+<DT><B>Parameter </B><DD>
+<P>
+<DL>
+<DT><B>argv[]</B><DD>
+<P>Arguments passed to the program by
+the <CODE>java.cgi</CODE> script.
+Currently unused.</P>
+</DL>
+</P>
+</DL>
+</P>
+
+
+
+<H2><A NAME="html-class"></A> <A NAME="ss5.5">5.5 HTML</A>
+</H2>
+
+
+
+
+
+<H3>Class Syntax</H3>
+
+<P><CODE>public class HTML extends Text</CODE></P>
+
+
+
+<H3>Class Description</H3>
+
+<P>Messages are built up with the <CODE>Text</CODE> class <CODE>add*()</CODE> methods
+and the HTML-specific methods added by this class.
+When complete, the message is sent to its destination.</P>
+<P>Currently, there is no error checking to confirm that the list-building
+methods are being used in a correct order, so the  programmer must take
+pains not to violate HTML syntax.</P>
+<P>This class is in the ``Orbits.net'' package.</P>
+
+
+
+<H3>Member Summary</H3>
+
+<P>
+<HR>
+<PRE>
+        HTML()                  //  Constructor.
+        author()                //  Set the name of the document author.
+        definitionList()        //  Start a definition list.
+        definitionListTerm()    //  Add a term to a definition list.
+        endList()               //  End a list.
+        listItem()              //  Add an entry to a list.
+        send()                  //  Send the HTML message.
+        title()                 //  Set the text for the document title.
+</PRE>
+<HR>
+</P>
+
+
+
+<H3>See Also</H3>
+
+<P><CODE>HTML_Test, Text</CODE>.</P>
+
+
+
+<H3>HTML()</H3>
+
+<P>
+<DL>
+<DT><B>Purpose</B><DD>
+<P>Constructs an object which will contain an HTML message.</P>
+<DT><B>Syntax</B><DD>
+<P><CODE>public HTML()</CODE></P>
+<DT><B>Description</B><DD>
+<P>Sets up an empty message to be completed by the HTML methods.</P>
+<DT><B>See Also</B><DD>
+<P><CODE>Text</CODE>.</P>
+</DL>
+</P>
+
+
+
+<H3>author()</H3>
+
+<P>
+<DL>
+<DT><B>Purpose</B><DD>
+<P>Set the name of the document author.</P>
+<DT><B>Syntax</B><DD>
+<P><CODE>public void author ( String author )</CODE></P>
+<DT><B>Description</B><DD>
+<P>Set the name of the document author to <CODE>author</CODE>.</P>
+<DT><B>Parameter/</B><DD>
+<P>
+<DL>
+<DT><B>author</B><DD>
+<P>The text to use as the author of this message.</P>
+</DL>
+</P>
+<DT><B>See Also</B><DD>
+<P><CODE>title()</CODE>.</P>
+</DL>
+</P>
+
+
+
+<H3>definitionList()</H3>
+
+<P>
+<DL>
+<DT><B>Purpose</B><DD>
+<P>Start a definition list.</P>
+<DT><B>Syntax</B><DD>
+<P><CODE>public void definitionList ()</CODE></P>
+<DT><B>Description</B><DD>
+<P>Start a definition list.
+A <EM>definition list</EM> is a list specialized so that each entry in
+the list is a <EM>term</EM> followed by the definition <EM>text</EM>
+for that term.
+The start of a definition list should be followed by the creation of
+(at least) one term/text pair and a call to the <CODE>endList()</CODE> method.
+<EM>Note that, currently, lists cannot be nested.</EM></P>
+<DT><B>See Also</B><DD>
+<P><CODE>definitionListTerm()</CODE>, <CODE>endList()</CODE>,
+<CODE>listItem()</CODE>.</P>
+</DL>
+</P>
+
+
+
+<H3>definitionListTerm()</H3>
+
+<P>
+<DL>
+<DT><B>Purpose</B><DD>
+<P>Add a term to a definition list.</P>
+<DT><B>Syntax</B><DD>
+<P><CODE>public void definitionListTerm ()</CODE></P>
+<DT><B>Description</B><DD>
+<P>Add a term to a definition list.
+The text for the term part of the current list entry should be appended
+to the message after this method is called and before a corresponding
+<CODE>listItem</CODE> method is called.</P>
+<DT><B>See Also</B><DD>
+<P><CODE>definitionList()</CODE>, <CODE>listItem()</CODE>.</P>
+</DL>
+</P>
+
+
+
+<H3>endList()</H3>
+
+<P>
+<DL>
+<DT><B>Purpose</B><DD>
+<P>End a list.</P>
+<DT><B>Syntax</B><DD>
+<P><CODE>public void endList ()</CODE></P>
+<DT><B>Description</B><DD>
+<P>End a list.
+This method closes out a list.
+<EM>Note that, currently, lists cannot be nested.</EM></P>
+<DT><B>See Also</B><DD>
+<P><CODE>definitionList()</CODE>.</P>
+</DL>
+</P>
+
+
+
+<H3>listItem()</H3>
+
+<P>
+<DL>
+<DT><B>Purpose</B><DD>
+<P>Add an entry to a list.</P>
+<DT><B>Syntax</B><DD>
+<P><CODE>public void listItem ()</CODE></P>
+<DT><B></B><DD>
+<P><CODE>public void listItem ( String item )</CODE></P>
+<DT><B></B><DD>
+<P><CODE>public boolean listItem ( String term, String item )</CODE></P>
+<DT><B>Description</B><DD>
+<P>Add an entry to a list.
+If the first form is used, the text for the current list item should be
+appended to the message after this method is called and before any other
+list methods are called.
+In the second and third forms, the <CODE>item</CODE> text is specified as a
+parameter to the method instead of (or in addition to) being appended to
+the message.
+The third form is specific to definition lists and provides both the
+term and the definition of the list entry.</P>
+<DT><B>Parameters</B><DD>
+<P>
+<DL>
+<DT><B>item</B><DD>
+<P>The text of this list entry.</P>
+<DT><B>term</B><DD>
+<P>The text of this definition list entry's term part.</P>
+</DL>
+</P>
+<DT><B>See Also</B><DD>
+<P><CODE>definitionList()</CODE>, <CODE>definitionListTerm()</CODE>,
+<CODE>endList()</CODE>.</P>
+</DL>
+</P>
+
+
+
+<H3>send()</H3>
+
+<P>
+<DL>
+<DT><B>Purpose</B><DD>
+<P>Send the HTML message.</P>
+<DT><B>Syntax</B><DD>
+<P><CODE>public void send ()</CODE></P>
+<DT><B>Description</B><DD>
+<P>Send the HTML message.</P>
+</DL>
+</P>
+
+
+
+<H3>title()</H3>
+
+<P>
+<DL>
+<DT><B>Purpose</B><DD>
+<P>Set the text for the document title.</P>
+<DT><B>Syntax</B><DD>
+<P><CODE>public void title ( String title )</CODE></P>
+<DT><B>Description</B><DD>
+<P>Set the text for the document title.</P>
+<DT><B>Parameter</B><DD>
+<P>
+<DL>
+<DT><B>title</B><DD>
+<P>The text of this message's title.</P>
+</DL>
+</P>
+<DT><B>See Also</B><DD>
+<P><CODE>author()</CODE>.</P>
+</DL>
+</P>
+
+
+
+<H2><A NAME="html-test-class"></A> <A NAME="ss5.6">5.6 HTML_Test</A>
+</H2>
+
+<P>This class provides both an example of how to use the <CODE>HTML</CODE> class
+and a test program which can be used to confirm that the <EM>Java CGI</EM>
+package is functioning correctly.</P>
+
+
+
+<H3>Member Summary</H3>
+
+<P>
+<HR>
+<PRE>
+        main()      //  Program main().
+</PRE>
+<HR>
+</P>
+
+
+
+<H3>See Also</H3>
+
+<P><CODE>HTML</CODE>.</P>
+
+
+
+<H3>main()</H3>
+
+<P>
+<DL>
+<DT><B>Purpose</B><DD>
+<P>Provide a <CODE>main()</CODE> method.</P>
+<DT><B>Syntax</B><DD>
+<P><CODE>public static void main( String argv[] )</CODE></P>
+<DT><B>Description</B><DD>
+<P>This is the entry point for a CGI program which returns
+a list of the available name/value pairs in an HTML document, with
+each name/value pair displayed in a definition list element.</P>
+<DT><B>Parameter </B><DD>
+<P>
+<DL>
+<DT><B>argv[]</B><DD>
+<P>Arguments passed to the program by
+the <CODE>java.cgi</CODE> script.
+Currently unused.</P>
+</DL>
+</P>
+</DL>
+</P>
+
+
+
+<H2><A NAME="text-class"></A> <A NAME="ss5.7">5.7 Text</A>
+</H2>
+
+
+
+
+
+<H3>Class Syntax</H3>
+
+<P><CODE>public abstract class Text</CODE></P>
+
+
+
+<H3>Class Description</H3>
+
+<P>This class is the superclass of the <CODE>Email</CODE> and <CODE>HTML</CODE>
+classes.
+Messages are built up with the methods in this class and completed and
+formatted with the methods in subclasses.</P>
+<P>This class is in the ``Orbits.text'' package.</P>
+
+
+
+<H3>Member Summary</H3>
+
+<P>
+<HR>
+<PRE>
+        Text()            //  Constructor.
+        add()             //  Add text to this object.
+        addLineBreak()    //  Add a line break.
+        addParagraph()    //  Add a paragraph break.
+</PRE>
+<HR>
+</P>
+
+
+
+<H3>See Also</H3>
+
+<P><CODE>Email</CODE>, <CODE>HTML</CODE>.</P>
+
+
+
+<H3>add()</H3>
+
+<P>
+<DL>
+<DT><B>Purpose</B><DD>
+<P>Add text to this item.</P>
+<DT><B>Syntax</B><DD>
+<P><CODE>public void add ( char addition )</CODE></P>
+<DT><B></B><DD>
+<P><CODE>public void add ( String addition )</CODE></P>
+<DT><B></B><DD>
+<P><CODE>public void add ( StringBuffer addition )</CODE></P>
+<DT><B>Description</B><DD>
+<P>Add <CODE>addition</CODE> to the contents of this text item.</P>
+<DT><B>Parameter</B><DD>
+<P>
+<DL>
+<DT><B>addition</B><DD>
+<P>Text to be added to the text item.</P>
+</DL>
+</P>
+<DT><B>See Also</B><DD>
+<P><CODE>addLineBreak()</CODE>, <CODE>addParagraph()</CODE>.</P>
+</DL>
+</P>
+
+
+
+<H3>addLineBreak()</H3>
+
+<P>
+<DL>
+<DT><B>Purpose</B><DD>
+<P>Force a line break at this point in the text.</P>
+<DT><B>Syntax</B><DD>
+<P><CODE>public void addLineBreak ()</CODE></P>
+<DT><B>Description</B><DD>
+<P>Add a line break to the text at the current point.</P>
+<DT><B>See Also</B><DD>
+<P><CODE>add()</CODE>, <CODE>addParagraph()</CODE>.</P>
+</DL>
+</P>
+
+
+
+<H3>addParagraph()</H3>
+
+<P>
+<DL>
+<DT><B>Purpose</B><DD>
+<P>Start a new paragaph.</P>
+<DT><B>Syntax</B><DD>
+<P><CODE>public void add ()</CODE></P>
+<DT><B>Description</B><DD>
+<P>Start a new paragraph at this point in the text flow.</P>
+<DT><B>See Also</B><DD>
+<P><CODE>add()</CODE>, <CODE>addLineBreak()</CODE>.</P>
+</DL>
+</P>
+
+
+
+<H2><A NAME="s6">6. Future Plans</A></H2>
+
+<P>
+<UL>
+<LI>Add to the Email class:
+<DL>
+<DT><B>Email( int capacity )</B><DD>
+<P>Used when we know how much space the message
+will need to have allocated.</P>
+<DT><B>sendTo( String [] address )</B><DD>
+<P>Add a list of primary destinations to
+the e-mail message.</P>
+<DT><B>sendCc( String address )</B><DD>
+<P>Add a Carbon-Copy destination to the
+e-mail message.</P>
+<DT><B>sendCc( String [] address )</B><DD>
+<P>Add a list of Carbon-Copy
+destinations to the e-mail message.</P>
+<DT><B>sendBcc( String address )</B><DD>
+<P>Add a Blind Carbon-Copy destination to
+the e-mail message.</P>
+<DT><B>sendBcc( String [] address )</B><DD>
+<P>Add a list of Blind Carbon-Copy
+destinations to the e-mail message.</P>
+</DL>
+</LI>
+<LI>Add to the HTML class:
+<DL>
+<DT><B>HTML( int capacity )</B><DD>
+<P>Used when we know how much space the message
+will need to have allocated.</P>
+<DT><B>public void unorderedList()</B><DD>
+<P>Start an unordered list.</P>
+<DT><B>public void orderedList()</B><DD>
+<P>Start an ordered list.</P>
+<DT><B>public void directoryList()</B><DD>
+<P>Start a directory list.                   </P>
+<DT><B>public void menuList()</B><DD>
+<P>Start a menu list.               </P>
+<DT><B>void anchor( String anchorName )</B><DD>
+<P>Specify an anchor.</P>
+<DT><B>void link( String url, String text )</B><DD>
+<P>Specify a link.</P>
+<DT><B>void applet( String url, String altText )</B><DD>
+<P>Specify an applet link.</P>
+</DL>
+</LI>
+<LI>Allow HTML lists to be nested.</LI>
+<LI>Add error checking code to enforce correct ordering of HTML list
+formatting codes.</LI>
+<LI>The location of the file of environment data should be configurable
+from the <CODE>Makefile</CODE>.</LI>
+<LI>Get rid of the spurious empty name/value pair that appears in the list when we
+are dealing with the GET method of data transfer.</LI>
+<LI>Consider having CGI implement the java.util.Enumeration interface to
+successively provide variable names.</LI>
+<LI>Add a <CODE>Test</CODE> class, which would use every method in this package.</LI>
+<LI>Document how <CODE>CGI_Test</CODE>, <CODE>Email_Test</CODE> and
+<CODE>HTML_Test</CODE> build on each other to provide incremental tests for
+debugging purposes.</LI>
+<LI>Document how Test uses every feature available in this package.</LI>
+</UL>
+</P>
+
+
+
+<H2><A NAME="s7">7. Changes</A></H2>
+
+
+
+
+
+<H2><A NAME="ss7.1">7.1 Changes from 0.4 to 0.5</A>
+</H2>
+
+<P>
+<UL>
+<LI>Changed documentation and comments to reflect the final nature of this
+release.</LI>
+</UL>
+</P>
+
+
+
+<H2><A NAME="ss7.2">7.2 Changes from 0.3 to 0.4</A>
+</H2>
+
+<P>
+<UL>
+<LI>Fleshed out the HTML class to provide minimal functionality.</LI>
+<LI>Wrote the HTML_Test class and javahtmltest.html-dist.</LI>
+<LI>Added the HTML methods to deal with a definition list.</LI>
+</UL>
+</P>
+
+
+
+<H2><A NAME="ss7.3">7.3 Changes from 0.2 to 0.3</A>
+</H2>
+
+<P>
+<UL>
+<LI>Added the Text and Email classes.
+HTML was also added, but it is merely a stub at this point.</LI>
+<LI>Put the various classes into packages.  
+The main classes are in <CODE>Orbits.net.*</CODE>, the support class
+<CODE>Text</CODE> is in <CODE>Orbits.text.Text</CODE>.</LI>
+<LI>Changed <CODE>CGItest</CODE> to <CODE>CGI_Test</CODE>.</LI>
+<LI>Added the <CODE>Email_Test</CODE> class.</LI>
+</UL>
+</P>
+
+
+
+<H2><A NAME="ss7.4">7.4 Changes from 0.1 to 0.2</A>
+</H2>
+
+<P>
+<UL>
+<LI>The environment variables are put into a temportary file instead of being
+crammed into the Java inperpreter command-line.
+The <CODE>CGI</CODE> class and <CODE>java.cgi</CODE> had to be modified.</LI>
+<LI>The <CODE>javacgitest.html</CODE> document is made part of the distribution.</LI>
+<LI>The text files which are modified by <CODE>make</CODE> upon installation are
+provided with names that end with <EM>-dist</EM>.</LI>
+</UL>
+</P>
+
+</BODY>
+</HTML>

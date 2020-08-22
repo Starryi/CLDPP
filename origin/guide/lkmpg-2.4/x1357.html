@@ -1,0 +1,322 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN""http://www.w3.org/TR/html4/loose.dtd">
+<HTML
+><HEAD
+><TITLE
+>Changes between 2.0 and 2.2</TITLE
+><META
+NAME="GENERATOR"
+CONTENT="Modular DocBook HTML Stylesheet Version 1.79"><LINK
+REL="HOME"
+TITLE="The Linux Kernel Module Programming Guide"
+HREF="index.html"><LINK
+REL="UP"
+TITLE="Changes: 2.0 To 2.2"
+HREF="a1355.html"><LINK
+REL="PREVIOUS"
+TITLE="Changes: 2.0 To 2.2"
+HREF="a1355.html"><LINK
+REL="NEXT"
+TITLE="Where To Go From Here"
+HREF="a1484.html"></HEAD
+><BODY
+CLASS="SECT1"
+BGCOLOR="#FFFFFF"
+TEXT="#000000"
+LINK="#0000FF"
+VLINK="#840084"
+ALINK="#0000FF"
+><DIV
+CLASS="NAVHEADER"
+><TABLE
+SUMMARY="Header navigation table"
+WIDTH="100%"
+BORDER="0"
+CELLPADDING="0"
+CELLSPACING="0"
+><TR
+><TH
+COLSPAN="3"
+ALIGN="center"
+>The Linux Kernel Module Programming Guide</TH
+></TR
+><TR
+><TD
+WIDTH="10%"
+ALIGN="left"
+VALIGN="bottom"
+><A
+HREF="a1355.html"
+ACCESSKEY="P"
+>Prev</A
+></TD
+><TD
+WIDTH="80%"
+ALIGN="center"
+VALIGN="bottom"
+>Appendix A. Changes: 2.0 To 2.2</TD
+><TD
+WIDTH="10%"
+ALIGN="right"
+VALIGN="bottom"
+><A
+HREF="a1484.html"
+ACCESSKEY="N"
+>Next</A
+></TD
+></TR
+></TABLE
+><HR
+ALIGN="LEFT"
+WIDTH="100%"></DIV
+><DIV
+CLASS="SECT1"
+><H1
+CLASS="SECT1"
+><A
+NAME="AEN1357"
+>A.1. Changes between 2.0 and 2.2</A
+></H1
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN1364"
+>A.1.1. Changes between 2.0 and 2.2</A
+></H2
+><P
+>I don't know the entire kernel well enough do document all of the changes.  In the course of converting the examples
+			(or actually, adapting Emmanuel Papirakis's changes) I came across the following differences. I listed all of them here
+			together to help module programmers, especially those who learned from previous versions of this book and are most
+			familiar with the techniques I use, convert to the new version.</P
+><P
+>An additional resource for people who wish to convert to 2.2 is located on <A
+HREF="http://www.atnf.csiro.au/~rgooch/linux/docs/porting-to-2.2.html"
+TARGET="_top"
+> Richard Gooch's site </A
+>.</P
+><P
+></P
+><DIV
+CLASS="VARIABLELIST"
+><DL
+><DT
+><TT
+CLASS="FILENAME"
+>asm/uaccess.h</TT
+></DT
+><DD
+><P
+>If you need <CODE
+CLASS="FUNCTION"
+>put_user</CODE
+> or <CODE
+CLASS="FUNCTION"
+>get_user</CODE
+> you have to
+				<KBD
+CLASS="USERINPUT"
+>#include</KBD
+> it.</P
+></DD
+><DT
+><CODE
+CLASS="FUNCTION"
+>get_user</CODE
+></DT
+><DD
+><P
+>In version 2.2, <CODE
+CLASS="FUNCTION"
+>get_user</CODE
+> receives both the pointer into user memory and the
+				variable in kernel memory to fill with the information. The reason for this is that <CODE
+CLASS="FUNCTION"
+>get_user</CODE
+> can
+				now read two or four bytes at a time if the variable we read is two or four bytes long.</P
+></DD
+><DT
+><CODE
+CLASS="STRUCTNAME"
+>file_operations</CODE
+></DT
+><DD
+><P
+>This structure now has a flush function between the <CODE
+CLASS="FUNCTION"
+>open</CODE
+> and
+				<CODE
+CLASS="FUNCTION"
+>close</CODE
+> functions.  </P
+></DD
+><DT
+><CODE
+CLASS="FUNCTION"
+>close</CODE
+> in <CODE
+CLASS="STRUCTNAME"
+>file_operations</CODE
+></DT
+><DD
+><P
+>In version 2.2, the <CODE
+CLASS="FUNCTION"
+>close</CODE
+> function returns an integer, so it's allowed to
+					fail.</P
+></DD
+><DT
+><CODE
+CLASS="FUNCTION"
+>read</CODE
+>,<CODE
+CLASS="FUNCTION"
+>write</CODE
+> in <CODE
+CLASS="STRUCTNAME"
+>file_operations</CODE
+></DT
+><DD
+><P
+>The headers for these functions changed. They now return <KBD
+CLASS="USERINPUT"
+>ssize_t</KBD
+> instead of an
+					integer, and their parameter list is different. The inode is no longer a parameter, and on the other hand the offset
+					into the file is.</P
+></DD
+><DT
+><CODE
+CLASS="FUNCTION"
+>proc_register_dynamic</CODE
+></DT
+><DD
+><P
+>This function no longer exists. Instead, you call the regular <CODE
+CLASS="FUNCTION"
+>proc_register</CODE
+>
+				 and put zero in the inode field of the
+				structure.</P
+></DD
+><DT
+>Signals</DT
+><DD
+><P
+>The signals in the task structure are no longer a 32 bit integer, but an array of
+				<CODE
+CLASS="PARAMETER"
+>_NSIG_WORDS</CODE
+> 
+				integers.</P
+></DD
+><DT
+><CODE
+CLASS="FUNCTION"
+>queue_task_irq</CODE
+></DT
+><DD
+><P
+>Even if you want to scheduale a task to happen from inside an interrupt handler, you use
+				<CODE
+CLASS="FUNCTION"
+>queue_task</CODE
+>, not <CODE
+CLASS="FUNCTION"
+>queue_task_irq</CODE
+>.</P
+></DD
+><DT
+>Module Parameters</DT
+><DD
+><P
+>You no longer just declare module parameters as global variables.  In 2.2 you have to also use
+				<CODE
+CLASS="PARAMETER"
+>MODULE_PARM</CODE
+> to declare their type. This is a big improvement, because it allows the module to
+				receive string parameters which start with a digits, for example, without getting
+				confused.</P
+></DD
+><DT
+>Symmetrical Multi-Processing</DT
+><DD
+><P
+>The kernel is no longer inside one huge spinlock, which means that kernel modules have to be aware of
+				<ACRONYM
+CLASS="ACRONYM"
+>SMP</ACRONYM
+>.</P
+></DD
+></DL
+></DIV
+></DIV
+></DIV
+><DIV
+CLASS="NAVFOOTER"
+><HR
+ALIGN="LEFT"
+WIDTH="100%"><TABLE
+SUMMARY="Footer navigation table"
+WIDTH="100%"
+BORDER="0"
+CELLPADDING="0"
+CELLSPACING="0"
+><TR
+><TD
+WIDTH="33%"
+ALIGN="left"
+VALIGN="top"
+><A
+HREF="a1355.html"
+ACCESSKEY="P"
+>Prev</A
+></TD
+><TD
+WIDTH="34%"
+ALIGN="center"
+VALIGN="top"
+><A
+HREF="index.html"
+ACCESSKEY="H"
+>Home</A
+></TD
+><TD
+WIDTH="33%"
+ALIGN="right"
+VALIGN="top"
+><A
+HREF="a1484.html"
+ACCESSKEY="N"
+>Next</A
+></TD
+></TR
+><TR
+><TD
+WIDTH="33%"
+ALIGN="left"
+VALIGN="top"
+>Changes: 2.0 To 2.2</TD
+><TD
+WIDTH="34%"
+ALIGN="center"
+VALIGN="top"
+><A
+HREF="a1355.html"
+ACCESSKEY="U"
+>Up</A
+></TD
+><TD
+WIDTH="33%"
+ALIGN="right"
+VALIGN="top"
+>Where To Go From Here</TD
+></TR
+></TABLE
+></DIV
+></BODY
+></HTML
+>

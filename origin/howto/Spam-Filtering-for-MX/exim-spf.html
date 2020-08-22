@@ -1,0 +1,123 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1"><title>7. Adding SPF Checks</title><link rel="stylesheet" type="text/css" href="style.css"><meta name="generator" content="DocBook XSL Stylesheets V1.79.1"><meta name="keywords" content="anti-spam, anti-virus, bogus virus warnings, collateral spam, delivery status notification, dsn, exim, exim4, exiscan, exiscan-acl, greylisting, junk mail, sa-exim, smtp, spam, spamassassin, teergrubing, transaction delay"><link rel="home" href="index.html" title="Spam Filtering for Mail Exchangers"><link rel="up" href="exim.html" title="Appendix A. Exim Implementation"><link rel="prev" href="exim-greylisting.html" title="6. Adding Greylisting Support"><link rel="next" href="exim-mime.html" title="8. Adding MIME and Filetype Checks"></head><body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF"><div class="navheader"><table width="100%" summary="Navigation header"><tr><th colspan="3" align="center">7. Adding SPF Checks</th></tr><tr><td width="20%" align="left"><a accesskey="p" href="exim-greylisting.html">Prev</a> </td><th width="60%" align="center">Appendix A. Exim Implementation</th><td width="20%" align="right"> <a accesskey="n" href="exim-mime.html">Next</a></td></tr></table><hr></div><div class="section"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="exim-spf"></a>7. Adding SPF Checks</h2></div></div></div><p>
+      Here we cover two different ways to check <a class="xref" href="senderauth.html#spf" title="5.1. Sender Policy Framework (SPF)">Sender Policy Framework</a>
+      records using Exim.  In addition to these explicit mechanisms,
+      the SpamAssassin suite will in the near future (around version
+      2.70) incorporate more sophisticated SPF checks, by assigning
+      weighted scores to the various SPF results.
+    </p><p>
+      Although we <span class="emphasis"><em>could</em></span> perform this check as
+      early as in the <a class="xref" href="exim-final.html#acl_mail_from_final" title="14.3. acl_mail_from">acl_mail_from</a> ACL, there
+      is an issue that will affect this decision: SPF is incompatible
+      with traditional e-mail forwarding.  Unless the forwarding host
+      implements <a class="ulink" href="http://spf.pobox.com/srs.html" target="_top">SRS</a>, you may end up
+      rejecting forwarded mail because you receive it from a host that
+      is not authorized to do so per the SPF policy of the domain in
+      the <a class="xref" href="gloss.html#envfrom" title="Envelope Sender">Envelope Sender</a> address.
+    </p><p>
+      To avoid doing this, we need to consult a user-specific list of
+      hosts from which forwarded mails should be accepted (as
+      described in <a class="xref" href="exim-forward.html" title="13. Exempting Forwarded Mail">Exempting Forwarded Mail</a>, to follow).
+      This is only possible after the <span class="command"><strong>RCPT TO:</strong></span>,
+      when we know the username of the recipient.
+    </p><p>
+      As such, we will add this check prior to any greylisting
+      checks and/or the final <code class="option">accept</code> statement in
+      <a class="xref" href="exim-final.html#acl_rcpt_to_final" title="14.4. acl_rcpt_to">acl_rcpt_to</a>.
+    </p><div class="section"><div class="titlepage"><div><div><h3 class="title"><a name="exim-spf-exiscan"></a>7.1. SPF checks via Exiscan-ACL</h3></div></div></div><p>
+        Recent versions of Tom Kistner's <code class="option">Exiscan-ACL</code>
+        patch (see <a class="xref" href="exim-prereq.html" title="1. Prerequisites">Prerequisites</a>) have native support
+	for SPF.
+        <a href="#ftn.idm1692" class="footnote" name="idm1692"><sup class="footnote">[16]</sup></a>
+        Usage is very simple.  An <code class="option">spf</code> ACL condition
+        is added, and can be compared against any of the keywords
+        <code class="option">pass</code>, <code class="option">fail</code>,
+        <code class="option">softfail</code>, <code class="option">none</code>,
+        <code class="option">neutral</code>, <code class="option">err_perm</code> or
+        <code class="option">err_temp</code>.
+      </p><p>
+        Prior to any greylisting checks and/or the final
+        <code class="option">accept</code> statement in <a class="xref" href="exim-final.html#acl_rcpt_to_final" title="14.4. acl_rcpt_to">acl_rcpt_to</a>, insert the following snippet:
+
+</p><pre class="screen">
+  # Query the SPF information for the sender address domain, if any,
+  # to see if the sending host is authorized to deliver its mail.
+  # If not, reject the mail.
+  #
+  deny
+    message     = [SPF] $sender_host_address is not allowed to send mail \
+                  from $sender_address_domain
+    log_message = SPF check failed.
+    spf         = fail
+
+
+  # Add a SPF-Received: header to the message
+  warn
+    message     = $spf_received
+</pre><p>
+      </p><p>
+        This statement will reject the mail if the owner of the domain
+        in the sender address has disallowed deliveries from the
+        calling host.  Some people find that this gives the domain
+        owner a little bit too much control, even to the point of
+        shooting themselves in the foot.  A suggested alternative is
+        to combine the SPF check with other checks, such as Sender
+        Callout Verification (but note that as before, there is no
+        point in doing this if you are sending your outgoing mail
+        through a smarthost):
+
+</p><pre class="screen">
+  # Reject the mail if we cannot verify the sender address via callouts,
+  # and if SPF information for the sending domain does not grant explicit
+  # authority to the sending host.
+  #
+  deny
+    message     = The sender address does not seem to be valid, and SPF \
+                  information does not grant $sender_host_address explicit \
+                  authority to send mail from $sender_address_domain
+    log_message = SPF check failed.
+    !verify     = sender/callout,random,postmaster
+    !spf        = pass
+
+
+  # Add a SPF-Received: header to the message
+  warn
+    message     = $spf_received
+</pre><p>
+      </p></div><div class="section"><div class="titlepage"><div><div><h3 class="title"><a name="exim-spf-query-perl"></a>7.2. SPF checks via Mail::SPF::Query</h3></div></div></div><p>
+        <code class="option">Mail::SPF::Query</code> is a the official SPF test
+        suite, available from <a class="ulink" href="http://spf.pobox.com/downloads.html" target="_top">http://spf.pobox.com/downloads.html</a>.  Debian users,
+        install <code class="option">libmail-spf-query-perl</code>.
+      </p><p>
+        The <code class="option">Mail::SPF::Query</code> package comes with a
+        daemon (<span class="command"><strong>spfd</strong></span>) that listens for requests on
+        a UNIX domain socket.  Unfortunately, it does not come with an
+        <span class="quote">&#8220;<span class="quote">init</span>&#8221;</span> script to start this daemon automatically.
+        Therefore, in the following example, we will use the
+        standalone <span class="command"><strong>spfquery</strong></span> utility to make our SPF
+        requests.
+      </p><p>
+        As above, insert the following prior to any greylisting checks
+        and/or the final <code class="option">accept</code> statement in <a class="xref" href="exim-firstpass.html#acl_rcpt_to_1" title="4.4. acl_rcpt_to">acl_rcpt_to</a>:
+
+</p><pre class="screen">
+  # Use "spfquery" to obtain SPF status for this particular sender/host.
+  # If the return code of that command is 1, this is an unauthorized sender.
+  #
+  deny
+    message     = [SPF] $sender_host_address is not allowed to send mail \
+                  from $sender_address_domain.
+    log_message = SPF check failed.
+    set acl_m9  = -ipv4=$sender_host_address \
+                  -sender=$sender_address \
+                  -helo=$sender_helo_name
+    set acl_m9  = ${run{/usr/bin/spfquery $acl_m9}}
+    condition   = ${if eq {$runrc}{1}{true}{false}}
+</pre><p>
+      </p></div><div class="footnotes"><br><hr style="width:100; text-align:left;margin-left: 0"><div id="ftn.idm1692" class="footnote"><p><a href="#idm1692" class="para"><sup class="para">[16] </sup></a>
+            Debian users: As of July 14th, 2004, the version of
+            Exiscan-ACL that is included in the
+            <code class="option">exim4-daemon-heavy</code> package does not yet
+            have support for SPF.  In the mean time, you may choose
+            the other SPF implementation; install
+            <code class="option">libmail-spf-query-perl</code>.
+          </p></div></div></div><div class="navfooter"><hr><table width="100%" summary="Navigation footer"><tr><td width="40%" align="left"><a accesskey="p" href="exim-greylisting.html">Prev</a> </td><td width="20%" align="center"><a accesskey="u" href="exim.html">Up</a></td><td width="40%" align="right"> <a accesskey="n" href="exim-mime.html">Next</a></td></tr><tr><td width="40%" align="left" valign="top">6. Adding Greylisting Support </td><td width="20%" align="center"><a accesskey="h" href="index.html">Home</a></td><td width="40%" align="right" valign="top"> 8. Adding MIME and Filetype Checks</td></tr></table></div></body></html>

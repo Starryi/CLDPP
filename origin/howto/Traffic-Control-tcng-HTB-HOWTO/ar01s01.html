@@ -1,0 +1,154 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1"><title>1. Introduction</title><link rel="stylesheet" type="text/css" href="style.css"><meta name="generator" content="DocBook XSL Stylesheets V1.79.1"><link rel="home" href="index.html" title="Traffic Control using tcng and HTB HOWTO"><link rel="up" href="index.html" title="Traffic Control using tcng and HTB HOWTO"><link rel="prev" href="index.html" title="Traffic Control using tcng and HTB HOWTO"><link rel="next" href="ar01s02.html" title="2. Requirements"></head><body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF"><div class="navheader"><table width="100%" summary="Navigation header"><tr><th colspan="3" align="center">1. Introduction</th></tr><tr><td width="20%" align="left"><a accesskey="p" href="index.html">Prev</a> </td><th width="60%" align="center"> </th><td width="20%" align="right"> <a accesskey="n" href="ar01s02.html">Next</a></td></tr></table><hr></div><div class="section"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="intro"></a>1. Introduction</h2></div></div></div><p>
+    This is a brief tutorial on using <span class="command"><strong>tcng</strong></span>
+    (<a class="ulink" href="http://tcng.sourceforge.net" target="_top">Traffic Control Next
+    Generation</a>) with HTB
+    (<a class="ulink" href="http://luxik.cdi.cz/~devik/qos/htb/" target="_top">Hierarchical Token
+    Bucket</a>) to perform traffic shaping on a Linux machine.
+  </p><p>
+    This tutorial is intended for systems administrators who have
+    </p><div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem"><p>
+          AT LEAST, a basic understanding of traffic control
+        </p></li><li class="listitem"><p>
+          EITHER the capability to compile iproute2 and tcng from source
+        </p><p>
+          OR the capability of building RPMS from provided SRPMs
+        </p></li><li class="listitem"><p>
+          EITHER a modular kernel with support for htb and dsmark
+        </p><p>
+          OR capability to compile a kernel with support for htb and dsmark
+        </p></li></ul></div><p>
+    </p><div class="note" style="margin-left: 0.5in; margin-right: 0.5in;"><h3 class="title">Note</h3><p>This article is neither comprehensive nor authoritative.  The
+      author solicits positive and negative feedback at <code class="email">&lt;<a class="email" href="mailto:martin@linux-ip.net">martin@linux-ip.net</a>&gt;</code>.  Corrections,
+      additions, and further examples are always welcome.</p></div><p>
+  </p><div class="section"><div class="titlepage"><div><div><h3 class="title"><a name="intro-tc"></a>1.1. What is traffic control and how does it work?</h3></div></div></div><p>
+      Traffic control is the term given to the entire packet queuing
+      subsystem in a network or network device.  Traffic control consists of
+      several distinct operations.  Classifying is a mechanism by which to
+      identify packets and place them in individual flows or classes.
+      Policing is a mechanism by which one limits the number of packets or
+      bytes in a stream matching a particular classification.  Scheduling is
+      the decision-making process by which packets are ordered and re-ordered
+      for transmission.  Shaping is the process by which packets are delayed
+      and transmitted to produce an even and predictable flow rate.
+    </p><p>
+      These many characteristics of a traffic control system can be combined
+      in complex ways to reserve bandwidth for a particular flow (or
+      application) or to limit the amount of bandwidth available to a
+      particular flow or application.
+    </p><p>
+      One of the key concepts of traffic control is the concept of tokens.
+      A policing or shaping implementation needs to calculate the number of
+      bytes or packets which have passed at what rate.  Each packet or byte
+      (depending on the implementation), corresponds to a token, and the
+      policing or shaping implementation will only transmit or pass the packet
+      if it has a token available.  A common metaphorical container in
+      which an implementation keeps its token is the bucket.  In short, a
+      bucket represents the both the number of tokens which can be used
+      instantaneously (the size of the bucket), and the rate at which the
+      tokens are replenished (how fast the bucket gets refilled).
+    </p><p>
+      See
+      <a class="xref" href="ar01s01.html#intro-htb" title="1.2. What is htb?">Section 1.2, &#8220;What is htb?&#8221;</a> for an example of buckets in a linux traffic
+      control system.
+    </p><p>
+      Under linux, traffic control has historically been a complex
+      endeavor.  The <span class="command"><strong>tc</strong></span> command line tool provides an
+      interface to the kernel structures which perform the shaping,
+      scheduling, policing and classifying.  The syntax of this command is,
+      however, arcane.  The <span class="command"><strong>tcng</strong></span> project provides a much
+      friendlier interface to the human by layering a language on top of the
+      powerful <span class="command"><strong>tc</strong></span> command line tool.  By writing traffic
+      control configurations in <span class="command"><strong>tcng</strong></span> they become easily
+      maintainable, less arcane, and importantly also more portable.
+    </p><p>
+    </p></div><div class="section"><div class="titlepage"><div><div><h3 class="title"><a name="intro-htb"></a>1.2. What is htb?</h3></div></div></div><p>
+      <a class="ulink" href="http://luxik.cdi.cz/~devik/qos/htb/" target="_top">Hierarchichal Token
+      Bucket</a> is a classful qdisc written by Martin Devera 
+      with a simpler set of
+      configuration parameters than CBQ.  There is a great deal of
+      documentation on the author's site and also on 
+      <a class="ulink" href="http://www.docum.org/" target="_top">Stef Coene's website</a> about
+      HTB and its uses.  Below is a very brief sketch of the HTB system.
+    </p><p>
+      Conceptually, HTB is an arbitrary number of token buckets arranged in a
+      hierarchy (yes, you probably could have figured that out without my
+      sentence).  Let's consider the simplest scenario.
+      The primary egress queuing discipline on any device is known as
+      the <code class="constant">root</code> qdisc.
+    </p><p>
+      The <code class="constant">root</code> qdisc will contain one class (complex
+      scenarios could have multiple classes attached to the
+      <code class="constant">root</code> qdisc).  This single HTB class will be set
+      with two parameters, a <code class="constant">rate</code> and a
+      <code class="constant">ceil</code>.  These values should be the same for the
+      top-level class, and will represent the total
+      available bandwidth on the link.
+    </p><p>
+      In HTB, <code class="constant">rate</code> means the guaranteed bandwidth
+      available for a given class and <code class="constant">ceil</code> is short for
+      ceiling, which indicates the maximum bandwidth that class is allowed to
+      consume.  Any bandwidth used between <code class="constant">rate</code> and
+      <code class="constant">ceil</code> is borrowed from a parent class, hence the
+      suggestion that <code class="constant">rate</code> and <code class="constant">ceil</code>
+      be the same in the top-level class.
+    </p><p>
+      A number of children classes can be made under this class, each of which
+      can be allocated some amount of the available bandwidth from the parent
+      class.  In these children classes, the <code class="constant">rate</code> and
+      <code class="constant">ceil</code> parameter values need not be the same as
+      suggested for the parent class.  This allows you to reserve a specified
+      amount of bandwidth to a particular class.  It also
+      allows HTB to calculate the ratio of distribution of available bandwidth
+      to the ratios of the classes themselves.  This should be more apparent
+      in the examples below.
+    </p><p>
+      Hierarchical Token Bucket implements a classful queuing mechanism for
+      the linux traffic control system, and provides <code class="constant">rate</code>
+      and <code class="constant">ceil</code> to allow the user to control the absolute
+      bandwidth to particular classes of traffic as well as indicate the ratio
+      of distribution of bandwidth when extra bandwidth becomes available (up
+      to <code class="constant">ceil</code>).
+    </p><p>
+      Keep in mind when choosing the bandwidth for your top-level class that
+      traffic shaping only helps if you are the bottleneck between your LAN
+      and the Internet.  Typically, this is the case in home and office
+      network environments, where an entire LAN is serviced by a DSL or T1
+      connection.
+    </p><p>
+      In practice, this means that you should probably set the bandwidth for
+      your top-level class to your available bandwidth minus a fraction of
+      that bandwidth.
+    </p></div><div class="section"><div class="titlepage"><div><div><h3 class="title"><a name="intro-tcng"></a>1.3. What is <span class="command"><strong>tcng</strong></span>?</h3></div></div></div><p>
+      <a class="ulink" href="http://tcng.sourceforge.net/" target="_top">Traffic Control Next
+      Generation (tcng)</a> is a project by Werner Almesberger to provide
+      a powerful, abstract, and uniform language in which to describe traffic
+      control structures.  The <span class="command"><strong>tcc</strong></span> parser in the
+      <span class="command"><strong>tcng</strong></span> distribution transforms tcng the language into a
+      number of output formats.  By default, <span class="command"><strong>tcc</strong></span> will read
+      a file (specified as an argument or as STDIN) and print to STDOUT the
+      series of <span class="command"><strong>tc</strong></span> commands (see
+      <span class="command"><strong>iproute2</strong></span> below) required to create the desired traffic
+      control structure in the kernel.
+    </p><p>
+      Consult the 
+      <a class="ulink" href="http://linux-ip.net/gl/tcng/node159.html" target="_top">parameter
+      reference for <span class="command"><strong>tcng</strong></span></a> to see the supported
+      queuing disciplines.  Jacob Teplitsky, active on the
+      <a class="ulink" href="http://lartc.org/#mailinglist" target="_top">LARTC mailing list</a>
+      and a contributor to the tcng project,
+      wrote the htb support for <span class="command"><strong>tcng</strong></span>.
+    </p><p>
+      The <span class="command"><strong>tcc</strong></span> tool can produce a number of different types
+      of output, but this document will only consider the conventional and
+      default output.  Consult the
+      <a class="ulink" href="http://linux-ip.net/gl/tcng/" target="_top">TCNG manual</a> for
+      more detailed information about the use of <span class="command"><strong>tcng</strong></span>.
+    </p><p>
+      The
+      <span class="command"><strong>tcsim</strong></span> tool is a traffic control simulator which
+      accepts tcng configuration files and reads a control language to
+      simulate the behaviour of a kernel sending and receiving packets with
+      the specified control structures.  Although <span class="command"><strong>tcsim</strong></span>
+      is a significant portion of the <span class="command"><strong>tcng</strong></span> project,
+      <span class="command"><strong>tcsim</strong></span> will not be covered here at all.
+    </p></div></div><div class="navfooter"><hr><table width="100%" summary="Navigation footer"><tr><td width="40%" align="left"><a accesskey="p" href="index.html">Prev</a> </td><td width="20%" align="center"> </td><td width="40%" align="right"> <a accesskey="n" href="ar01s02.html">Next</a></td></tr><tr><td width="40%" align="left" valign="top">Traffic Control using tcng and HTB HOWTO </td><td width="20%" align="center"><a accesskey="h" href="index.html">Home</a></td><td width="40%" align="right" valign="top"> 2. Requirements</td></tr></table></div></body></html>

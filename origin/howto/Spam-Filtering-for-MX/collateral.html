@@ -1,0 +1,155 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1"><title>7. Blocking Collateral Spam</title><link rel="stylesheet" type="text/css" href="style.css"><meta name="generator" content="DocBook XSL Stylesheets V1.79.1"><meta name="keywords" content="anti-spam, anti-virus, bogus virus warnings, collateral spam, delivery status notification, dsn, exim, exim4, exiscan, exiscan-acl, greylisting, junk mail, sa-exim, smtp, spam, spamassassin, teergrubing, transaction delay"><link rel="home" href="index.html" title="Spam Filtering for Mail Exchangers"><link rel="up" href="techniques.html" title="Chapter 2. Techniques"><link rel="prev" href="datachecks.html" title="6. Message data checks"><link rel="next" href="considerations.html" title="Chapter 3. Considerations"></head><body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF"><div class="navheader"><table width="100%" summary="Navigation header"><tr><th colspan="3" align="center">7. Blocking Collateral Spam</th></tr><tr><td width="20%" align="left"><a accesskey="p" href="datachecks.html">Prev</a> </td><th width="60%" align="center">Chapter 2. Techniques</th><td width="20%" align="right"> <a accesskey="n" href="considerations.html">Next</a></td></tr></table><hr></div><div class="section"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="collateral"></a>7. Blocking Collateral Spam</h2></div></div></div><p>
+      <a class="xref" href="gloss.html#colspam" title="Collateral Spam">Collateral Spam</a> is more difficult to block with the
+      techniques described so far, because it normally arrives from
+      legitimate sites using standard mail transport software (such as
+      Sendmail, Postfix, or Exim).  The challenge is to distinguish
+      these messages from valid <a class="xref" href="gloss.html#dsn" title="Delivery Status Notification">Delivery Status Notification</a>s returned in
+      response to mail sent from your own users.  Here are some
+      ways that people do this:
+    </p><div class="section"><div class="titlepage"><div><div><h3 class="title"><a name="bogusviruswarning"></a>7.1. Bogus Virus Warning Filter</h3></div></div></div><p>
+	Most of the time, collateral spam is virus warnings generated
+	by anti-virus scanners<a href="#ftn.idm1165" class="footnote" name="idm1165"><sup class="footnote">[13]</sup></a>.  In turn,
+	the wording in the <code class="option">Subject:</code> line of these
+	virus warnings, and/or other characteristics, is usually
+	provided by the anti-virus software itself.  As such, you
+	could create a list of the more common characteristics, and
+	filter out such bogus virus warnings.
+      </p><p>
+	Well, aren't you in luck - someone already did this for
+	you. :-)
+      </p><p>
+	Tim Jackson <code class="email">&lt;<a class="email" href="mailto:tim%20(at)%20timj.co.uk">tim (at) timj.co.uk</a>&gt;</code> maintains a
+	list of bogus virus warnings for use with <a class="link" href="datachecks.html#spamassassin">SpamAssassin</a>.  This list is
+	available at:
+	<a class="ulink" href="http://www.timj.co.uk/linux/bogus-virus-warnings.cf" target="_top">http://www.timj.co.uk/linux/bogus-virus-warnings.cf</a>.
+      </p></div><div class="section"><div class="titlepage"><div><div><h3 class="title"><a name="addspf"></a>7.2. Publish SPF info for your domain</h3></div></div></div><p>
+	The purpose of the <a class="xref" href="senderauth.html#spf" title="5.1. Sender Policy Framework (SPF)">Sender Policy Framework</a> is precisely to
+	protect against <a class="xref" href="gloss.html#joejob" title="Joe Job">Joe Job</a>s; i.e. to prevent
+	forgeries of valid e-mail addresses.
+      </p><p>
+	If you publish SPF records in the DNS zone for your domain,
+	then recipient hosts that incorporate SPF checks would not
+	have accepted the forged message in the first place.  As such,
+	they would not be sending a <a class="xref" href="gloss.html#dsn" title="Delivery Status Notification">Delivery Status Notification</a> to your
+	site.
+      </p></div><div class="section"><div class="titlepage"><div><div><h3 class="title"><a name="signedsender"></a>7.3. Enveloper Sender Signature</h3></div></div></div><p>
+	A different approach that I am currently experimenting with
+	myself is to add a signature in the local part of the <a class="xref" href="gloss.html#envfrom" title="Envelope Sender">Envelope Sender</a> address in outgoing mail, then check for
+	this signature in the <a class="xref" href="gloss.html#envto" title="Envelope Recipient">Envelope Recipient</a> address before
+	accepting incoming <a class="xref" href="gloss.html#dsn" title="Delivery Status Notification">Delivery Status Notification</a>s.  For instance, the
+	generated sender address might be of the following format:
+	</p><pre class="screen"><em class="parameter"><code>localpart</code></em>=<em class="parameter"><code>signature</code></em>@<em class="parameter"><code>domain</code></em></pre><p>
+      </p><p>
+	Normal message replies are unaffected.  These replies go to
+	the address in the <code class="option">From:</code> or
+	<code class="option">Reply-To:</code> field of the message, which are
+	left intact.
+      </p><p>
+	Sounds easy, doesn't it?  Unfortunately, generating a
+	signature that is suitable for this purpose is a bit more
+	complex than it sounds.  There are a couple of conflicting
+	considerations to take into account:
+      </p><div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem"><p>
+	    To gain any benefit from this method, the signed envelope
+	    sender address that you generate should be useless in the
+	    hands of spammers.  Typically, this would imply that the
+	    signature incorporates a time stamp that would eventually
+	    expire:
+
+	    </p><pre class="screen"><em class="parameter"><code>sender</code></em>=<em class="parameter"><code>timestamp</code></em>=<em class="parameter"><code>hash</code></em>@<em class="parameter"><code>domain</code></em></pre><p>
+	  </p></li><li class="listitem"><p>
+	    If you send mail to a site that incorporates <a class="xref" href="greylisting.html" title="4. Greylisting">Greylisting</a>, your envelope sender address
+	    should remain constant for that particular recipient.
+	    Otherwise, your mail will continuously be greylisted.
+	  </p><p>
+	    With this in mind, you could generate a <a class="xref" href="gloss.html#envfrom" title="Envelope Sender">Envelope Sender</a> based on the <a class="xref" href="gloss.html#envto" title="Envelope Recipient">Envelope Recipient</a>
+	    address:
+
+	    </p><pre class="screen"><em class="parameter"><code>sender</code></em>=<em class="parameter"><code>recipient</code></em>=<em class="parameter"><code>recipient.domain</code></em>=<em class="parameter"><code>hash</code></em>@<em class="parameter"><code>domain</code></em></pre><p>
+
+	    Although this address does not expire, if you start seeing
+	    junk mail to it, you will at least know the source of the
+	    leak - it is incorported in the recipient address.
+	    Moreover, you can easily block specific recipient address
+	    signatures, without affecting normal mail delivery to that
+	    same recipient.
+	  </p></li><li class="listitem"><p>
+	    Two more issues occur with mailing list servers.  Usually,
+	    replies to request mails (such as
+	    <span class="quote">&#8220;<span class="quote">subscribe</span>&#8221;</span>/<span class="quote">&#8220;<span class="quote">unsubscribe</span>&#8221;</span>) are
+	    sent with no envelope sender.
+	  </p><div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: circle; "><li class="listitem"><p>
+		The first issue pertains to servers that send
+		responses back to the <a class="xref" href="gloss.html#envfrom" title="Envelope Sender">Envelope Sender</a>
+		address of the request mail (as in the case of
+		<code class="email">&lt;<a class="email" href="mailto:discuss@en.tldp.org">discuss@en.tldp.org</a>&gt;</code>).  The problem is
+		that commands for the mailing list server (such as
+		<span class="command"><strong>subscribe</strong></span> or
+		<span class="command"><strong>unsubscribe</strong></span>) are typically sent to
+		one or more different addresses
+		(e.g. <code class="email">&lt;<a class="email" href="mailto:discuss-subscribe@en.tldp.org">discuss-subscribe@en.tldp.org</a>&gt;</code> and
+		<code class="email">&lt;<a class="email" href="mailto:discuss-unsubscribe@en.tldp.org">discuss-unsubscribe@en.tldp.org</a>&gt;</code>,
+		respectively) than the address used for list mail.
+		Hence, the subscriber address will be different from
+		the sender address in messages sent to the list itself
+		-- and in this example, also different from the
+		address that will be generated for unsubscription
+		requests.  As a result, you may not be able to post to
+		the list, or unsubscribe.
+	      </p><p>
+		The compromise would be to incorporate only the
+		recipient <span class="emphasis"><em>domain</em></span> in the sender
+		signature.  The sender address might then look like:
+		</p><pre class="screen"><em class="parameter"><code>subscribername</code></em>=en.tldp.org=<em class="parameter"><code>hash</code></em>@<em class="parameter"><code>subscriber.domain</code></em></pre><p>
+	      </p></li><li class="listitem"><p>
+		The second issue pertains to those that send responses
+		back to the reply address in the message header of the
+		request mail (such as
+		<code class="email">&lt;<a class="email" href="mailto:spam-l-request@peach.ease.lsoft.com">spam-l-request@peach.ease.lsoft.com</a>&gt;</code>).
+		Since this address is not signed, the response from
+		the list server would be blocked by your server.
+	      </p><p>
+		There is not much you can do about this, other than to
+		<span class="quote">&#8220;<span class="quote">whitelist</span>&#8221;</span> these particular servers in
+		such a way that they are allowed to return mail to
+		unsigned recipient addresses.
+	      </p></li></ul></div></li></ul></div><p>
+	At this point, this approach starts losing some of its edge.
+	Moreover, even legitimate DSNs are rejected unless the
+	original mail has been sent via your server.  Thus, you should
+	only consider doing this if for those of your users that do
+	not roam, or otherwise send their outgoing mail via servers
+	outside your control.
+      </p><p>
+	That said, in situations where none of the above concerns
+	apply to you, this method gives you a good way to not only
+	eliminate collateral spam, but also a way to educate the
+	owners of the sites that (presumably unwittingly) generate it.
+	Moreover, as a side benefit, sites that perform <a class="xref" href="smtpchecks.html#callback" title="3.2.4. Sender Callout Verification">Sender Callout Verification</a> will only get a positive response from
+	you if the original mail was, indeed, sent from your site.  In
+	essence, you are reducing your exposure to sender address
+	forgeries by spammers.
+      </p><p>
+	You could perhaps allow your users to specify whether to sign
+	outgoing mails, and if so, specify which hosts should be
+	allowed to return mails to the unsigned version of their
+	address.  For instance, if they have system accounts on your
+	mail server, you could check for the existence and content,
+	respectively, of a given file in their home directory.
+      </p></div><div class="section"><div class="titlepage"><div><div><h3 class="title"><a name="dsnrealuser"></a>7.4. Accept Bounces Only for Real Users</h3></div></div></div><p>
+	Even if you check for envelope sender signatures, there may be
+	a loophole that allows bogus bounces to be accepted.
+	Specifically, if your users have to opt in to the scheme, you
+	are probably not checking for this signature in mails sent to
+	system aliases, such as <code class="option">postmaster</code> or
+	<code class="option">mailer-daemon</code>.  Moreover, since these users
+	do not generate outgoing mail, they should not receive any
+	bounces.
+      </p><p>
+	You can reject mail if it is sent to such system aliases, or
+	alternatively, if there is no mailbox for the provided
+	recipient address.
+      </p></div><div class="footnotes"><br><hr style="width:100; text-align:left;margin-left: 0"><div id="ftn.idm1165" class="footnote"><p><a href="#idm1165" class="para"><sup class="para">[13] </sup></a>Why on earth the authors
+	of anti-virus software are stupid enough to trust the sender
+	address in an e-mail containing a virus is perhaps a topic for
+	a closer psychoanalytic study.</p></div></div></div><div class="navfooter"><hr><table width="100%" summary="Navigation footer"><tr><td width="40%" align="left"><a accesskey="p" href="datachecks.html">Prev</a> </td><td width="20%" align="center"><a accesskey="u" href="techniques.html">Up</a></td><td width="40%" align="right"> <a accesskey="n" href="considerations.html">Next</a></td></tr><tr><td width="40%" align="left" valign="top">6. Message data checks </td><td width="20%" align="center"><a accesskey="h" href="index.html">Home</a></td><td width="40%" align="right" valign="top"> Chapter 3. Considerations</td></tr></table></div></body></html>

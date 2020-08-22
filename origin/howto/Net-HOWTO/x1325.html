@@ -1,0 +1,325 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN""http://www.w3.org/TR/html4/loose.dtd">
+<HTML
+><HEAD
+><TITLE
+>IP Masquerade</TITLE
+><META
+NAME="GENERATOR"
+CONTENT="Modular DocBook HTML Stylesheet Version 1.79"><LINK
+REL="HOME"
+TITLE="Linux Networking HOWTO"
+HREF="index.html"><LINK
+REL="UP"
+TITLE="IP Related Information"
+HREF="c1121.html"><LINK
+REL="PREVIOUS"
+TITLE="IPIP Encapsulation"
+HREF="x1276.html"><LINK
+REL="NEXT"
+TITLE="IP Transparent Proxy"
+HREF="x1354.html"></HEAD
+><BODY
+CLASS="SECT1"
+BGCOLOR="#FFFFFF"
+TEXT="#000000"
+LINK="#0000FF"
+VLINK="#840084"
+ALINK="#0000FF"
+><DIV
+CLASS="NAVHEADER"
+><TABLE
+SUMMARY="Header navigation table"
+WIDTH="100%"
+BORDER="0"
+CELLPADDING="0"
+CELLSPACING="0"
+><TR
+><TH
+COLSPAN="3"
+ALIGN="center"
+><A
+HREF="http://www.linuxports.com/"
+TARGET="_top"
+>Linux Networking HOWTO</A
+></TH
+></TR
+><TR
+><TD
+WIDTH="10%"
+ALIGN="left"
+VALIGN="bottom"
+><A
+HREF="x1276.html"
+ACCESSKEY="P"
+>Prev</A
+></TD
+><TD
+WIDTH="80%"
+ALIGN="center"
+VALIGN="bottom"
+>Chapter 7. IP Related Information</TD
+><TD
+WIDTH="10%"
+ALIGN="right"
+VALIGN="bottom"
+><A
+HREF="x1354.html"
+ACCESSKEY="N"
+>Next</A
+></TD
+></TR
+></TABLE
+><HR
+ALIGN="LEFT"
+WIDTH="100%"></DIV
+><DIV
+CLASS="SECT1"
+><H1
+CLASS="SECT1"
+><A
+NAME="AEN1325"
+>7.7. IP Masquerade</A
+></H1
+><P
+>Many people have a simple dialup account to connect to the Internet. Nearly
+everybody using this sort of configuration is allocated a single IP address
+by the Internet Service Provider. This is normally enough to allow only one
+host full access to the network. IP Masquerade is a clever trick that enables
+you to have many machines make use of that one IP address. It causes the
+other hosts to look like the machine supporting the dial-up connection. This is
+where the term masquerade applies. There is a small caveat: the
+masquerade function usually works only in one direction. That is, the
+masqueraded hosts can make calls out, but they cannot accept or receive
+network connections from remote hosts. This means that some network services
+do not work (such as <EM
+>talk</EM
+>), and others (such as
+<EM
+>ftp</EM
+>) must be configured
+in passive (PASV) mode to operate. Fortunately, the most common network services such as
+<EM
+>telnet</EM
+>, World Wide Web and <EM
+>irc</EM
+>
+work just fine.</P
+><P
+><EM
+>Kernel Compile Options</EM
+>:
+<TABLE
+BORDER="1"
+BGCOLOR="#E0E0E0"
+WIDTH="100%"
+><TR
+><TD
+><FONT
+COLOR="#000000"
+><PRE
+CLASS="SCREEN"
+>	Code maturity level options  ---&#62;
+	    [*] Prompt for development and/or incomplete code/drivers
+	Networking options  ---&#62;
+	    [*] Network firewalls
+	    ....
+	    [*] TCP/IP networking
+	    [*] IP: forwarding/gatewaying
+	    ....
+	    [*] IP: masquerading (EXPERIMENTAL)</PRE
+></FONT
+></TD
+></TR
+></TABLE
+></P
+><P
+>Normally, you have your linux machine supporting a SLIP or PPP dial-up line
+(just as it would if it were a standalone machine). Additionally, it would have
+another network device configured (perhaps an ethernet) with one
+of the reserved network addresses. The hosts to be masqueraded would be on
+this second network. Each of these hosts would have the IP address of the
+ethernet port of the linux machine set as their default gateway or router.</P
+><P
+>A typical configuration might look something like this:</P
+><P
+><TABLE
+BORDER="1"
+BGCOLOR="#E0E0E0"
+WIDTH="100%"
+><TR
+><TD
+><FONT
+COLOR="#000000"
+><PRE
+CLASS="SCREEN"
+>-                                   -
+ \                                  | 192.168.1.0
+  \                                 |   /255.255.255.0
+   \                 ---------      |
+    |                | Linux | .1.1 |
+NET =================| masq  |------|
+    |    PPP/slip    | router|      |  --------
+   /                 ---------      |--| host |
+  /                                 |  |      |
+ /                                  |  --------
+-                                   -</PRE
+></FONT
+></TD
+></TR
+></TABLE
+></P
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN1339"
+>7.7.1. Masquerading with IPFWADM (Kernels 2.0.x)</A
+></H2
+><P
+>The most relevant commands for this configuration are:</P
+><P
+><TABLE
+BORDER="1"
+BGCOLOR="#E0E0E0"
+WIDTH="100%"
+><TR
+><TD
+><FONT
+COLOR="#000000"
+><PRE
+CLASS="SCREEN"
+>	# Network route for ethernet
+	route add -net 192.168.1.0 netmask 255.255.255.0 eth0
+	#
+	# Default route to the rest of the Internet.
+	route add default ppp0
+	#
+	# Cause all hosts on the 192.168.1/24 network to be masqueraded.
+	ipfwadm -F -a m -S 192.168.1.0/24 -D 0.0.0.0/0</PRE
+></FONT
+></TD
+></TR
+></TABLE
+></P
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN1344"
+>7.7.2. Masquerading with IPCHAINS</A
+></H2
+><P
+>This is similar to using IPFWADM, but the command structure has changed:</P
+><P
+><TABLE
+BORDER="1"
+BGCOLOR="#E0E0E0"
+WIDTH="100%"
+><TR
+><TD
+><FONT
+COLOR="#000000"
+><PRE
+CLASS="SCREEN"
+>        # Network route for ethernet
+        route add -net 192.168.1.0 netmask 255.255.255.0 eth0
+        #
+        # Default route to the rest of the Internet.
+        route add default ppp0
+        #
+        # Cause all hosts on the 192.168.1/24 network to be masqueraded.
+	ipchains -A forward -s 192.168.1.0/24 -j MASQ</PRE
+></FONT
+></TD
+></TR
+></TABLE
+></P
+><P
+>You can get more information on the Linux IP Masquerade feature from the
+<A
+HREF="http://ipmasq.cjb.net/"
+TARGET="_top"
+>IP Masquerade Resource Page</A
+>. Also, a <EM
+>very</EM
+>
+detailed document about masquerading is the ``IP-Masquerade mini-HOWTO''
+(which also intructs to configure other OS's to run with a Linux
+masquerade server).</P
+><P
+>For information on Applications of IP Masquerading, check the
+<A
+HREF="http://www.tsmservices.com/masq/"
+TARGET="_top"
+>IPMASQ Applications</A
+> page.</P
+></DIV
+></DIV
+><DIV
+CLASS="NAVFOOTER"
+><HR
+ALIGN="LEFT"
+WIDTH="100%"><TABLE
+SUMMARY="Footer navigation table"
+WIDTH="100%"
+BORDER="0"
+CELLPADDING="0"
+CELLSPACING="0"
+><TR
+><TD
+WIDTH="33%"
+ALIGN="left"
+VALIGN="top"
+><A
+HREF="x1276.html"
+ACCESSKEY="P"
+>Prev</A
+></TD
+><TD
+WIDTH="34%"
+ALIGN="center"
+VALIGN="top"
+><A
+HREF="index.html"
+ACCESSKEY="H"
+>Home</A
+></TD
+><TD
+WIDTH="33%"
+ALIGN="right"
+VALIGN="top"
+><A
+HREF="x1354.html"
+ACCESSKEY="N"
+>Next</A
+></TD
+></TR
+><TR
+><TD
+WIDTH="33%"
+ALIGN="left"
+VALIGN="top"
+>IPIP Encapsulation</TD
+><TD
+WIDTH="34%"
+ALIGN="center"
+VALIGN="top"
+><A
+HREF="c1121.html"
+ACCESSKEY="U"
+>Up</A
+></TD
+><TD
+WIDTH="33%"
+ALIGN="right"
+VALIGN="top"
+>IP Transparent Proxy</TD
+></TR
+></TABLE
+></DIV
+></BODY
+></HTML
+>

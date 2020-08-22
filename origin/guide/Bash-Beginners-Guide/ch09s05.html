@@ -1,0 +1,120 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1"><title>5. Break and continue</title><link rel="stylesheet" type="text/css" href="style.css"><meta name="generator" content="DocBook XSL Stylesheets V1.79.1"><meta name="keywords" content="Linux, Scripts, linux, Bash, guide, Guide, Exercises, exercises, bash, scripting, Scripting, awk, sed, variables, functions, loops, conditionals"><link rel="home" href="index.html" title="Bash Guide for Beginners"><link rel="up" href="ch09.html" title="Chapter 9. Repetitive tasks"><link rel="prev" href="ch09s04.html" title="4. I/O redirection and loops"><link rel="next" href="ch09s06.html" title="6. Making menus with the select built-in"></head><body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF"><div class="navheader"><table width="100%" summary="Navigation header"><tr><th colspan="3" align="center">5. Break and continue</th></tr><tr><td width="20%" align="left"><a accesskey="p" href="ch09s04.html">Prev</a> </td><th width="60%" align="center">Chapter 9. Repetitive tasks</th><td width="20%" align="right"> <a accesskey="n" href="ch09s06.html">Next</a></td></tr></table><hr></div><div class="sect1"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="sect_09_05"></a>5. Break and continue</h2></div></div></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="sect_09_05_01"></a>5.1. The break built-in</h3></div></div></div><p>The <span class="command"><strong>break</strong></span> statement is used to exit the current loop before its normal ending.  This is done when you don't know in advance how many times the loop will have to execute, for instance because it is dependent on user input.</p><p>The example below demonstrates a <span class="command"><strong>while</strong></span> loop that can be interrupted.  This is a slightly improved version of the <code class="filename">wisdom.sh</code> script from <a class="xref" href="ch09s02.html#sect_09_02_02_03" title="2.2.3. Using keyboard input to control the while loop">Section 2.2.3, &#8220;Using keyboard input to control the while loop&#8221;</a>.</p><pre class="screen">
+#!/bin/bash
+
+# This script provides wisdom
+# You can now exit in a decent way.
+
+FORTUNE=/usr/games/fortune
+
+while true; do
+echo "On which topic do you want advice?"
+echo "1.  politics"
+echo "2.  startrek"
+echo "3.  kernelnewbies"
+echo "4.  sports"
+echo "5.  bofh-excuses"
+echo "6.  magic"
+echo "7.  love"
+echo "8.  literature"
+echo "9.  drugs"
+echo "10. education"
+echo
+
+echo -n "Enter your choice, or 0 for exit: "
+read choice
+echo
+
+case $choice in
+     1)
+     $FORTUNE politics
+     ;;
+     2)
+     $FORTUNE startrek
+     ;;
+     3)
+     $FORTUNE kernelnewbies
+     ;;
+     4)
+     echo "Sports are a waste of time, energy and money."
+     echo "Go back to your keyboard."
+     echo -e "\t\t\t\t -- \"Unhealthy is my middle name\" Soggie."
+     ;;
+     5)
+     $FORTUNE bofh-excuses
+     ;;
+     6)
+     $FORTUNE magic
+     ;;
+     7)
+     $FORTUNE love
+     ;;
+     8)
+     $FORTUNE literature
+     ;;
+     9)
+     $FORTUNE drugs
+     ;;
+     10)
+     $FORTUNE education
+     ;;
+     0)
+     echo "OK, see you!"
+     break
+     ;;
+     *)
+     echo "That is not a valid choice, try a number from 0 to 10."
+     ;;
+esac  
+done
+</pre><p>Mind that <span class="command"><strong>break</strong></span> exits the loop, not the script.  This can be demonstrated by adding an <span class="command"><strong>echo</strong></span> command at the end of the script.  This <span class="command"><strong>echo</strong></span> will also be executed upon input that causes <span class="command"><strong>break</strong></span> to be executed (when the user types <span class="quote">&#8220;<span class="quote">0</span>&#8221;</span>).</p><p>In nested loops, <span class="command"><strong>break</strong></span> allows for specification of which loop to exit.  See the Bash <span class="command"><strong>info</strong></span> pages for more.</p></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="sect_09_05_02"></a>5.2. The continue built-in</h3></div></div></div><p>The <span class="command"><strong>continue</strong></span> statement resumes iteration of an enclosing <span class="command"><strong>for</strong></span>, <span class="command"><strong>while</strong></span>, <span class="command"><strong>until</strong></span> or <span class="command"><strong>select</strong></span> loop.</p><p>When used in a <span class="command"><strong>for</strong></span> loop, the controlling variable takes on the value of the next element in the list.  When used in a <span class="command"><strong>while</strong></span> or <span class="command"><strong>until</strong></span> construct, on the other hand, execution resumes with <span class="command"><strong>TEST-COMMAND</strong></span> at the top of the loop.</p></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="sect_09_05_03"></a>5.3. Examples</h3></div></div></div><p>In the following example, file names are converted to lower case.  If no conversion needs to be done, a <span class="command"><strong>continue</strong></span> statement restarts execution of the loop.  These commands don't eat much system resources, and most likely, similar problems can be solved using <span class="command"><strong>sed</strong></span> and <span class="command"><strong>awk</strong></span>.  However, it is useful to know about this kind of construction when executing heavy jobs, that might not even be necessary when tests are inserted at the correct locations in a script, sparing system resources.</p><pre class="screen">
+<code class="prompt">[carol@octarine ~/test]</code> <span class="command"><strong>cat <code class="filename">tolower.sh</code></strong></span>
+#!/bin/bash
+
+# This script converts all file names containing upper case characters into file# names containing only lower cases.
+
+LIST="$(ls)"
+
+for name in "$LIST"; do
+
+if [[ "$name" != *[[:upper:]]* ]]; then
+continue
+fi
+
+ORIG="$name"
+NEW=`echo $name | tr 'A-Z' 'a-z'`
+
+mv "$ORIG" "$NEW"
+echo "new name for $ORIG is $NEW"
+done
+</pre><p>This script has at least one disadvantage: it overwrites existing files.  The <code class="option">noclobber</code> option to Bash is only useful when redirection occurs.  The <code class="option">-b</code> option to the <span class="command"><strong>mv</strong></span> command provides more security, but is only safe in case of one accidental overwrite, as is demonstrated in this test:</p><pre class="screen">
+<code class="prompt">[carol@octarine ~/test]</code> <span class="command"><strong>rm <code class="filename">*</code></strong></span>
+
+<code class="prompt">[carol@octarine ~/test]</code> <span class="command"><strong>touch <code class="filename">test Test TEST</code></strong></span>
+
+<code class="prompt">[carol@octarine ~/test]</code> <span class="command"><strong>bash <code class="option">-x</code> <code class="filename">tolower.sh</code></strong></span>
+++ ls
++ LIST=test
+Test
+TEST
++ [[ test != *[[:upper:]]* ]]
++ continue
++ [[ Test != *[[:upper:]]* ]]
++ ORIG=Test
+++ echo Test
+++ tr A-Z a-z
++ NEW=test
++ mv -b Test test
++ echo 'new name for Test is test'
+new name for Test is test
++ [[ TEST != *[[:upper:]]* ]]
++ ORIG=TEST
+++ echo TEST
+++ tr A-Z a-z
++ NEW=test
++ mv -b TEST test
++ echo 'new name for TEST is test'
+new name for TEST is test
+
+<code class="prompt">[carol@octarine ~/test]</code> <span class="command"><strong>ls <code class="option">-a</code></strong></span>
+./  ../  test  test~
+</pre><p>The <span class="command"><strong>tr</strong></span> is part of the <span class="emphasis"><em>textutils</em></span> package; it can perform all kinds of character transformations.</p></div></div><div class="navfooter"><hr><table width="100%" summary="Navigation footer"><tr><td width="40%" align="left"><a accesskey="p" href="ch09s04.html">Prev</a> </td><td width="20%" align="center"><a accesskey="u" href="ch09.html">Up</a></td><td width="40%" align="right"> <a accesskey="n" href="ch09s06.html">Next</a></td></tr><tr><td width="40%" align="left" valign="top">4. I/O redirection and loops </td><td width="20%" align="center"><a accesskey="h" href="index.html">Home</a></td><td width="40%" align="right" valign="top"> 6. Making menus with the select built-in</td></tr></table></div></body></html>

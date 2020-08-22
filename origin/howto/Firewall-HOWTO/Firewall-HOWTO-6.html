@@ -1,0 +1,257 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 3.2 Final//EN">
+<HTML>
+<HEAD>
+ <META NAME="GENERATOR" CONTENT="LinuxDoc-Tools 0.9.72">
+ <TITLE>Firewall and Proxy Server HOWTO: Preparing the Linux system</TITLE>
+ <LINK HREF="Firewall-HOWTO-7.html" REL=next>
+ <LINK HREF="Firewall-HOWTO-5.html" REL=previous>
+ <LINK HREF="Firewall-HOWTO.html#toc6" REL=contents>
+</HEAD>
+<BODY>
+<A HREF="Firewall-HOWTO-7.html">Next</A>
+<A HREF="Firewall-HOWTO-5.html">Previous</A>
+<A HREF="Firewall-HOWTO.html#toc6">Contents</A>
+<HR>
+<H2><A NAME="s6">6.</A> <A HREF="Firewall-HOWTO.html#toc6">Preparing the Linux system</A></H2>
+
+<P>Install as little of the Linux system as you can. My  installation started with a server configuration and then I turn off ever un-needed service in /etc/inetd.conf.  For more security you should uninstall the unneeded service. </P>
+<P>Because most distributions don't dome with a kernel usefull to your perpose.  You will need to compile your own kernal. It is best if you do this on a computer other then the firewall. If you do install a C compiler and utilities on your firewall, remove them after you have completed comfiguring your kernel.</P>
+
+<H2><A NAME="ss6.1">6.1</A> <A HREF="Firewall-HOWTO.html#toc6.1">Compiling the Kernel</A>
+</H2>
+
+<P> 
+Start with a clean minimal installation of your Linux distribution. The less software you have loaded the less holes, backdoors and/or bugs there will be to introduce security problems in your server.</P>
+<P>Pick a stable kernel. I am using kernel 2.2.13 kernel for my system. So this documentation is based on it's settings. </P>
+<P>You well need to recompile the Linux kernel with the appropriate options. If you haven't recompiled your kernel before you should read the Kernel HOWTO, the Ethernet HOWTO, and the NET-2 HOWTO.</P>
+<P>Here are the network related setting I know work.  I have marked some with a ?. If you will be using this feature, turn it on as well.</P>
+<P>I use "make menuconfig" to edit my kernel settings.</P>
+<P>
+<PRE>
+    &lt;*> Packet socket
+    [ ] Kernel/User netlink socket
+    [*] Network firewalls
+    [ ] Socket Filtering
+    &lt;*> Unix domain sockets
+    [*] TCP/IP networking
+    [ ] IP: multicasting
+    [*] IP: advanced router
+    [ ] IP: kernel level autoconfiguration
+    [*] IP: firewalling
+    [?] IP: always defragment (required for masquerading)
+    [?] IP: transparent proxy support
+    [?] IP: masquerading
+    --- Protocol-specific masquerading support will be built as modules.
+    [?] IP: ICMP masquerading
+    --- Protocol-specific masquerading support will be built as modules.
+    [ ] IP: masquerading special modules support
+    [*] IP: optimize as router not host
+    &lt; > IP: tunneling
+    &lt; > IP: GRE tunnels over IP
+    [?] IP: aliasing support
+    [*] IP: TCP syncookie support (not enabled per default)
+    --- (it is safe to leave these untouched)
+    &lt; > IP: Reverse ARP
+    [*] IP: Allow large windows (not recommended if &lt;16Mb of memory)
+    &lt; > The IPv6 protocol (EXPERIMENTAL)
+    ---
+    &lt; > The IPX protocol
+    &lt; > Appletalk DDP
+    &lt; > CCITT X.25 Packet Layer (EXPERIMENTAL)
+    &lt; > LAPB Data Link Driver (EXPERIMENTAL)
+    [ ] Bridging (EXPERIMENTAL)
+    [ ] 802.2 LLC (EXPERIMENTAL)
+    &lt; > Acorn Econet/AUN protocols (EXPERIMENTAL)
+    &lt; > WAN router
+    [ ] Fast switching (read help!)
+    [ ] Forwarding between high speed interfaces
+    [ ] PU is too slow to handle full bandwidth
+    QoS and/or fair queueing  ---> 
+</PRE>
+</P>
+<P>After making all the setting you need you should recompile, reinstall the kernel and reboot.  </P>
+<P>I use the command:</P>
+<P>make dep;make clean;make bzlilo;make modules;make modules_install;init 6 to accomplish all of this in one step.</P>
+
+
+<H2><A NAME="ss6.2">6.2</A> <A HREF="Firewall-HOWTO.html#toc6.2">Configuring two network cards</A>
+</H2>
+
+<P> 
+If you have two network cards in your computer, you may need to add an append statement to your /etc/lilo.conf file to describe the IRQ and address of both cards.  My lilo append statement looks like this: </P>
+<P>
+<PRE>
+ 
+append=&#34;ether=12,0x300,eth0 ether=15,0x340,eth1&#34; 
+</PRE>
+</P>
+
+
+<H2><A NAME="ss6.3">6.3</A> <A HREF="Firewall-HOWTO.html#toc6.3">Configuring the Network Addresses</A>
+</H2>
+
+<P> 
+Now we arrive at the fun part of our setup. I'm not going to go deep into how to setup a LAN.  Read the Networking-HOWTO to solve your problems here.</P>
+<P>Your goal is to provide two network connection to your filtering firewall system. One on the Internet (unsecured side) and one on the LAN (secure side).</P>
+<P>Anyway, you have a few decisions to make. </P>
+<P>
+<OL>
+<LI> Will you use Real IP number or Make some up for your LAN.</LI>
+<LI> Will your ISP assign the number or will you be using static IP numbers?</LI>
+</OL>
+</P>
+<P>Since you don't want the internet to have access to your private network, you don't need to use &#34;real addresses&#34;.  You could just makeup addresses for your private LAN. But this is not recommended. If data gets routed out of your LAN, it might end up at another systems port. </P>
+<P>There are a number of Internet address ranges set aside for private networks. Of these, 192.168.1.xxx, is set aside and we will use it in our examples. </P>
+<P>You will need to use IP masquerading to make this happen. With this process the firewall will forward packets and translate them into  &#34;REAL &#34; &#34; IP address to travel on the Internet.</P>
+<P>Using these non-routable IP address makes your network is more secure.  Internet routers will not pass packets with these addresses.</P>
+<P>You may want to read the IP Masquerading HOWTO at this point.</P>
+<P>
+<PRE>
+            24.94.1.123  __________    192.168.1.1
+      _/\__/\_        \ |          | /           _______________
+     |        |        \| Firewall |/           |               |
+    / Internet \--------|  System  |------------| Workstation/s |
+    \_  _  _  _/        |__________|            |_______________|
+      \/ \/ \/  
+</PRE>
+</P>
+<P>You must have a &#34;real&#34; IP address to assign to your Internet network card. This address can be permanently assigned to you. (A static IP address) or it can be assigned at network connect time by the PPP process.</P>
+<P>You assign your inside IP numbers. Like 192.168.1.1 to the LAN card. This will be your gateway IP address.  You can assign all the other machines in the protected network (LAN) a number in the 192.168.1.xxx range. (192.168.1.2 through 192.168.1.254)</P>
+<P>I use RedHat Linux. To configure the network at boot time I added a ifcfg-eth1 file in the  /etc/sysconfig/network-scripts directory.  You may also find a ifcfg-ppp0 or ifcfg-tr0 in this directory. These 'ifcfg-' files are used by RedHat to configure and enable your network devices at boot 
+time. The are named after the connection type.</P>
+<P>Here is the ifcfg-eth1 (second ehternet card) for our example;</P>
+<P>
+<PRE>
+    DEVICE=eth1
+    IPADDR=192.168.1.1
+    NETMASK=255.255.255.0
+    NETWORK=192.168.1.0
+    BROADCAST=192.168.1.255
+    GATEWAY=24.94.1.123
+    ONBOOT=yes
+</PRE>
+</P>
+<P>If you are going to use a dialup connection you will need to look at the ifcfg-ppp0 and the chat-ppp0 file. These control your PPP connection.</P>
+<P>This ifcfg file might look like;</P>
+<P>
+<PRE>
+    DEVICE=&#34;ppp0&#34;           
+    ONBOOT=&#34;yes&#34;
+    USERCTL=&#34;no&#34;
+    MODEMPORT=&#34;/dev/modem&#34;      
+    LINESPEED=&#34;115200&#34;          
+    PERSIST=&#34;yes&#34;   
+    DEFABORT=&#34;yes&#34;  
+    DEBUG=&#34;yes&#34;     
+    INITSTRING=&#34;ATZ&#34;
+    DEFROUTE=&#34;yes&#34;  
+    HARDFLOWCTL=&#34;yes&#34;           
+    ESCAPECHARS=&#34;no&#34;
+    PPPOPTIONS=&#34;&#34;   
+    PAPNAME=&#34;LoginID&#34;           
+    REMIP=&#34;&#34;        
+    NETMASK=&#34;&#34;      
+    IPADDR=&#34;&#34;       
+    MRU=&#34;&#34;          
+    MTU=&#34;&#34;          
+    DISCONNECTTIMEOUT=&#34;&#34;        
+    RETRYTIMEOUT=&#34;5&#34;
+    BOOTPROTO=&#34;none&#34;
+</PRE>
+</P>
+
+
+<H2><A NAME="ss6.4">6.4</A> <A HREF="Firewall-HOWTO.html#toc6.4">Testing your network</A>
+</H2>
+
+<P> 
+Start by using the ifconfig and route commands.  If you have two network cards ifconfig should look something like:</P>
+<P>
+<PRE>
+  #ifconfig
+  lo        Link encap:Local Loopback
+            inet addr:127.0.0.1  Mask:255.0.0.0
+            UP LOOPBACK RUNNING  MTU:3924  Metric:1
+            RX packets:1620 errors:0 dropped:0 overruns:0
+            TX packets:1620 errors:0 dropped:0 overruns:0
+            collisions:0 txqueuelan:0
+
+  eth0      Link encap:10Mbps Ethernet  HWaddr 00:00:09:85:AC:55
+            inet addr:24.94.1.123 Bcast:24.94.1.255  Mask:255.255.255.0
+            UP BROADCAST RUNNING MULTICAST  MTU:1500  Metric:1
+            RX packets:1000 errors:0 dropped:0 overruns:0
+            TX packets:1100 errors:0 dropped:0 overruns:0
+            collisions:0 txqueuelan:0
+            Interrupt:12 Base address:0x310
+
+  eth1      Link encap:10Mbps Ethernet  HWaddr 00:00:09:80:1E:D7
+            inet addr:192.168.1.1  Bcast:192.168.1.255  Mask:255.255.255.0
+            UP BROADCAST RUNNING MULTICAST  MTU:1500  Metric:1
+            RX packets:1110 errors:0 dropped:0 overruns:0
+            TX packets:1111 errors:0 dropped:0 overruns:0
+            collisions:0 txqueuelan:0
+            Interrupt:15 Base address:0x350
+</PRE>
+</P>
+<P>and your route table should look like:</P>
+<P>
+<PRE>
+  #route -n
+  Kernel routing table
+  Destination     Gateway         Genmask         Flags MSS    Window Use Iface
+  24.94.1.0       *               255.255.255.0   U     1500   0       15 eth0
+  192.168.1.0     *               255.255.255.0   U     1500   0        0 eth1
+  127.0.0.0       *               255.0.0.0       U     3584   0        2 lo
+  default         24.94.1.123     *               UG    1500   0       72 eth0
+</PRE>
+</P>
+<P><B>Note:</B> 24.94.1.0 is the Internet side of this firewall and 192.168.1.0 is the private (LAN) side.</P>
+<P>You should start by making sure every computer on your LAN can ping the inside address of your firewall system. (192.168.1.1 in this example) If not, go over the NET-2 HOWTO again and work on the network some more.</P>
+<P>Next, from the firewall, try to ping a Internet system.  I use www.internic.net as my test point.  If it doesn't work, try a server at your ISP. If this doesn't work some part of your Internet connection is wrong.  You should be able to connect to the anywhere on the Internet from the firewall. Try looking at your default gateway setting.  If you are using a dialup connection double check your user ID and Password. Reread 
+the Net-2 HOWTO, and try again.</P>
+<P>Now try to ping the outside address of the firewall (24.94.1.123) from a computer on your LAN. This shouldn't work.  If it does, you have masquerading or IP Forwarding turned on, or you already have some packet filtering set. Turn them off and try again. You need to know the filtering is in place.</P>
+<P>For kernels newer then 2.1.102 you can issue the command;</P>
+<P>
+<PRE>
+    echo "0" > /proc/sys/net/ipv4/ip_forward
+</PRE>
+</P>
+<P>If you are using an older kernel (WHY) you will need to re-compile your kernel with forwarding turned off. (Just upgrade.) </P>
+<P>Try pinging the outside address of the firewall (24.94.1.123) again. It shouldn't work.</P>
+<P>Now turn on IP forwarding and/or masquerading. You should be able to ping the anywhere on the Internet from any system on your LAN.</P>
+<P>
+<PRE>
+    echo "1" > /proc/sys/net/ipv4/ip_forward
+</PRE>
+</P>
+<P><B>BIG NOTE:</B> 
+If you are using &#34;REAL&#34; IP addresses on your LAN (not 192.168.1.*) and you can't ping the internet but you CAN ping the Internet side of your firewall, make sure your ISP is routing packets for 
+your private network address. </P>
+<P>A test for this problem is to have someone else on the Internet (say a friend using a local provider) use traceroute to your network. If the trace stops at your providers router, then they are not forwarding your 
+traffic.</P>
+<P>It works? Great. The hard part is done. :-)</P>
+
+
+<H2><A NAME="ss6.5">6.5</A> <A HREF="Firewall-HOWTO.html#toc6.5">Securing the Firewall</A>
+</H2>
+
+<P>A firewall isn't any good if the system it is build on is left wide open to attacks.  A &#34;bad guy&#34; could gain access to the through a non firewall service and modify it for their own needs. You need to turning off any unneeded services. </P>
+<P>Look in your /etc/inetd.conf file.  This file configures inetd also known as the &#34;super server&#34;.  It controls a bunch of the server daemons and starts them as they are requested by a packet arriving at a 
+&#34;well known&#34; port.</P>
+<P>You should turn off echo, discard, daytime, chargen, ftp, gopher, shell, login, exec, talk, ntalk, pop-2, pop-3, netstat, systat, tftp, bootp,  finger, cfinger, time, swat and linuxconfig if you have one.  </P>
+<P>To turn a service off, put # as the first character of the service line.  When your done, send a SIG-HUP to the process by typing <B>&#34;kill -HUP &lt;pid&gt;&#34;</B>, where &lt;pid&gt; is the 
+process number of inetd.  This will make inetd re-read its configuration file (inetd.conf) and restart without taking your system down.</P>
+<P>Test this by telneting to port 15 (netstat) on firewall.  If you get any output you have not turned these services off.</P>
+<P>telnet localhost 19</P>
+<P>You can also create the file /etc/nologin. Put a few line of text in it like (BUZZ OFF). When this file exists, login will not allow user to logon. They will see the contents of this file and their logins refused. Only root 
+can logon.</P>
+<P>You can also edit the file /etc/securetty. If  the  user  is  root,  then  the  login  must  be  occurring  on  a  tty  listed  in /etc/securetty.  Failures will be logged with the syslog facility. With both of these controls in place the only way to logon to the firewall will be as root from the console.</P>
+<P>NEVER EVER TELNET to a system and log IN AS ROOT.  If you need remote root access SSH (Secure Shell).  You might even turn off telnet.  </P>
+<P>If you are really paranoid you need to be using lids (Linux Intrusion Detect System). It is an intrusion detection system patch for the Linux kernel; it can protect important files from being changed. When it's in effect, no one (including root) can change the protected files or directories and their sub-directories. You have to reboot the system with a security=1 LILO setting to modify secure files. (I'd also boot into single user mode.)</P>
+
+<HR>
+<A HREF="Firewall-HOWTO-7.html">Next</A>
+<A HREF="Firewall-HOWTO-5.html">Previous</A>
+<A HREF="Firewall-HOWTO.html#toc6">Contents</A>
+</BODY>
+</HTML>

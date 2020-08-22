@@ -1,0 +1,771 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN""http://www.w3.org/TR/html4/loose.dtd">
+<HTML
+><HEAD
+><TITLE
+>How to build custom module blocks</TITLE
+><META
+NAME="GENERATOR"
+CONTENT="Modular DocBook HTML Stylesheet Version 1.79"><LINK
+REL="HOME"
+TITLE="PHP-Nuke: Management and Programming"
+HREF="index.html"><LINK
+REL="UP"
+TITLE="Modifying PHP-Nuke blocks"
+HREF="modifying-php-nuke-blocks.html"><LINK
+REL="PREVIOUS"
+TITLE="How to change a buggy block"
+HREF="change-buggy-block.html"><LINK
+REL="NEXT"
+TITLE="How to build RSS blocks with variable number of news items"
+HREF="build-rss-blocks-with-variable-news-number.html"></HEAD
+><BODY
+CLASS="SECT1"
+BGCOLOR="#FFFFFF"
+TEXT="#000000"
+LINK="#0000FF"
+VLINK="#840084"
+ALINK="#0000FF"
+><DIV
+CLASS="NAVHEADER"
+><TABLE
+SUMMARY="Header navigation table"
+WIDTH="100%"
+BORDER="0"
+CELLPADDING="0"
+CELLSPACING="0"
+><TR
+><TH
+COLSPAN="3"
+ALIGN="center"
+>PHP-Nuke: Management and Programming</TH
+></TR
+><TR
+><TD
+WIDTH="10%"
+ALIGN="left"
+VALIGN="bottom"
+><A
+HREF="change-buggy-block.html"
+ACCESSKEY="P"
+>Prev</A
+></TD
+><TD
+WIDTH="80%"
+ALIGN="center"
+VALIGN="bottom"
+>Chapter 17. Modifying <SPAN
+CLASS="APPLICATION"
+>PHP-Nuke</SPAN
+> blocks</TD
+><TD
+WIDTH="10%"
+ALIGN="right"
+VALIGN="bottom"
+><A
+HREF="build-rss-blocks-with-variable-news-number.html"
+ACCESSKEY="N"
+>Next</A
+></TD
+></TR
+></TABLE
+><HR
+ALIGN="LEFT"
+WIDTH="100%"></DIV
+><DIV
+CLASS="SECT1"
+><H1
+CLASS="SECT1"
+><A
+NAME="BUILD-CUSTOM-MODULE-BLOCKS"
+>17.2. How to build custom module blocks</A
+></H1
+><P
+><DIV
+CLASS="FIGURE"
+><A
+NAME="FIG-MODULES-BLOCK"
+></A
+><P
+><B
+>Figure 17-1.     The standard Modules block
+   </B
+></P
+><DIV
+CLASS="MEDIAOBJECT"
+><P
+><IMG
+SRC="./images/modules-block.png"><DIV
+CLASS="CAPTION"
+><P
+> The standard Modules block</P
+></DIV
+></P
+></DIV
+></DIV
+></P
+><P
+>A module block is a block that displays links to all available modules of a <SPAN
+CLASS="APPLICATION"
+>PHP-Nuke</SPAN
+> site (<A
+HREF="build-custom-module-blocks.html#FIG-MODULES-BLOCK"
+>Figure 17-1</A
+>). It is the block that appears at the top of the left column, with the standard title &#8220;Modules&#8221;. The module block is a standard <SPAN
+CLASS="APPLICATION"
+>PHP-Nuke</SPAN
+> block, for its construction you have to follow the same rules as for any other block (see <A
+HREF="block-creation.html"
+>Section 20.2</A
+>). It is thus fairly easy to construct your own module block, if you are not satisfied with the standard one. Below are some examples:</P
+><P
+></P
+><UL
+><LI
+><P
+>Simple module block (<A
+HREF="build-custom-module-blocks.html#SIMPLE-MODULE-BLOCK"
+>Section 17.2.1</A
+>),</P
+></LI
+><LI
+><P
+>Treemenu block (<A
+HREF="build-custom-module-blocks.html#TREEMENU-BLOCK"
+>Section 17.2.2</A
+>).</P
+></LI
+></UL
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="SIMPLE-MODULE-BLOCK"
+>17.2.1. Simple module block</A
+></H2
+><P
+>The links that are inside the standard <SPAN
+CLASS="APPLICATION"
+>PHP-Nuke</SPAN
+> module block are constructed dynamically, using information that is available about the modules in the database. For example, to present only active modules in the links, the block (located in blocks/block-Modules.php) checks the &#8220;active&#8221; field of the $prefix_modules table (which is table nuke_modules, if $prefix is left to the standard &#8220;nuke&#8221; in config.php, see <A
+HREF="config-php-file.html"
+>Section 3.7</A
+>):</P
+><TABLE
+BORDER="1"
+BGCOLOR="#E0E0E0"
+WIDTH="100%"
+><TR
+><TD
+><FONT
+COLOR="#000000"
+><PRE
+CLASS="SCREEN"
+>$sql = "SELECT title, custom_title FROM ".$prefix."_modules 
+WHERE active='1' AND inmenu='0' ORDER BY title ASC"; </PRE
+></FONT
+></TD
+></TR
+></TABLE
+><P
+>As we can easily read in the SELECT query above, only modules with the &#8220;active&#8221; bit set to 1 are selected. But we also see that the order in which they are selected is the standard ascending lexicographic order of the modules' title (ORDER BY title ASC). If we wish a different ordering, we are left with only a few possibilities:</P
+><P
+></P
+><UL
+><LI
+><P
+>Change the order from ascending (ASC) to descending (DESC):</P
+><TABLE
+BORDER="1"
+BGCOLOR="#E0E0E0"
+WIDTH="90%"
+><TR
+><TD
+><FONT
+COLOR="#000000"
+><PRE
+CLASS="SCREEN"
+>$sql = "SELECT title, custom_title FROM ".$prefix."_modules 
+WHERE active='1' AND inmenu='0' ORDER BY title DESC"; </PRE
+></FONT
+></TD
+></TR
+></TABLE
+></LI
+><LI
+><P
+>Change the field on which the ORDER BY clause is applied, e.g. use custom_title instead of title:</P
+><TABLE
+BORDER="1"
+BGCOLOR="#E0E0E0"
+WIDTH="90%"
+><TR
+><TD
+><FONT
+COLOR="#000000"
+><PRE
+CLASS="SCREEN"
+>$sql = "SELECT title, custom_title FROM ".$prefix."_modules 
+WHERE active='1' AND inmenu='0' ORDER BY custom_title ASC"; </PRE
+></FONT
+></TD
+></TR
+></TABLE
+></LI
+><LI
+><P
+>Add an extra field to the $prefix_modules table, populate it with custom values (e.g. &#8220;1&#8221; for the module we want to be the first in the list, , &#8220;2&#8221; for the second, &#8220;3&#8221; for the third etc. if we decided to use a numeric field ) for each module, and sort in ascending order of this new field:</P
+><TABLE
+BORDER="1"
+BGCOLOR="#E0E0E0"
+WIDTH="90%"
+><TR
+><TD
+><FONT
+COLOR="#000000"
+><PRE
+CLASS="SCREEN"
+>$sql = "SELECT title, custom_title FROM ".$prefix."_modules 
+WHERE active='1' AND inmenu='0' ORDER BY new_field ASC";</PRE
+></FONT
+></TD
+></TR
+></TABLE
+></LI
+></UL
+><P
+>But if we wish a custom grouping of the modules links, we will have to write our own modules block. You can use the following code as a starting point for your own creations. This script will display certain links only when an admin or user is logged in. Just name it block-menuSample.php and put in the blocks folder, deactivate the block-Modules.php and activate this one (see <A
+HREF="http://www.nukeforums.com/forums/viewtopic.php?t=10792"
+TARGET="_top"
+>Different links - some for registered users only</A
+> and <A
+HREF="http://www.nukeforums.com/forums/viewtopic.php?t=14816"
+TARGET="_top"
+>How would I add a clickable link in a Modules Block?</A
+>):</P
+><TABLE
+BORDER="1"
+BGCOLOR="#E0E0E0"
+WIDTH="100%"
+><TR
+><TD
+><FONT
+COLOR="#000000"
+><PRE
+CLASS="SCREEN"
+>&#60;?php
+if (eregi("block-menuSample.php",$PHP_SELF)) {
+Header("Location: index.php");  
+die(); 
+}
+Global $user, $admin; 
+$title = "Main Menu";
+$content = "
+&#60;font size=\"1\" face=\"Verdana, Arial, Helvetica, sans-serif\"&#62;
+&#60;B&#62;&#60;u&#62;Navigation&#60;/u&#62;
+&#60;BR&#62; 
+&#60;STRONG&#62;&#60;BIG&#62;·&#60;/BIG&#62;&#60;/STRONG&#62; 
+&#60;a href=index.php&#62;Start Page&#60;/a&#62;&#60;br&#62;&#60;br&#62;
+&#60;u&#62;Information&#60;/u&#62;&#60;BR&#62;
+&#60;STRONG&#62;&#60;BIG&#62;·&#60;/BIG&#62;&#60;/STRONG&#62; 
+&#60;A href=\"modules.php?name=News&#38;file=index\"&#62;News&#60;/A&#62;&#60;BR&#62;
+&#60;STRONG&#62;&#60;BIG&#62;·&#60;/BIG&#62;&#60;/STRONG&#62;
+&#60;A href=\"modules.php?name=aboutus\"&#62;About us&#60;/A&#62;&#60;BR&#62;
+&#60;STRONG&#62;&#60;BIG&#62;·&#60;/BIG&#62;&#60;/STRONG&#62;
+&#60;A href=\"modules.php?name=somefolder&#38;file=index\"&#62;Entry with Some word&#60;/A&#62;&#60;BR&#62;
+&#60;BR&#62;
+&#60;u&#62;Other things&#60;/u&#62;
+&#60;BR&#62;
+&#60;STRONG&#62;&#60;BIG&#62;·&#60;/BIG&#62;&#60;/STRONG&#62;
+&#60;A href=\"modules.php?name=Web_Links
+&#38;amp;file=index&#38;amp;l_op=viewlink&#38;amp;cid=1\"&#62;Links&#60;/A&#62;&#60;BR&#62;
+&#60;STRONG&#62;&#60;BIG&#62;·&#60;/BIG&#62;&#60;/STRONG&#62;
+&#60;A href=\"modules.php?name=My_eGallery\"&#62;All sorts of Pictures&#60;/A&#62;&#60;br&#62;
+&#60;STRONG&#62;&#60;BIG&#62;·&#60;/BIG&#62;&#60;/STRONG&#62;
+&#60;A href=\"modules.php?name=Reviews\"&#62;Reviews&#60;/A&#62;&#60;BR&#62;
+&#60;BR&#62;
+&#60;u&#62;Interact&#60;/u&#62;
+&#60;BR&#62;
+&#60;STRONG&#62;&#60;BIG&#62;·&#60;/BIG&#62;&#60;/STRONG&#62;
+&#60;A href=\"modules.php?name=GuestBook\"&#62;Guestbook&#60;/A&#62;&#60;BR&#62;
+&#60;STRONG&#62;&#60;BIG&#62;·&#60;/BIG&#62;&#60;/STRONG&#62;
+&#60;A href=\"modules.php?name=Feedback\"&#62;Feedback&#60;/A&#62;&#60;BR&#62;
+&#60;STRONG&#62;&#60;BIG&#62;·&#60;/BIG&#62;&#60;/STRONG&#62;
+&#60;A href=\"modules.php?name=Recommend_Us\"&#62;Recommend Us&#60;/A&#62;&#60;BR&#62;
+&#60;BR&#62;
+&#60;u&#62;Misc.&#60;/u&#62;
+&#60;BR&#62;
+&#60;STRONG&#62;&#60;BIG&#62;·&#60;/BIG&#62;&#60;/STRONG&#62;
+&#60;A href=\"modules.php?name=Web_Links\"&#62;Links&#60;/A&#62;&#60;BR&#62;
+&#60;STRONG&#62;&#60;BIG&#62;·&#60;/BIG&#62;&#60;/STRONG&#62;
+&#60;A href=\"modules.php?name=FAQ\"&#62;FAQ&#60;/A&#62;&#60;BR&#62;
+&#60;STRONG&#62;&#60;BIG&#62;·&#60;/BIG&#62;&#60;/STRONG&#62;
+&#60;A href=\"modules.php?name=Web_Links
+&#38;amp;file=index&#38;amp;l_op=AddLink\"&#62;Add A Link&#60;/A&#62;&#60;BR&#62;
+&#60;STRONG&#62;&#60;BIG&#62;·&#60;/BIG&#62;&#60;/STRONG&#62;
+&#60;A href=\"modules.php?name=Downloads\"&#62;Downloads&#60;/A&#62;&#60;BR&#62;
+&#60;STRONG&#62;&#60;BIG&#62;·&#60;/BIG&#62;&#60;/STRONG&#62;
+&#60;A href=\"modules.php?name=Statistics\"&#62;Site Statistics&#60;/A&#62;&#60;BR&#62;
+&#60;STRONG&#62;&#60;BIG&#62;·&#60;/BIG&#62;&#60;/STRONG&#62;
+&#60;A href=\"modules.php?name=HeadLines\"&#62;News Headlines&#60;/A&#62;&#60;BR&#62;
+&#60;BR&#62;
+//******************************************
+//Below is for users and admins ONLY!!! 
+//******************************************
+&#60;u&#62;User Control Panel&#60;/u&#62;
+&#60;BR&#62;";  
+if (!IsSet($user))
+{;
+$content .= "
+&#60;STRONG&#62;&#60;BIG&#62;·&#60;/BIG&#62;&#60;/STRONG&#62;
+&#60;A href=\"modules.php?name=Your_Account\"&#62;Reg. Users Login. &#60;/A&#62;&#60;br&#62;";
+}
+if ((IsSet($user)) or (IsSet($admin)))
+{;
+$content .= "
+&#60;STRONG&#62;&#60;BIG&#62;·&#60;/BIG&#62;&#60;/STRONG&#62;
+&#60;A href=\"modules.php?name=Your_Account\"&#62;Your Account&#60;/A&#62;&#60;BR&#62;
+&#60;STRONG&#62;&#60;BIG&#62;·&#60;/BIG&#62;&#60;/STRONG&#62;
+&#60;A href=\"modules.php?name=Your_Account&#38;amp;op=edituser\"&#62;Edit Profile&#60;/A&#62;&#60;BR&#62;
+&#60;STRONG&#62;&#60;BIG&#62;·&#60;/BIG&#62;&#60;/STRONG&#62;
+&#60;A href=\"modules.php?name=Members_Photo_Upload\"&#62;Members Photo upload&#60;/A&#62;&#60;BR&#62;
+&#60;STRONG&#62;&#60;BIG&#62;·&#60;/BIG&#62;&#60;/STRONG&#62;
+&#60;A href=\"modules.php?name=Members_List\"&#62;View Member List&#60;/A&#62;&#60;BR&#62;
+&#60;STRONG&#62;&#60;BIG&#62;·&#60;/BIG&#62;&#60;/STRONG&#62;
+&#60;A href=\"modules.php?name=Your_Account&#38;amp;op=logout\"&#62;logout&#60;/A&#62;&#60;BR&#62;
+&#60;BR&#62;
+&#60;u&#62;Private Messages&#60;/u&#62;
+&#60;BR&#62;
+&#60;STRONG&#62;&#60;BIG&#62;·&#60;/BIG&#62;&#60;/STRONG&#62;
+&#60;A href=\"modules.php?name=Private_Messages\"&#62;View Messages&#60;/A&#62;&#60;BR&#62;
+&#60;STRONG&#62;&#60;BIG&#62;·&#60;/BIG&#62;&#60;/STRONG&#62;
+&#60;A href=\"modules.php?name=Private_Messages
+&#38;amp;file=reply&#38;amp;send=1\"&#62;Compose A Message&#60;/A&#62;&#60;BR&#62;
+";
+};
+//***************************************
+//ENDS HERE
+//***************************************
+$content .= "
+&#60;BR&#62;
+&#60;u&#62;Send Content&#60;/u&#62;
+&#60;BR&#62;
+&#60;STRONG&#62;&#60;BIG&#62;·&#60;/BIG&#62;&#60;/STRONG&#62;
+&#60;A href=\"modules.php?name=Submit_News\"&#62;Submit News&#60;/A&#62;&#60;BR&#62;
+&#60;STRONG&#62;&#60;BIG&#62;·&#60;/BIG&#62;&#60;/STRONG&#62;
+&#60;A href=\"modules.php?name=Reviews&#38;amp;rop=write\"&#62;Write A Review&#60;/A&#62;&#60;BR&#62;
+&#60;STRONG&#62;&#60;BIG&#62;·&#60;/BIG&#62;&#60;/STRONG&#62;
+&#60;A href=\"modules.php?name=Web_Links
+&#38;amp;file=index&#38;amp;l_op=AddLink\"&#62;Add A Link&#60;/A&#62;&#60;BR&#62;
+&#60;STRONG&#62;&#60;BIG&#62;·&#60;/BIG&#62;&#60;/STRONG&#62;
+&#60;A href=\"modules.php?name=My_eGallery
+&#38;amp;file=index&#38;amp;do=upload\"&#62;Add images to the Gallery&#60;/A&#62;&#60;BR&#62;
+&#60;BR&#62;
+&#60;/font&#62;
+&#60;/B&#62;
+&#60;HR size=3&#62;
+";
+?&#62;</PRE
+></FONT
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="TREEMENU-BLOCK"
+>17.2.2. Treemenu block</A
+></H2
+><P
+>A commonly asked question in <A
+HREF="http://phpnuke.org"
+TARGET="_top"
+>PHPNuke</A
+> forums (see for example <A
+HREF="http://www.nukeforums.com/forums/viewtopic.php?mode=viewtopic&#38;t=11926"
+TARGET="_top"
+>Menu Hack Needed (show different menu or block depending on the category)</A
+>), is if there exists some Module block out there that displays a dynamic view of the available modules. The webmaster needs a functionality that will allow for the display of only certain module links, depending on, say, the interests, access level, or preferences of the viewer. </P
+><P
+>A typical Module block, as shipped with the standard PHPNuke package, looks as in <A
+HREF="build-custom-module-blocks.html#FIG-MODULES-BLOCK-2"
+>Figure 17-2</A
+>.</P
+><P
+><DIV
+CLASS="FIGURE"
+><A
+NAME="FIG-MODULES-BLOCK-2"
+></A
+><P
+><B
+>Figure 17-2.     The standard Modules block.
+   </B
+></P
+><DIV
+CLASS="MEDIAOBJECT"
+><P
+><IMG
+SRC="./images/modules-block.png"><DIV
+CLASS="CAPTION"
+><P
+> The standard Modules block.</P
+></DIV
+></P
+></DIV
+></DIV
+></P
+><P
+>What we need instead is a module block that displays some links (to modules, or generally, to pages) when a certain condition is met (say, when <A
+HREF="http://www.karakas-online.de/EN-Book/preinstalled-modules.html"
+TARGET="_top"
+>Category</A
+> A was previously chosen) and some other ones when a different condition is true (e.g. when Category B was chosen).</P
+><DIV
+CLASS="SECT3"
+><H3
+CLASS="SECT3"
+><A
+NAME="GENERAL-IDEA"
+>17.2.2.1. The general idea</A
+></H3
+><P
+>To met the above requirements, the <A
+HREF="http://www.karakas-online.de/myTreemenu/"
+TARGET="_top"
+>Treemenu block for PHP-Nuke</A
+> adapts the well-known <A
+HREF="http://www.bitbuddha.com/php/treemenu/"
+TARGET="_top"
+>Treemenu</A
+>  concept to a PHPNuke Block and creates a PHPNuke block containing a Treemenu which looks as in <A
+HREF="build-custom-module-blocks.html#FIG-TREEMENU"
+>Figure 17-3</A
+>.</P
+><P
+><DIV
+CLASS="FIGURE"
+><A
+NAME="FIG-TREEMENU"
+></A
+><P
+><B
+>Figure 17-3.    Treemenu Block.
+   </B
+></P
+><DIV
+CLASS="MEDIAOBJECT"
+><P
+><IMG
+SRC="./images/treemenu.png"><DIV
+CLASS="CAPTION"
+><P
+>Treemenu Block.</P
+></DIV
+></P
+></DIV
+></DIV
+></P
+><P
+>When the user clicks on an item like &#8220;Links&#8221;, the subtree under this item is unfolded (<A
+HREF="build-custom-module-blocks.html#FIG-TREEMENU1"
+>Figure 17-4</A
+>).</P
+><P
+><DIV
+CLASS="FIGURE"
+><A
+NAME="FIG-TREEMENU1"
+></A
+><P
+><B
+>Figure 17-4.    Treemenu Block with &#8220;Links&#8221; expanded.
+   </B
+></P
+><DIV
+CLASS="MEDIAOBJECT"
+><P
+><IMG
+SRC="./images/treemenu1.png"><DIV
+CLASS="CAPTION"
+><P
+>Treemenu Block with &#8220;Links&#8221; expanded.</P
+></DIV
+></P
+></DIV
+></DIV
+></P
+><P
+>A further click on the subcategory &#8220;My work&#8221; will reveal another level of groups (<A
+HREF="build-custom-module-blocks.html#FIG-TREEMENU2"
+>Figure 17-5</A
+>).</P
+><P
+><DIV
+CLASS="FIGURE"
+><A
+NAME="FIG-TREEMENU2"
+></A
+><P
+><B
+>Figure 17-5.    Treemenu Block with &#8220;My work&#8221; expanded.
+   </B
+></P
+><DIV
+CLASS="MEDIAOBJECT"
+><P
+><IMG
+SRC="./images/treemenu2.png"><DIV
+CLASS="CAPTION"
+><P
+>Treemenu Block with &#8220;My work&#8221; expanded.</P
+></DIV
+></P
+></DIV
+></DIV
+></P
+><P
+>Finally, a click on a subsubcategory like &#8220;Linux&#8221; will unfold the &#8220;leaves&#8221; of the Treemenu (<A
+HREF="build-custom-module-blocks.html#FIG-TREEMENU3"
+>Figure 17-6</A
+>).</P
+><P
+><DIV
+CLASS="FIGURE"
+><A
+NAME="FIG-TREEMENU3"
+></A
+><P
+><B
+>Figure 17-6.    Treemenu Block with &#8220;Linux&#8221; expanded.
+   </B
+></P
+><DIV
+CLASS="MEDIAOBJECT"
+><P
+><IMG
+SRC="./images/treemenu3.png"><DIV
+CLASS="CAPTION"
+><P
+>Treemenu Block with &#8220;Linux&#8221; expanded.</P
+></DIV
+></P
+></DIV
+></DIV
+></P
+><P
+>Of course, the naming and nesting of categories and/or items is fully arbitrary. The above functionality can easily be adapted to suit more advanced needs too (see <A
+HREF="http://www.karakas-online.de/myTreemenu/refinements.html"
+TARGET="_top"
+>refinements of the <SPAN
+CLASS="APPLICATION"
+>PHP-Nuke</SPAN
+> Treemenu</A
+>).</P
+></DIV
+><DIV
+CLASS="SECT3"
+><H3
+CLASS="SECT3"
+><A
+NAME="WHAT-IS-TREEMENU"
+>17.2.2.2. What is Treemenu</A
+></H3
+><P
+>The Treemenu block makes use of a Treemenu in a PHPNuke Block. Treemenu is a <ACRONYM
+CLASS="ACRONYM"
+>PHP</ACRONYM
+> class created by Bjorge Dijkstra (original script to be found <A
+HREF="http://www.hotscripts.com/Detailed/3704.html"
+TARGET="_top"
+>Treemenu Class from Bjorge</A
+>) and adapted by Denny Shimkoski (his version to be found in <A
+HREF="http://www.bitbuddha.com/php/treemenu/"
+TARGET="_top"
+>Treemenu from Denny</A
+>). Chris have fixed some bugs in the latter one and integrated it into a <A
+HREF="http://www.karakas-online.de/phpnuke/block-Treemenu.tgz"
+TARGET="_top"
+>Treemenu block for PHP-Nuke</A
+>.</P
+><P
+>There are two ways you can use the Treemenu class - Chris uses the one that takes as input a <A
+HREF="./sitemap.txt"
+TARGET="_top"
+>simple text file</A
+> and creates a tree menu, in a style that most users are familiar with from a graphical file manager (see <A
+HREF="build-custom-module-blocks.html#FIG-TREEMENU"
+>Figure 17-3</A
+>). Navigation through such a tree is done intuitively by expanding and collapsing the various tree levels by clicking on the node icons (the icons are discussed in <A
+HREF="http://www.karakas-online.de/myTreemenu/refinements.html"
+TARGET="_top"
+>custom node icons for the <SPAN
+CLASS="APPLICATION"
+>PHP-Nuke</SPAN
+> Treemenu</A
+>).</P
+><P
+>To create a Treemenu, once you have written the input text file with your favorite text editor (see <A
+HREF="http://www.karakas-online.de/myTreemenu/what-is-treemenu.html#INPUT-FILE-METHOD"
+TARGET="_top"
+>input file method for the Treemenu</A
+>) or used the <A
+HREF="http://www.karakas-online.de/myTreemenu/what-is-treemenu.html#ALTERNATIVE-METHOD"
+TARGET="_top"
+>alternative method to fill the nodes and leaves of the Treemenu</A
+>, you just have to write this 3-liner to get it up and running:</P
+><TABLE
+BORDER="1"
+BGCOLOR="#E0E0E0"
+WIDTH="100%"
+><TR
+><TD
+><FONT
+COLOR="#000000"
+><PRE
+CLASS="SCREEN"
+>include("blocks/treemenu/treemenu.inc");
+$tree = new TreeMenu("a", "blocks/treemenu/sitemap.txt");
+$tree-&#62;show();</PRE
+></FONT
+></TD
+></TR
+></TABLE
+><DIV
+CLASS="NOTE"
+><P
+></P
+><TABLE
+CLASS="NOTE"
+WIDTH="100%"
+BORDER="0"
+><TR
+><TD
+WIDTH="25"
+ALIGN="CENTER"
+VALIGN="TOP"
+><IMG
+SRC="../images/note.png"
+HSPACE="5"
+ALT="Note"></TD
+><TH
+ALIGN="LEFT"
+VALIGN="MIDDLE"
+><B
+>Note</B
+></TH
+></TR
+><TR
+><TD
+>&nbsp;</TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+>In order to be able to display the output of the above code in a PHPNuke Block, we have to capture it in an output buffer with the ob_start(), ob_get_contents()  and ob_end_clean() mechanism:
+<TABLE
+BORDER="1"
+BGCOLOR="#E0E0E0"
+WIDTH="100%"
+><TR
+><TD
+><FONT
+COLOR="#000000"
+><PRE
+CLASS="SCREEN"
+>ob_start();
+include("blocks/treemenu/treemenu.inc");
+$tree = new TreeMenu("a", "blocks/treemenu/sitemap.txt");
+$tree-&#62;show();
+$output = ob_get_contents();
+ob_end_clean();
+$content = $output;</PRE
+></FONT
+></TD
+></TR
+></TABLE
+></P
+></TD
+></TR
+></TABLE
+></DIV
+><P
+>See <A
+HREF="http://www.karakas-online.de/myTreemenu/"
+TARGET="_top"
+>Treemenu block for PHP-Nuke</A
+> for more information of how to use the Treemenu block as a module block for <SPAN
+CLASS="APPLICATION"
+>PHP-Nuke</SPAN
+>.</P
+></DIV
+></DIV
+></DIV
+><DIV
+CLASS="NAVFOOTER"
+><HR
+ALIGN="LEFT"
+WIDTH="100%"><TABLE
+SUMMARY="Footer navigation table"
+WIDTH="100%"
+BORDER="0"
+CELLPADDING="0"
+CELLSPACING="0"
+><TR
+><TD
+WIDTH="33%"
+ALIGN="left"
+VALIGN="top"
+><A
+HREF="change-buggy-block.html"
+ACCESSKEY="P"
+>Prev</A
+></TD
+><TD
+WIDTH="34%"
+ALIGN="center"
+VALIGN="top"
+><A
+HREF="index.html"
+ACCESSKEY="H"
+>Home</A
+></TD
+><TD
+WIDTH="33%"
+ALIGN="right"
+VALIGN="top"
+><A
+HREF="build-rss-blocks-with-variable-news-number.html"
+ACCESSKEY="N"
+>Next</A
+></TD
+></TR
+><TR
+><TD
+WIDTH="33%"
+ALIGN="left"
+VALIGN="top"
+>How to change a buggy block</TD
+><TD
+WIDTH="34%"
+ALIGN="center"
+VALIGN="top"
+><A
+HREF="modifying-php-nuke-blocks.html"
+ACCESSKEY="U"
+>Up</A
+></TD
+><TD
+WIDTH="33%"
+ALIGN="right"
+VALIGN="top"
+>How to build RSS blocks with variable number of news items</TD
+></TR
+></TABLE
+></DIV
+></BODY
+></HTML
+>

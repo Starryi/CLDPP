@@ -1,0 +1,210 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1"><title>2. Your text environment</title><link rel="stylesheet" type="text/css" href="style.css"><meta name="generator" content="DocBook XSL Stylesheets V1.79.1"><meta name="keywords" content="Linux, Beginners, linux, start, Getting started, guide, Guide, Exercises, exercises"><link rel="home" href="index.html" title="Introduction to Linux"><link rel="up" href="ch07.html" title="Chapter 7. Home sweet /home"><link rel="prev" href="ch07s01.html" title="1. General good housekeeping"><link rel="next" href="ch07s03.html" title="3. The graphical environment"></head><body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF"><div class="navheader"><table width="100%" summary="Navigation header"><tr><th colspan="3" align="center">2. Your text environment</th></tr><tr><td width="20%" align="left"><a accesskey="p" href="ch07s01.html">Prev</a> </td><th width="60%" align="center">Chapter 7. Home sweet /home</th><td width="20%" align="right"> <a accesskey="n" href="ch07s03.html">Next</a></td></tr></table><hr></div><div class="sect1"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="sect_07_02"></a>2. Your text environment</h2></div></div></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="sect_07_02_1"></a>2.1. Environment variables</h3></div></div></div><div class="sect3"><div class="titlepage"><div><div><h4 class="title"><a name="sect_07_02_01"></a>2.1.1. General</h4></div></div></div><p>We already mentioned a couple of environment variables, such as <code class="varname">PATH</code> and <code class="varname">HOME</code>.  Until now, we only saw examples in which they serve a certain purpose to the shell.  But there are many other Linux utilities that need information about you in order to do a good job.</p><p>What other information do programs need apart from paths and home directories?</p><p>A lot of programs want to know about the kind of terminal you are using; this information is stored in the <code class="varname">TERM<a class="indexterm" name="idm7186"></a></code> variable.  In text mode, this will be the <span class="emphasis"><em>linux</em></span> terminal emulation, in graphical mode you are likely to use <span class="emphasis"><em>xterm</em></span>.  Lots of programs want to know what your favorite editor is, in case they have to start an editor in a subprocess.  The shell you are using is stored in the <code class="varname">SHELL<a class="indexterm" name="idm7191"></a></code> variable, the operating system type in <code class="varname">OS<a class="indexterm" name="idm7194"></a></code> and so on.  A list of all variables currently defined for your session can be viewed<a class="indexterm" name="idm7196"></a> entering the <span class="command"><strong>printenv<a class="indexterm" name="idm7200"></a></strong></span> command.</p><p>The environment variables are managed by the shell.  As opposed to regular shell variables, environment variables are inherited by any program you start, including another shell.  New processes are assigned a copy of these variables, which they can read, modify and pass on in turn to their own child processes.</p><p>There is nothing special about variable names, except that the common ones are in upper case characters by convention.  You may come up with any name you want, although there are standard variables that are important enough to be the same on every Linux system, such as <code class="varname">PATH</code> and <code class="varname">HOME</code>.</p></div><div class="sect3"><div class="titlepage"><div><div><h4 class="title"><a name="sect_07_02_02"></a>2.1.2. Exporting variables</h4></div></div></div><p>An individual variable's content<a class="indexterm" name="idm7209"></a> is usually displayed using the <span class="command"><strong>echo<a class="indexterm" name="idm7213"></a></strong></span> command, as in these examples:</p><pre class="screen">
+<code class="prompt">debby:~&gt;</code> <span class="command"><strong>echo $PATH</strong></span>
+/usr/bin:/usr/sbin:/bin:/sbin:/usr/X11R6/bin:/usr/local/bin
+
+<code class="prompt">debby:~&gt;</code> <span class="command"><strong>echo $MANPATH</strong></span>
+/usr/man:/usr/share/man/:/usr/local/man:/usr/X11R6/man
+</pre><p>If you want to change the content of a variable in a way that is useful to other programs, you have to export<a class="indexterm" name="idm7221"></a> the new value from your environment into the environment that runs these programs.  A common example is exporting the <code class="varname">PATH</code> variable.  You may declare it as follows, in order to be able to play with the flight simulator software that is in <code class="filename">/opt/FlightGear/bin</code>:</p><pre class="screen">
+<code class="prompt">debby:~&gt;</code> <span class="command"><strong>PATH=$PATH:/opt/FlightGear/bin</strong></span>
+</pre><p>This instructs the shell to not only search programs in the current path, <code class="varname">$PATH</code>, but also in the additional directory <code class="filename">/opt/FlightGear/bin</code>.</p><p>However, as long as the new value of the <code class="varname">PATH</code> variable is not known to the environment, things will still not work:</p><pre class="screen">
+<code class="prompt">debby:~&gt;</code> <span class="command"><strong>runfgfs</strong></span>
+bash: runfgfs: command not found
+</pre><p>Exporting variables is done using the shell built-in command <span class="command"><strong>export<a class="indexterm" name="idm7239"></a></strong></span>:</p><pre class="screen">
+<code class="prompt">debby:~&gt;</code> <span class="command"><strong>export PATH</strong></span>
+
+<code class="prompt">debby:~&gt;</code> <span class="command"><strong>runfgfs</strong></span>
+--flight simulator starts--
+</pre><p>In <span class="application">Bash</span>, we normally do this in one elegant step:</p><div class="cmdsynopsis"><p><code class="command">export <code class="varname">VARIABLE</code>=<em class="replaceable"><code>value</code></em></code> </p></div><p>The same technique is used for the <code class="varname">MANPATH<a class="indexterm" name="idm7254"></a></code> variable, that tells the <span class="command"><strong>man</strong></span> command where to look for compressed man pages.  If new software is added to the system in new or unusual directories, the documentation for it will probably also be in an unusual directory.  If you want to read the man pages for the new software, extend the <code class="varname">MANPATH</code> variable:</p><pre class="screen">
+<code class="prompt">debby:~&gt;</code> <span class="command"><strong>export MANPATH=$MANPATH:/opt/FlightGear/man</strong></span>
+
+<code class="prompt">debby:~&gt;</code> <span class="command"><strong>echo $MANPATH</strong></span>
+/usr/man:/usr/share/man:/usr/local/man:/usr/X11R6/man:/opt/FlightGear/man
+</pre><p>You can avoid retyping this command in every window you open by adding it to one of your shell setup files, see <a class="xref" href="ch07s02.html#sect_07_02_04" title="2.2. Shell setup files">Section 2.2, &#8220;Shell setup files&#8221;</a>.</p></div><div class="sect3"><div class="titlepage"><div><div><h4 class="title"><a name="sect_07_02_03"></a>2.1.3. Reserved variables</h4></div></div></div><p>The following table gives an overview of the most common<a class="indexterm" name="idm7268"></a> predefined variables:</p><div class="table"><a name="idm7271"></a><p class="title"><b>Table 7.1. Common environment variables</b></p><div class="table-contents"><table class="table" summary="Common environment variables" border="1"><colgroup><col><col></colgroup><thead><tr><th align="left">Variable name</th><th align="left">Stored information</th></tr></thead><tbody><tr><td align="left"><code class="varname">DISPLAY<a class="indexterm" name="idm7282"></a></code></td><td align="left">used by the X Window system to identify the display server</td></tr><tr><td align="left"><code class="varname">DOMAIN<a class="indexterm" name="idm7288"></a></code></td><td align="left">domain name</td></tr><tr><td align="left"><code class="varname">EDITOR<a class="indexterm" name="idm7294"></a></code></td><td align="left">stores your favorite line editor</td></tr><tr><td align="left"><code class="varname">HISTSIZE<a class="indexterm" name="idm7300"></a></code></td><td align="left">size of the shell history file in number of lines</td></tr><tr><td align="left"><code class="varname">HOME<a class="indexterm" name="idm7306"></a></code></td><td align="left">path to your home directory</td></tr><tr><td align="left"><code class="varname">HOSTNAME<a class="indexterm" name="idm7312"></a></code></td><td align="left">local host name</td></tr><tr><td align="left"><code class="varname">INPUTRC<a class="indexterm" name="idm7318"></a></code></td><td align="left">location of definition file for input devices such as keyboard</td></tr><tr><td align="left"><code class="varname">LANG<a class="indexterm" name="idm7324"></a></code></td><td align="left">preferred language</td></tr><tr><td align="left"><code class="varname">LD_LIBRARY_PATH<a class="indexterm" name="idm7330"></a></code></td><td align="left">paths to search for libraries</td></tr><tr><td align="left"><code class="varname">LOGNAME<a class="indexterm" name="idm7336"></a></code></td><td align="left">login name</td></tr><tr><td align="left"><code class="varname">MAIL<a class="indexterm" name="idm7342"></a></code></td><td align="left">location of your incoming mail folder</td></tr><tr><td align="left"><code class="varname">MANPATH<a class="indexterm" name="idm7348"></a></code></td><td align="left">paths to search for man pages</td></tr><tr><td align="left"><code class="varname">OS<a class="indexterm" name="idm7354"></a></code></td><td align="left">string describing the operating system</td></tr><tr><td align="left"><code class="varname">OSTYPE<a class="indexterm" name="idm7360"></a></code></td><td align="left">more information about version etc.</td></tr><tr><td align="left"><code class="varname">PAGER<a class="indexterm" name="idm7366"></a></code></td><td align="left">used by programs like <span class="command"><strong>man</strong></span> which need to know what to do in case output is more than one terminal window.</td></tr><tr><td align="left"><code class="varname">PATH<a class="indexterm" name="idm7373"></a></code></td><td align="left">search paths for commands</td></tr><tr><td align="left"><code class="varname">PS1<a class="indexterm" name="idm7379"></a></code></td><td align="left">primary prompt</td></tr><tr><td align="left"><code class="varname">PS2<a class="indexterm" name="idm7385"></a></code></td><td align="left">secondary prompt</td></tr><tr><td align="left"><code class="varname">PWD<a class="indexterm" name="idm7391"></a></code></td><td align="left">present working directory</td></tr><tr><td align="left"><code class="varname">SHELL<a class="indexterm" name="idm7397"></a></code></td><td align="left">current shell</td></tr><tr><td align="left"><code class="varname">TERM<a class="indexterm" name="idm7403"></a></code></td><td align="left">terminal type</td></tr><tr><td align="left"><code class="varname">UID<a class="indexterm" name="idm7409"></a></code></td><td align="left">user ID</td></tr><tr><td align="left"><code class="varname">USER(NAME)<a class="indexterm" name="idm7415"></a></code></td><td align="left">user name</td></tr><tr><td align="left"><code class="varname">VISUAL<a class="indexterm" name="idm7421"></a></code></td><td align="left">your favorite full-screen editor</td></tr><tr><td align="left"><code class="varname">XENVIRONMENT<a class="indexterm" name="idm7427"></a></code></td><td align="left">location of your personal settings for X behavior</td></tr><tr><td align="left"><code class="varname">XFILESEARCHPATH<a class="indexterm" name="idm7433"></a></code></td><td align="left">paths to search for graphical libraries</td></tr></tbody></table></div></div><br class="table-break"><p>A lot of variables are not only predefined but also preset, using configuration files.  We discuss these in the next section.</p></div></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="sect_07_02_04"></a>2.2. Shell setup files</h3></div></div></div><p>When entering the <span class="command"><strong>ls <code class="option">-al</code></strong></span> command to get a long listing of all files, including the ones starting with a dot, in your home directory, you will see one or more files starting with a . and ending in <span class="emphasis"><em>rc</em></span>.  For the case of <span class="command"><strong>bash</strong></span>, this is <code class="filename">.bashrc<a class="indexterm" name="idm7445"></a></code>.  This is the counterpart of the system-wide configuration file <code class="filename">/etc/bashrc<a class="indexterm" name="idm7448"></a></code>.</p><p>When logging<a class="indexterm" name="idm7451"></a> into an interactive login shell, <span class="command"><strong>login</strong></span> will do the authentication, set the environment and start your shell.  In the case of <span class="command"><strong>bash</strong></span>, the next step is reading the general <code class="filename">profile<a class="indexterm" name="idm7457"></a></code> from <code class="filename">/etc</code>, if that file exists.  <span class="command"><strong>bash</strong></span> then looks for <code class="filename">~/.bash_profile<a class="indexterm" name="idm7462"></a></code>, <code class="filename">~/.bash_login<a class="indexterm" name="idm7466"></a></code> and <code class="filename">~/.profile<a class="indexterm" name="idm7469"></a></code>, in that order, and reads and executes commands from the first one that exists and is readable.  If none exists, <code class="filename">/etc/bashrc</code> is applied.</p><p>When a login shell exits, <span class="command"><strong>bash</strong></span> reads and executes commands from the file <code class="filename">~/.bash_logout<a class="indexterm" name="idm7475"></a></code>, if it exists.
+</p><p>This procedure is explained in detail in the <span class="command"><strong>login<a class="indexterm" name="idm7479"></a></strong></span> and <span class="command"><strong>bash</strong></span> man pages.</p></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="sect_07_02_05"></a>2.3. A typical set of setup files</h3></div></div></div><div class="sect3"><div class="titlepage"><div><div><h4 class="title"><a name="sect_07_02_05_01"></a>2.3.1. /etc/profile example</h4></div></div></div><p>Let's look<a class="indexterm" name="idm7487"></a> at some of these config files.  First <code class="filename">/etc/profile</code> is read, in which important variables such as <code class="varname">PATH</code>, <code class="varname">USER</code> and <code class="varname">HOSTNAME</code> are set:</p><pre class="screen">
+<code class="prompt">debby:~&gt;</code> <span class="command"><strong>cat /etc/profile</strong></span>
+# /etc/profile
+
+# System wide environment and startup programs, for login setup
+# Functions and aliases go in /etc/bashrc
+
+
+# Path manipulation
+if [ `id -u` = 0 ] &amp;&amp; ! echo $PATH | /bin/grep -q "/sbin" ; then
+    PATH=/sbin:$PATH
+fi
+
+if [ `id -u` = 0 ] &amp;&amp; ! echo $PATH | /bin/grep -q "/usr/sbin" ; then
+    PATH=/usr/sbin:$PATH
+fi
+
+if [ `id -u` = 0 ] &amp;&amp; ! echo $PATH | /bin/grep -q "/usr/local/sbin"
+    then
+    PATH=/usr/local/sbin:$PATH
+fi
+
+if ! echo $PATH | /bin/grep -q "/usr/X11R6/bin" ; then
+    PATH="$PATH:/usr/X11R6/bin"
+fi
+</pre><p>These lines check the path to set: if <span class="emphasis"><em>root</em></span> opens a shell (user ID 0), it is checked that <code class="filename">/sbin</code>, <code class="filename">/usr/sbin</code> and <code class="filename">/usr/local/sbin</code> are in the path.  If not, they are added.  It is checked for everyone that <code class="filename">/usr/X11R6/bin</code> is in the path.</p><pre class="screen">
+# No core files by default
+ulimit -S -c 0 &gt; /dev/null 2&gt;&amp;1
+</pre><p>All trash goes to <code class="filename">/dev/null</code> if the user doesn't change this setting.</p><pre class="screen">
+USER=`id -un`
+LOGNAME=$USER
+MAIL="/var/spool/mail/$USER"
+
+HOSTNAME=`/bin/hostname`
+HISTSIZE=1000
+</pre><p>Here general variables are assigned their proper values.</p><pre class="screen">
+if [ -z "$INPUTRC" -a ! -f "$HOME/.inputrc" ]; then
+    INPUTRC=/etc/inputrc
+fi
+</pre><p>If the variable <code class="varname">INPUTRC</code> is not set, and there is no <code class="filename">.inputrc</code> in the user's home directory, then the default input control file is loaded.  </p><pre class="screen">
+export PATH USER LOGNAME MAIL HOSTNAME HISTSIZE INPUTRC
+</pre><p>All variables are exported, so that they are available to other programs requesting information about your environment.</p></div><div class="sect3"><div class="titlepage"><div><div><h4 class="title"><a name="sect_07_02_05_02"></a>2.3.2. The profile.d directory</h4></div></div></div><pre class="screen">
+for i in /etc/profile.d/*.sh ; do
+    if [ -r $i ]; then
+    	. $i
+    fi
+done
+unset i
+</pre><p>All readable shell scripts from the <code class="filename">/etc/profile.d<a class="indexterm" name="idm7519"></a></code> directory are read and executed.  These do things like enabling <span class="emphasis"><em>color-ls</em></span>, aliasing <span class="command"><strong>vi</strong></span> to <span class="command"><strong>vim</strong></span>, setting locales etc.  The temporary variable <code class="varname">i</code> is unset to prevent it from disturbing shell behavior later on.</p></div><div class="sect3"><div class="titlepage"><div><div><h4 class="title"><a name="sect_07_02_05_03"></a>2.3.3. .bash_profile example</h4></div></div></div><p>Then <span class="command"><strong>bash</strong></span> looks for a <code class="filename">.bash_profile</code> in the user's home<a class="indexterm" name="idm7530"></a> directory:</p><pre class="screen">
+<code class="prompt">debby:~&gt;</code> <span class="command"><strong>cat .bash_profile </strong></span>
+#################################################################
+#                                                               #
+#   .bash_profile file                                          #
+#                                                               #
+#   Executed from the bash shell when you log in.               #
+#                                                               #
+#################################################################
+
+source ~/.bashrc
+source ~/.bash_login
+</pre><p>This very straight forward file instructs your shell to first read <code class="filename">~/.bashrc</code> and then <code class="filename">~/.bash_login</code>.  You will encounter the <span class="command"><strong>source<a class="indexterm" name="idm7540"></a></strong></span> built-in shell command regularly when working in a shell environment: it is used to apply configuration changes to the current environment.</p></div><div class="sect3"><div class="titlepage"><div><div><h4 class="title"><a name="sect_07_02_05_04"></a>2.3.4. .bash_login example</h4></div></div></div><p>The <code class="filename">~/.bash_login</code> file<a class="indexterm" name="idm7546"></a> defines default file protection by setting the <span class="command"><strong>umask</strong></span> value, see <a class="xref" href="ch03s04.html#sect_03_04_02_02" title="4.2.2. Logging on to another group">Section 4.2.2, &#8220;Logging on to another group&#8221;</a>.  The <code class="filename">~/.bashrc</code> file is used to define a bunch of user-specific aliases and functions and personal environment variables.  It first reads <code class="filename">/etc/bashrc</code>, which describes the default prompt (<code class="varname">PS1</code>) and the default umask value.  After that, you can add your own settings.  If no <code class="filename">~/.bashrc</code> exists, <code class="filename">/etc/bashrc</code> is read by default.</p></div><div class="sect3"><div class="titlepage"><div><div><h4 class="title"><a name="sect_07_02_05_05"></a>2.3.5. /etc/bashrc example</h4></div></div></div><p>Your <code class="filename">/etc/bashrc</code> file<a class="indexterm" name="idm7560"></a> might look like this:</p><pre class="screen">
+<code class="prompt">debby:~&gt;</code> <span class="command"><strong>cat /etc/bashrc</strong></span>
+# /etc/bashrc
+
+# System wide functions and aliases
+# Environment stuff goes in /etc/profile
+
+# by default, we want this to get set.
+# Even for non-interactive, non-login shells.
+if [ `id -gn` = `id -un` -a `id -u` -gt 99 ]; then
+	umask 002
+else
+	umask 022
+fi
+</pre><p>These lines set the <span class="command"><strong>umask</strong></span> value.  Then, depending on the type of shell, the prompt is set:</p><pre class="screen">
+# are we an interactive shell?
+if [ "$PS1" ]; then
+  if [ -x /usr/bin/tput ]; then
+    if [ "x`tput kbs`" != "x" ]; then 
+# We can't do this with "dumb" terminal
+      stty erase `tput kbs`
+    elif [ -x /usr/bin/wc ]; then
+      if [ "`tput kbs|wc -c `" -gt 0 ]; then 
+# We can't do this with "dumb" terminal
+        stty erase `tput kbs`
+      fi
+    fi
+  fi
+  case $TERM in
+	xterm*)
+	if [ -e /etc/sysconfig/bash-prompt-xterm ]; then
+		PROMPT_COMMAND=/etc/sysconfig/bash-prompt-xterm
+	else
+   PROMPT_COMMAND='echo -ne "\033]0;${USER}@${HOSTNAME%%.*}:\
+${PWD/$HOME/~}\007"'
+	fi
+    ;;
+	*)
+   [ -e /etc/sysconfig/bash-prompt-default ] &amp;&amp; PROMPT_COMMAND=\
+/etc/sysconfig/bash-prompt-default
+	    ;;
+    esac
+    [ "$PS1" = "\\s-\\v\\\$ " ] &amp;&amp; PS1="[\u@\h \W]\\$ "
+    
+    if [ "x$SHLVL" != "x1" ]; then # We're not a login shell
+        for i in /etc/profile.d/*.sh; do
+	    if [ -x $i ]; then
+	        . $i
+	    fi
+	done
+    fi
+fi
+</pre></div><div class="sect3"><div class="titlepage"><div><div><h4 class="title"><a name="sect_07_02_05_06"></a>2.3.6. .bash_logout example</h4></div></div></div><p>Upon logout, the commands in <code class="filename">~/.bash_logout</code> are<a class="indexterm" name="idm7573"></a> executed, which can for instance clear the terminal, so that you have a clean window upon logging out of a remote session, or upon leaving the system console:</p><pre class="screen">
+<code class="prompt">debby:~&gt;</code> <span class="command"><strong>cat .bash_logout</strong></span>
+# ~/.bash_logout
+
+clear
+</pre><p>Let's take a closer look at how these scripts work in the next section.  Keep <span class="command"><strong>info <em class="parameter"><code>bash</code></em></strong></span> close at hand.</p></div></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="sect_07_02_06"></a>2.4. The Bash prompt</h3></div></div></div><div class="sect3"><div class="titlepage"><div><div><h4 class="title"><a name="sect_07_02_06_01"></a>2.4.1. Introduction</h4></div></div></div><p>
+The <span class="application">Bash</span> prompt can do much more than displaying such simple information as your user name, the name of your machine and some indication about the present working directory.  We can add other information such as the current date and time, number of connected users etc.</p><p>Before we begin, however, we will save our current prompt<a class="indexterm" name="idm7589"></a> in another environment variable:
+</p><pre class="screen">
+<code class="prompt">[jerry@nowhere jerry]$</code> <span class="command"><strong>MYPROMPT=$PS1</strong></span>
+
+<code class="prompt">[jerry@nowhere jerry]$</code> <span class="command"><strong>echo $MYPROMPT</strong></span>
+[\u@\h \W]\$
+
+<code class="prompt">[jerry@nowhere jerry]$</code>
+</pre><p>When we change<a class="indexterm" name="idm7599"></a> the prompt now, for example by issuing the command <span class="command"><strong><code class="varname">PS1</code>=<em class="replaceable"><code>"-&gt;"</code></em></strong></span>, we can always get our original prompt back with the command <span class="command"><strong><code class="varname">PS1</code>=<code class="varname">$MYPROMPT</code></strong></span>.  You will, of course, also get it back when you reconnect, as long as you just fiddle with the prompt on the command line and avoid putting it in a shell configuration file.</p></div><div class="sect3"><div class="titlepage"><div><div><h4 class="title"><a name="sect_07_02_06_02"></a>2.4.2. Some examples</h4></div></div></div><p>In order to understand these prompts<a class="indexterm" name="idm7611"></a> and the escape sequences used, we refer to the <span class="application">Bash Info</span> or man pages.</p><div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem"><p><span class="command"><strong>export <code class="varname">PS1</code>=<em class="replaceable"><code>"[\t \j] "</code></em></strong></span></p><p>Displays time of day and number of running jobs</p></li><li class="listitem"><p><span class="command"><strong>export <code class="varname">PS1</code>=<em class="replaceable"><code>"[\d][\u@\h \w] : "</code></em></strong></span></p><p>Displays date, user name, host name and current working directory.  Note that \W displays only base names of the present working directory.</p></li><li class="listitem"><p><span class="command"><strong>export <code class="varname">PS1</code>=<em class="replaceable"><code>"{\!} "</code></em></strong></span></p><p>Displays history number for each command.</p></li><li class="listitem"><p><span class="command"><strong>export <code class="varname">PS1</code>=<em class="replaceable"><code>"\[\033[1;35m\]\u@\h\[\033[0m\] "</code></em></strong></span></p><p>Displays user@host in pink.</p></li><li class="listitem"><p><span class="command"><strong>export <code class="varname">PS1</code>=<em class="replaceable"><code>"\[\033[1;35m\]\u\[\033[0m\] \[\033[1;34m\]\w\[\033[0m\] "</code></em></strong></span></p><p>Sets the user name in pink and the present working directory in blue.</p></li><li class="listitem"><p><span class="command"><strong>export <code class="varname">PS1</code>=<em class="replaceable"><code>"\[\033[1;44m\]$USER is in \w\[\033[0m\] "</code></em></strong></span></p><p>Prompt for people who have difficulties seeing the difference between the prompt and what they type.</p></li><li class="listitem"><p><span class="command"><strong>export <code class="varname">PS1</code>=<em class="replaceable"><code>"\[\033[4;34m\]\u@\h \w \[\033[0m\]"</code></em></strong></span></p><p>Underlined prompt.</p></li><li class="listitem"><p><span class="command"><strong>export <code class="varname">PS1</code>=<em class="replaceable"><code>"\[\033[7;34m\]\u@\h \w \[\033[0m\] "</code></em></strong></span></p><p>White characters on a blue background.</p></li><li class="listitem"><p><span class="command"><strong>export <code class="varname">PS1</code>=<em class="replaceable"><code>"\[\033[3;35m\]\u@\h \w \[\033[0m\]\a"</code></em></strong></span></p><p>Pink prompt in a lighter font that alerts you when your commands have finished.</p></li><li class="listitem"><p><span class="command"><strong>export <code class="varname">PS1</code>=...</strong></span></p></li></ul></div><p>Variables are exported so the subsequently executed commands will also know about the environment.  The prompt configuration line that you want is best put in your shell configuration file, <code class="filename">~/.bashrc<a class="indexterm" name="idm7676"></a></code>.</p><p>If you want, prompts can execute shell scripts and behave different under different conditions.  You can even have the prompt play a tune every time you issue a command, although this gets boring pretty soon.  More information can be found in the <a class="ulink" href="http://www.tldp.org/HOWTO/Bash-Prompt-HOWTO/" target="_top">Bash-Prompt HOWTO</a>.</p></div></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="sect_07_02_07"></a>2.5. Shell scripts</h3></div></div></div><div class="sect3"><div class="titlepage"><div><div><h4 class="title"><a name="sect_07_02_07_01"></a>2.5.1. What are scripts?</h4></div></div></div><p>A shell<a class="indexterm" name="idm7685"></a> script is, as we saw in the shell configuration examples, a text file containing shell commands.  When such a file is used as the first non-option argument when invoking <span class="application">Bash</span>, and neither the <code class="option">-c</code> nor <code class="option">-s</code> option is supplied, <span class="application">Bash</span> reads and executes commands from the file, then exits.  This mode of operation creates a non-interactive shell.  When <span class="application">Bash</span> runs a shell script, it sets the special parameter <code class="varname">0</code> to the name of the file, rather than the name of the shell, and the positional parameters (everything following the name of the script) are set to the remaining arguments, if any are given.  If no additional arguments are supplied, the positional parameters are unset.</p><p>A shell script may be made executable by using the <span class="command"><strong>chmod<a class="indexterm" name="idm7696"></a></strong></span> command to turn on the execute bit.  When <span class="application">Bash</span> finds such a file while searching the <code class="varname">PATH</code> for a command, it spawns a sub-shell to execute it.  In other words, executing</p><div class="cmdsynopsis"><p><code class="command">filename <em class="parameter"><code>ARGUMENTS</code></em></code> </p></div><p>is equivalent to executing</p><div class="cmdsynopsis"><p><code class="command">bash <em class="parameter"><code>filename</code></em> <em class="parameter"><code>ARGUMENTS</code></em></code> </p></div><p>if <span class="quote">&#8220;<span class="quote">filename</span>&#8221;</span> is an executable shell script.  This sub-shell reinitializes itself, so that the effect is as if a new shell had been invoked to interpret the script, with the exception that the locations of commands remembered by the parent (see <span class="command"><strong>hash</strong></span> in the <span class="application">Info</span> pages) are retained by the child.</p><p>Most versions of UNIX make this a part of the operating system's command execution mechanism.  If the first line of a script begins with the two characters <span class="quote">&#8220;<span class="quote">#!</span>&#8221;</span>, the remainder of the line specifies an interpreter for the program.  Thus, you can specify <span class="command"><strong>bash</strong></span>, <span class="command"><strong>awk</strong></span>, <span class="command"><strong>perl</strong></span> or some other interpreter or shell and write the rest of the script file in that language.</p><p>The arguments to the interpreter consist of a single optional argument following the interpreter name on the first line of the script file, followed by the name of the script file, followed by the rest of the arguments.  <span class="application">Bash</span> will perform this action on operating systems that do not handle it themselves.</p><p><span class="application">Bash</span> scripts often begin<a class="indexterm" name="idm7722"></a> with</p><pre class="screen">
+#! /bin/bash
+</pre><p>(assuming that <span class="application">Bash</span> has been installed in <code class="filename">/bin</code>), since this ensures that <span class="application">Bash</span> will be used to interpret the script, even if it is executed under another shell.</p></div><div class="sect3"><div class="titlepage"><div><div><h4 class="title"><a name="sect_07_02_07_02"></a>2.5.2. Some simple examples</h4></div></div></div><p>A very simple<a class="indexterm" name="idm7733"></a> script consisting of only one command, that says hello to the user executing it:</p><pre class="screen">
+<code class="prompt">[jerry@nowhere ~]</code> <span class="command"><strong>cat hello.sh</strong></span>
+#!/bin/bash
+echo "Hello $USER"
+</pre><p>The script actually consists of only one command, <span class="command"><strong>echo</strong></span>, which uses the <span class="emphasis"><em>value of</em></span> ($) the <code class="varname">USER</code> environment variable to print a string customized to the user issuing the command.</p><p>Another one-liner, used for displaying connected users:</p><pre class="screen">
+#!/bin/bash
+who | cut -d " " -f 1 | sort -u
+</pre><p>Here is a script consisting of some more lines, that I use to make backup copies of all files in a directory.  
+The script first makes a list of all the files in the current directory and puts it in the variable <code class="varname">LIST</code>.  Then it sets the name of the copy for each file, and then it copies the file.  For each file, a message is printed:</p><pre class="screen">
+<code class="prompt">tille:~&gt;</code> <span class="command"><strong>cat <code class="filename">bin/makebackupfiles.sh</code></strong></span>
+#!/bin/bash
+# make copies of all files in a directory
+LIST=`ls`
+for i in $LIST; do
+	ORIG=$i
+	DEST=$i.old
+	cp $ORIG $DEST
+	echo "copied $i"
+done
+</pre><p>Just entering a line like <span class="command"><strong>mv <em class="parameter"><code>*</code></em> <em class="parameter"><code>*.old</code></em></strong></span> won't work, as you will notice when trying this on a set of test files.  An <span class="command"><strong>echo</strong></span> command was added in order to display some activity.  <span class="command"><strong>echo</strong></span>'s are generally useful when a script won't work: insert one after each doubted step and you will find the error in no time.</p><p>The <code class="filename">/etc/rc.d/init.d</code> directory contains loads of examples.  Let's look at this script that controls<a class="indexterm" name="idm7759"></a> the fictive ICanSeeYou server:</p><pre class="screen">
+#!/bin/sh
+# description: ICanSeeYou allows you to see networked people
+
+# process name: ICanSeeYou
+# pidfile: /var/run/ICanSeeYou/ICanSeeYou.pid
+# config: /etc/ICanSeeYou.cfg
+
+# Source function library.
+. /etc/rc.d/init.d/functions
+
+# See how (with which arguments) we were called.
+case "$1" in
+	start)
+		echo -n "Starting ICanSeeYou: "
+		daemon ICanSeeYou
+		echo
+		touch /var/lock/subsys/ICanSeeYou
+		;;
+	stop)
+		echo -n "Shutting down ICanSeeYou: "
+		killproc ICanSeeYou
+		echo
+		rm -f /var/lock/subsys/ICanSeeYou
+		rm -f /var/run/ICanSeeYou/ICanSeeYou.pid
+		;;
+	status)
+		status ICanSeeYou
+		;;
+	restart)
+		$0 stop
+		$0 start
+		;;
+	*)
+		echo "Usage: $0 {start|stop|restart|status}"
+		exit 1
+esac
+
+exit 0
+</pre><p>First, with the <span class="command"><strong>.</strong></span> command (dot) a set of shell functions, used by almost all shell scripts in <code class="filename">/etc/rc.d/init.d</code>, is loaded.  Then a <span class="command"><strong>case</strong></span> command is issued, which defines 4 different ways the script can execute.  An example might be <span class="command"><strong>ICanSeeYou <em class="parameter"><code>start</code></em></strong></span>.  The decision of which case to apply is made by reading the (first) argument to the script, with the expression <span class="emphasis"><em>$1</em></span>.</p><p>When no compliant input is given, the default case, marked with an asterisk, is applied, upon which the script gives an error message.  The <span class="command"><strong>case</strong></span> list is ended with the <span class="command"><strong>esac</strong></span> statement.  In the <span class="emphasis"><em>start</em></span> case the server program is started as a daemon, and a process ID and lock are assigned.  In the <span class="emphasis"><em>stop</em></span> case, the server process is traced down and stopped, and the lock and the PID are removed.  Options, such as the <code class="option">daemon</code> option, and functions like <code class="option">killproc</code>, are defined in the <code class="filename">/etc/rc.d/init.d/functions</code> file.  This setup is specific to the distribution used in this example.  The initscripts on your system might use other functions, defined in other files, or none at all.</p><p>Upon success, the script returns an exit code of zero to its parent.</p><p>
+This script is a fine example of using functions, which make the script easier to read and the work done faster.  Note that they use <span class="command"><strong>sh</strong></span> instead of <span class="command"><strong>bash</strong></span>, to make them useful on a wider range of systems.  On a Linux system, calling <span class="command"><strong>bash</strong></span> as <span class="command"><strong>sh</strong></span> results in the shell running in POSIX-compliant mode.</p><p>The <span class="command"><strong>bash</strong></span> man pages contain more information about combining commands, <span class="command"><strong>for</strong></span>- and <span class="command"><strong>while</strong></span>-loops and regular expressions, as well as examples.  A comprehensible <span class="application">Bash</span> course for system administrators and power users, with exercises, from the same author as this Introduction to Linux guide, is at <a class="ulink" href="http://tille.garrels.be/training/bash/" target="_top">http://tille.garrels.be/training/bash/</a>.  Detailed description of <span class="application">Bash</span> features and applications is in the reference guide <a class="ulink" href="http://tldp.org/LDP/abs/html/index.html" target="_top">Advanced Bash Scripting</a>.</p></div></div></div><div class="navfooter"><hr><table width="100%" summary="Navigation footer"><tr><td width="40%" align="left"><a accesskey="p" href="ch07s01.html">Prev</a> </td><td width="20%" align="center"><a accesskey="u" href="ch07.html">Up</a></td><td width="40%" align="right"> <a accesskey="n" href="ch07s03.html">Next</a></td></tr><tr><td width="40%" align="left" valign="top">1. General good housekeeping </td><td width="20%" align="center"><a accesskey="h" href="index.html">Home</a></td><td width="40%" align="right" valign="top"> 3. The graphical environment</td></tr></table></div></body></html>

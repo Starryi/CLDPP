@@ -1,0 +1,157 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1"><title>6. Testbed</title><link rel="stylesheet" type="text/css" href="style.css"><meta name="generator" content="DocBook XSL Stylesheets V1.79.1"><link rel="home" href="index.html" title="802.1X Port-Based Authentication HOWTO"><link rel="up" href="index.html" title="802.1X Port-Based Authentication HOWTO"><link rel="prev" href="ar01s05.html" title="5. Authenticator: Setting up the Authenticator (Access Point)"><link rel="next" href="ar01s07.html" title="7. Note about driver support and Xsupplicant"></head><body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF"><div class="navheader"><table width="100%" summary="Navigation header"><tr><th colspan="3" align="center">6. Testbed</th></tr><tr><td width="20%" align="left"><a accesskey="p" href="ar01s05.html">Prev</a> </td><th width="60%" align="center"> </th><td width="20%" align="right"> <a accesskey="n" href="ar01s07.html">Next</a></td></tr></table><hr></div><div class="sect1"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="testbed"></a>6. Testbed</h2></div></div></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="testcase"></a>6.1. Testcase</h3></div></div></div><div class="mediaobject" align="center"><a name="testbedimg"></a><table border="0" summary="manufactured viewport for HTML img" style="cellpadding: 0; cellspacing: 0;" width="500"><tr><td align="center"><img src="images/8021X-Testbed.png" align="middle" width="500" alt="Testbed"></td></tr></table><div class="caption"><p>figure testbed: A wireless node request authentication.</p></div></div><p>
+  Our testbed consists of two nodes and one Access Point (AP). One
+  node functions as the Supplicant (WN), the other as the back-end
+  Authentication Server running RADIUS (AS). The Access Point is the
+  Authenticator. See figure <a class="link" href="ar01s06.html#testbedimg">testbed</a>
+  for explanation. 
+  </p><div class="important" style="margin-left: 0.5in; margin-right: 0.5in;"><h3 class="title">Important</h3><p>
+  It is crucial that the Access Point be able to reach (ping) the
+  Authentication Server, and vice versa! 
+  </p></div></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="startrad"></a>6.2. Running some tests</h3></div></div></div><div class="procedure"><a name="idm545"></a><p class="title"><b>Procedure 5. Running some tests</b></p><ol class="procedure" type="1"><li class="step"><p>
+  The RADIUS server is started in debug mode. This produces
+  <span class="emphasis"><em>a lot</em></span> of debug information. The important
+  snippets are below: 
+  </p><pre class="screen">
+  <code class="prompt"># </code><strong class="userinput"><code><span class="command"><strong>radiusd</strong></span> -X</code></strong>
+  Starting - reading configuration files ...
+  reread_config:  reading radiusd.conf
+  Config:   including file: /usr/local/etc/raddb/proxy.conf
+  Config:   including file: /usr/local/etc/raddb/clients.conf
+  Config:   including file: /usr/local/etc/raddb/snmp.conf
+  Config:   including file: /usr/local/etc/raddb/eap.conf
+  Config:   including file: /usr/local/etc/raddb/sql.conf
+  ......
+  Module: Loaded MS-CHAP 
+   mschap: use_mppe = yes
+   mschap: require_encryption = no
+   mschap: require_strong = no
+   mschap: with_ntdomain_hack = no
+   mschap: passwd = "(null)"
+   mschap: authtype = "MS-CHAP"
+   mschap: ntlm_auth = "(null)"
+  Module: Instantiated mschap (mschap)
+  ......
+  Module: Loaded eap 
+   eap: default_eap_type = "peap" <a name="rad_peap"></a><span><img src="images/callouts/1.png" alt="1" border="0"></span>
+   eap: timer_expire = 60
+   eap: ignore_unknown_eap_types = no
+   eap: cisco_accounting_username_bug = no
+  rlm_eap: Loaded and initialized type md5
+   tls: rsa_key_exchange = no <a name="rad_tls"></a><span><img src="images/callouts/2.png" alt="2" border="0"></span>
+   tls: dh_key_exchange = yes
+   tls: rsa_key_length = 512
+   tls: dh_key_length = 512
+   tls: verify_depth = 0
+   tls: CA_path = "(null)"
+   tls: pem_file_type = yes
+   tls: private_key_file = "/usr/local/etc/raddb/certs/cert-srv.pem"
+   tls: certificate_file = "/usr/local/etc/raddb/certs/cert-srv.pem"
+   tls: CA_file = "/usr/local/etc/raddb/certs/demoCA/cacert.pem"
+   tls: private_key_password = "SecretKeyPass77"
+   tls: dh_file = "/usr/local/etc/raddb/certs/dh"
+   tls: random_file = "/usr/local/etc/raddb/certs/random"
+   tls: fragment_size = 1024
+   tls: include_length = yes
+   tls: check_crl = no
+   tls: check_cert_cn = "(null)"
+  rlm_eap: Loaded and initialized type tls
+   peap: default_eap_type = "mschapv2" <a name="rad_mschapv2"></a><span><img src="images/callouts/3.png" alt="3" border="0"></span>
+   peap: copy_request_to_tunnel = no
+   peap: use_tunneled_reply = no
+   peap: proxy_tunneled_request_as_eap = yes
+  rlm_eap: Loaded and initialized type peap
+   mschapv2: with_ntdomain_hack = no
+  rlm_eap: Loaded and initialized type mschapv2
+  Module: Instantiated eap (eap) 
+  ......
+  Module: Loaded files 
+   files: usersfile = "/usr/local/etc/raddb/users" <a name="rad_users"></a><span><img src="images/callouts/4.png" alt="4" border="0"></span>
+  ...... 
+  Module: Instantiated radutmp (radutmp) 
+  Listening on authentication *:1812
+  Listening on accounting *:1813
+  Ready to process requests. <a name="rad_finished"></a><span><img src="images/callouts/5.png" alt="5" border="0"></span>
+  </pre><div class="calloutlist"><table border="0" summary="Callout list"><tr><td width="5%" valign="top" align="left"><p><a href="#rad_peap"><span><img src="images/callouts/1.png" alt="1" border="0"></span></a> </p></td><td valign="top" align="left"><p>
+       Default EAP type is set to PEAP.
+       </p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#rad_tls"><span><img src="images/callouts/2.png" alt="2" border="0"></span></a> </p></td><td valign="top" align="left"><p>
+       RADIUS's TLS settings are initiated here. The certificate type,
+       location, and password are listet here.
+       </p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#rad_mschapv2"><span><img src="images/callouts/3.png" alt="3" border="0"></span></a> </p></td><td valign="top" align="left"><p>
+       Inside the PEAP tunnel, MS-CHAPv2 is used.
+       </p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#rad_users"><span><img src="images/callouts/4.png" alt="4" border="0"></span></a> </p></td><td valign="top" align="left"><p>
+       The username/password information is found in the
+       <code class="filename">users</code> file.
+       </p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#rad_finished"><span><img src="images/callouts/5.png" alt="5" border="0"></span></a> </p></td><td valign="top" align="left"><p>
+       RADIUS server started successfully. Waiting for incoming requests.
+       </p></td></tr></table></div><p>The radius server is now ready to process requests!</p><p>
+  The most interesting output is included above. If you get any
+  error message instead of the last line, go over the configuration
+  (above) carefully. 
+  </p></li><li class="step"><p>
+  Now the Supplicant is ready to get authenticated. Start
+  <span class="application">Xsupplicant</span> in debug mode. Note that
+  we'll see output produced by the two startup scripts:
+  <code class="filename">startup.sh</code> and
+  <code class="filename">startup2.sh</code>.
+  </p><pre class="screen">
+  <code class="prompt"># </code><strong class="userinput"><code><span class="command"><strong>xsupplicant</strong></span> -c /usr/local/etc/1x/1x.conf -i eth0 -d 6</code></strong>
+  Starting /etc/1x/startup.sh
+  Finished /etc/1x/startup.sh
+  Starting /etc/1x/startup2.sh
+  Finished /etc/1x/startup2.sh
+  </pre></li><li class="step"><p>
+  At the same time, the RADIUS server is producing a lot of
+  output. Key snippets are shown below: 
+  </p><pre class="screen">
+  ......
+  rlm_eap: Request found, released from the list
+  rlm_eap: EAP/peap
+  rlm_eap: processing type peap
+  rlm_eap_peap: Authenticate
+  rlm_eap_tls: processing TLS <a name="rpro_tls"></a><span><img src="images/callouts/1.png" alt="1" border="0"></span>
+  eaptls_verify returned 7 
+  rlm_eap_tls: Done initial handshake 
+  eaptls_process returned 7 
+  rlm_eap_peap: EAPTLS_OK <a name="rpro_peap"></a><span><img src="images/callouts/2.png" alt="2" border="0"></span>
+  rlm_eap_peap: Session established.  Decoding tunneled attributes.
+  rlm_eap_peap: Received EAP-TLV response.
+  rlm_eap_peap: Tunneled data is valid.
+  rlm_eap_peap: Success
+  rlm_eap: Freeing handler
+  modcall[authenticate]: module "eap" returns ok for request 8
+modcall: group authenticate returns ok for request 8
+Login OK: [testuser/&lt;no User-Password attribute&gt;] (from client testnet port 37 cli 0002a56fa08a)
+Sending Access-Accept of id 8 to 192.168.2.1:1032 <a name="rpro_accept"></a><span><img src="images/callouts/3.png" alt="3" border="0"></span>
+	MS-MPPE-Recv-Key = 0xf21757b96f52ddaefe084c343778d0082c2c8e12ce18ae10a79c550ae61a5206 <a name="rpro_reckey"></a><span><img src="images/callouts/4.png" alt="4" border="0"></span>
+	MS-MPPE-Send-Key = 0x5e1321e06a45f7ac9f78fb9d398cab5556bff6c9d003cdf8161683bfb7e7af18 
+	EAP-Message = 0x030a0004
+	Message-Authenticator = 0x00000000000000000000000000000000
+	User-Name = "testuser"
+  </pre><div class="calloutlist"><table border="0" summary="Callout list"><tr><td width="5%" valign="top" align="left"><p><a href="#rpro_tls"><span><img src="images/callouts/1.png" alt="1" border="0"></span></a> </p></td><td valign="top" align="left"><p>
+       TLS session startup. Doing TLS-handshake.
+       </p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#rpro_peap"><span><img src="images/callouts/2.png" alt="2" border="0"></span></a> </p></td><td valign="top" align="left"><p>
+       The TLS session (PEAP-encrypted tunnel) is up.
+       </p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#rpro_accept"><span><img src="images/callouts/3.png" alt="3" border="0"></span></a> </p></td><td valign="top" align="left"><p>
+       The Supplicant has been authenticated successfully by the
+       RADIUS server. An <span class="quote">&#8220;<span class="quote">Access-Accept</span>&#8221;</span> message is
+       sent.
+       </p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#rpro_reckey"><span><img src="images/callouts/4.png" alt="4" border="0"></span></a> </p></td><td valign="top" align="left"><p>
+       The <span class="emphasis"><em>MS-MPPE-Recv-Key</em></span> [<a class="ulink" href="http://www.ietf.org/rfc/rfc2548.txt" target="_top">RFC2548</a> 
+       section 2.4.3] contains the Pairwise Master Key (PMK) destined
+       to the Authenticator (access point), encrypted with the MPPE
+       Protocol [<a class="ulink" href="http://www.ietf.org/rfc/rfc3078.txt" target="_top">RFC3078</a>],
+       using the shared secret between the Authenticator and
+       Authentication Server as key. The Supplicant derives the same
+       PMK from MK, as described in <a class="link" href="ar01s01.html#Key" title="1.2.3. Key Management">Key
+       Management</a>. 
+       </p></td></tr></table></div></li><li class="step"><p>
+   The Authenticator (access point) may also show something like this
+   in its log: 
+  </p><pre class="screen">
+  00:02:16 (Info): Station 0002a56fa08a Associated
+  00:02:17 (Info): Station=0002a56fa08a User="testuser" EAP-Authenticated 
+  </pre></li></ol></div><p>
+  That's it! The Supplicant is now authenticated to use the Access
+  Point!
+  </p></div></div><div class="navfooter"><hr><table width="100%" summary="Navigation footer"><tr><td width="40%" align="left"><a accesskey="p" href="ar01s05.html">Prev</a> </td><td width="20%" align="center"> </td><td width="40%" align="right"> <a accesskey="n" href="ar01s07.html">Next</a></td></tr><tr><td width="40%" align="left" valign="top">5. Authenticator: Setting up the Authenticator (Access
+ Point) </td><td width="20%" align="center"><a accesskey="h" href="index.html">Home</a></td><td width="40%" align="right" valign="top"> 7. Note about driver support and Xsupplicant</td></tr></table></div></body></html>

@@ -1,0 +1,113 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1"><title>2. Textmode 100x37</title><link rel="stylesheet" type="text/css" href="style.css"><meta name="generator" content="DocBook XSL Stylesheets V1.79.1"><meta name="keywords" content="laptop, notebook, pda, handheld, computer, mobile, mobile phone, cell phone, portable player, linux, unix"><link rel="home" href="index.html" title="Linux on the Road"><link rel="up" href="apg.html" title="Appendix G. NeoMagic Graphics Chipset Series NM20xx"><link rel="prev" href="apgs01.html" title="1. Introduction"><link rel="next" href="aph.html" title="Appendix H. Annotated Bibliography: Books For Linux Nomads"></head><body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF"><div class="navheader"><table width="100%" summary="Navigation header"><tr><th colspan="3" align="center">2. Textmode 100x37</th></tr><tr><td width="20%" align="left"><a accesskey="p" href="apgs01.html">Prev</a> </td><th width="60%" align="center">Appendix G. NeoMagic Graphics Chipset Series NM20xx</th><td width="20%" align="right"> <a accesskey="n" href="aph.html">Next</a></td></tr></table><hr></div><div class="sect1"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="mobile-guide-p6a6s2-textmode-100-37"></a>2. Textmode 100x37</h2></div></div></div><p>
+   This chapter is a courtesy of Cedric Adjih 
+ 
+   , though I have changed some minor parts. Please note: Another method to
+   achieve a better resolution in text mode is the use of the framebuffer
+   driver (as explained in the X-Windows chapter above). This method
+   requires kernel reconfiguration (some Linux distributions include an
+   appropriate kernel already) and a new entry (vga=NNN) in
+   <code class="filename">/etc/lilo.conf</code>. In text mode it works even with
+   VESA BIOSes before version 2.0, at least on the models I could test it.
+   Though the SVGATextMode method could be faster (couldn't check this
+   yet).
+</p><p>
+   An apparently little known fact about the Neomagic chipset NM20xx is
+   that you can run text mode in 100x37 (i.e. 800x600). This text mode is
+   very nice (as opposed to the 80x25 which is ugly). I tried this with a
+   HP OmniBook 800 and suppose it might work with other laptops using the
+   NeoMagic chip, too.
+</p><p>
+   The main problem is that is a bit difficult to set up, and if you're
+   going wrong with the commands <span class="command"><strong>SVGATextMode</strong></span>
+   or <span class="command"><strong>restoretextmode</strong></span> some results on the
+   <acronym class="acronym">LCD</acronym> might be frightening. Although I didn't manage to
+   break my <acronym class="acronym">LCD</acronym> with many attempts going wrong,
+   DISCLAMER: THIS MIGHT DAMAGE YOUR HARDWARE. YOU HAVE BEEN WARNED. FOLLOW
+   THE FOLLOWING INSTRUCTIONS AT YOUR OWN RISKS. I'M NOT RESPONSIBLE IF
+   SOMETHING BAD HAPPENS.
+</p><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="idm5506"></a>2.1. Survey</h3></div></div></div><p>
+   You need to do <span class="emphasis"><em>three</em></span> main steps:
+
+</p><div class="orderedlist"><ol class="orderedlist" type="1"><li class="listitem"><p>
+   Enable Linux to boot in 800x600 textmode. The problem is that you won't
+   see any text before the following two steps aren't done.
+</p></li><li class="listitem"><p>
+   Automatically run <span class="command"><strong>restoretextmode</strong></span> with correct register data.
+</p></li><li class="listitem"><p>
+   Automatically run <span class="command"><strong>SVGATextMode</strong></span>.
+</p></li></ol></div><p>
+
+</p></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="idm5519"></a>2.2. More Details</h3></div></div></div><p>
+   All the files I have modified, are available for now on
+   <a class="ulink" href="http://starship.python.net/crew/adjih/data/cda-omni-trick.tar.gz" target="_top">my pages</a>
+</p><div class="sect3"><div class="titlepage"><div><div><h4 class="title"><a name="idm5523"></a>2.2.1. Enabling Linux to Boot in 800x600</h4></div></div></div><p>
+   Recent kernels (2.2.x) need to be compiled with CONFIG_VIDEO_GFX_HACK
+   defined. Default is off. (look in
+   <code class="filename">/usr/src/linux-2.2.x/arch/i386/boot/video.S</code>)
+</p><p>
+   This is done by passing the parameter <span class="command"><strong>vga=770</strong></span> to
+   older kernels or <span class="command"><strong>vga=7</strong></span> to 2.2.x kernels. Example with
+   <code class="filename">lilo.conf</code>:
+</p><p>
+
+</p><pre class="programlisting">
+image=/boot/bzImage-modif
+label=22
+append="svgatextmode=100x37x8_SVGA" #explained later
+vga=7
+read-only
+</pre><p>
+
+</p></div><div class="sect3"><div class="titlepage"><div><div><h4 class="title"><a name="idm5533"></a>2.2.2. Running restoretextmode and SVGATextMode at Boot Time</h4></div></div></div><p>
+   Running <span class="command"><strong>restoretextmode</strong></span> and
+   <span class="command"><strong>SVGATextMode</strong></span> at Boot Time. You must arrange to run
+   <span class="command"><strong>restoretextmode &lt;name of some textreg.dat file&gt;</strong></span>
+   and <span class="command"><strong>SVGATextMode 100x37x8_SVGA</strong></span> at boot time.
+</p><p>
+   An example <code class="filename">textreg.dat</code> for restoretextmode
+   (obtained using <span class="command"><strong>savetextmode</strong></span>) is in my tar archive in
+   <code class="filename">tmp/</code>, and an example
+   <code class="filename">/etc/TextConfig</code>.
+</p><p>
+   Since I'm lazy, I've simply put <span class="command"><strong>SVGATextMode</strong></span> and
+   <span class="command"><strong>restoretextmode</strong></span> in the
+   <code class="filename">/etc/rc.boot/kbd</code> file from my Debian/GNU Linux
+   which get executed at boot time (also available in the tar archive).
+</p></div><div class="sect3"><div class="titlepage"><div><div><h4 class="title"><a name="idm5549"></a>2.2.3. Now the Key Point</h4></div></div></div><p>
+   Annoying things will be displayed if you don't use the right
+   SVGATextMode in the right video text mode: this is why I also pass the
+   environmental variable <span class="command"><strong>"svgatextmode=100x37x8_SVGA"</strong></span>
+   (arbitrary name) to the kernel (using append=xxx in lilo.conf) when I
+   also set <span class="command"><strong>vga=7</strong></span>: the script
+   <code class="filename">/etc/rc.boot/kbd</code> tests this variable and calls
+   <span class="command"><strong>restoretextmode</strong></span> and <span class="command"><strong>SVGATextMode</strong></span>
+   IF AND ONLY IF.
+</p></div></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="idm5557"></a>2.3. Road Map</h3></div></div></div><p>
+
+</p><div class="orderedlist"><ol class="orderedlist" type="1"><li class="listitem"><p>
+   Recompile the kernel 2.2.x with CONFIG_VIDEO_GFX_HACK
+</p></li><li class="listitem"><p>
+   Insert the restoretextmode with the correct parameter in the
+   initialisation script, with no other changes.
+</p></li><li class="listitem"><p>
+   Boot with normal text mode (80x25) but restoretextmode: you should see
+   the screen going to 100x37, but with only 80x25 usable. Don't use
+   SVGATextMode yet.
+</p></li><li class="listitem"><p>
+   It is much better to conditionnalize your initialize code as I did, to
+   keep the possibility of booting in both modes: you may test this now
+   with some reboots (starting restoretextmode or not).
+</p></li><li class="listitem"><p>
+   Boot with 100x37 text mode using parameter <span class="command"><strong>vga=7</strong></span>
+   (lilo.conf), you should see white background at some point, but the
+   characters will be black on black. This is ok. You'll have to reboot
+   blindly now.
+</p></li><li class="listitem"><p>
+   Insert the &lt;path&gt;/SVGATextMode 100x37x8_SVGA after the
+   restoretextmode in initialization scripts.
+</p></li><li class="listitem"><p>
+   Reboot with <span class="command"><strong>vga=7</strong></span> (lilo.conf)
+</p></li><li class="listitem"><p>
+   Should be OK now. Enjoy.
+</p></li></ol></div><p>
+</p></div></div><div class="navfooter"><hr><table width="100%" summary="Navigation footer"><tr><td width="40%" align="left"><a accesskey="p" href="apgs01.html">Prev</a> </td><td width="20%" align="center"><a accesskey="u" href="apg.html">Up</a></td><td width="40%" align="right"> <a accesskey="n" href="aph.html">Next</a></td></tr><tr><td width="40%" align="left" valign="top">1. Introduction </td><td width="20%" align="center"><a accesskey="h" href="index.html">Home</a></td><td width="40%" align="right" valign="top"> Appendix H. Annotated Bibliography: Books For Linux Nomads</td></tr></table></div></body></html>

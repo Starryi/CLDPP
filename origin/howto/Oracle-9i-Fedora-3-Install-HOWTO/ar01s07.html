@@ -1,0 +1,40 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1"><title>7. Run Installer</title><link rel="stylesheet" type="text/css" href="style.css"><meta name="generator" content="DocBook XSL Stylesheets V1.79.1"><link rel="home" href="index.html" title="Oracle 9i under Fedora Core 3 - Installation HOWTO"><link rel="up" href="index.html" title="Oracle 9i under Fedora Core 3 - Installation HOWTO"><link rel="prev" href="ar01s06.html" title="6. Install GCC 2.9 Compat libraries"><link rel="next" href="ar01s08.html" title="8. Create a Startup Script"></head><body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF"><div class="navheader"><table width="100%" summary="Navigation header"><tr><th colspan="3" align="center">7. Run Installer</th></tr><tr><td width="20%" align="left"><a accesskey="p" href="ar01s06.html">Prev</a> </td><th width="60%" align="center"> </th><td width="20%" align="right"> <a accesskey="n" href="ar01s08.html">Next</a></td></tr></table><hr></div><div class="sect1"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="sect_07"></a>7. Run Installer</h2></div></div></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="sect_07_01"></a>7.1. Apply the libwait.c patch</h3></div></div></div><p>Before running the installer, do the following in order to overcome some weird errors:</p><div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem"><p>In <code class="filename">/home/oracle</code>,create a file name  <code class="filename">libwait.c</code> and as described below and compile it :</p><pre class="screen">Ceate a file called libcwait.c in the
+oracle
+user's home directory to avoid getting
+an error when running the Oracle installer. The libcwait.c file should contain the
+following text:
+/*
+gcc -O2 -shared -o $HOME/libcwait.so -fpic $HOME/libcwait.c
+*/
+#include
+#include
+#include
+Deploying Oracle 9i on Red Hat Enterprise Linux AS 3
+Page 11
+#include
+pid_t
+__libc_wait (int *status)
+{
+int res;
+asm volatile ("pushl %%ebx\n\t"
+"movl %2, %%ebx\n\t"
+"movl %1, %%eax\n\t"
+"int $0x80\n\t"
+"popl %%ebx"
+: "=a" (res)
+: "i" (__NR_wait4), "0" (WAIT_ANY), "c" (status), "d" (0), "S" (0));
+return res;
+}
+Next, compile this file in the
+oracle
+user's home directory by executing the
+following command:
+gcc -02 -shared -o $HOME/libcwait.so -fpic $HOME/libwait.c
+</pre><div class="cmdsynopsis"><p><code class="command">gcc <code class="option">-shared -o</code> <code class="filename">libcwait.so libcwait.c</code> <code class="option">-fpic -O</code></code> </p></div></li><li class="listitem"><p>Then add this library to the environment of the database user:</p><div class="cmdsynopsis"><p><code class="command">export <code class="varname">LD_PRELOAD</code>=<code class="filename">/home/oracle/libcwait.so</code></code> </p></div><p>Earlier, we put a similar line in <code class="filename">.bash_profile</code>.</p></li></ul></div></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="sect_07_02"></a>7.2. Configure the Display</h3></div></div></div><p>Execute the following commands as oracle User  :</p><pre class="screen">
+oracle@9iserver ~&gt; xhost +localhost
+oracle@9iserver ~&gt; export DISPLAY=localhost:0.0
+</pre><p>You can now connect to your desktop or optionally run the installation remotely, for instance using <span class="application">VNC</span>.for instance running the installer from your Windows desktop
+</p></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="sect_07_03"></a>7.3. Start the Installation</h3></div></div></div><p>Start the graphical installation application:</p><div class="cmdsynopsis"><p><code class="command">/path/to/oracle/Disk1/runInstaller</code> </p></div><p>Now carry with Graphical setup (if you are not sure choose Standard database).  From here the rest of the installation process is obvious.</p></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="sect_07_04"></a>7.4. Fix nodeinfo</h3></div></div></div><p>Now installation should proceed without any linking errors but you will get one error in the end:</p><pre class="screen">
+Parameter "nodeinfo" = NO_VALUE
+Agent Service Failed
+</pre><p>In order to fix this, run the following for starting the wizard after setup has finished:</p><div class="cmdsynopsis"><p><code class="command">netca &amp;</code> </p></div><p>Now change into <code class="varname">$ORACLE_HOME</code> and run <span class="command"><strong>./lsnrctl <em class="parameter"><code>start</code></em></strong></span>.</p><p>Check that the process is running:</p><div class="cmdsynopsis"><p><code class="command">ps <code class="option">afx</code> | grep <em class="parameter"><code>LISTEN</code></em></code> </p></div></div></div><div class="navfooter"><hr><table width="100%" summary="Navigation footer"><tr><td width="40%" align="left"><a accesskey="p" href="ar01s06.html">Prev</a> </td><td width="20%" align="center"> </td><td width="40%" align="right"> <a accesskey="n" href="ar01s08.html">Next</a></td></tr><tr><td width="40%" align="left" valign="top">6. Install GCC 2.9 Compat libraries </td><td width="20%" align="center"><a accesskey="h" href="index.html">Home</a></td><td width="40%" align="right" valign="top"> 8. Create a Startup Script</td></tr></table></div></body></html>

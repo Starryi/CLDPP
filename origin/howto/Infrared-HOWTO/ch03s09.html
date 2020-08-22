@@ -1,0 +1,172 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1"><title>9. Connecting from Linux to WinCE 3.0 (aka PocketPC)</title><link rel="stylesheet" type="text/css" href="style.css"><meta name="generator" content="DocBook XSL Stylesheets V1.79.1"><meta name="keywords" content="laptop, notebook, pda, handheld, computer, mobile, linux, irda, remote"><link rel="home" href="index.html" title="Linux Infrared HOWTO"><link rel="up" href="ch03.html" title="Chapter 3. Specific Connections and IrDA - Protocols"><link rel="prev" href="ch03s08.html" title="8. Connecting from Linux to WinCE 2.11"><link rel="next" href="ch03s10.html" title="10. Cellular Phone Connection"></head><body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF"><div class="navheader"><table width="100%" summary="Navigation header"><tr><th colspan="3" align="center">9. Connecting from Linux to WinCE 3.0 (aka PocketPC)</th></tr><tr><td width="20%" align="left"><a accesskey="p" href="ch03s08.html">Prev</a> </td><th width="60%" align="center">Chapter 3. Specific Connections and IrDA - Protocols</th><td width="20%" align="right"> <a accesskey="n" href="ch03s10.html">Next</a></td></tr></table><hr></div><div class="sect1"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="infrared-howto-s-pocketpc-connection"></a>9. Connecting from Linux to WinCE 3.0 (aka PocketPC)</h2></div></div></div><p>
+   This chapter is a courtesy of Stanislav Sokolov.
+</p><p>
+   This section covers how to connect a PocketPC device to a Linux
+   box. The information provided in section "Connecting from Linux to
+   WinCE" (found also at 
+   <a class="ulink" href="http://www.cewindows.net/wce/linux-serial.htm" target="_top">CEwindows</a>
+   )
+   does not apply to PocketPC as Microsoft in one of there brighter
+   moments removed support for direct IrDA connections from version 3.0 of
+   WinCE. I used the document "Linux to Windows CE Connection" (found at
+   <a class="ulink" href="http://www.the-gadgeteer.com/linux_ce.html" target="_top">The Gadgeteer</a>
+   ) as a starting point, but
+   had to modify and simplify several aspects. This section will go as
+   far as <span class="command"><strong>ping</strong></span> between PocketPC and Linux. You should be able to find
+   many networking applications at 
+   <a class="ulink" href="http://www.pdacentral.com/wince/ftp.htm" target="_top">PDAcentral</a>, 
+   <a class="ulink" href="http://www.cam.com" target="_top">CAM</a>
+   or 
+   <a class="ulink" href="http://www.wincecity.com" target="_top">WinCEcity</a>
+   .
+</p><p>
+   Here is the system I used:
+
+</p><div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem"><p>
+   Compaq iPAQ with PocketPC Version 3.0.9348 (I don't know if this
+   would work for PocketPC 2002 as Microsoft likes changing standards
+   from version to version).
+</p></li><li class="listitem"><p>
+   On the Linux side was a Compaq LTE5250 laptop with Slackware Linux 7.1.
+</p></li><li class="listitem"><p>
+   Kernel 2.4.19
+</p></li><li class="listitem"><p>
+   PPP 2.4.1 (PPP must not be older than 2.4.0 when used with kernel 2.4.x)
+</p></li></ul></div><p>
+
+</p><p>
+   On the PocketPC side go to Start -&gt; Settings -&gt; Connection -&gt; Modem. 
+   Make a new connection, call it something meaningful (I use
+   Linux-m), choose "Generic IrDA modem", set baud rate to 115200. Tap
+   "Advanced". In "Port Settings" select 8-N-1-Hardware and check "Enter
+   dialing commands manually". This is done so as PocketPC would not try
+   to dial a phone number as we do not want it. The other two boxes
+   should remain unchecked. In TCP/IP select "Use server-assigned IP
+   address" uncheck "Use Slip", but check "Use software compression" and
+   "Use IP header compression". In "name Servers" select "Use
+   server-assigned addresses". Tap "ok" and "Next". You should not be
+   asked for telephone number (if you are, just enter 1 and doublecheck
+   that you actually selected manual dialing commands box in advanced
+   section). Make sure that "Cancel call..." and "Wait for dial tone..."
+   boxes are unchecked. We are now done with the PocketPC part.
+</p><p>
+   On Linux we must first make sure that all the necessary modules are
+   loaded. Here are the modules that were loaded and in use during a
+   successful communication session:
+
+</p><pre class="programlisting">
+Module                  Size  Used by    Not tainted
+ircomm-tty             31040   2
+ircomm                 13448   0  [ircomm-tty]
+irtty                   7616   2
+ppp_async               6688   1
+ppp_generic            15740   3  [ppp_async]
+slhc                    4592   1  [ppp_generic]
+</pre><p>
+
+   Make sure that <span class="command"><strong>ls -la /dev/ircomm*</strong></span> produces a similar output:
+
+</p><pre class="programlisting">
+crw-------   1 root     root     161,   0 Nov 25 15:09 /dev/ircomm0
+crw-r--r--   1 root     root     161,   1 Nov 22 19:30 /dev/ircomm1
+</pre><p>
+
+   Start irattach <span class="command"><strong>irattach /dev/ttyS2 -s</strong></span>
+</p><p>
+   Now we have to enable a login terminal on the IrDA port. I used
+   <span class="command"><strong>agetty</strong></span> (or your favorite getty variant) 
+   for that purpose. Add the following line
+   to your <code class="filename">/etc/inittab</code>:
+
+</p><pre class="programlisting">
+s3:2345:respawn:/sbin/agetty ircomm0 115200 vt100
+</pre><p>
+
+   save the file and activate it by restarting <span class="command"><strong>init</strong></span>:
+
+</p><pre class="programlisting">
+init 2; sleep 3 ; init 3
+</pre><p>
+
+   Also prepare the following shell script that will perform the second
+   phase of connection:
+
+</p><pre class="programlisting">
+#!/bin/sh
+/usr/sbin/pppd -detach noauth local lock 192.168.55.1:192.168.55.2 ircomm0 115200 &amp;
+</pre><p>
+
+</p><p>
+   Now the connection itself: Align the IR ports and on the PocketPC go
+   to Start -&gt; Programs -&gt; Connections and tap the connection that you
+   created (Linux-m). In the "Connect To" dialog that shows up leave
+   everything unfilled and just tap on "Connect". "Manual Dialing
+   Terminal" will show up. There you should see the login prompt for
+   your Linux-box (If the login prompt does not show up at once, bring up
+   the virtual keyboard and tap 'enter'). You do not need to login
+   (though it is a bonus - speaking of the ultimate remote controller :)
+</p><p>
+   On the Linux-box execute the <span class="command"><strong>pppd</strong></span> command as soon as some "garbage"
+   shows up in the PocketPC's terminal, tap "File" -&gt; "Continue". 
+   <span class="command"><strong>pppd</strong></span> should come with the following message:
+
+</p><pre class="programlisting">
+Using interface ppp0
+Connect: ppp0 &lt;--&gt; /dev/ircomm0
+Cannot determine ethernet address for proxy ARP
+local  IP address 192.168.55.1
+remote IP address 192.168.55.2
+</pre><p>
+
+   And PocketPC should show a dialog with "Status: Connected". You can
+   run <span class="command"><strong>ifconfig</strong></span> to check that ppp0 interface is up and running. 
+   
+   <span class="command"><strong>ping 192.168.55.2</strong></span> should produce something like that:
+
+</p><pre class="programlisting">
+PING 192.168.55.2 (192.168.55.2): 56 data bytes
+64 bytes from 192.168.55.2: icmp_seq=0 ttl=32 time=62.5 ms
+64 bytes from 192.168.55.2: icmp_seq=1 ttl=32 time=310.0 ms
+64 bytes from 192.168.55.2: icmp_seq=2 ttl=32 time=59.9 ms
+64 bytes from 192.168.55.2: icmp_seq=3 ttl=32 time=59.8 ms
+64 bytes from 192.168.55.2: icmp_seq=4 ttl=32 time=60.0 ms
+
+--- 192.168.55.2 ping statistics ---
+5 packets transmitted, 5 packets received, 0% packet loss
+round-trip min/avg/max = 59.8/110.4/310.0 ms
+</pre><p>
+   
+   RTT will depend on the distance and lighting conditions.
+   
+   When you tap "Disconnect" something like that will show up:
+
+</p><pre class="programlisting">
+LCP terminated by peer
+Modem hangup
+Connection terminated.
+Connect time 2.6 minutes.
+Sent 1336 bytes, received 1274 bytes.
+</pre><p>
+
+</p><p>
+   Now, if not all went that well, check the following:
+
+</p><div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem"><p>
+   <span class="command"><strong>getty</strong></span> is started. It will not start if 
+   <code class="filename">/dev/ircomm0</code> is not
+   configured. That is <span class="command"><strong>modprobe ircomm-tty</strong></span> 
+   should come up before getty is invoked.
+</p></li><li class="listitem"><p>
+   "Enter dialing commands manually" is checked. PocketPC should not
+   attempt to dial any number!
+</p></li><li class="listitem"><p>
+   You have async PPP support in kernel. <span class="command"><strong>modprobe ppp_async</strong></span>
+   loads successfully or you don't have PPP async compiled into kernel. Otherwise you
+   will get the "Couldn't set tty to PPP discipline: Invalid argument" error
+   message.
+</p></li><li class="listitem"><p>
+   <span class="command"><strong>pppd</strong></span> should be setuid root: 
+   <span class="command"><strong>chmod u+s /usr/sbin/pppd</strong></span>.
+</p></li></ul></div><p>
+
+</p></div><div class="navfooter"><hr><table width="100%" summary="Navigation footer"><tr><td width="40%" align="left"><a accesskey="p" href="ch03s08.html">Prev</a> </td><td width="20%" align="center"><a accesskey="u" href="ch03.html">Up</a></td><td width="40%" align="right"> <a accesskey="n" href="ch03s10.html">Next</a></td></tr><tr><td width="40%" align="left" valign="top">8. Connecting from Linux to WinCE 2.11 </td><td width="20%" align="center"><a accesskey="h" href="index.html">Home</a></td><td width="40%" align="right" valign="top"> 10. Cellular Phone Connection</td></tr></table></div></body></html>

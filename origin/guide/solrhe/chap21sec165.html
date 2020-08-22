@@ -1,0 +1,158 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1"><title>4. Primary master name Server</title><link rel="stylesheet" type="text/css" href="style.css"><meta name="generator" content="DocBook XSL Stylesheets V1.79.1"><meta name="keywords" content="RedHat, redhat, maddy, linus, linux, Linux, Securing, Optimising, security, secure, openna, gerhard"><link rel="home" href="index.html" title="Securing and Optimizing Linux"><link rel="up" href="soft-netwrkng.html" title="Chapter 21. Software -Networking"><link rel="prev" href="chap21sec164.html" title="3. Caching-only name Server"><link rel="next" href="chap21sec166.html" title="5. Secondary slave name Server"></head><body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF"><div class="navheader"><table width="100%" summary="Navigation header"><tr><th colspan="3" align="center">4. Primary <code class="literal">master</code> name Server</th></tr><tr><td width="20%" align="left"><a accesskey="p" href="chap21sec164.html">Prev</a> </td><th width="60%" align="center">Chapter 21. Software -Networking</th><td width="20%" align="right"> <a accesskey="n" href="chap21sec166.html">Next</a></td></tr></table><hr></div><div class="section"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="idm10804"></a>4. Primary <code class="literal">master</code> name Server</h2></div></div></div><p>
+ A primary <code class="literal">master</code> name server for a zone reads the data for the zone from a file on it's host and are authoritative for that zone.The necessary files to setup a primary master name server are:
+ </p><div class="orderedlist"><ol class="orderedlist" type="a"><li class="listitem"><p>
+ <code class="filename">named.conf</code>
+ </p></li><li class="listitem"><p>
+ <code class="filename">db.127.0.0</code>
+ </p></li><li class="listitem"><p>
+ <code class="filename">db.208.164.186</code>
+ </p></li><li class="listitem"><p>
+ <code class="filename">db.openna</code>
+ </p></li><li class="listitem"><p>
+ <code class="filename">db.cache</code>
+ </p></li><li class="listitem"><p>
+ <code class="filename">named script</code>
+ </p></li></ol></div><p>
+ </p><p>
+ To configure the <code class="filename">/etc/named.conf</code> file for a <code class="literal">master</code> name server, use this configuration for the server on your network that acts as a <span class="token">master</span> name server. After compiling 
+ <acronym class="acronym">DNS</acronym>, you need to set up a <code class="literal">primary</code> domain name for your server. We'll use <code class="literal">openna.com</code> as an example domain, and assume you are using <acronym class="acronym">IP</acronym> network address 
+ of <code class="literal">208.164.186.0.</code> To do this, add the following lines to your <code class="filename">/etc/named.conf</code>.
+
+ Create the <code class="filename">named.conf</code> file <span class="command"><strong>touch</strong></span> <code class="filename">/etc/named.conf</code> and add:
+ 
+ </p><pre class="programlisting">
+ options {
+ directory "/var/named";
+ fetch-glue no;                    <a name="ftgl1"></a><span><img src="images/callouts/1.png" alt="1" border="0"></span>
+ recursion no;                     <a name="rcsn1"></a><span><img src="images/callouts/2.png" alt="2" border="0"></span>
+ allow-query { 208.164.186/24; 127.0.0/8; };  <a name="alqr1"></a><span><img src="images/callouts/3.png" alt="3" border="0"></span>
+ allow-transfer { 208.164.186.2; };           <a name="altr1"></a><span><img src="images/callouts/4.png" alt="4" border="0"></span>
+ transfer-format many-answers;
+ };
+
+ // These files are not specific to any zone
+ zone "." in {
+ type hint;
+ file "db.cache";
+ };
+
+ zone "0.0.127.in-addr.arpa" in {
+ type master;
+ file "db.127.0.0";
+ };
+
+ // These are our primary zone files
+ zone "openna.com" in {
+ type master;
+ file "db.openna ";
+ };
+
+ zone "186.164.208.in-addr.arpa" in {
+ type master;
+ file "db.208.164.186";
+ };
+ </pre><p>
+ </p><div class="calloutlist"><table border="0" summary="Callout list"><tr><td width="5%" valign="top" align="left"><p><a href="#ftgl1"><span><img src="images/callouts/1.png" alt="1" border="0"></span></a> <a href="#rcsn1"><span><img src="images/callouts/2.png" alt="2" border="0"></span></a> </p></td><td valign="top" align="left"><p>
+ The <code class="envar">fetch-glue</code> no option can be used in conjunction with the option <code class="envar">recursion no</code> to prevent the server's cache from growing or becoming corrupted. Also, disabling recursion puts your name servers 
+ into a passive mode, telling it never to send queries on behalf of other name servers or resolvers. A non-recursive name server is very difficult to spoof, since it doesn't send queries, and hence doesn't cache any data.
+ </p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#alqr1"><span><img src="images/callouts/3.png" alt="3" border="0"></span></a> </p></td><td valign="top" align="left"><p>
+ In the allow-query line, 208.164.186/24 and 127.0.0/8 are the <acronym class="acronym">IP</acronym> addresses allowed to ask ordinary questions to the server.
+ </p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#altr1"><span><img src="images/callouts/4.png" alt="4" border="0"></span></a> </p></td><td valign="top" align="left"><p>
+ In the allow-transfer line, 208.164.186.2 is the <acronym class="acronym">IP</acronym> address allowed to receive zone transfers from the server. You must ensure that only your real slave name servers can transfer zones from your name serve,
+ as the information provided is often used by spammers and <acronym class="acronym">IP</acronym> spoofers.
+ </p></td></tr></table></div><p>
+ 
+ </p><div class="note" style="margin-left: 0.5in; margin-right: 0.5in;"><h3 class="title"><span class="inlinemediaobject"><img src="./images/Note.gif" alt="Note"></span></h3><p>
+ The options <code class="envar">recursion no</code>, <code class="envar">allow-query</code>, and <code class="envar">allow-transfer</code> in the <code class="filename">named.conf</code> file above are security features.
+ </p></div><p>
+ To configure the <code class="filename">/var/named/db.127.0.0</code> file for a <span class="token">master</span> and <span class="token">slave</span> name server, you can use this configuration file by both a master name server and a slave name server. 
+ The <code class="filename">db.127.0.0</code> file covers the loopback network. Create the following files in <code class="filename">/var/named/</code>.
+ </p><p>
+ Create the <code class="filename">db.127.0.0</code> file, <span class="command"><strong>touch</strong></span> <code class="filename">/var/named/db.127.0.0</code> and add:
+ </p><pre class="programlisting">
+ ; Revision History: April 22, 1999 - admin@mail.openna.com
+ ; Start of Authority (SOA) records.
+ $TTL 345600
+ @  IN  SOA  deep.openna.com. admin.mail.openna.com.  (
+ 00	; Serial
+ 86400	; Refresh
+ 7200	; Retry
+ 2592000	; Expire
+ 345600 )	; Minimum
+
+ ; Name Server (NS) records.
+ NS   deep.openna.com.
+ NS   mail.openna.com.
+
+ ; only One PTR record.
+ 1      PTR  localhost.
+ </pre><p>
+ </p><p>
+ To configure the <code class="filename">/var/named/db.208.164.186</code> file for a master name server, Use this configuration for the server on your network that acts as a master name server. The file <code class="filename">db.208.164.186</code> maps 
+ host names to addresses. Create the following files in <code class="filename">/var/named/</code>.
+ </p><p>
+ Create the <code class="filename">db.208.164.186</code> file, <span class="command"><strong>touch</strong></span> <code class="filename">/var/named/db.208.164.186</code> and add:
+ </p><pre class="programlisting">
+ ; Revision History: April 22, 1999 - admin@mail.openna.com
+ ; Start of Authority (SOA) records.
+ $TTL 345600
+ @  IN  SOA  deep.openna.com. admin.mail.openna.com.  (
+ 00	; Serial
+ 86400	; Refresh
+ 7200	; Retry
+ 2592000	; Expire
+ 345600 )	; Minimum
+
+ ; Name Server (NS) records.
+ NS   deep.openna.com.
+ NS   mail.openna.com.
+
+ ; Addresses Point to Canonical Names (PTR) for Reverse lookups
+ 1  PTR      deep.openna.com.
+ 2  PTR      mail.openna.com.
+ 3  PTR      www.openna.com.
+ </pre><p>
+ </p><p>
+ To configure of the <code class="filename">/var/named/db.openna</code> file for a master name server, use this configuration for the server on your network that acts as a master name server. The file <code class="filename">db.openna</code> maps 
+ addresses to host names. Create the following file in <code class="filename">/var/named/</code>.
+ </p><p>
+ Create the <code class="filename">db.openna</code> file <span class="command"><strong>touch</strong></span> <code class="filename">/var/named/db.openna</code> and add:
+ </p><pre class="programlisting">
+ ; Revision History: April 22, 1999 - admin@mail.openna.com
+ ; Start of Authority (SOA) records.
+ $TTL 345600
+ @  IN  SOA  deep.openna.com. admin.mail.openna.com.  (
+ 00	; Serial
+ 86400	; Refresh
+ 7200	; Retry
+ 2592000	; Expire
+ 345600 )	; Minimum
+
+ ; Name Server (NS) records.
+ NS   deep.openna.com.
+ NS   mail.openna.com.
+
+ ; Mail Exchange (MX) records.
+ MX   0  mail.openna.com.
+
+ ; Address (A) records.
+ localhost	A       127.0.0.1
+ deep	A       208.164.186.1
+ mail	A       208.164.186.2
+ www	A       208.164.186.3
+
+ ; Aliases in Canonical Name (CNAME) records.
+ ;www                           CNAME  deep.openna.com.
+
+ </pre><p>
+ </p><p>
+ To configure the <code class="filename">/var/named/db.cache</code> file for a master and slave name servers  Before starting your <acronym class="acronym">DNS</acronym> server you must take a copy of the <code class="filename">db.cache</code> file and copy it into 
+ the <code class="filename">/var/named/</code> directory. The <code class="filename">db.cache</code> tells your server where the servers for the root zone are.
+ </p><p>
+ Use the following command on another Unix computer in your organization to query a new <code class="filename">db.cache</code> file for your <acronym class="acronym">DNS</acronym> Server or pick one from your Red Hat Linux CD-ROM source distribution:
+ </p><pre class="screen">
+ [root@deep] /# <span class="command"><strong>dig</strong></span> @.aroot-servers.net . ns &gt; db.cache
+ </pre><p> 
+ 
+ Don't forget to copy the <code class="filename">db.cache</code> file to the <code class="filename">/var/named/</code> directory on your server where you're installing <acronym class="acronym">DNS</acronym> server after retrieving it over the Internet.
+ </p></div><div class="navfooter"><hr><table width="100%" summary="Navigation footer"><tr><td width="40%" align="left"><a accesskey="p" href="chap21sec164.html">Prev</a> </td><td width="20%" align="center"><a accesskey="u" href="soft-netwrkng.html">Up</a></td><td width="40%" align="right"> <a accesskey="n" href="chap21sec166.html">Next</a></td></tr><tr><td width="40%" align="left" valign="top">3. <code class="literal">Caching-only</code> name Server </td><td width="20%" align="center"><a accesskey="h" href="index.html">Home</a></td><td width="40%" align="right" valign="top"> 5. <code class="literal">Secondary</code> slave name Server</td></tr></table></div></body></html>

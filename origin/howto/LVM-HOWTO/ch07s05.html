@@ -1,0 +1,120 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1"><title>5. Slackware</title><link rel="stylesheet" type="text/css" href="style.css"><meta name="generator" content="DocBook XSL Stylesheets V1.79.1"><link rel="home" href="index.html" title="LVM HOWTO"><link rel="up" href="ch07.html" title="Chapter 7. LVM 1 Boot time scripts"><link rel="prev" href="ch07s04.html" title="4. Redhat"><link rel="next" href="ch07s06.html" title="6. SuSE"></head><body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF"><div class="navheader"><table width="100%" summary="Navigation header"><tr><th colspan="3" align="center">5. Slackware</th></tr><tr><td width="20%" align="left"><a accesskey="p" href="ch07s04.html">Prev</a> </td><th width="60%" align="center">Chapter 7. LVM 1 Boot time scripts</th><td width="20%" align="right"> <a accesskey="n" href="ch07s06.html">Next</a></td></tr></table><hr></div><div class="sect1"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="initscriptslackware"></a>5. Slackware</h2></div></div></div><p>
+        Slackware 8.1 requires no updating of boot time scripts in order to
+        make LVM work.
+      </p><p>
+        For versions previous to Slackware 8.1, you should apply the
+        following patch to <code class="filename">/etc/rc.d/rc.S</code>
+        </p><pre class="screen">
+cd /etc/rc.d
+cp -a rc.S rc.S.old
+patch -p0 &lt; rc.S.diff
+            </pre><p>
+        (the cp part to make a backup in case).
+      </p><pre class="screen">
+----- snip snip file: rc.S.diff---------------
+--- rc.S.or	Tue Jul 17 18:11:20 2001
++++ rc.S	Tue Jul 17 17:57:36 2001
+@@ -4,6 +4,7 @@
+ #
+ # Mostly written by:  Patrick J. Volkerding, &lt;volkerdi@slackware.com&gt;
+ #
++# Added LVM support &lt;tgs@iafrica.com&gt;
+
+ PATH=/sbin:/usr/sbin:/bin:/usr/bin
+
+@@ -28,19 +29,21 @@
+   READWRITE=yes
+ fi
+
++
+ # Check the integrity of all filesystems
+ if [ ! READWRITE = yes ]; then
+-  /sbin/fsck -A -a
++  /sbin/fsck -a /
++  # Check only the root fs first, but no others
+   # If there was a failure, drop into single-user mode.
+   if [ ? -gt 1 ] ; then
+     echo
+     echo
+-    echo "*******************************************************"
+-    echo "*** An error occurred during the file system check. ***"
+-    echo "*** You will now be given a chance to log into the  ***"
+-    echo "*** system in single-user mode to fix the problem.  ***"
+-    echo "*** Running 'e2fsck -v -y &lt;partition&gt;' might help.  ***"
+-    echo "*******************************************************"
++    echo "************************************************************"
++    echo "*** An error occurred during the root file system check. ***"
++    echo "*** You will now be given a chance to log into the       ***"
++    echo "*** system in single-user mode to fix the problem.       ***"
++    echo "*** Running 'e2fsck -v -y &lt;partition&gt;' might help.       ***"
++    echo "************************************************************"
+     echo
+     echo "Once you exit the single-user shell, the system will reboot."
+     echo
+@@ -82,6 +85,44 @@
+     echo -n "get into your machine and start looking for the problem. "
+     read junk;
+   fi
++  # okay / fs is clean, and mounted as rw
++  # This was an addition, limits vgscan to /proc thus
++  # speeding up the scan immensely.
++  /sbin/mount /proc
++
++  # Initialize Logical Volume Manager
++  /sbin/vgscan
++  /sbin/vgchange -ay
++
++  /sbin/fsck -A -a -R
++  #Check all the other filesystem, including the LVM's, excluding /
++
++  # If there was a failure, drop into single-user mode.
++  if [ ? -gt 1 ] ; then
++    echo
++    echo
++    echo "*******************************************************"
++    echo "*** An error occurred during the file system check. ***"
++    echo "*** You will now be given a chance to log into the  ***"
++    echo "*** system in single-user mode to fix the problem.  ***"
++    echo "*** Running 'e2fsck -v -y &lt;partition&gt;' might help.  ***"
++    echo "*** The root filesystem is ok and mounted readwrite ***"
++    echo "*******************************************************"
++    echo
++    echo "Once you exit the single-user shell, the system will reboot."
++    echo
++
++    PS1="(Repair filesystem) #"; export PS1
++    sulogin
++
++    echo "Unmounting file systems."
++    umount -a -r
++    mount -n -o remount,ro /
++    echo "Rebooting system."
++    sleep 2
++    reboot
++  fi
++
+ else
+   echo "Testing filesystem status: read-write filesystem"
+   if cat /etc/fstab | grep ' / ' | grep umsdos 1&gt; /dev/null 2&gt; /dev/null ;
+then
+@@ -111,14 +152,16 @@
+     echo -n "Press ENTER to continue. "
+     read junk;
+   fi
++
+ fi
+
++
+ # remove /etc/mtab* so that mount will create it with a root entry
+ /bin/rm -f /etc/mtab* /etc/nologin /etc/shutdownpid
+
+ # mount file systems in fstab (and create an entry for /)
+ # but not NFS or SMB because TCP/IP is not yet configured
+-/sbin/mount -a -v -t nonfs,nosmbfs
++/sbin/mount -a -v -t nonfs,nosmbfs,proc
+
+ # Clean up temporary files on the /var volume:
+ /bin/rm -f /var/run/utmp /var/run/*.pid /var/log/setup/tmp/*
+--snip snip snip end of file---------------
+
+         </pre></div><div class="navfooter"><hr><table width="100%" summary="Navigation footer"><tr><td width="40%" align="left"><a accesskey="p" href="ch07s04.html">Prev</a> </td><td width="20%" align="center"><a accesskey="u" href="ch07.html">Up</a></td><td width="40%" align="right"> <a accesskey="n" href="ch07s06.html">Next</a></td></tr><tr><td width="40%" align="left" valign="top">4. Redhat </td><td width="20%" align="center"><a accesskey="h" href="index.html">Home</a></td><td width="40%" align="right" valign="top"> 6. SuSE</td></tr></table></div></body></html>

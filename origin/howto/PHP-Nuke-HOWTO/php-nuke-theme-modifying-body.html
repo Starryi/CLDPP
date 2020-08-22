@@ -1,0 +1,602 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN""http://www.w3.org/TR/html4/loose.dtd">
+<HTML
+><HEAD
+><TITLE
+>Modifying the PHP-Nuke theme body</TITLE
+><META
+NAME="GENERATOR"
+CONTENT="Modular DocBook HTML Stylesheet Version 1.79"><LINK
+REL="HOME"
+TITLE="PHP-Nuke: Management and Programming"
+HREF="index.html"><LINK
+REL="UP"
+TITLE="Customising PHP-Nuke themes "
+HREF="customization.html"><LINK
+REL="PREVIOUS"
+TITLE="Modifying the PHP-Nuke theme header"
+HREF="php-nuke-theme-modifying-header.html"><LINK
+REL="NEXT"
+TITLE="Modifying the PHP-Nuke theme index"
+HREF="php-nuke-theme-modifying-index.html"></HEAD
+><BODY
+CLASS="SECT1"
+BGCOLOR="#FFFFFF"
+TEXT="#000000"
+LINK="#0000FF"
+VLINK="#840084"
+ALINK="#0000FF"
+><DIV
+CLASS="NAVHEADER"
+><TABLE
+SUMMARY="Header navigation table"
+WIDTH="100%"
+BORDER="0"
+CELLPADDING="0"
+CELLSPACING="0"
+><TR
+><TH
+COLSPAN="3"
+ALIGN="center"
+>PHP-Nuke: Management and Programming</TH
+></TR
+><TR
+><TD
+WIDTH="10%"
+ALIGN="left"
+VALIGN="bottom"
+><A
+HREF="php-nuke-theme-modifying-header.html"
+ACCESSKEY="P"
+>Prev</A
+></TD
+><TD
+WIDTH="80%"
+ALIGN="center"
+VALIGN="bottom"
+>Chapter 14. Customising <SPAN
+CLASS="APPLICATION"
+>PHP-Nuke</SPAN
+> themes</TD
+><TD
+WIDTH="10%"
+ALIGN="right"
+VALIGN="bottom"
+><A
+HREF="php-nuke-theme-modifying-index.html"
+ACCESSKEY="N"
+>Next</A
+></TD
+></TR
+></TABLE
+><HR
+ALIGN="LEFT"
+WIDTH="100%"></DIV
+><DIV
+CLASS="SECT1"
+><H1
+CLASS="SECT1"
+><A
+NAME="PHP-NUKE-THEME-MODIFYING-BODY"
+>14.4. Modifying the <SPAN
+CLASS="APPLICATION"
+>PHP-Nuke</SPAN
+> theme body</A
+></H1
+><P
+>In this section we continue our study of <SPAN
+CLASS="APPLICATION"
+>PHP-Nuke</SPAN
+> themes - this time with the body of a theme! We cover topics like:</P
+><P
+></P
+><UL
+><LI
+><P
+>How to get multipage News articles (<A
+HREF="php-nuke-theme-modifying-body.html#MULTIPAGE-NEWS-ARTICLES"
+>Section 14.4.1</A
+>).</P
+></LI
+><LI
+><P
+>How to change the background colour (<A
+HREF="php-nuke-theme-modifying-body.html#CHANGE-BACKGROUND-COLOUR"
+>Section 14.4.2</A
+>).</P
+></LI
+></UL
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="MULTIPAGE-NEWS-ARTICLES"
+>14.4.1. How to get multipage News articles</A
+></H2
+><P
+>It appears that while Reviews, Section, and Content areas allow multipage bodies, the general News article does not. Contrary to what one would think, if you want to add such functionality in the News module, the code under modules/News/ is <EM
+>not</EM
+> the right place. The right place is the themearticle() in the theme.php file of your theme!</P
+><P
+>This is so, because it is the themearticle() function that outputs the article text, through a call to the FormatStory() function (which is also defined in theme.php):</P
+><TABLE
+BORDER="1"
+BGCOLOR="#E0E0E0"
+WIDTH="100%"
+><TR
+><TD
+><FONT
+COLOR="#000000"
+><PRE
+CLASS="SCREEN"
+>FormatStory($thetext, $notes="", $aid, $informant);</PRE
+></FONT
+></TD
+></TR
+></TABLE
+><P
+>Thus, all we have to do is format $thetext accordingly, before it is passed to FormatStory. Just add the following code to the begining of the themearticle() function in theme.php, like this<A
+NAME="AEN10865"
+HREF="#FTN.AEN10865"
+><SPAN
+CLASS="footnote"
+>[1]</SPAN
+></A
+> (see <A
+HREF="http://www.nukeforums.com/forums/viewtopic.php?topic=12114&#38;forum=42"
+TARGET="_top"
+>Multipage articles</A
+>, <A
+HREF="http://www.nukeforums.com/forums/viewtopic.php?topic=9390&#38;forum=26"
+TARGET="_top"
+>Pagebreaks in articles</A
+>):</P
+><TABLE
+BORDER="1"
+BGCOLOR="#E0E0E0"
+WIDTH="100%"
+><TR
+><TD
+><FONT
+COLOR="#000000"
+><PRE
+CLASS="SCREEN"
+>function themearticle ($aid, $informant, $datetime, $title, $thetext, 
+$topic, $topicname, $topicimage, $topictext) {
+global $admin, $sid, $tipath, $page;
+$contentpages = explode( "&#60;!--pagebreak--&#62;", $thetext );
+$pageno = count($contentpages);
+if ( $page=="" || $page &#60; 1 )
+$page = 1; 
+if ( $page &#62; $pageno )
+$page = $pageno;
+$arrayelement = (int)$page;
+$arrayelement --;
+if ($pageno &#62; 1) {
+$thetextNew .= "Page: $page/$pageno&#60;br&#62;";
+}
+$thetextNew .= "&#60;p align=\"justify\"&#62;$contentpages[$arrayelement]&#60;/p&#62;";
+if($page &#62;= $pageno) {
+$next_page = "";
+} else {
+$next_pagenumber = $page + 1;
+if ($page != 1) {
+$next_page .= "- ";
+}
+$next_page .= "&#60;a href=\"modules.php?name=News&#38;file=article&#38;sid=$sid
+&#38;page=$next_pagenumber\"&#62;"._NEXT." ($next_pagenumber/$pageno)&#60;/a&#62; 
+&#60;a href=\"modules.php?name=News&#38;file=article&#38;sid=$sid&#38;page=$next_pagenumber\"&#62;
+&#60;img src=\"images/right.gif\"border=\"0\" alt=\""._NEXT."\"&#62;&#60;/a&#62;";
+}
+if ($page == $pageno) {
+$thetextNew .= "&#60;br&#62;&#60;p align=\"justify\"&#62;".nl2br($mypage[page_footer])."&#60;/p&#62;&#60;br&#62;&#60;br&#62;";
+}
+if($page &#60;= 1) { 
+$previous_page = "";
+} else {
+$previous_pagenumber = $page - 1;
+$previous_page = "&#60;a href=\"modules.php?name=News&#38;file=article&#38;sid=$sid
+&#38;page=$previous_pagenumber\"&#62;
+&#60;img src=\"images/left.gif\" border=\"0\" alt=\""._PREVIOUS."\"&#62;&#60;/a&#62; 
+&#60;a href=\"modules.php?name=News&#38;file=article&#38;sid=$sid
+&#38;page=$previous_pagenumber\"&#62;"._PREVIOUS." ($previous_pagenumber/$pageno)&#60;/a&#62;";
+}
+$thetextNew .= "&#60;br&#62;&#60;br&#62;&#60;br&#62;&#60;center&#62;$previous_page $next_page&#60;/center&#62;&#60;br&#62;&#60;br&#62;";
+$thetext = $thetextNew;</PRE
+></FONT
+></TD
+></TR
+></TABLE
+><P
+>Now you can use &#60;!--pagebreak--&#62; in your News stories, and the code above will split the text at the &#60;!--pagebreak--&#62; and create the &#8220;previous&#8221; and &#8220;next&#8221; hyperlinks for you (don't forget to define _NEXT and _PREVIOUS in your language file, as shown in <A
+HREF="modifying-php-nuke-texts.html"
+>Chapter 13</A
+>).</P
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="CHANGE-BACKGROUND-COLOUR"
+>14.4.2. How to change background colour</A
+></H2
+><P
+>A well-constructed theme will offer you a simple way to change the various colours (see <A
+HREF="http://www.karakas-online.de/forum/viewtopic.php?t=311"
+TARGET="_top"
+>How to change the background colour</A
+>): in the theme.php file of the NukeNews theme, for example, you can read:</P
+><TABLE
+BORDER="1"
+BGCOLOR="#E0E0E0"
+WIDTH="100%"
+><TR
+><TD
+><FONT
+COLOR="#000000"
+><PRE
+CLASS="SCREEN"
+>/************************************************************/
+/* Theme Colors Definition                                  */
+/*                                                          */
+/* Define colors for your web site. $bgcolor2 is generaly   */
+/* used for the tables border as you can see on OpenTable() */
+/* function, $bgcolor1 is for the table background and the  */
+/* other two bgcolor variables follows the same criteria.   */
+/* $texcolor1 and 2 are for tables internal texts           */
+/************************************************************/</PRE
+></FONT
+></TD
+></TR
+></TABLE
+><P
+>and immediately after that:</P
+><TABLE
+BORDER="1"
+BGCOLOR="#E0E0E0"
+WIDTH="100%"
+><TR
+><TD
+><FONT
+COLOR="#000000"
+><PRE
+CLASS="SCREEN"
+>$bgcolor1 = "#efefef";
+$bgcolor2 = "#cfcfbb";
+$bgcolor3 = "#efefef";
+$bgcolor4 = "#cfcfbb";
+$textcolor1 = "#000000";
+$textcolor2 = "#000000";</PRE
+></FONT
+></TD
+></TR
+></TABLE
+><P
+>The strings to the right side of the above assignments are hexadecimal representations of colours. They begin with a # and contain six hexadecimal digits, two for each colour of the basic ones, red, green and blue. Thus, the string "#cfcfbb" fot $bgcolor4 means cf for red, cf for green and bb for blue. Each one of the three hexadecimal two-digit numbers has a range from 00 to FF (just as each hexadecimal digit goes from 0 to F: 0, 1, 2, 3..., 8, 9, a, b, c, d, e, f, where a means 10, b means 11, c means 12 ... and f means 15 in the hexadecimal system). This means a range from 0 to 255 - that's 256 different values for each colour. </P
+><DIV
+CLASS="TIP"
+><P
+></P
+><TABLE
+CLASS="TIP"
+WIDTH="100%"
+BORDER="0"
+><TR
+><TD
+WIDTH="25"
+ALIGN="CENTER"
+VALIGN="TOP"
+><IMG
+SRC="../images/tip.png"
+HSPACE="5"
+ALT="Tip"></TD
+><TH
+ALIGN="LEFT"
+VALIGN="MIDDLE"
+><B
+>Colour wheels</B
+></TH
+></TR
+><TR
+><TD
+>&nbsp;</TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+>A  useful tool in exploring the visible spectrum in HTML is the <A
+HREF="http://www.karakas-online.de/myServices/colorwheel.html"
+TARGET="_top"
+>colour wheel</A
+>.  Just hover over the wheel with your mouse to view 4096 colors in their web safe, web smart and unsafe versions.<SPAN
+CLASS="INLINEMEDIAOBJECT"
+><IMG
+SRC="./images/icon_cool.png"></SPAN
+></P
+><P
+>You can also use the <A
+HREF="http://www.karakas-online.de/popups/"
+TARGET="_top"
+>colour popups of the Tag-o-matic</A
+> to show all 216 web-safe colours in a virtual colour card.</P
+></TD
+></TR
+></TABLE
+></DIV
+><P
+>But what do you do if your theme does not follow this scheme and does not offer you this possibility? In such a case, we need to applly our knowledge on the structure of a theme (see <A
+HREF="topic-structure.html"
+>Section 14.1</A
+>). We have seen that each theme comes with its own definition of the OpenTable() and CloseTable() functions. A brief look at the code of tables.php in modules/NukeNews reveals the place where $bgcolor1 and $bgcolor2 are used in the Nuke News theme: in the definitions of OpenTable() and CloseTable()! This is for example the OpenTable() function for the NukeNews theme (see modules/NukeNews/tables.php):</P
+><TABLE
+BORDER="1"
+BGCOLOR="#E0E0E0"
+WIDTH="100%"
+><TR
+><TD
+><FONT
+COLOR="#000000"
+><PRE
+CLASS="SCREEN"
+>function OpenTable() {
+    global $bgcolor1, $bgcolor2;
+    echo "&#60;table width=\"100%\" border=\"0\" cellspacing=\"1\" 
+           cellpadding=\"0\" bgcolor=\"$bgcolor2\"&#62;&#60;tr&#62;&#60;td&#62;\n";
+    echo "&#60;table width=\"100%\" border=\"0\" cellspacing=\"1\" 
+          cellpadding=\"8\" bgcolor=\"$bgcolor1\"&#62;&#60;tr&#62;&#60;td&#62;\n";
+}</PRE
+></FONT
+></TD
+></TR
+></TABLE
+><P
+>Other themes construct their the OpenTable() and CloseTable() functions similarly, if not identically. We will use this fact to change the background colour in the Stories Archive module - and only there. To this end, we only need to define new OpenTable() and CloseTable() functions, with the colour of our choice, then use the new functions instead of the old ones everywhere in the module:</P
+><P
+>In the theme.php file of your theme, add the following two functions<A
+NAME="AEN10918"
+HREF="#FTN.AEN10918"
+><SPAN
+CLASS="footnote"
+>[2]</SPAN
+></A
+>:</P
+><TABLE
+BORDER="1"
+BGCOLOR="#E0E0E0"
+WIDTH="100%"
+><TR
+><TD
+><FONT
+COLOR="#000000"
+><PRE
+CLASS="SCREEN"
+>function OpenTableNew() {
+    global $bgcolor1, $bgcolor2;
+    echo "&#60;table width=\"100%\" border=\"0\" cellspacing=\"1\" 
+          cellpadding=\"0\" bgcolor=\"$bgcolornew2\"&#62;&#60;tr&#62;&#60;td&#62;\n";
+    echo "&#60;table width=\"100%\" border=\"0\" cellspacing=\"1\" 
+          cellpadding=\"8\" bgcolor=\"$bgcolornew1\"&#62;&#60;tr&#62;&#60;td&#62;\n";
+} 
+function CloseTableNew() {
+    echo "&#60;/td&#62;&#60;/tr&#62;&#60;/table&#62;&#60;/td&#62;&#60;/tr&#62;&#60;/table&#62;\n";
+}</PRE
+></FONT
+></TD
+></TR
+></TABLE
+><P
+>Give the new background colours, $bgcolornew1 and $bgcolornew2, the values of your liking in the start of theme.php, for example:</P
+><TABLE
+BORDER="1"
+BGCOLOR="#E0E0E0"
+WIDTH="100%"
+><TR
+><TD
+><FONT
+COLOR="#000000"
+><PRE
+CLASS="SCREEN"
+>$bgcolornew1 = "#ffffff";
+$bgcolornew2 = "#660000";</PRE
+></FONT
+></TD
+></TR
+></TABLE
+><P
+>Then just change every occurence of "OpenTable" and "CloseTable" with "OpenTableNew" and "CloseTableNew" respectively in modules/Stories_Archive/index.php. That's all! The Stories Archive module will now use the new colours.</P
+><P
+>There is one small detail you may also want to fix though: the colours of the cells for the &#8220;Articles | Comments | Reads | Score | Date | Actions&#8221; links. To change those too, you will have to change the $bgcolour2 colour in the table cells of the show_month function of modules/Stories_Archive/index.php (see also <A
+HREF="http://www.nukeforums.com/forums/viewtopic.php?t=12974"
+TARGET="_top"
+>Background color in Stories Archive</A
+>):</P
+><TABLE
+BORDER="1"
+BGCOLOR="#E0E0E0"
+WIDTH="100%"
+><TR
+><TD
+><FONT
+COLOR="#000000"
+><PRE
+CLASS="SCREEN"
+>    echo "&#60;table border=\"0\" width=\"100%\"&#62;&#60;tr&#62;"
+        ."&#60;td bgcolor=\"$bgcolor2\" align=\"left\"&#62;&#60;b&#62;"._ARTICLES."&#60;/b&#62;&#60;/td&#62;"
+        ."&#60;td bgcolor=\"$bgcolor2\" align=\"center\"&#62;&#60;b&#62;"._COMMENTS."&#60;/b&#62;&#60;/td&#62;"
+        ."&#60;td bgcolor=\"$bgcolor2\" align=\"center\"&#62;&#60;b&#62;"._READS."&#60;/b&#62;&#60;/td&#62;"
+        ."&#60;td bgcolor=\"$bgcolor2\" align=\"center\"&#62;&#60;b&#62;"._USCORE."&#60;/b&#62;&#60;/td&#62;"
+        ."&#60;td bgcolor=\"$bgcolor2\" align=\"center\"&#62;&#60;b&#62;"._DATE."&#60;/b&#62;&#60;/td&#62;"
+        ."&#60;td bgcolor=\"$bgcolor2\" align=\"center\"&#62;&#60;b&#62;"._ACTIONS."&#60;/b&#62;&#60;/td&#62;&#60;/tr&#62;";</PRE
+></FONT
+></TD
+></TR
+></TABLE
+><P
+>For your design to be consistent, the best way would be to change the six occurences of $bgcolor2 in the above code, to your new background colour $bgcolornew2. </P
+><P
+>If you want to change the <EM
+>foreground</EM
+> colour, the easiest method might be to change the value of the text attribute in the &#60;body&#62; tag that is echoed in the themeheader() function of theme.php (see <A
+HREF="http://www.karakas-online.de/forum/viewtopic.php?t=378"
+TARGET="_top"
+>How to change the main font color</A
+>):</P
+><TABLE
+BORDER="1"
+BGCOLOR="#E0E0E0"
+WIDTH="100%"
+><TR
+><TD
+><FONT
+COLOR="#000000"
+><PRE
+CLASS="SCREEN"
+>echo "&#60;body bgcolor=\"#505050\" text=\"#000000\" 
+link=\"#363636\" vlink=\"#363636\" alink=\"#d5ae83\"&#62;";</PRE
+></FONT
+></TD
+></TR
+></TABLE
+><P
+>Setting</P
+><TABLE
+BORDER="1"
+BGCOLOR="#E0E0E0"
+WIDTH="100%"
+><TR
+><TD
+><FONT
+COLOR="#000000"
+><PRE
+CLASS="SCREEN"
+>text=\"#FF0000\"</PRE
+></FONT
+></TD
+></TR
+></TABLE
+><P
+>for example, should make all text appear in red. </P
+></DIV
+></DIV
+><H3
+CLASS="FOOTNOTES"
+>Notes</H3
+><TABLE
+BORDER="0"
+CLASS="FOOTNOTES"
+WIDTH="100%"
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+WIDTH="5%"
+><A
+NAME="FTN.AEN10865"
+HREF="php-nuke-theme-modifying-body.html#AEN10865"
+><SPAN
+CLASS="footnote"
+>[1]</SPAN
+></A
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+WIDTH="95%"
+><P
+>Notice that we have added $page to the global variable list - other than that ,the first two lines are included here only for your orientation.</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+WIDTH="5%"
+><A
+NAME="FTN.AEN10918"
+HREF="php-nuke-theme-modifying-body.html#AEN10918"
+><SPAN
+CLASS="footnote"
+>[2]</SPAN
+></A
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+WIDTH="95%"
+><P
+>Strictly seen, the CloseTableNew() function is not necessarily needed, since no new colour is defined there, but it is good to have, to keep the functions conceptually separated from the standard ones.</P
+></TD
+></TR
+></TABLE
+><DIV
+CLASS="NAVFOOTER"
+><HR
+ALIGN="LEFT"
+WIDTH="100%"><TABLE
+SUMMARY="Footer navigation table"
+WIDTH="100%"
+BORDER="0"
+CELLPADDING="0"
+CELLSPACING="0"
+><TR
+><TD
+WIDTH="33%"
+ALIGN="left"
+VALIGN="top"
+><A
+HREF="php-nuke-theme-modifying-header.html"
+ACCESSKEY="P"
+>Prev</A
+></TD
+><TD
+WIDTH="34%"
+ALIGN="center"
+VALIGN="top"
+><A
+HREF="index.html"
+ACCESSKEY="H"
+>Home</A
+></TD
+><TD
+WIDTH="33%"
+ALIGN="right"
+VALIGN="top"
+><A
+HREF="php-nuke-theme-modifying-index.html"
+ACCESSKEY="N"
+>Next</A
+></TD
+></TR
+><TR
+><TD
+WIDTH="33%"
+ALIGN="left"
+VALIGN="top"
+>Modifying the <SPAN
+CLASS="APPLICATION"
+>PHP-Nuke</SPAN
+> theme header</TD
+><TD
+WIDTH="34%"
+ALIGN="center"
+VALIGN="top"
+><A
+HREF="customization.html"
+ACCESSKEY="U"
+>Up</A
+></TD
+><TD
+WIDTH="33%"
+ALIGN="right"
+VALIGN="top"
+>Modifying the <SPAN
+CLASS="APPLICATION"
+>PHP-Nuke</SPAN
+> theme index</TD
+></TR
+></TABLE
+></DIV
+></BODY
+></HTML
+>

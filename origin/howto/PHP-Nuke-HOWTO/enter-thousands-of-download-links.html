@@ -1,0 +1,391 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN""http://www.w3.org/TR/html4/loose.dtd">
+<HTML
+><HEAD
+><TITLE
+>How to enter thousands of download links</TITLE
+><META
+NAME="GENERATOR"
+CONTENT="Modular DocBook HTML Stylesheet Version 1.79"><LINK
+REL="HOME"
+TITLE="PHP-Nuke: Management and Programming"
+HREF="index.html"><LINK
+REL="UP"
+TITLE="Miscellaneous"
+HREF="miscellaneous.html"><LINK
+REL="PREVIOUS"
+TITLE="How to enter thousands of web links"
+HREF="enter-thousands-of-web-links.html"><LINK
+REL="NEXT"
+TITLE="How to check the validity of thousands of web links"
+HREF="check-validity-of-web-links.html"></HEAD
+><BODY
+CLASS="SECT1"
+BGCOLOR="#FFFFFF"
+TEXT="#000000"
+LINK="#0000FF"
+VLINK="#840084"
+ALINK="#0000FF"
+><DIV
+CLASS="NAVHEADER"
+><TABLE
+SUMMARY="Header navigation table"
+WIDTH="100%"
+BORDER="0"
+CELLPADDING="0"
+CELLSPACING="0"
+><TR
+><TH
+COLSPAN="3"
+ALIGN="center"
+>PHP-Nuke: Management and Programming</TH
+></TR
+><TR
+><TD
+WIDTH="10%"
+ALIGN="left"
+VALIGN="bottom"
+><A
+HREF="enter-thousands-of-web-links.html"
+ACCESSKEY="P"
+>Prev</A
+></TD
+><TD
+WIDTH="80%"
+ALIGN="center"
+VALIGN="bottom"
+>Chapter 27. Miscellaneous</TD
+><TD
+WIDTH="10%"
+ALIGN="right"
+VALIGN="bottom"
+><A
+HREF="check-validity-of-web-links.html"
+ACCESSKEY="N"
+>Next</A
+></TD
+></TR
+></TABLE
+><HR
+ALIGN="LEFT"
+WIDTH="100%"></DIV
+><DIV
+CLASS="SECT1"
+><H1
+CLASS="SECT1"
+><A
+NAME="ENTER-THOUSANDS-OF-DOWNLOAD-LINKS"
+>27.6. How to enter thousands of download links</A
+></H1
+><P
+><DIV
+CLASS="FIGURE"
+><A
+NAME="FIG-DOWNLOADS-2"
+></A
+><P
+><B
+>Figure 27-5.    Administration panel: Downloads.
+   </B
+></P
+><DIV
+CLASS="MEDIAOBJECT"
+><P
+><IMG
+SRC="./images/downloads.png"><DIV
+CLASS="CAPTION"
+><P
+>Administration panel: Downloads.</P
+></DIV
+></P
+></DIV
+></DIV
+></P
+><P
+>You have gathered, or you have found , thousands of download links that you would like to enter in the <SPAN
+CLASS="APPLICATION"
+>PHP-Nuke</SPAN
+> Downloads module. You don't want to do this manually. You can use a <ACRONYM
+CLASS="ACRONYM"
+>PHP</ACRONYM
+> script to read the links and create the file with the SQL commands for you.</P
+><P
+>Put the following script (which you can download from <A
+HREF="http://www.humpa.com/news/downloadadd.txt"
+TARGET="_top"
+>downloadadd.txt</A
+>) in the <SPAN
+CLASS="APPLICATION"
+>PHP-Nuke</SPAN
+> root directory (the directory where also the config.php file is located), using .php as the ending, instead of .txt:</P
+><TABLE
+BORDER="1"
+BGCOLOR="#E0E0E0"
+WIDTH="100%"
+><TR
+><TD
+><FONT
+COLOR="#000000"
+><PRE
+CLASS="SCREEN"
+>&#60;?php
+global $prefix, $dbi;
+include_once("mainfile.php");
+$url_downloads_folder = "http://www.humpa.com/images/"; // put the url to the 
+               // directory with your downloads - you need the trailing slash!
+$cat = 2; // the download category id (cid)
+$description = "You can put a generic description here - this will be on all of them!!!!";
+$name = "PutThe_Subbmitted_By_Name_Here";
+$email = "PutEmailHere";
+$the_hits = 0; // you can change this if you want
+$filesize = 0;  // you can change this if you want
+$version = "";  // you can put something betwenn the quotes if you want, or leave them empty
+$homepage = "http://www.HomePage.com";
+$fp = @fopen("$url_downloads_folder","r"); 
+if($fp) {
+        echo "success opening the $url_downloads$downloads_folder folder.&#60;br&#62;&#60;br&#62;";
+        
+        $i=1;
+        $buffer = "";
+        while (!feof ($fp)) {
+                $i++;
+                $buffer_temp = fgets($fp, 2048);
+                $buffer = "$buffer$buffer_temp";
+        }
+fclose ($fp);
+}else {
+        echo "couldn't connect to $url_downloads_folder";
+        die();
+}
+//$buffer = str_replace("A HREF=\"/", "", $buffer);
+//$buffer = str_replace("A HREF=\"?", "", $buffer);
+$i=0;
+while(eregi("(&#60;A HREF=\")([a-zA-Z0-9._-]+)(\"&#62;)",$buffer,$array_data)) {
+                $i++;
+                $buffer = str_replace($array_data[1].$array_data[2].$array_data[3],"",$buffer);
+                //echo "$array_data[2] is data-2&#60;br&#62;";
+                $file_names[$i] = $array_data[2];
+}
+echo "found $i files&#60;br&#62;";
+while($i&#62;0) {
+        //echo "$file_names[$i]&#60;br&#62;";
+        $title = eregi_replace("(.+)(\.)(.+)","\\1",$file_names[$i]);
+        $url = $url_downloads_folder.$file_names[$i];
+        $the_sql_querys .= "insert into ".$prefix."_downloads_downloads values 
+(NULL, '$cat', '0', '$title', '$url', '$description', now(), '$name', '$email',
+'$the_hits',",'0','0','0', '$filesize', '$version', '$homepage');&#60;br&#62;&#60;br&#62;";
+        $i--;
+}
+echo "&#60;br&#62;&#60;br&#62;$the_sql_querys";
+?&#62;</PRE
+></FONT
+></TD
+></TR
+></TABLE
+><P
+>You must of course adapt the script to your situation. The following variables must be set correctly:</P
+><P
+></P
+><UL
+><LI
+><P
+>$url_downloads_folder: the url to the directory with your downloads - you need the trailing slash (obligatory)!</P
+></LI
+><LI
+><P
+>$cat: the download category id (cid) (obligatory).</P
+></LI
+><LI
+><P
+>$description: you can put a generic description here - this will be on all of them! (optional)</P
+></LI
+><LI
+><P
+>$name: this will be the Subbmitted_By name (optional).</P
+></LI
+><LI
+><P
+>$email : your email (optional).</P
+></LI
+><LI
+><P
+>$version: the download version (optional).</P
+></LI
+><LI
+><P
+>$homepage: your homepage address (optional).</P
+></LI
+></UL
+><P
+>When you point the browser to the locally saved downloadadd.php script, it will print out some messages about the files it found in your downloads folder and also all the necessary SQL INSERT commands for those files to be entered as Downloads in the Downloads module. </P
+><DIV
+CLASS="CAUTION"
+><P
+></P
+><TABLE
+CLASS="CAUTION"
+WIDTH="100%"
+BORDER="0"
+><TR
+><TD
+WIDTH="25"
+ALIGN="CENTER"
+VALIGN="TOP"
+><IMG
+SRC="../images/caution.png"
+HSPACE="5"
+ALT="Caution"></TD
+><TH
+ALIGN="LEFT"
+VALIGN="MIDDLE"
+><B
+>You should not have a file named index.html in your downloads folder!</B
+></TH
+></TR
+><TR
+><TD
+>&nbsp;</TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+>If you have an index.html, index.htm or similar file in the $url_downloads_folder, the script will analyze the contents of this file, instead of the contents of the folder itself! Thus, to get the right SQL INSERT commands, you should make sure that your download folder does not contain any index.htm* file.</P
+></TD
+></TR
+></TABLE
+></DIV
+><P
+>You can copy and paste them in a text file, call it downloads.sql for example,  then run that file in the MySQL prompt, just as we did with the dmoz.sql file in <A
+HREF="enter-thousands-of-web-links.html"
+>Section 27.5</A
+>:</P
+><TABLE
+BORDER="1"
+BGCOLOR="#E0E0E0"
+WIDTH="100%"
+><TR
+><TD
+><FONT
+COLOR="#000000"
+><PRE
+CLASS="SCREEN"
+>mysql &#60; downloads.sql</PRE
+></FONT
+></TD
+></TR
+></TABLE
+><DIV
+CLASS="TIP"
+><P
+></P
+><TABLE
+CLASS="TIP"
+WIDTH="100%"
+BORDER="0"
+><TR
+><TD
+WIDTH="25"
+ALIGN="CENTER"
+VALIGN="TOP"
+><IMG
+SRC="../images/tip.png"
+HSPACE="5"
+ALT="Tip"></TD
+><TH
+ALIGN="LEFT"
+VALIGN="MIDDLE"
+><B
+>Test a few INSERTSs first!</B
+></TH
+></TR
+><TR
+><TD
+>&nbsp;</TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+>You should copy and test a few INSERTs first, before you run the whole downloads.sql file! You might not be satisfied with the resulted entries, you might discover an error, or decide to change some optional variable in the script - all this is much easier if you just tested a few commands first!</P
+></TD
+></TR
+></TABLE
+></DIV
+><P
+>See <A
+HREF="http://www.nukeforums.com/forums/viewtopic.php?t=12191"
+TARGET="_top"
+>How to add many downloads to my phpnuke site?</A
+>, <A
+HREF="http://www.nukeforums.com/forums/viewtopic.php?t=13545"
+TARGET="_top"
+>Question about bulk upload</A
+> and <A
+HREF="http://www.nukeforums.com/forums/viewtopic.php?t=13525"
+TARGET="_top"
+>Can this be done?</A
+>.</P
+></DIV
+><DIV
+CLASS="NAVFOOTER"
+><HR
+ALIGN="LEFT"
+WIDTH="100%"><TABLE
+SUMMARY="Footer navigation table"
+WIDTH="100%"
+BORDER="0"
+CELLPADDING="0"
+CELLSPACING="0"
+><TR
+><TD
+WIDTH="33%"
+ALIGN="left"
+VALIGN="top"
+><A
+HREF="enter-thousands-of-web-links.html"
+ACCESSKEY="P"
+>Prev</A
+></TD
+><TD
+WIDTH="34%"
+ALIGN="center"
+VALIGN="top"
+><A
+HREF="index.html"
+ACCESSKEY="H"
+>Home</A
+></TD
+><TD
+WIDTH="33%"
+ALIGN="right"
+VALIGN="top"
+><A
+HREF="check-validity-of-web-links.html"
+ACCESSKEY="N"
+>Next</A
+></TD
+></TR
+><TR
+><TD
+WIDTH="33%"
+ALIGN="left"
+VALIGN="top"
+>How to enter thousands of web links</TD
+><TD
+WIDTH="34%"
+ALIGN="center"
+VALIGN="top"
+><A
+HREF="miscellaneous.html"
+ACCESSKEY="U"
+>Up</A
+></TD
+><TD
+WIDTH="33%"
+ALIGN="right"
+VALIGN="top"
+>How to check the validity of thousands of web links</TD
+></TR
+></TABLE
+></DIV
+></BODY
+></HTML
+>

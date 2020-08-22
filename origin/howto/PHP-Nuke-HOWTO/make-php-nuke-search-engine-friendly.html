@@ -1,0 +1,1415 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN""http://www.w3.org/TR/html4/loose.dtd">
+<HTML
+><HEAD
+><TITLE
+>How to make PHP-Nuke search engine friendly</TITLE
+><META
+NAME="GENERATOR"
+CONTENT="Modular DocBook HTML Stylesheet Version 1.79"><LINK
+REL="HOME"
+TITLE="PHP-Nuke: Management and Programming"
+HREF="index.html"><LINK
+REL="UP"
+TITLE="Optimizing PHP-Nuke "
+HREF="optimizing-php-nuke.html"><LINK
+REL="PREVIOUS"
+TITLE="The .htaccess file"
+HREF="htaccess-file.html"><LINK
+REL="NEXT"
+TITLE="How to make PHP-Nuke hot link stealth"
+HREF="make-php-nuke-hot-link-stealth.html"></HEAD
+><BODY
+CLASS="SECT1"
+BGCOLOR="#FFFFFF"
+TEXT="#000000"
+LINK="#0000FF"
+VLINK="#840084"
+ALINK="#0000FF"
+><DIV
+CLASS="NAVHEADER"
+><TABLE
+SUMMARY="Header navigation table"
+WIDTH="100%"
+BORDER="0"
+CELLPADDING="0"
+CELLSPACING="0"
+><TR
+><TH
+COLSPAN="3"
+ALIGN="center"
+>PHP-Nuke: Management and Programming</TH
+></TR
+><TR
+><TD
+WIDTH="10%"
+ALIGN="left"
+VALIGN="bottom"
+><A
+HREF="htaccess-file.html"
+ACCESSKEY="P"
+>Prev</A
+></TD
+><TD
+WIDTH="80%"
+ALIGN="center"
+VALIGN="bottom"
+>Chapter 25. Optimizing <SPAN
+CLASS="APPLICATION"
+>PHP-Nuke</SPAN
+></TD
+><TD
+WIDTH="10%"
+ALIGN="right"
+VALIGN="bottom"
+><A
+HREF="make-php-nuke-hot-link-stealth.html"
+ACCESSKEY="N"
+>Next</A
+></TD
+></TR
+></TABLE
+><HR
+ALIGN="LEFT"
+WIDTH="100%"></DIV
+><DIV
+CLASS="SECT1"
+><H1
+CLASS="SECT1"
+><A
+NAME="MAKE-PHP-NUKE-SEARCH-ENGINE-FRIENDLY"
+>25.5. How to make <SPAN
+CLASS="APPLICATION"
+>PHP-Nuke</SPAN
+> search engine friendly</A
+></H1
+><P
+>To create a search engine friendly <SPAN
+CLASS="APPLICATION"
+>PHP-Nuke</SPAN
+> site, you need a means of converting dynamic URLs to static ones. How can this be done? For example, you could convert </P
+><TABLE
+BORDER="1"
+BGCOLOR="#E0E0E0"
+WIDTH="100%"
+><TR
+><TD
+><FONT
+COLOR="#000000"
+><PRE
+CLASS="SCREEN"
+>http://www.yourdomain.com/modules.php?name=Your_Account&#38;op=userinfo&#38;username=chris</PRE
+></FONT
+></TD
+></TR
+></TABLE
+><P
+>to </P
+><TABLE
+BORDER="1"
+BGCOLOR="#E0E0E0"
+WIDTH="100%"
+><TR
+><TD
+><FONT
+COLOR="#000000"
+><PRE
+CLASS="SCREEN"
+>http://www.yourdomain.com/userinfo-chris.html</PRE
+></FONT
+></TD
+></TR
+></TABLE
+><P
+>Notice that the spider-friendly format contains no indication that there are any parameters being passed at all. Rather,  it simply looks like we are trying to access the file userinfo-chris.html on www.yourdomain.com, and this will not present any problems to the search engine spiders. We have of course to track this case down and use such a &#8220;file&#8221; accordingly, i.e split it internally into its parts, determine the parameter-value pairs and the name of the script to execute and pass the parameters (name=Your_Account, op=edituser, username=chris) to that script (modules.php) for execution. </P
+><P
+>We will describe GoogleTap, an ingenious solution to this problem, that combines the components we saw in the previous sections:</P
+><P
+></P
+><UL
+><LI
+><P
+>mod_rewrite (<A
+HREF="mod-rewrite.html"
+>Section 25.2</A
+>),</P
+></LI
+><LI
+><P
+>regular expressions (<A
+HREF="regular-expressions.html"
+>Section 25.3</A
+>),</P
+></LI
+><LI
+><P
+>.htacces file (<A
+HREF="htaccess-file.html"
+>Section 25.4</A
+>).</P
+></LI
+></UL
+><DIV
+CLASS="WARNING"
+><P
+></P
+><TABLE
+CLASS="WARNING"
+WIDTH="100%"
+BORDER="0"
+><TR
+><TD
+WIDTH="25"
+ALIGN="CENTER"
+VALIGN="TOP"
+><IMG
+SRC="../images/warning.png"
+HSPACE="5"
+ALT="Warning"></TD
+><TH
+ALIGN="LEFT"
+VALIGN="MIDDLE"
+><B
+>Frontpage extensions will not work!</B
+></TH
+></TR
+><TR
+><TD
+>&nbsp;</TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+>This does not need to upset you, since <SPAN
+CLASS="APPLICATION"
+>PHP-Nuke</SPAN
+> does not use Frontpage extensions. But for the sake of completeness, be warned that if you use Frontpage extensions, mod_rewrite will not work! Of course, if your ISP has installed them, but you don't use them, you also don't need to worry. </P
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="GOOGLETAP"
+>25.5.1. GoogleTap</A
+></H2
+><P
+><A
+HREF="http://www.nukecops.com/postt362.html"
+TARGET="_top"
+>GoogleTap</A
+> is a collection of files (header.php, footer.php, .htaccess and replacements for some modules and blocks) that combines the power of regular expressions (<A
+HREF="regular-expressions.html"
+>Section 25.3</A
+>) and mod_rewrite (<A
+HREF="mod-rewrite.html"
+>Section 25.2</A
+>) into a <SPAN
+CLASS="APPLICATION"
+>PHP-Nuke</SPAN
+> setting, to implement a search engine friendly <SPAN
+CLASS="APPLICATION"
+>PHP-Nuke</SPAN
+> using URL manipulation. It grew out of attempts to make <SPAN
+CLASS="APPLICATION"
+>PHP-Nuke</SPAN
+> search engine friendly, that date back to the 5.x versions (see <A
+HREF="http://www.nukeforums.com/forums/viewtopic.php?t=9201"
+TARGET="_top"
+>Mod_rewrite and Nuke</A
+>, <A
+HREF="http://www.nukeforums.com/forums/viewtopic.php?t=16544"
+TARGET="_top"
+>PHP Nuke &#38; mod_rewrite</A
+> and <A
+HREF="http://www.nukeforums.com/forums/viewtopic.php?t=13625"
+TARGET="_top"
+>Google mod_rewrite fix</A
+>), which in turn seem to be related to similar efforts in the PostNuke camp (see <A
+HREF="http://news.postnuke.com/modules.php?op=modload&#38;name=News&#38;file=article&#38;sid=1804"
+TARGET="_top"
+>Search engine friendly URLs revisited</A
+> and <A
+HREF="http://www.aquanuke.com/article358.html"
+TARGET="_top"
+>Hackin' the core - Mod_Rewrite</A
+>).</P
+><P
+>Our treatment of GoogleTap is divided in three parts:</P
+><P
+></P
+><UL
+><LI
+><P
+>Requirements (<A
+HREF="make-php-nuke-search-engine-friendly.html#GOOGLETAP-REQUIREMENTS"
+>Section 25.5.1.1</A
+>),</P
+></LI
+><LI
+><P
+>Installation (<A
+HREF="make-php-nuke-search-engine-friendly.html#GOOGLETAP-INSTALLATION"
+>Section 25.5.1.2</A
+>),</P
+></LI
+><LI
+><P
+>How it works (<A
+HREF="make-php-nuke-search-engine-friendly.html#GOOGLETAP-HOW-IT-WORKS"
+>Section 25.5.1.3</A
+>).</P
+></LI
+></UL
+><DIV
+CLASS="SECT3"
+><H3
+CLASS="SECT3"
+><A
+NAME="GOOGLETAP-REQUIREMENTS"
+>25.5.1.1. Requirements</A
+></H3
+><P
+>To implement the solution of GoogleTap, your system needs to fullfil some <EM
+>software</EM
+> requirements:</P
+><P
+></P
+><UL
+><LI
+><P
+>mod_rewrite needs to be compiled and loaded into apache (see <A
+HREF="mod-rewrite.html"
+>Section 25.2</A
+> on how you can check this).</P
+></LI
+><LI
+><P
+>allowoverrides need to be set to "all" for the directory location your site resides in. Check with your ISP (but see also <A
+HREF="htaccess-file.html"
+>Section 25.4</A
+> why this will make your web server much slower).</P
+></LI
+><LI
+><P
+>rewriteengine needs to be turned "on" in the .htaccess file (this is already done in the .htaccess file that comes with GoogleTap).</P
+></LI
+></UL
+><P
+>But it also needs to fullfil some <EM
+>hardware</EM
+> requirements too: mod_rewrite has to check a lot of regular expressions for each page request. Regular expressions are very flexible, but can be very time consuming too, depending on their complexity. The current implementation of GoogleTap seems to strain the <ACRONYM
+CLASS="ACRONYM"
+>CPU</ACRONYM
+> quite a bit. Depending on the hardware, your hosting scheme (&#8220;root&#8221; , or &#8220;virtual&#8221; server) and the number of HTTP requests you have to serve per second, this may make your pages prohibitively slow to load! Get the best hardware you can afford!</P
+><DIV
+CLASS="TIP"
+><P
+></P
+><TABLE
+CLASS="TIP"
+WIDTH="100%"
+BORDER="0"
+><TR
+><TD
+WIDTH="25"
+ALIGN="CENTER"
+VALIGN="TOP"
+><IMG
+SRC="../images/tip.png"
+HSPACE="5"
+ALT="Tip"></TD
+><TH
+ALIGN="LEFT"
+VALIGN="MIDDLE"
+><B
+>Monitor the load of your web server!</B
+></TH
+></TR
+><TR
+><TD
+>&nbsp;</TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+>If you are on your own ("root") server, but your hardware is not up to the demands of mod_rewrite for computing power, you may find out that your web server load is approaching dwindling heights. There have been reports that a high server load affects the stability  of Apache, or causes memory leaks. This may or may not be true for your version and configuration. But in case you are experiencing a high server load,  the following script of Zhen-Xjell (the <A
+HREF="http://www.nukecops.com"
+TARGET="_top"
+>nukecops</A
+> Webmaster) may turn out to be very helpful:</P
+><TABLE
+BORDER="1"
+BGCOLOR="#E0E0E0"
+WIDTH="100%"
+><TR
+><TD
+><FONT
+COLOR="#000000"
+><PRE
+CLASS="SCREEN"
+>#!/usr/bin/perl -w
+#use strict;
+$|++;
+open(LOAD,"/proc/loadavg") || die "couldn't open /proc/loadavg: $!\n";
+my @load=split(/ /,&#60;LOAD&#62;);
+close(LOAD);
+if ($load[0] &#62; 5) {
+`/sbin/service httpd restart`;
+}</PRE
+></FONT
+></TD
+></TR
+></TABLE
+><P
+>Save it as loadavg.pl, adapt it to your case (location of the perl executable and the Apache start script)  and set up a cron job to call loadavg.pl at regular time intervalls. The script  monitors the server load average and restarts the server process, if it becomes too high, say, higher than 5 - see <A
+HREF="http://www.nukecops.com/postp68930.html"
+TARGET="_top"
+>GoogleTap, mod_rewrite and SID defined</A
+>.</P
+></TD
+></TR
+></TABLE
+></DIV
+></DIV
+><DIV
+CLASS="SECT3"
+><H3
+CLASS="SECT3"
+><A
+NAME="GOOGLETAP-INSTALLATION"
+>25.5.1.2. Installation</A
+></H3
+><DIV
+CLASS="WARNING"
+><P
+></P
+><TABLE
+CLASS="WARNING"
+WIDTH="100%"
+BORDER="0"
+><TR
+><TD
+WIDTH="25"
+ALIGN="CENTER"
+VALIGN="TOP"
+><IMG
+SRC="../images/warning.png"
+HSPACE="5"
+ALT="Warning"></TD
+><TH
+ALIGN="LEFT"
+VALIGN="MIDDLE"
+><B
+>Do not download the Google_Tap_Beta_0.6.5 package!</B
+></TH
+></TR
+><TR
+><TD
+>&nbsp;</TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+>Do not download the Google_Tap_Beta_0.6.5 package! At least the .htacess file contained there,  is missing some crucial lines. Besides that, you will  not find any clear installation instructions and the files are probably already too old by the time you read this. Use the GT_Distro_10-22-03 package, or a newer one, instead! Please understand that this is beta software and still under constant development.</P
+></TD
+></TR
+></TABLE
+></DIV
+><P
+>We will describe the manual installation of GoogleTap, as applies to the <A
+HREF="http://www.audioslaved.com/GT_Distro_10-22-03.zip"
+TARGET="_top"
+>GT Distro 10-22-03</A
+> package (see <A
+HREF="http://www.nukecops.com/posts12457-0.html"
+TARGET="_top"
+>Updated Google Tap Distribution 10-22-2003</A
+>):</P
+><P
+></P
+><UL
+><LI
+><P
+>Open your header.php file and make the required changes as indicated in header.php_manualchanges.txt. Please use the included header.php as a reference. This means that you have to find the lines:</P
+><TABLE
+BORDER="1"
+BGCOLOR="#E0E0E0"
+WIDTH="90%"
+><TR
+><TD
+><FONT
+COLOR="#000000"
+><PRE
+CLASS="SCREEN"
+>if (eregi("header.php",$_SERVER['PHP_SELF'])) {
+    Header("Location: index.php");
+    die();
+}</PRE
+></FONT
+></TD
+></TR
+></TABLE
+><P
+>in your existing header.php file and add </P
+><TABLE
+BORDER="1"
+BGCOLOR="#E0E0E0"
+WIDTH="90%"
+><TR
+><TD
+><FONT
+COLOR="#000000"
+><PRE
+CLASS="SCREEN"
+>ob_start();
+function replace_for_mod_rewrite(&#38;$s) {
+$urlin = array(
+"'(?&#60;!/)modules.php\?name=News&#38;amp;file=article&#38;amp;
+sid=([0-9]*)&#38;amp;mode=([a-z]*)&#38;amp;order=([0-9]*)&#38;amp;thold=([0-9]*)
+'",
+"'(?&#60;!/)modules.php\?name=News&#38;amp;file=article&#38;amp;sid=([0-9]*)'",
+"'(?&#60;!/)modules.php\?name=News&#38;file=article&#38;sid=([0-9]*)'",
+"'(?&#60;!/)modules.php\?name=News&#38;amp;new_topic=([0-9]*)'",
+...
+);
+$urlout = array(
+"article-\\1-\\2-\\3-\\4.html",
+"article\\1.html",
+"article\\1.html",
+"article-topic-\\1.html",
+"archive-\\1-\\2-\\3.html",
+"archive.html",
+...
+);
+$s = preg_replace($urlin, $urlout, $s);
+return $s;
+}</PRE
+></FONT
+></TD
+></TR
+></TABLE
+><P
+>The code shown here has been abbreviated for clarity - please refer to the original instructions in header.php_manualchanges.txt! You should leave the code of your original header.php untouched, after the above lines. The final header.php would look as the header.php file that is included in the GT_Distro_10-22-03 package for your reference.</P
+><P
+>What you basically do with this in your header.php, is start output buffering and include a function (replace_for_mod_rewrite) with two arrays, urlin and urlout.</P
+></LI
+><LI
+><P
+>Open your footer.php file and make the required changes as indicated in footer.php_manualchanges.txt. Please use the included footer.php as a reference. This means that you have to add</P
+><TABLE
+BORDER="1"
+BGCOLOR="#E0E0E0"
+WIDTH="90%"
+><TR
+><TD
+><FONT
+COLOR="#000000"
+><PRE
+CLASS="SCREEN"
+>//Google Tap Footer Entry
+$contents = ob_get_contents(); // store buffer in $contents
+ob_end_clean(); // delete output buffer and stop buffering
+echo replace_for_mod_rewrite($contents); //display modified buffer to screen
+//End of Google Tap Footer</PRE
+></FONT
+></TD
+></TR
+></TABLE
+><P
+>after the end of the foot function in your footer.php file. The final footer.php would look as the footer.php file that is included in the GT_Distro_10-22-03 package for your reference.</P
+><P
+>With this change, you just conclude the actions that you introduced in header.php: there, you started output buffering, here you have to store the buffer in a variable ($contents), before you stop buffering and call the new function you introduced in header.php, the replace_for_mod_rewrite() function, passing it the whole buffer content as argument.</P
+></LI
+><LI
+><P
+>Open your includes/sessions.php (Older than <SPAN
+CLASS="APPLICATION"
+>PHP-Nuke</SPAN
+> v.6.5, this may be modules/Forums/includes) file and make the required changes as indicated in includes/sessions.php_manualchanges.txt. Please use the included sessions.php as a reference. This means that you replace </P
+><TABLE
+BORDER="1"
+BGCOLOR="#E0E0E0"
+WIDTH="90%"
+><TR
+><TD
+><FONT
+COLOR="#000000"
+><PRE
+CLASS="SCREEN"
+>        if ( !empty($SID) &#38;&#38; !eregi('sid=', $url) )
+        {
+                $url .= ( ( strpos($url, '?') != false ) ?  
+( ( $non_html_amp) ? '&#38;' : '&#38;amp;' ) : '?' ) . $SID;
+        }
+        return($url);</PRE
+></FONT
+></TD
+></TR
+></TABLE
+><P
+>with </P
+><TABLE
+BORDER="1"
+BGCOLOR="#E0E0E0"
+WIDTH="90%"
+><TR
+><TD
+><FONT
+COLOR="#000000"
+><PRE
+CLASS="SCREEN"
+>        if( !empty($SID) &#38;&#38; !eregi('sid=', $url) &#38;&#38; !areyouabot() )
+        {
+                $url .= ( ( strpos($url, "?") != false ) ?  
+( ( $non_html_amp ) ? "&#38;" : "&#38;amp;" ) : "?" ) . $SID;
+        }
+        return($url);</PRE
+></FONT
+></TD
+></TR
+></TABLE
+><P
+>This introduces an extra check with the areyouabot() function. The session <ACRONYM
+CLASS="ACRONYM"
+>ID</ACRONYM
+> ($SID) is appended to the URL ($url) only if the areyouabot() function returns false. Already from the name, we can deduce that areyouabot() checks if the visitor is a search engine spider bot. Thus, the session <ACRONYM
+CLASS="ACRONYM"
+>ID</ACRONYM
+> will not be output on the URL that search engines get to see when they visit the site.</P
+><P
+>Of course, we still have to insert the code for the areyouabot() function. We can do this after the append_sid function of sessions.php, by including the code as shown in includes/sessions.php_manualchanges.txt:</P
+><TABLE
+BORDER="1"
+BGCOLOR="#E0E0E0"
+WIDTH="90%"
+><TR
+><TD
+><FONT
+COLOR="#000000"
+><PRE
+CLASS="SCREEN"
+>function areyouabot()
+{
+global $HTTP_SERVER_VARS;
+        $RobotsList = array (
+        "antibot",
+        "appie",
+        "architext",
+        "bjaaland",
+        "digout4u",
+        "echo",
+        "fast-webcrawler",
+        "ferret",
+...
+        );
+        $botID = strtolower($HTTP_SERVER_VARS['HTTP_USER_AGENT']);
+        for ($i = 0; $i &#60; count($RobotsList); $i++)
+        {
+                if ( strstr($botID, $RobotsList[$i]) )
+                {
+                        return TRUE;
+                }
+        }
+        return FALSE;
+}</PRE
+></FONT
+></TD
+></TR
+></TABLE
+><P
+>Please note that the above code has been abbreviated for clarity. Refer to includes/sessions.php_manualchanges.txt for the full code of areyouabot(). The final sessions.php would look as the includes/sessions.php file that is included in the GT_Distro_10-22-03 package for your reference.</P
+></LI
+></UL
+><TABLE
+BORDER="1"
+BGCOLOR="#E0E0E0"
+WIDTH="100%"
+><TR
+><TD
+><FONT
+COLOR="#000000"
+><PRE
+CLASS="SCREEN"
+></PRE
+></FONT
+></TD
+></TR
+></TABLE
+><P
+></P
+><UL
+><LI
+><P
+>Upload the distribution .htaccess to your <SPAN
+CLASS="APPLICATION"
+>PHP-Nuke</SPAN
+> root directory. This is the same directory that the header.php and footer.php are located within.</P
+></LI
+></UL
+><DIV
+CLASS="CAUTION"
+><P
+></P
+><TABLE
+CLASS="CAUTION"
+WIDTH="100%"
+BORDER="0"
+><TR
+><TD
+WIDTH="25"
+ALIGN="CENTER"
+VALIGN="TOP"
+><IMG
+SRC="../images/caution.png"
+HSPACE="5"
+ALT="Caution"></TD
+><TH
+ALIGN="LEFT"
+VALIGN="MIDDLE"
+><B
+>Make a backup of your original .htaccess file!</B
+></TH
+></TR
+><TR
+><TD
+>&nbsp;</TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+>Your ISP may already have set up an .htaccess file for you. Even if you don't see one there, there might be one, as some systems will not show hidden files (such as .htaccess). Check very thoroughly that you don't overwrite an existing .htaccess file with important directives that are vital to your site. If you find one, make a backup copy of it and be sure that you have saved it somewhere in a safe and accessible place. If your site breaks and you can't access it with your browser anymore, you should still be able to upload the backup copy of your .htaccess and restore the previous settings.</P
+></TD
+></TR
+></TABLE
+></DIV
+><P
+>In order for GT to work correctly with all modules currently supported, you will need to make a few minor adjustments to the following modules:</P
+><P
+></P
+><UL
+><LI
+><P
+>Sections</P
+></LI
+><LI
+><P
+>Statistics</P
+></LI
+><LI
+><P
+>Web_Links</P
+></LI
+><LI
+><P
+>Top</P
+></LI
+><LI
+><P
+>Your_Account</P
+></LI
+></UL
+><P
+>You can either overwrite your existing file with the one included in the distribution or make the manual changes as indicated in the readme files contained within each module. (Make sure you backup your existing files first! Included files are based on the ones located at cvs.nukecops.com). </P
+><P
+>The changes correct some links in the above modules. If you check, you will see that the corrections are really minimal, but are nonetheless essential for a correct working of the GoogleTap: they replace the ampersand (&#38;) on the links, with its equivalent &#8220;HTML entity&#8221; (&#38;amp;) (but not in the language files, where the changes work in the opposite direction, replacing &#38;amp; with &#38;). </P
+><P
+>This is actually an ommission on the part of the modules, that GoogleTap is just trying to correct: to be HTML 4.x compliant, you can't put an ampersand (&#38;) on the URL, you have to put its <A
+HREF="http://www.bbsinc.com/symbol.html"
+TARGET="_top"
+>HTML entity</A
+> (&#38;amp;) instead. This may not harm your links in most situations if you don't do it, but if you pass the URL through some regular expression, as GoogleTap does through mod_rewrite (see <A
+HREF="make-php-nuke-search-engine-friendly.html#GOOGLETAP-HOW-IT-WORKS"
+>Section 25.5.1.3</A
+> for an explanation of how GoogleTap works)), you have to know if the ampersand is meant in a literal way, or if it is a <EM
+>metacharacter</EM
+> of some regular expression (a character that is not a &#8220;literal&#8221; , i.e. does not match (only) itself ).</P
+><P
+>You can now upload the GT (Google Tap) converted blocks - currently supported are:</P
+><P
+></P
+><UL
+><LI
+><P
+>Scrolling Forums Block</P
+></LI
+><LI
+><P
+>Top 10 Downloads Block</P
+></LI
+><LI
+><P
+>Top 10 Web_Links Block</P
+></LI
+><LI
+><P
+>Sections Articles Block</P
+></LI
+></UL
+><P
+>To install, simply overwrite your existing block. Make sure they are enabled in the blocks administration panel.</P
+></DIV
+><DIV
+CLASS="SECT3"
+><H3
+CLASS="SECT3"
+><A
+NAME="GOOGLETAP-HOW-IT-WORKS"
+>25.5.1.3. How it works</A
+></H3
+><P
+>The GoogleTap works as follows:</P
+><P
+>The header.php file starts output buffering. This delays the output - all contents are temporarily sent to an internal buffer. It also defines a function, replace_for_mod_rewrite(). This function takes a sole argument (a variable) and replaces every occurence of a member of the urlin array with the respective member of the urlout array (we have seen the urlin and urlout arrays already in <A
+HREF="make-php-nuke-search-engine-friendly.html#GOOGLETAP-INSTALLATION"
+>Section 25.5.1.2</A
+>). You can view the urlin and urlout arrays as ordered collections of regular expressions (see <A
+HREF="regular-expressions.html"
+>Section 25.3</A
+>), where the first member of urlin corresponds to the first member of urlout, the second member of urlin to the second member of urlout and so forth. </P
+><P
+>The replace_for_mod_rewrite() function examines the contents of the variable that was passed to it as argument (remember that in <ACRONYM
+CLASS="ACRONYM"
+>PHP</ACRONYM
+> a variable can hold the contents of a whole page - in fact, in our case, it does exactly that!) and replaces every occurence of the first regular expression in urlin, with the first element of urlout. It does so with all other regular expressions of urlin - if it finds a string that matches the nth regular expression, it replaces that string with the nth array member of urlout. The first five replacement pairs<A
+NAME="AEN18417"
+HREF="#FTN.AEN18417"
+><SPAN
+CLASS="footnote"
+>[1]</SPAN
+></A
+> are shown in <A
+HREF="make-php-nuke-search-engine-friendly.html#TAB-URLIN-URLOUT"
+>Table 25-1</A
+>.</P
+><P
+><DIV
+CLASS="TABLE"
+><A
+NAME="TAB-URLIN-URLOUT"
+></A
+><P
+><B
+>Table 25-1. URL replacement with replace_for_mod_rewrite(): dynamic to static.</B
+></P
+><TABLE
+BORDER="1"
+RULES="all"
+CLASS="CALSTABLE"
+><COL
+WIDTH="1*"
+ALIGN="LEFT"
+TITLE="COL0"><COL
+WIDTH="1*"
+ALIGN="LEFT"
+TITLE="COL1"><TBODY
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+>urlin: regular expression for dynamic URL</P
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+>urlout: corresponding static URL</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+>'(?&#60;!/)modules.php\?name=News</P
+><P
+>&#38;amp;file=article</P
+><P
+>&#38;amp;sid=([0-9]*)</P
+><P
+>&#38;amp;mode=([a-z]*)</P
+><P
+>&#38;amp;order=([0-9]*)</P
+><P
+>&#38;amp;thold=([0-9]*)'</P
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+>article-\\1-\\2-\\3-\\4.html</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+>'(?&#60;!/)modules.php\?name=News</P
+><P
+>&#38;amp;file=article</P
+><P
+>&#38;amp;sid=([0-9]*)'</P
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+>article\\1.html</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+>'(?&#60;!/)modules.php\?name=News</P
+><P
+>&#38;file=article</P
+><P
+>&#38;sid=([0-9]*)'</P
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+>article\\1.html</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+>'(?&#60;!/)modules.php\?name=News</P
+><P
+>&#38;amp;new_topic=([0-9]*)'</P
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+>article-topic-\\1.html</P
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+>'(?&#60;!/)modules.php\?name=Stories_Archive</P
+><P
+>&#38;sa=show_month</P
+><P
+>&#38;year=([0-9]*)</P
+><P
+>&#38;month=([0-9]*)</P
+><P
+>&#38;month_l=([a-zA-Z]*)'</P
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+>archive-\\1-\\2-\\3.html</P
+></TD
+></TR
+></TBODY
+></TABLE
+></DIV
+></P
+><P
+>From <A
+HREF="make-php-nuke-search-engine-friendly.html#TAB-URLIN-URLOUT"
+>Table 25-1</A
+> we can already see that an URL of the form</P
+><TABLE
+BORDER="1"
+BGCOLOR="#E0E0E0"
+WIDTH="100%"
+><TR
+><TD
+><FONT
+COLOR="#000000"
+><PRE
+CLASS="SCREEN"
+>(something)modules.php?name=News&#38;amp;file=article&#38;amp;sid=(some SID)
+&#38;amp;mode=(some mode)&#38;amp;order=(some order)&#38;amp;thold=(something)</PRE
+></FONT
+></TD
+></TR
+></TABLE
+><P
+>is replaced with </P
+><TABLE
+BORDER="1"
+BGCOLOR="#E0E0E0"
+WIDTH="100%"
+><TR
+><TD
+><FONT
+COLOR="#000000"
+><PRE
+CLASS="SCREEN"
+>article-(some SID)-(some mode)-(some order)-(something.html</PRE
+></FONT
+></TD
+></TR
+></TABLE
+><P
+>(first replacement pair of the table), while an URL of the form</P
+><TABLE
+BORDER="1"
+BGCOLOR="#E0E0E0"
+WIDTH="100%"
+><TR
+><TD
+><FONT
+COLOR="#000000"
+><PRE
+CLASS="SCREEN"
+>(something)modules.php?name=News&#38;amp;file=article&#38;amp;sid=(someSID)</PRE
+></FONT
+></TD
+></TR
+></TABLE
+><P
+>is replaced with</P
+><TABLE
+BORDER="1"
+BGCOLOR="#E0E0E0"
+WIDTH="100%"
+><TR
+><TD
+><FONT
+COLOR="#000000"
+><PRE
+CLASS="SCREEN"
+>article(some SID).html</PRE
+></FONT
+></TD
+></TR
+></TABLE
+><P
+>(the escaped numbers in the second column of <A
+HREF="make-php-nuke-search-engine-friendly.html#TAB-URLIN-URLOUT"
+>Table 25-1</A
+> represent "backreferences": they match the subexpressions inside the () of the expressions in the first column. \1 matches the first subexpression, \2 the second and so forth).</P
+><P
+>Some explanations on the regular expressions used in the urlin column of <A
+HREF="make-php-nuke-search-engine-friendly.html#TAB-URLIN-URLOUT"
+>Table 25-1</A
+> (see also <A
+HREF="regular-expressions.html"
+>Section 25.3</A
+>):</P
+><P
+></P
+><UL
+><LI
+><P
+>(?&#60;!/) is a so-called assertion. It means that this pattern will only be valid, if it does not start with a preceding slash and helps us convert only links inside our <SPAN
+CLASS="APPLICATION"
+>PHP-Nuke</SPAN
+> site (so links to external sites will not be converted). </P
+></LI
+><LI
+><P
+>The question mark on the URL must be escaped, so we have to write \? to match it.</P
+></LI
+><LI
+><P
+>The ampersands (&#38;) on the URL must be in the form of their HTML entities, &#8220;&#38;amp;&#8221; (see <A
+HREF="http://www.ncbi.nlm.nih.gov/entrez/query/static/entities.html"
+TARGET="_top"
+>SGML entities</A
+>). That's why all affected modules will have to be changed to echo URLs that contain &#38;amp; instead of &#38; (this was done in <A
+HREF="make-php-nuke-search-engine-friendly.html#GOOGLETAP-INSTALLATION"
+>Section 25.5.1.2</A
+>).</P
+></LI
+><LI
+><P
+>sid=([0-9]*) indicates that you may have any digit from 0 to 9 after sid=. The * means that the occurrence may be 0 or more times. </P
+></LI
+><LI
+><P
+>mode=([a-zA-Z]*) indicates that you may have any alphabetical character after mode=. Again, the * means that the occurence may be 0 or more times.</P
+></LI
+><LI
+><P
+>The parenthesis () around a regular expression like [a-zA-Z]* or [0-9]* indicate that this is a subexpression that, if matched, will be stored in an internal numbered buffer that we cann access as \1, \2, \3 and so forth. Thus, if sid=([0-9]*) is the first such subexpression in an URL, \1 will internally store the sid value, whatever it is, as long as it is matched by [0-9]* , which matches arbitrarily long sequences of digits. If it is the second one, then the session <ACRONYM
+CLASS="ACRONYM"
+>ID</ACRONYM
+> will be stored in \2.</P
+></LI
+><LI
+><P
+>The matched subexpressions (\1, \2, \3 etc) are then used in the regular expressions of the urlout array to construct a simpler, static looking URL that nevertheless contains all necessary information to convert it back to the dynamic version (this backward conversion is carried up in the .htaccess file, see below).</P
+></LI
+></UL
+><P
+>The replace_for_mod_rewrite() function is not called in header.php though - it is only defined there. As its name says, header.php outputs the <EM
+>standard</EM
+> <SPAN
+CLASS="APPLICATION"
+>PHP-Nuke</SPAN
+> header (as opposed to the custom HTML header, which is contained in includes/my_heder.php, see <A
+HREF="modifying-php-nuke-html-header.html"
+>Chapter 15</A
+>). It would be too early to call replace_for_mod_rewrite() during header generation. Instead, everything is meticulously gathered in the &#8220;output buffer&#8221; of <ACRONYM
+CLASS="ACRONYM"
+>PHP</ACRONYM
+> (to learn more about output buffering in PHP, see <A
+HREF="http://www.devshed.com/Server_Side/PHP/OutputBuffering/page1.html"
+TARGET="_top"
+>Output Buffering With PHP</A
+> and the <A
+HREF="http://www.php.net/manual/en/ref.outcontrol.php"
+TARGET="_top"
+>PHP manual pages on output control functions</A
+>).</P
+><P
+>As <SPAN
+CLASS="APPLICATION"
+>PHP-Nuke</SPAN
+> outputs the page contents (which continue to land in the output buffer), it eventually reaches the page footer. This is the job of footer.php. We already saw in <A
+HREF="make-php-nuke-search-engine-friendly.html#GOOGLETAP-INSTALLATION"
+>Section 25.5.1.2</A
+> that it is the footer who calls replace_for_mod_rewrite(): it stops buffering, saves the buffer contents in a variable, cleans up the buffer and calls replace_for_mod_rewrite(). </P
+><P
+>What are the contents of the output buffer at this stage? You guessed -it - the whole page, all the HTML that comprises the &#8220;page source&#8221; (the HTML code you see when you hit the &#8220;View source&#8221; menu entry of your browser. Without GoogleTap, this would be the HTML code that would be sent to your browser to render the page, with all its text and links and...</P
+><P
+>Huh! Did I say links? What if your page contains dynamic links? In fact, it is very unusual for a <SPAN
+CLASS="APPLICATION"
+>PHP-Nuke</SPAN
+> page to NOT contain any dynamic links. Dont't they have to be replaced with their static pendants too? Of course they do! Thus, it should be clear to you by now, that just by changing the URLs from dynamic to static, we are by far not done - we have to do this for every URL contained in the HTML of our page. </P
+><P
+>Well, that's exactly what that call of replace_for_mod_rewrite() in the footer does: it passes the whole page as argument to replace_for_mod_rewrite(), which then does an elaborate &#8220;search and replace&#8221; in the whole page, according to the urlin and urlout arrays, as indicated by <A
+HREF="make-php-nuke-search-engine-friendly.html#TAB-URLIN-URLOUT"
+>Table 25-1</A
+>. </P
+><P
+>This completes the translation from dynamic to static: the browser gets a page where every dynamic link of <SPAN
+CLASS="APPLICATION"
+>PHP-Nuke</SPAN
+> has been replaced by a static one. The user - and the search engine - sees only static links on the page to follow. </P
+><P
+>What's more, through the changes we did in sessions.php during installation (see <A
+HREF="make-php-nuke-search-engine-friendly.html#GOOGLETAP-INSTALLATION"
+>Section 25.5.1.2</A
+>), we have already taken care that if the visitor is a search engine bot, it will not be shown the session <ACRONYM
+CLASS="ACRONYM"
+>ID</ACRONYM
+> on the URL. Normal users will continue to see it, though. With this ingenious method, we get the best of two worlds: users can rely on the security and comfort that <ACRONYM
+CLASS="ACRONYM"
+>PHP</ACRONYM
+> session management has to offer - and search engines will not be chased away from our site through some huge URLs.<SPAN
+CLASS="INLINEMEDIAOBJECT"
+><IMG
+SRC="./images/icon_smile.png"></SPAN
+></P
+><P
+>But suppose that the user (or better, the search engine, for which we are actually getting into all this trouble) now clicks on one of those static links on the page thet we previously served through our header-footer trick - what then? How are we going to tell <SPAN
+CLASS="APPLICATION"
+>PHP-Nuke</SPAN
+> which link was meant? Remember, <SPAN
+CLASS="APPLICATION"
+>PHP-Nuke</SPAN
+> sits on the server and understands only links like</P
+><TABLE
+BORDER="1"
+BGCOLOR="#E0E0E0"
+WIDTH="100%"
+><TR
+><TD
+><FONT
+COLOR="#000000"
+><PRE
+CLASS="SCREEN"
+>modules.php?name=Your_Account&#38;amp;op=userinfo&#38;amp;username=chris</PRE
+></FONT
+></TD
+></TR
+></TABLE
+><P
+>Only so it is going to understand that you mean to see the User Info profile for chris (see <A
+HREF="modifying-php-nuke-moduke-your-account.html#FIG-YOUR-INFO-PROFILE"
+>Figure 18-7</A
+>), in  the Your_Account module. But the user will not click on that link, because all dynamic links were already transformed to static (by replace_for_mod_rewrite()), <EM
+>before</EM
+> the page was served by the web server to his browser. The user will click on a link that looks like</P
+><TABLE
+BORDER="1"
+BGCOLOR="#E0E0E0"
+WIDTH="100%"
+><TR
+><TD
+><FONT
+COLOR="#000000"
+><PRE
+CLASS="SCREEN"
+>userinfo-chris.html</PRE
+></FONT
+></TD
+></TR
+></TABLE
+><P
+>This is because, according to the urlin and urlout arrays, which control dynamic-to-static translation of URLs in the replace_for_mod_rewrite() function of header.php, the regular expression </P
+><TABLE
+BORDER="1"
+BGCOLOR="#E0E0E0"
+WIDTH="100%"
+><TR
+><TD
+><FONT
+COLOR="#000000"
+><PRE
+CLASS="SCREEN"
+>'(?&#60;!/)modules.php\?name=Your_Account&#38;amp;op=userinfo&#38;amp;username=([a-zA-Z0-9_-]*)'</PRE
+></FONT
+></TD
+></TR
+></TABLE
+><P
+>is translated to</P
+><TABLE
+BORDER="1"
+BGCOLOR="#E0E0E0"
+WIDTH="100%"
+><TR
+><TD
+><FONT
+COLOR="#000000"
+><PRE
+CLASS="SCREEN"
+>userinfo-\\1.html</PRE
+></FONT
+></TD
+></TR
+></TABLE
+><P
+>(the \1 in the second expression matches a subexpression, enclosed in parenthesis (), of the first regular expression, in this case whatever follows the "username=" string).</P
+><P
+>For the reverse translation, from static to dynamic, the .htaccess file comes into play. It tells mod_rewrite to rewrite every URL that looks like </P
+><TABLE
+BORDER="1"
+BGCOLOR="#E0E0E0"
+WIDTH="100%"
+><TR
+><TD
+><FONT
+COLOR="#000000"
+><PRE
+CLASS="SCREEN"
+>userinfo-(some username).html</PRE
+></FONT
+></TD
+></TR
+></TABLE
+><P
+>to </P
+><TABLE
+BORDER="1"
+BGCOLOR="#E0E0E0"
+WIDTH="100%"
+><TR
+><TD
+><FONT
+COLOR="#000000"
+><PRE
+CLASS="SCREEN"
+>modules.php?name=Your_Account&#38;op=userinfo&#38;username=(some username)</PRE
+></FONT
+></TD
+></TR
+></TABLE
+><P
+>Here is the relevant part of .htaccess that is responsible for this translation:</P
+><TABLE
+BORDER="1"
+BGCOLOR="#E0E0E0"
+WIDTH="100%"
+><TR
+><TD
+><FONT
+COLOR="#000000"
+><PRE
+CLASS="SCREEN"
+>#Your Account
+RewriteRule ^userinfo-([a-zA-Z0-9_-]*).html
+modules.php?name=Your_Account&#38;op=userinfo&#38;username=$1</PRE
+></FONT
+></TD
+></TR
+></TABLE
+><P
+>You will find rewrite rules like the above, for every regular expression pair that you encounter in the urlin and urlout arrays of the header.php file. Only the roles have been exchanged: the first expression is the static one, the second the dynamic.</P
+><P
+>This way, <SPAN
+CLASS="APPLICATION"
+>PHP-Nuke</SPAN
+> never sees the static URLs - when they arrive at the <ACRONYM
+CLASS="ACRONYM"
+>PHP</ACRONYM
+> interpreter, they have been already translated to the original, correct, dynamic URLs that <SPAN
+CLASS="APPLICATION"
+>PHP-Nuke</SPAN
+> knows how to treat.</P
+><P
+>While it is at it, by the way, .htaccess does some other neat things for us too. They don't have to do with the search-engine friendliness, but rather with the security of our site, and come as a nice by-product of the mod_rewrite technology:</P
+><P
+></P
+><UL
+><LI
+><P
+>It blocks access to almost everything, except .php files:</P
+><TABLE
+BORDER="1"
+BGCOLOR="#E0E0E0"
+WIDTH="90%"
+><TR
+><TD
+><FONT
+COLOR="#000000"
+><PRE
+CLASS="SCREEN"
+>&#60;FilesMatch "\.(inc|tpl|h|ihtml|sql|ini|conf|class|bin|spd|theme|module)$"&#62;
+deny from all
+&#60;/FilesMatch&#62;</PRE
+></FONT
+></TD
+></TR
+></TABLE
+></LI
+><LI
+><P
+>It redirects email spammers robots to a fake page (some emailsforyou.php)</P
+><TABLE
+BORDER="1"
+BGCOLOR="#E0E0E0"
+WIDTH="90%"
+><TR
+><TD
+><FONT
+COLOR="#000000"
+><PRE
+CLASS="SCREEN"
+>RewriteCond %{HTTP_USER_AGENT} ^Alexibot [OR]
+RewriteCond %{HTTP_USER_AGENT} ^asterias [OR]
+RewriteCond %{HTTP_USER_AGENT} ^BackDoorBot [OR]
+RewriteCond %{HTTP_USER_AGENT} ^Black.Hole [OR]
+RewriteCond %{HTTP_USER_AGENT} ^BlackWidow [OR]
+...
+RewriteRule ^.*$ emailsforyou.php [L]</PRE
+></FONT
+></TD
+></TR
+></TABLE
+></LI
+></UL
+><P
+>Of course, this is only going to work for email robots that are not clever enough to fake the HTTP_USER_AGENT string they present to the server.</P
+></DIV
+></DIV
+></DIV
+><H3
+CLASS="FOOTNOTES"
+>Notes</H3
+><TABLE
+BORDER="0"
+CLASS="FOOTNOTES"
+WIDTH="100%"
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+WIDTH="5%"
+><A
+NAME="FTN.AEN18417"
+HREF="make-php-nuke-search-engine-friendly.html#AEN18417"
+><SPAN
+CLASS="footnote"
+>[1]</SPAN
+></A
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+WIDTH="95%"
+><P
+>For better readability, the urlin regular expression was broken across several lines in their table cell. The parts of the regular expression that match an URL parameter of the dynamic URL are on separate lines. But in reality, the regular expression is a one line long string. </P
+></TD
+></TR
+></TABLE
+><DIV
+CLASS="NAVFOOTER"
+><HR
+ALIGN="LEFT"
+WIDTH="100%"><TABLE
+SUMMARY="Footer navigation table"
+WIDTH="100%"
+BORDER="0"
+CELLPADDING="0"
+CELLSPACING="0"
+><TR
+><TD
+WIDTH="33%"
+ALIGN="left"
+VALIGN="top"
+><A
+HREF="htaccess-file.html"
+ACCESSKEY="P"
+>Prev</A
+></TD
+><TD
+WIDTH="34%"
+ALIGN="center"
+VALIGN="top"
+><A
+HREF="index.html"
+ACCESSKEY="H"
+>Home</A
+></TD
+><TD
+WIDTH="33%"
+ALIGN="right"
+VALIGN="top"
+><A
+HREF="make-php-nuke-hot-link-stealth.html"
+ACCESSKEY="N"
+>Next</A
+></TD
+></TR
+><TR
+><TD
+WIDTH="33%"
+ALIGN="left"
+VALIGN="top"
+>The .htaccess file</TD
+><TD
+WIDTH="34%"
+ALIGN="center"
+VALIGN="top"
+><A
+HREF="optimizing-php-nuke.html"
+ACCESSKEY="U"
+>Up</A
+></TD
+><TD
+WIDTH="33%"
+ALIGN="right"
+VALIGN="top"
+>How to make <SPAN
+CLASS="APPLICATION"
+>PHP-Nuke</SPAN
+> hot link stealth</TD
+></TR
+></TABLE
+></DIV
+></BODY
+></HTML
+>

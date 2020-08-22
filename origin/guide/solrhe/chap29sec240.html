@@ -1,0 +1,71 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1"><title>4. Compile and Optimize</title><link rel="stylesheet" type="text/css" href="style.css"><meta name="generator" content="DocBook XSL Stylesheets V1.79.1"><meta name="keywords" content="RedHat, redhat, maddy, linus, linux, Linux, Securing, Optimising, security, secure, openna, gerhard"><link rel="home" href="index.html" title="Securing and Optimizing Linux"><link rel="up" href="netweb-Apache.html" title="Chapter 29. Software -Network Server, web/Apache"><link rel="prev" href="chap29sec239.html" title="3. Linux Apache Web Server"><link rel="next" href="chap29sec241.html" title="5. Configure and apply PHP4 to Apache source"></head><body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF"><div class="navheader"><table width="100%" summary="Navigation header"><tr><th colspan="3" align="center">4. Compile and Optimize</th></tr><tr><td width="20%" align="left"><a accesskey="p" href="chap29sec239.html">Prev</a> </td><th width="60%" align="center">Chapter 29. Software -Network Server, web/Apache</th><td width="20%" align="right"> <a accesskey="n" href="chap29sec241.html">Next</a></td></tr></table><hr></div><div class="section"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="idm18910"></a>4. Compile and Optimize</h2></div></div></div><p>
+      Apache Web Server, like many applications we'll install, cannot run as <em class="wordasword">super-user</em> root. For this reason we must create a special user that has minimal access to the system, and still function 
+      enougn to run the Apache web Server. It is best to choose and create a new user just for the purpose of running the web server daemon.
+    </p><div class="procedure"><ol class="procedure" type="1"><li class="step"><p>
+        </p><pre class="screen">
+          [root@deep ]/# <span class="command"><strong>useradd</strong></span> -c "Apache Server" -u 80 -s /bin/false -r -d /home/httpd www 2&gt;/dev/null || :
+        </pre><p>
+      </p></li><li class="step"><p>
+        You have to apply mod-ssl to Apache source tree, if you want to use and include the SSL data encryption support in your Apache web server, then move into the new mod_ssl source directory <span class="command"><strong>cd</strong></span> <code class="filename">mod_ssl-version-version/</code> 
+        and type the following commands on your terminal:
+        </p><pre class="programlisting">
+          CC="egcs" \
+          CFLAGS="-O9 -funroll-loops -ffast-math -malign-double -mcpu=pentiumpro -march=pentiumpro -fomit-frame-pointer -fno-exceptions" \
+          ./configure \
+          --with-apache=../apache_1.3.12 \
+          --with-crt=/etc/ssl/certs/server.crt \
+          --with-key=/etc/ssl/private/server.key
+        </pre><p>
+        </p><div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem"><p>
+        The  <code class="literal">--with-apache</code> option specifies the location of the Apache source directory, it's important to note that we suppose your Apache version in this example is 1.3.12, 
+          </p></li><li class="listitem"><p>
+            The  <code class="literal">--with-crt</code> option specifies the location of your existing public key for SSL encryption
+          </p></li><li class="listitem"><p>
+          The  <code class="literal">--with-key</code> option specifies the location of your existing private key for SSL encryption.
+          </p></li></ul></div><p>
+        </p><div class="important" style="margin-left: 0.5in; margin-right: 0.5in;"><h3 class="title">
+            <span class="inlinemediaobject"><img src="./images/Important.gif" alt="Important"></span>
+          </h3><p>
+          OpenSSL software must already be installed on your server, and your public and private keys must already be existent or be created on your server, or you'll receive an error message during the configuration time of mod_ssl. 
+          See  <a class="link" href="opssl.html" title="1. Linux OPENSSL Server">Software -Networking/Encryption</a>,  in this book, for more information.
+        </p></div><p>
+      </p></li><li class="step"><p>
+        Improve the MaxClients Parameter of Apache, by default in the Apache configuration file; <code class="filename">httpd.conf</code>, the maximum number you can set for the MaxClients Parameter is 256. For a busy site, and for better 
+        performance, its recommended that you increase the limit of this parameter. You can do it by editing the <code class="filename">src/include/httpd.h</code> file in the source directory of Apache and changing the 
+        default value.
+
+        Move into the new Apache source directory, <span class="command"><strong>cd</strong></span> <code class="filename">../apache_1.3.12/</code> and edit the <code class="filename">httpd.h</code> file:
+        </p><pre class="programlisting">
+          #define HARD_SERVER_LIMIT 256
+        </pre><p>
+        To read:
+        </p><pre class="programlisting">
+          #define HARD_SERVER_LIMIT 1024
+        </pre><p>
+      </p></li><li class="step"><p>
+        Pre-configure Apache for <acronym class="acronym">PHP4</acronym> configure step if you want to use and include the <acronym class="acronym">PHP4</acronym> server-side scripting language support on your Apache web server, then move into the new Apache source directory <span class="command"><strong>cd</strong></span> <code class="filename">apache_1.3.12/</code> 
+        if you are not already in it and type the following commands on your terminal:
+        </p><pre class="programlisting">
+          CC="egcs" \
+          OPTIM="-O9 -funroll-loops -ffast-math -malign-double -mcpu=pentiumpro -march=pentiumpro -fomit-frame-pointer -fno-exceptions" \
+          CFLAGS="-DDYNAMIC_MODULE_LIMIT=0" \
+          ./configure \
+          --prefix=/home/httpd \
+          --bindir=/usr/bin \
+          --sbindir=/usr/sbin \
+          --libexecdir=/usr/lib/apache \
+          --includedir=/usr/include/apache \
+          --sysconfdir=/etc/httpd/conf \
+          --localstatedir=/var \
+          --runtimedir=/var/run \
+          --logfiledir=/var/log/httpd \
+          --datadir=/home/httpd \
+          --proxycachedir=/var/cache/httpd \
+          --mandir=/usr/man
+        </pre><p>
+      </p></li></ol></div><div class="tip" style="margin-left: 0.5in; margin-right: 0.5in;"><h3 class="title">
+        <span class="inlinemediaobject"><img src="./images/Tip.gif" alt="Tip"></span>
+      </h3><p>
+      This step is necessary only if you want to include <acronym class="acronym">PHP</acronym>4 support in your Apache source code, since it'll pre-configure Apache for <acronym class="acronym">PHP</acronym>4s configure step below. Take a note that the  <code class="envar">-DDYNAMIC_MODULE_LIMIT=0</code> option will 
+      disable the use of dynamically loaded modules in our compilation of Apache, and will improve its performance.
+    </p></div></div><div class="navfooter"><hr><table width="100%" summary="Navigation footer"><tr><td width="40%" align="left"><a accesskey="p" href="chap29sec239.html">Prev</a> </td><td width="20%" align="center"><a accesskey="u" href="netweb-Apache.html">Up</a></td><td width="40%" align="right"> <a accesskey="n" href="chap29sec241.html">Next</a></td></tr><tr><td width="40%" align="left" valign="top">3. Linux Apache Web Server </td><td width="20%" align="center"><a accesskey="h" href="index.html">Home</a></td><td width="40%" align="right" valign="top"> 5. Configure and apply <acronym class="acronym">PHP4</acronym> to Apache source</td></tr></table></div></body></html>

@@ -1,0 +1,65 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1"><title>4. Encryption</title><link rel="stylesheet" type="text/css" href="style.css"><meta name="generator" content="DocBook XSL Stylesheets V1.79.1"><meta name="keywords" content="Linux, Beginners, linux, start, Getting started, guide, Guide, Exercises, exercises"><link rel="home" href="index.html" title="Introduction to Linux"><link rel="up" href="ch09.html" title="Chapter 9. Fundamental Backup Techniques"><link rel="prev" href="ch09s03.html" title="3. Using rsync"><link rel="next" href="ch09s05.html" title="5. Summary"></head><body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF"><div class="navheader"><table width="100%" summary="Navigation header"><tr><th colspan="3" align="center">4. Encryption</th></tr><tr><td width="20%" align="left"><a accesskey="p" href="ch09s03.html">Prev</a> </td><th width="60%" align="center">Chapter 9. Fundamental Backup Techniques</th><td width="20%" align="right"> <a accesskey="n" href="ch09s05.html">Next</a></td></tr></table><hr></div><div class="sect1"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="sect_09_04"></a>4. Encryption</h2></div></div></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="sect_09_04_01"></a>4.1. General remarks</h3></div></div></div><div class="sect3"><div class="titlepage"><div><div><h4 class="title"><a name="sect_09_04_01_01"></a>4.1.1. Why should you encrypt data?</h4></div></div></div><p>Encryption<a class="indexterm" name="idm9494"></a> is synonym to secrecy.  In the context of backups, encryption can be very useful, for instance if you need to leave your backed up data in a place where you can not control access, such as the server of your provider.</p><p>Apart from that, encryption can be applied to E-mails as well: normally, mail is not encrypted and it is often sent in the open over the netwerk or the Internet.  If your message contains sensitive information, better encrypt it.</p></div><div class="sect3"><div class="titlepage"><div><div><h4 class="title"><a name="sect_09_04_01_02"></a>4.1.2. GNU Privacy Guard</h4></div></div></div><p>On Linux systems you will find <span class="application">GnuPG</span>, the <span class="application">GNU Privacy Guard<a class="indexterm" name="idm9503"></a></span>, which is a suite of programs that are compatible with the PGP (<span class="application">Pretty Good Privacy</span>) tools that are commercially available.</p><p>In this guide we will only discuss the very simple usage of the encryption tools and show what you will need in order to generate an encryption key and use it to encrypt data for yourself, which you can then safely store in a public place.  More advanced usage directions can be found in the man pages of the various commands.</p></div></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="sect_09_04_02"></a>4.2. Generate a key</h3></div></div></div><p>Before you can start encrypting your data, you need to create<a class="indexterm" name="idm9511"></a> a pair of keys.  The pair consists of a private and a public key.  You can send the public key to correspondents, who can use it to encrypt data for you, which you decrypt with your private key.  You always keep the private key, never share it with somebody else, or they will be able to decrypt data that is only destined for you.  Just to make sure that no accidents happen, the private key is protected with a password.  The key pair is created using this command<a class="indexterm" name="idm9514"></a>:</p><pre class="screen">
+<code class="prompt">willy@ubuntu:~$ </code><span class="command"><strong>gpg <code class="option">--key-gen</code></strong></span>
+gpg (GnuPG) 1.4.2.2; Copyright (C) 2005 Free Software Foundation, Inc.
+This program comes with ABSOLUTELY NO WARRANTY.
+This is free software, and you are welcome to redistribute it
+under certain conditions.  See the file COPYING for details.
+
+gpg: directory `/home/willy.gnupg' created
+gpg: new configuration file `/home/willy/.gnupg/gpg.conf' created
+gpg: WARNING: options in `/home/willy/.gnupg/gpg.conf' are not yet
+ active during this run
+gpg: keyring `/home/willy/.gnupg/secring.gpg' created
+gpg: keyring `/home/willy/.gnupg/pubring.gpg' created
+Please select what kind of key you want:
+    (1) DSA and Elgamal (default)
+    (2) DSA (sign only)
+    (5) RSA (sign only)
+Your selection? <span class="command"><strong>1</strong></span>
+DSA keypair will have 1024 bits.
+ELG-E keys may be between 1024 and 4096 bits long.
+What keysize do you want? (2048) <span class="command"><strong>4096</strong></span>
+Requested keysize is 4096 bits
+Please specify how long the key should be valid.
+         0 = key does not expire
+      &lt;n&gt;  = key expires in n days
+      &lt;n&gt;w = key expires in n weeks
+      &lt;n&gt;m = key expires in n month
+      &lt;n&gt;y = key expires in n years
+Key is valid for? (0) <span class="command"><strong>0</strong></span>
+Key does not expire at all
+Is this correct? (y/N) <span class="command"><strong>y</strong></span>
+
+You need a user ID to identify your key; the software constructs the
+user ID from the Real Name, Comment and Email Address in this form:
+    "Heinrich Heine (Der Dichter) &lt;heinrichh@duesseldorf.de&gt;"
+
+Real name: <span class="command"><strong>Willy De Wandel</strong></span>
+Email address: <span class="command"><strong>wdw@mvg.vl</strong></span>
+Comment: <span class="command"><strong>Willem</strong></span>
+You selected this USER-ID:
+    "Willy De Wandel (Willem) &lt;wdw@mvg.vl&gt;"
+
+Change (N)ame, (C)omment, (E)mail or (O)kay/(Q)uit? <span class="command"><strong>O</strong></span>
+You need a Passphrase to protect your secret key.
+					 
+Passphrase:
+</pre><p>Now enetr your password.  This can be a phrase, the longer, the better, the only condition is that you should be able to remember it at all times.  For verification, you need to enter the same phrase again.</p><p>Now the key pair is generated by a program that spawns random numbers and that is, among other factors, fed with the activity data of the system.  So it is a good idea to start some programs now, to move the mouse cursor or to type some random characters in a terminal window.  That way, the chances to generate a number that contains lots of different digits will be much bigger and the key will be more difficult to crack.</p></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="sect_09_04_03"></a>4.3. About your key</h3></div></div></div><p>When your key has been created, you will get a message about the <span class="emphasis"><em>fingerprint<a class="indexterm" name="idm9534"></a></em></span>.  This is a sequence of 40 hexadecimal<a class="indexterm" name="idm9536"></a> numbers, which is so long that it is very, very hard to generate the same key twice, on any computer.  You can be rather sure that this is a unique sequence.  The short form of this key consists of your name, followed by the last 8 hexadecimal numbers.</p><p>You can get information about your key as follows<a class="indexterm" name="idm9540"></a>:</p><pre class="screen">
+<code class="prompt">willy@ubuntu:~$ </code><span class="command"><strong>gpg <code class="option">--list-keys</code></strong></span>
+/home/willy/.gnupg/pubring.gpg
+------------------------------
+pub     1024D/BF5C3DBB 2006-08-08
+uid                    Willy De Wandel (Willem) &lt;wdw@mvg.vl&gt;
+sub     4096g/A3449CF7 2006-08-08
+</pre><p>The <span class="emphasis"><em>key ID</em></span> of this key<a class="indexterm" name="idm9549"></a> is <span class="quote">&#8220;<span class="quote">BF5C3DBB</span>&#8221;</span>.  You can send your key ID and your name to a <span class="emphasis"><em>key server</em></span>, so that other people can get this info about you and use it to encrypt data for you.  Alternatively, you can send your public key directly to the people who need it.  The public part of your key is the long series of numbers that you see when using the <code class="option">--export</code> option<a class="indexterm" name="idm9555"></a> to the <span class="command"><strong>gpg</strong></span> command:</p><div class="cmdsynopsis"><p><code class="command">gpg <code class="option">--export -a</code></code> </p></div><p>However, as far is this guide is concerned, we assume that you only need your key in order to encrypt and decrypt data for yourself.  Read the <span class="command"><strong>gpg</strong></span> man pages if you want to know more.</p></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="sect_09_04_04"></a>4.4. Encrypt data</h3></div></div></div><p>Now you can encrypt a <code class="filename">.tar</code> archive<a class="indexterm" name="idm9568"></a> or a compressed archive, prior to saving it to a backup medium or transporting it to the backup server.  Use the <span class="command"><strong>gpg</strong></span> command<a class="indexterm" name="idm9572"></a> like this:</p><div class="cmdsynopsis"><p><code class="command">gpg <code class="option">-e -r</code> <em class="parameter"><code>(part of) uid</code></em> <code class="filename">archive</code></code> </p></div><p>The <code class="option">-e</code> option tells <span class="command"><strong>gpg</strong></span> to encrypt, the <code class="option">-r</code> option indicates who to encrypt for.  Keep in mind that only only the user name(s) following this <code class="option">-r</code> option will be able to decrypt the data again.  An example:</p><pre class="screen">
+<code class="prompt">willy@ubuntu:~$ </code><span class="command"><strong>gpg <code class="option">-e -r</code> <em class="parameter"><code>Willy</code></em> <code class="filename">/var/tmp/home-willy-20060808.tar</code></strong></span>
+</pre></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="sect_09_04_05"></a>4.5. Decrypting files</h3></div></div></div><p>Using the <code class="option">-d</code> option, you can decrypt<a class="indexterm" name="idm9595"></a> files that have been encrypted<a class="indexterm" name="idm9598"></a> for you.  The data will scroll over your screen, but an encrypted copy will remain on disk.  So for file formats other than plain text, you will want to save the decrypted data, so that you can view them with the appropriate program.  This is done using the <code class="option">-o</code> option to the <span class="command"><strong>gpg</strong></span> command:</p><pre class="screen">
+<code class="prompt">willy@ubuntu:~$ </code><span class="command"><strong>gpg <code class="option">-d -o</code> <code class="filename">/var/tmp/home-willy-decrypt.tar /var/tmp/home-willy-20060808.tar.gpg</code></strong></span>
+
+You need a passphrase to unlock the secret key for
+user: "Willy De Wandel (Willem) &lt;wdw@mvg.vl&gt;"
+4096 ELG-E key, ID A3449CF7, created 2006-08-08 (main key ID BF5C3DBB)
+
+gpg: encrypted with 4096-bit ELG-E key, ID A3449CF7, created 2006-08-08
+        "Willy De Wandel (Willem) &lt;wdw@mvg.vl&gt;"
+</pre><div class="warning" style="margin-left: 0.5in; margin-right: 0.5in;"><h3 class="title">No password = no data</h3><p>If you can not remember your password, the data is lost.  Not even the system administrator will be able to decrypt the data.  That is why a copy of important keys is sometimes kept in a sealed vault in a bank.</p></div></div></div><div class="navfooter"><hr><table width="100%" summary="Navigation footer"><tr><td width="40%" align="left"><a accesskey="p" href="ch09s03.html">Prev</a> </td><td width="20%" align="center"><a accesskey="u" href="ch09.html">Up</a></td><td width="40%" align="right"> <a accesskey="n" href="ch09s05.html">Next</a></td></tr><tr><td width="40%" align="left" valign="top">3. Using rsync </td><td width="20%" align="center"><a accesskey="h" href="index.html">Home</a></td><td width="40%" align="right" valign="top"> 5. Summary</td></tr></table></div></body></html>

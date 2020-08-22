@@ -1,0 +1,65 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1"><title>7. OpenLDAP Creation and Maintenance Tools</title><link rel="stylesheet" type="text/css" href="style.css"><meta name="generator" content="DocBook XSL Stylesheets V1.79.1"><meta name="keywords" content="RedHat, redhat, maddy, linus, linux, Linux, Securing, Optimising, security, secure, openna, gerhard"><link rel="home" href="index.html" title="Securing and Optimizing Linux"><link rel="up" href="net-oLDAP.html" title="Chapter 26. Linux OpenLDAP Server"><link rel="prev" href="chap26sec215.html" title="6. Securing OpenLDAP"><link rel="next" href="chap26sec217.html" title="8. Create the LDMB backend database on-line"></head><body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF"><div class="navheader"><table width="100%" summary="Navigation header"><tr><th colspan="3" align="center">7. OpenLDAP Creation and Maintenance Tools</th></tr><tr><td width="20%" align="left"><a accesskey="p" href="chap26sec215.html">Prev</a> </td><th width="60%" align="center">Chapter 26. Linux OpenLDAP Server</th><td width="20%" align="right"> <a accesskey="n" href="chap26sec217.html">Next</a></td></tr></table><hr></div><div class="section"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="idm16450"></a>7. OpenLDAP Creation and Maintenance Tools</h2></div></div></div><p>
+               To Create of the LDMB backend database, there are two methods to create a database for <acronym class="acronym">LDAP</acronym>, 
+               </p><div class="orderedlist"><ol class="orderedlist" type="1"><li class="listitem"><p>
+                   The first is off-line with the <span class="command"><strong>ldif2ldbm</strong></span> command utility 
+                 </p></li><li class="listitem"><p>
+                 The other is on-line with the <span class="command"><strong>ldapadd</strong></span> command utility. 
+                 </p></li></ol></div><p>
+               Usually you use the off-line method when you have many thousands of entries to insert into your database and the on-line method when you have only a small number of entries to put into your database. It is also important to 
+               note that 
+               </p><div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem"><p>
+                   The off-line method requires that your <code class="literal">slapd</code> daemon is not running 
+                 </p></li><li class="listitem"><p>
+                 The on-line method requires that your <code class="literal">slapd</code> daemon of <acronym class="acronym">LDAP</acronym> is running.
+                 </p></li></ul></div><p>
+             </p><div class="section"><div class="titlepage"><div><div><h3 class="title"><a name="idm16469"></a>7.1. <acronym class="acronym">LDMB</acronym> backend database off-line </h3></div></div></div><p>
+                 The first thing to do is to create an <acronym class="acronym">LDIF</acronym> input file containing a text representation of your entries. The text file named <code class="filename">my-data-file</code> below can be used as an example file. <span class="emphasis"><em>Of course, your 
+                 real LDIF input file will handle much more information than this example</em></span>. When you install OpenLDAP for the first time and have big entries to put in your backend database, it's always a good idea to put all this information into 
+                 a text file and add them into your backend database with the <span class="command"><strong>ldif2ldbm</strong></span> command utility.
+               </p><div class="example"><a name="idm16477"></a><p class="title"><b>Example 26.1. <code class="filename">my-data-file</code></b></p><div class="example-contents"><p>
+                      Create the  file, <span class="command"><strong>touch</strong></span> <code class="filename">/tmp/my-data-file</code> and add as an example in this file the following lines:
+                 </p></div></div><br class="example-break"><div class="procedure"><ol class="procedure" type="1"><li class="step"><p>
+                    
+                       </p><pre class="programlisting">
+                         dn: o=openna, c=com
+                         o: openna
+                         objectclass: organization
+
+                         dn: cn=Gerhard Mourani, o=openna, c=com
+                         cn: Gerhard Mourani
+                         sn: Mourani
+                         mail: gmourani@videotron.ca
+                         title: Author
+                         objectclass: person
+
+                         dn: cn=Anthony Bay, o=openna, c=com
+                         cn: Anthony Bay
+                         sn: Bay
+                         homephone: (444) 111-2233
+                         mobile: (444) 555-6677
+                         mail: abay@openna.com
+                         objectclass: person
+
+                         dn: cn=George Parker, o=openna, c=com
+                         cn: George Parker
+                         sn: Parker
+                         telephonenumber: (555) 234-5678
+                         fax: (543) 987-6543
+                         mobile: (543) 321-4354
+                         description: E-Commerce
+                         objectclass: person
+                       </pre><p>
+                       The above example shows you how to convert your information into <acronym class="acronym">LDIF</acronym> files before adding them to your new backend directory. Consult your OpenLDAP documentation or book for more information.
+                     </p></li><li class="step"><p>
+                       Once the <acronym class="acronym">LDIF</acronym> input file containing our entries has been created, we must insert it in the <acronym class="acronym">LDAP</acronym> directory server.
+                       To insert the LDIF input file and create the database off-line, use the following command:
+                       </p><pre class="screen">
+                         [root@deep ]/tmp# <span class="command"><strong>ldif2ldbm</strong></span> -i &lt;inputfile&gt;  -f &lt;slapdconfigfile&gt;
+                         [root@deep ]/tmp# <span class="command"><strong>ldif2ldbm</strong></span> -i my-data-file -f /etc/openldap/slapd.conf
+                       </pre><p>
+                       The  -i option with the &lt;inputfile&gt; option specifies the location of the LDIF input file containing the entries in text form to add. The &lt;slapdconfigfile&gt; option specifies the location of the slapd configuration file, which specifies where to create the indexes, what indexes to create, etc.
+                     </p></li></ol></div><div class="important" style="margin-left: 0.5in; margin-right: 0.5in;"><h3 class="title">
+<span class="inlinemediaobject"><img src="./images/Important.gif" alt="Important"></span>
+</h3><p>
+                 It is important to note that the <span class="command"><strong>slapd</strong></span> daemon of <acronym class="acronym">LDAP</acronym> is not started in this mode of creation.
+               </p></div></div></div><div class="navfooter"><hr><table width="100%" summary="Navigation footer"><tr><td width="40%" align="left"><a accesskey="p" href="chap26sec215.html">Prev</a> </td><td width="20%" align="center"><a accesskey="u" href="net-oLDAP.html">Up</a></td><td width="40%" align="right"> <a accesskey="n" href="chap26sec217.html">Next</a></td></tr><tr><td width="40%" align="left" valign="top">6. Securing OpenLDAP </td><td width="20%" align="center"><a accesskey="h" href="index.html">Home</a></td><td width="40%" align="right" valign="top"> 8. Create the LDMB backend database on-line</td></tr></table></div></body></html>

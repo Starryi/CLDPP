@@ -1,0 +1,656 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN""http://www.w3.org/TR/html4/loose.dtd">
+<HTML
+><HEAD
+><TITLE
+>Setting up IP Aliasing on A Linux Machine Mini-HOWTO</TITLE
+><META
+NAME="GENERATOR"
+CONTENT="Modular DocBook HTML Stylesheet Version 1.79"></HEAD
+><BODY
+CLASS="ARTICLE"
+BGCOLOR="#FFFFFF"
+TEXT="#000000"
+LINK="#0000FF"
+VLINK="#840084"
+ALINK="#0000FF"
+><DIV
+CLASS="ARTICLE"
+><DIV
+CLASS="TITLEPAGE"
+><H1
+CLASS="TITLE"
+><A
+NAME="AEN2"
+>Setting up IP Aliasing on A Linux Machine Mini-HOWTO</A
+></H1
+><H3
+CLASS="AUTHOR"
+><A
+NAME="AEN4"
+>Harish Pillay</A
+></H3
+><DIV
+CLASS="AFFILIATION"
+><DIV
+CLASS="ADDRESS"
+><P
+CLASS="ADDRESS"
+>&nbsp;<CODE
+CLASS="EMAIL"
+>&#60;<A
+HREF="mailto:h.pillay@ieee.org"
+>h.pillay@ieee.org</A
+>&#62;</CODE
+>&nbsp;</P
+></DIV
+></DIV
+><P
+CLASS="OTHERCREDIT"
+><B
+>Joy Yokley - </B
+><SPAN
+CLASS="CONTRIB"
+>Converted document from HTML to DocBook v4.1 (SGML)</SPAN
+></P
+><P
+CLASS="PUBDATE"
+>2001-01-23<BR></P
+><DIV
+CLASS="REVHISTORY"
+><TABLE
+WIDTH="100%"
+BORDER="0"
+><TR
+><TH
+ALIGN="LEFT"
+VALIGN="TOP"
+COLSPAN="3"
+><B
+>Revision History</B
+></TH
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+>Revision 1.2</TD
+><TD
+ALIGN="LEFT"
+>2001-01-26</TD
+><TD
+ALIGN="LEFT"
+>Revised by: JEY</TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+COLSPAN="3"
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+>Revision 1.1</TD
+><TD
+ALIGN="LEFT"
+>2001-01-24</TD
+><TD
+ALIGN="LEFT"
+>Revised by: JEY</TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+COLSPAN="3"
+></TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+>Revision 1.0</TD
+><TD
+ALIGN="LEFT"
+>1997-01-13</TD
+><TD
+ALIGN="LEFT"
+>Revised by: HP</TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+COLSPAN="3"
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+><DIV
+CLASS="ABSTRACT"
+><P
+></P
+><A
+NAME="AEN11"
+></A
+><P
+>This is a cookbook recipe on how to set up and run IP aliasing on a Linux
+			box and how to set up the machine to receive e-mail 
+			on the aliased IP addresses.</P
+><P
+></P
+></DIV
+></DIV
+><HR></DIV
+><DIV
+CLASS="TOC"
+><DL
+><DT
+><B
+>Table of Contents</B
+></DT
+><DT
+>1. <A
+HREF="#MYSETUP"
+>My Setup</A
+></DT
+><DT
+>2. <A
+HREF="#COMMANDS"
+>Commands</A
+></DT
+><DT
+>3. <A
+HREF="#TROUBLESHOOTING"
+>Troubleshooting: Questions and Answers</A
+></DT
+><DD
+><DL
+><DT
+>3.1. <A
+HREF="#KEEPSETTINGS"
+>Question: How can I keep the settings through a reboot?</A
+></DT
+><DT
+>3.2. <A
+HREF="#SETTINGUPMAIL"
+>Question: How do I set up the IP aliased machine to receive e-mail on the
+					various aliased IP addresses (on a machine using sendmail)?</A
+></DT
+></DL
+></DD
+><DT
+>4. <A
+HREF="#ACKNOWLEDGEMENTS"
+>Acknowledgements</A
+></DT
+></DL
+></DIV
+><DIV
+CLASS="SECT1"
+><H2
+CLASS="SECT1"
+><A
+NAME="MYSETUP"
+>1. My Setup</A
+></H2
+><P
+></P
+><UL
+><LI
+><P
+>IP Alias is standard in kernels 2.0.x and 2.2.x, and available as a compile-time option in 2.4.x 
+			(IP Alias has been deprecated in 2.4.x and replaced by a more powerful firewalling mechanism.)
+     </P
+></LI
+><LI
+><P
+>IP Alias compiled as a loadable module. You would have indicated in
+     the "make config" command to make your kernel, that you want the IP
+     Masq to be compiled as a (M)odule. Check the Modules HOW-TO (if that
+     exists) or check the info in <TT
+CLASS="FILENAME"
+>/usr/src/linux/Documentation/modules.txt.</TT
+></P
+></LI
+><LI
+><P
+>I have to support 2 additional IPs over and above the IP already
+     allocated to me.</P
+></LI
+><LI
+><P
+>A D-Link DE620 pocket adapter (not important, works with any Linux
+     supported network adapter).</P
+></LI
+></UL
+></DIV
+><DIV
+CLASS="SECT1"
+><HR><H2
+CLASS="SECT1"
+><A
+NAME="COMMANDS"
+>2. Commands</A
+></H2
+><P
+></P
+><OL
+TYPE="1"
+><LI
+><P
+>Load the IP Alias module (you can skip this step if you compiled
+     the module into the kernel):</P
+><TABLE
+BORDER="1"
+BGCOLOR="#E0E0E0"
+WIDTH="90%"
+><TR
+><TD
+><FONT
+COLOR="#000000"
+><PRE
+CLASS="SCREEN"
+>/sbin/insmod /lib/modules/`uname -r`/ipv4/ip_alias.o</PRE
+></FONT
+></TD
+></TR
+></TABLE
+></LI
+><LI
+><P
+>Setup the loopback, eth0, and all the IP addresses beginning with the
+     main IP address for the eth0 interface:</P
+><TABLE
+BORDER="1"
+BGCOLOR="#E0E0E0"
+WIDTH="90%"
+><TR
+><TD
+><FONT
+COLOR="#000000"
+><PRE
+CLASS="SCREEN"
+>/sbin/ifconfig lo 127.0.0.1
+/sbin/ifconfig eth0 up
+/sbin/ifconfig eth0 172.16.3.1
+/sbin/ifconfig eth0:0 172.16.3.10
+/sbin/ifconfig eth0:1 172.16.3.100</PRE
+></FONT
+></TD
+></TR
+></TABLE
+><P
+>172.16.3.1 is the main IP address, while .10 and .100 are the aliases. The
+		     magic is the eth0:x where x=0,1,2,...n for the different IP addresses. The
+		     main IP address does not need to be aliased.</P
+></LI
+><LI
+><P
+>Setup the routes. First route the loopback, then the net, and
+		     finally, the various IP addresses starting with the default (originally
+		     allocated) one:</P
+><TABLE
+BORDER="1"
+BGCOLOR="#E0E0E0"
+WIDTH="90%"
+><TR
+><TD
+><FONT
+COLOR="#000000"
+><PRE
+CLASS="SCREEN"
+>/sbin/route add -net 127.0.0.0
+/sbin/route add -net 172.16.3.0 dev eth0
+/sbin/route add -host 172.16.3.1 dev eth0
+/sbin/route add -host 172.16.3.10 dev eth0:0
+/sbin/route add -host 172.16.3.100 dev eth0:1
+/sbin/route add default gw 172.16.3.200</PRE
+></FONT
+></TD
+></TR
+></TABLE
+><P
+>That's it.</P
+></LI
+></OL
+><P
+>In the example IP address above, I am using the Private IP addresses (RFC 1918) for
+			illustrative purposes. Substitute them with your own official or private IP
+			addresses.</P
+><P
+>The example shows only 3 IP addresses. The max is defined to be 256 in
+			<TT
+CLASS="FILENAME"
+>/usr/include/linux/net_alias.h.</TT
+> 256 IP addresses on ONE card is a lot :-)!</P
+><P
+>Here's what my <TT
+CLASS="FILENAME"
+>/sbin/ifconfig</TT
+> looks like:</P
+><TABLE
+BORDER="0"
+BGCOLOR="#E0E0E0"
+WIDTH="100%"
+><TR
+><TD
+><FONT
+COLOR="#000000"
+><PRE
+CLASS="PROGRAMLISTING"
+>lo        Link encap:Local Loopback
+	       inet addr:127.0.0.1  Bcast:127.255.255.255  Mask:255.0.0.0
+			 UP BROADCAST LOOPBACK RUNNING  MTU:3584  Metric:1
+		    RX packets:5088 errors:0 dropped:0 overruns:0
+		    TX packets:5088 errors:0 dropped:0 overruns:0
+		
+eth0      Link encap:10Mbps Ethernet  HWaddr 00:8E:B8:83:19:20
+		    inet addr:172.16.3.1  Bcast:172.16.3.255  Mask:255.255.255.0
+		    UP BROADCAST RUNNING PROMISC MULTICAST  MTU:1500  Metric:1
+		    RX packets:334036 errors:0 dropped:0 overruns:0
+		    TX packets:11605 errors:0 dropped:0 overruns:0
+		    Interrupt:7 Base address:0x378
+		
+eth0:0    Link encap:10Mbps Ethernet  HWaddr 00:8E:B8:83:19:20
+		    inet addr:172.16.3.10  Bcast:172.16.3.255  Mask:255.255.255.0
+		    UP BROADCAST RUNNING  MTU:1500  Metric:1
+		    RX packets:0 errors:0 dropped:0 overruns:0
+		    TX packets:0 errors:0 dropped:0 overruns:0
+		
+eth0:1    Link encap:10Mbps Ethernet  HWaddr 00:8E:B8:83:19:20
+		    inet addr:172.16.3.100  Bcast:172.16.3.255  Mask:255.255.255.0
+		    UP BROADCAST RUNNING  MTU:1500  Metric:1
+		    RX packets:1 errors:0 dropped:0 overruns:0
+		    TX packets:0 errors:0 dropped:0 overruns:0</PRE
+></FONT
+></TD
+></TR
+></TABLE
+><P
+>And <TT
+CLASS="FILENAME"
+>/proc/net/aliases</TT
+>:</P
+><TABLE
+BORDER="1"
+BGCOLOR="#E0E0E0"
+WIDTH="100%"
+><TR
+><TD
+><FONT
+COLOR="#000000"
+><PRE
+CLASS="SCREEN"
+>device         family    address
+eth0:0           2      172.16.3.10
+eth0:1           2      172.16.3.100</PRE
+></FONT
+></TD
+></TR
+></TABLE
+><P
+>And <TT
+CLASS="FILENAME"
+>/proc/net/alias_types</TT
+>:	</P
+><TABLE
+BORDER="0"
+BGCOLOR="#E0E0E0"
+WIDTH="100%"
+><TR
+><TD
+><FONT
+COLOR="#000000"
+><PRE
+CLASS="PROGRAMLISTING"
+>type    name            n_attach
+2       ip              2</PRE
+></FONT
+></TD
+></TR
+></TABLE
+><P
+>Of course, the stuff in <TT
+CLASS="FILENAME"
+>/proc/net</TT
+> was created by the <B
+CLASS="COMMAND"
+>ifconfig</B
+> command and
+			not by hand!</P
+></DIV
+><DIV
+CLASS="SECT1"
+><HR><H2
+CLASS="SECT1"
+><A
+NAME="TROUBLESHOOTING"
+>3. Troubleshooting: Questions and Answers</A
+></H2
+><DIV
+CLASS="SECT2"
+><H3
+CLASS="SECT2"
+><A
+NAME="KEEPSETTINGS"
+>3.1. Question: How can I keep the settings through a reboot?</A
+></H3
+><P
+>Answer: Whether you are using BSD-style or SysV-style (Redhat&#8482; for example)
+						<B
+CLASS="COMMAND"
+>init</B
+>, you can always include it in <TT
+CLASS="FILENAME"
+>/etc/rc.d/rc.local</TT
+>. Here's what I have
+						on my SysV init system (Redhat&#8482; 3.0.3 and 4.0):</P
+><P
+>My <TT
+CLASS="FILENAME"
+>/etc/rc.d/rc.local</TT
+>: (edited to show the relevant portions)</P
+><TABLE
+BORDER="1"
+BGCOLOR="#E0E0E0"
+WIDTH="100%"
+><TR
+><TD
+><FONT
+COLOR="#000000"
+><PRE
+CLASS="SCREEN"
+>#setting up IP alias interfaces
+echo "Setting 172.16.3.1, 172.16.3.10, 172.16.3.100 IP Aliases ..."
+/sbin/ifconfig lo 127.0.0.1
+/sbin/ifconfig eth0 up
+/sbin/ifconfig eth0 172.16.3.1
+/sbin/ifconfig eth0:0 172.16.3.10
+/sbin/ifconfig eth0:1 172.16.3.100
+#setting up the routes
+echo "Setting IP routes ..."
+/sbin/route add -net 127.0.0.0
+/sbin/route add -net 172.16.3.0 dev eth0
+/sbin/route add -host 172.16.3.1 eth0
+/sbin/route add -host 172.16.3.10 eth0:0
+/sbin/route add -host 172.16.3.100 eth0:1
+/sbin/route add default gw 172.16.3.200
+# </PRE
+></FONT
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="SECT2"
+><HR><H3
+CLASS="SECT2"
+><A
+NAME="SETTINGUPMAIL"
+>3.2. Question: How do I set up the IP aliased machine to receive e-mail on the
+					various aliased IP addresses (on a machine using sendmail)?</A
+></H3
+><P
+>Answer: Create (if it doesn't already exist) a file called, 
+			     <TT
+CLASS="FILENAME"
+>/etc/mynames.cw</TT
+>,for example. The file does not have to be this exact name nor in the
+			     <TT
+CLASS="FILENAME"
+>/etc directory</TT
+>.</P
+><P
+>In that file, place the official domain names of the aliased IP addresses. If
+			     these aliased IP addresses do not have a domain name, then you can place the
+			     IP address itself.</P
+><P
+> The <TT
+CLASS="FILENAME"
+>/etc/mynames.cw</TT
+> might look like this:</P
+><TABLE
+BORDER="0"
+BGCOLOR="#E0E0E0"
+WIDTH="100%"
+><TR
+><TD
+><FONT
+COLOR="#000000"
+><PRE
+CLASS="PROGRAMLISTING"
+># /etc/mynames.cw - include all aliases for your machine here; # is a comment
+domain.one.net
+domain.two.com
+domain.three.org
+4.5.6.7 </PRE
+></FONT
+></TD
+></TR
+></TABLE
+><P
+>In your <TT
+CLASS="FILENAME"
+>sendmail.cf</TT
+> file, where it defines a file class macro Fw, add
+     					the following:</P
+><TABLE
+BORDER="1"
+BGCOLOR="#E0E0E0"
+WIDTH="100%"
+><TR
+><TD
+><FONT
+COLOR="#000000"
+><PRE
+CLASS="SCREEN"
+>     
+##################
+#   local info   #
+##################
+				     
+				     
+# file containing names of hosts for which we receive email
+Fw/etc/mynames.cw
+				 </PRE
+></FONT
+></TD
+></TR
+></TABLE
+><P
+>That should do it. Test out the new setting by invoking sendmail in
+     					test mode. The following is an example:</P
+><TABLE
+BORDER="1"
+BGCOLOR="#E0E0E0"
+WIDTH="100%"
+><TR
+><TD
+><FONT
+COLOR="#000000"
+><PRE
+CLASS="SCREEN"
+>ganymede$ /usr/lib/sendmail -bt
+ADDRESS TEST MODE (ruleset 3 NOT automatically invoked)
+Enter &#60; ruleset&#62; &#60; address&#62;
+&#62; 0 me@4.5.6.7
+rewrite: ruleset  0   input: me @ 4 . 5 . 6 . 7
+rewrite: ruleset 98   input: me @ 4 . 5 . 6 . 7
+rewrite: ruleset 98 returns: me @ 4 . 5 . 6 . 7
+rewrite: ruleset 97   input: me @ 4 . 5 . 6 . 7
+rewrite: ruleset  3   input: me @ 4 . 5 . 6 . 7
+rewrite: ruleset 96   input: me &#60; @ 4 . 5 . 6 . 7 &#62;
+rewrite: ruleset 96 returns: me &#60; @ 4 . 5 . 6 . 7 . &#62;
+rewrite: ruleset  3 returns: me &#60; @ 4 . 5 . 6 . 7 . &#62;
+rewrite: ruleset  0   input: me &#60; @ 4 . 5 . 6 . 7 . &#62;
+rewrite: ruleset 98   input: me &#60; @ 4 . 5 . 6 . 7 . &#62;
+rewrite: ruleset 98 returns: me &#60; @ 4 . 5 . 6 . 7 . &#62;
+rewrite: ruleset  0 returns: $# local $: me
+rewrite: ruleset 97 returns: $# local $: me
+rewrite: ruleset  0 returns: $# local $: me
+&#62; 0 me@4.5.6.8
+rewrite: ruleset  0   input: me @ 4 . 5 . 6 . 8
+rewrite: ruleset 98   input: me @ 4 . 5 . 6 . 8
+rewrite: ruleset 98 returns: me @ 4 . 5 . 6 . 8
+rewrite: ruleset 97   input: me @ 4 . 5 . 6 . 8
+rewrite: ruleset  3   input: me @ 4 . 5 . 6 . 8
+rewrite: ruleset 96   input: me &#60; @ 4 . 5 . 6 . 8 &#62;
+rewrite: ruleset 96 returns: me &#60; @ 4 . 5 . 6 . 8 &#62;
+rewrite: ruleset  3 returns: me &#60; @ 4 . 5 . 6 . 8 &#62;
+rewrite: ruleset  0   input: me &#60; @ 4 . 5 . 6 . 8 &#62;
+rewrite: ruleset 98   input: me &#60; @ 4 . 5 . 6 . 8 &#62;
+rewrite: ruleset 98 returns: me &#60; @ 4 . 5 . 6 . 8 &#62;
+rewrite: ruleset 95   input: &#60; &#62; me &#60; @ 4 . 5 . 6 . 8 &#62;
+rewrite: ruleset 95 returns: me &#60; @ 4 . 5 . 6 . 8 &#62;
+rewrite: ruleset  0 returns: $# smtp $@ 4 . 5 . 6 . 8 $: me &#60; @ 4 . 5 . 6 . 8 &#62;
+rewrite: ruleset 97 returns: $# smtp $@ 4 . 5 . 6 . 8 $: me &#60; @ 4 . 5 . 6 . 8 &#62;
+rewrite: ruleset  0 returns: $# smtp $@ 4 . 5 . 6 . 8 $: me &#60; @ 4 . 5 . 6 . 8 &#62;
+&#62;</PRE
+></FONT
+></TD
+></TR
+></TABLE
+><P
+>Notice when I tested me@4.5.6.7, it delivered the mail to the local
+			     machine, while me@4.5.6.8 was handed off to the smtp mailer.
+			     That is the correct response.</P
+><P
+>You are all set now.</P
+></DIV
+></DIV
+><DIV
+CLASS="SECT1"
+><HR><H2
+CLASS="SECT1"
+><A
+NAME="ACKNOWLEDGEMENTS"
+>4. Acknowledgements</A
+></H2
+><P
+>Thanks to all those who have done this great work on Linux and IP Aliasing.
+				And especially to Juan Jose Ciarlante for clarifying my questions.</P
+><P
+>Kudos to the ace programmers!</P
+><P
+>If you find this document useful or have suggestions on improvements, email me at <CODE
+CLASS="EMAIL"
+>&#60;<A
+HREF="mailto:h.pillay@ieee.org"
+><A
+HREF="mailto:h.pillay@ieee.org"
+TARGET="_top"
+>h.pillay@ieee.org</A
+></A
+>&#62;</CODE
+>.</P
+><P
+>Enjoy.</P
+><P
+>For additional information on networking, you may want to consult the <A
+HREF="http://www.linuxdoc.org/HOWTO/Networking-Overview-HOWTO.html"
+TARGET="_top"
+>The Linux Networking Overview HOWTO</A
+>.</P
+></DIV
+></DIV
+></BODY
+></HTML
+>

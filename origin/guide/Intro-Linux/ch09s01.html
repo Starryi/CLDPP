@@ -1,0 +1,94 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1"><title>1. Introduction</title><link rel="stylesheet" type="text/css" href="style.css"><meta name="generator" content="DocBook XSL Stylesheets V1.79.1"><meta name="keywords" content="Linux, Beginners, linux, start, Getting started, guide, Guide, Exercises, exercises"><link rel="home" href="index.html" title="Introduction to Linux"><link rel="up" href="ch09.html" title="Chapter 9. Fundamental Backup Techniques"><link rel="prev" href="ch09.html" title="Chapter 9. Fundamental Backup Techniques"><link rel="next" href="ch09s02.html" title="2. Moving your data to a backup device"></head><body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF"><div class="navheader"><table width="100%" summary="Navigation header"><tr><th colspan="3" align="center">1. Introduction</th></tr><tr><td width="20%" align="left"><a accesskey="p" href="ch09.html">Prev</a> </td><th width="60%" align="center">Chapter 9. Fundamental Backup Techniques</th><td width="20%" align="right"> <a accesskey="n" href="ch09s02.html">Next</a></td></tr></table><hr></div><div class="sect1"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="sect_09_01"></a>1. Introduction</h2></div></div></div><p>Although Linux is one of the safest operating systems in existence, and even if it is designed to keep on going, data can get lost.  Data loss is most often the consequence of user errors, but occasionally a system fault, such as a power or disk failure, is the cause, so it's always a good idea to keep an extra copy of sensitive and/or important data.</p><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="sect_09_01_01"></a>1.1. Preparing your data</h3></div></div></div><div class="sect3"><div class="titlepage"><div><div><h4 class="title"><a name="sect_09_01_01_01"></a>1.1.1. Archiving with tar</h4></div></div></div><p>In most cases, we will first collect all the data to back up in a single archive file, which we will compress later on.  The process of archiving<a class="indexterm" name="idm9007"></a> involves concatenating all listed files and taking out unnecessary blanks.  In Linux, this is commonly done with the <span class="command"><strong>tar<a class="indexterm" name="idm9011"></a></strong></span> command.  <span class="command"><strong>tar</strong></span> was originally designed to archive<a class="indexterm" name="idm9014"></a> data on tapes, but it can also make archives, known as <span class="emphasis"><em>tarballs<a class="indexterm" name="idm9018"></a></em></span>.</p><p><span class="command"><strong>tar</strong></span> has many options<a class="indexterm" name="idm9022"></a>, the most important ones are cited below:</p><div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem"><p><code class="option">-v</code>: verbose</p></li><li class="listitem"><p><code class="option">-t</code>: test, shows content of a tarball</p></li><li class="listitem"><p><code class="option">-x</code>: extract archive</p></li><li class="listitem"><p><code class="option">-c</code>: create archive</p></li><li class="listitem"><p><code class="option">-f</code> <code class="filename">archivedevice</code>: use <code class="filename">archivedevice</code> as source/destination for the tarball, the device defaults to the first tape device (usually <code class="filename">/dev/st0</code> or something similar)</p></li><li class="listitem"><p><code class="option">-j</code>: filter through <span class="command"><strong>bzip2</strong></span>, see <a class="xref" href="ch09s01.html#sect_09_01_01_02" title="1.1.2. Incremental backups with tar">Section 1.1.2, &#8220;Incremental backups with tar&#8221;</a></p></li></ul></div><p>It is common to leave out the dash-prefix with <span class="command"><strong>tar</strong></span> options, as you can see from the examples below.</p><div class="note" style="margin-left: 0.5in; margin-right: 0.5in;"><h3 class="title">Use GNU tar for compatibility</h3><p>The archives<a class="indexterm" name="idm9054"></a> made with a proprietary <span class="command"><strong>tar</strong></span> version on one system, may be incompatible with <span class="command"><strong>tar</strong></span> on another proprietary system.  This may cause much headaches, such as if the archive needs to be recovered on a system that doesn't exist anymore.  Use the GNU <span class="command"><strong>tar</strong></span> version on all systems to prevent your system admin from bursting into tears.  Linux always uses GNU tar.  When working on other UNIX machines, enter <span class="command"><strong>tar <code class="option">--help</code></strong></span> to find out which version you are using.  Contact your system admin if you don't see the word GNU somewhere.</p></div><p>In the example below, an archive is created<a class="indexterm" name="idm9063"></a> and unpacked.</p><pre class="screen">
+<code class="prompt">gaby:~&gt;</code> <span class="command"><strong>ls images/</strong></span>
+me+tux.jpg  nimf.jpg
+
+<code class="prompt">gaby:~&gt;</code> <span class="command"><strong>tar cvf images-in-a-dir.tar images/</strong></span>
+images/
+images/nimf.jpg
+images/me+tux.jpg
+
+<code class="prompt">gaby:~&gt;</code> <span class="command"><strong>cd images</strong></span>
+
+<code class="prompt">gaby:~/images&gt;</code> <span class="command"><strong>tar cvf images-without-a-dir.tar *.jpg</strong></span>
+me+tux.jpg
+nimf.jpg
+
+<code class="prompt">gaby:~/images&gt;</code> <span class="command"><strong>cd</strong></span>
+
+<code class="prompt">gaby:~&gt;</code> <span class="command"><strong>ls */*.tar</strong></span>
+images/images-without-a-dir.tar
+
+<code class="prompt">gaby:~&gt;</code> <span class="command"><strong>ls *.tar</strong></span>
+images-in-a-dir.tar 
+
+<code class="prompt">gaby:~&gt;</code> <span class="command"><strong>tar xvf images-in-a-dir.tar </strong></span>
+images/
+images/nimf.jpg
+images/me+tux.jpg
+
+<code class="prompt">gaby:~&gt;</code> <span class="command"><strong>tar tvf images/images-without-dir.tar </strong></span>
+-rw-r--r-- gaby/gaby  42888 1999-06-30 20:52:25 me+tux.jpg
+-rw-r--r-- gaby/gaby   7578 2000-01-26 12:58:46 nimf.jpg
+
+<code class="prompt">gaby:~&gt;</code> <span class="command"><strong>tar xvf images/images-without-a-dir.tar </strong></span>
+me+tux.jpg
+nimf.jpg
+
+<code class="prompt">gaby:~&gt;</code> <span class="command"><strong>ls *.jpg</strong></span>
+me+tux.jpg  nimf.jpg
+</pre><p>This example also illustrates the difference between a tarred directory and a bunch of tarred files.  It is advisable to only compress directories, so files don't get spread all over when unpacking the tarball (which may be on another system, where you may not know which files were already there and which are the ones from the archive).</p><p>When a tape drive is connected to your machine and configured by your system administrator, the file names ending in <code class="filename">.tar</code> are replaced with the tape<a class="indexterm" name="idm9092"></a> device name, for example:</p><p><span class="command"><strong>tar <code class="option">cvf</code> <code class="filename">/dev/tape</code> <code class="filename">mail/</code></strong></span></p><p>The directory <code class="filename">mail</code> and all the files it contains are compressed into a file that is written on the tape immediately.  A content listing is displayed because we used the verbose option.</p></div><div class="sect3"><div class="titlepage"><div><div><h4 class="title"><a name="sect_09_01_01_02"></a>1.1.2. Incremental backups with tar</h4></div></div></div><p>The <span class="command"><strong>tar</strong></span> tool supports the creation of incremental<a class="indexterm" name="idm9106"></a> backups, using the <code class="option">-N</code> option.  With this option, you can specify a date, and <span class="command"><strong>tar</strong></span> will check modification time of all specified files against this date.  If files are changed more recent than date, they will be included in the backup.  The example below uses the timestamp on a previous archive as the date value.  First, the initial archive is created and the timestamp on the initial backup file is shown.  Then a new file is created, upon which we take a new backup, containing only this new file:</p><pre class="screen">
+<code class="prompt">jimmy:~&gt;</code> <span class="command"><strong>tar cvpf /var/tmp/javaproggies.tar java/*.java</strong></span>
+java/btw.java
+java/error.java
+java/hello.java
+java/income2.java
+java/income.java
+java/inputdevice.java
+java/input.java
+java/master.java
+java/method1.java
+java/mood.java
+java/moodywaitress.java
+java/test3.java
+java/TestOne.java
+java/TestTwo.java
+java/Vehicle.java
+
+<code class="prompt">jimmy:~&gt;</code> <span class="command"><strong>ls -l /var/tmp/javaproggies.tar</strong></span>
+-rw-rw-r-- 1 jimmy   jimmy   10240 Jan 21 11:58 /var/tmp/javaproggies.tar
+
+<code class="prompt">jimmy:~&gt;</code> <span class="command"><strong>touch java/newprog.java</strong></span>
+
+<code class="prompt">jimmy:~&gt;</code> <span class="command"><strong>tar -N /var/tmp/javaproggies.tar \
+-cvp /var/tmp/incremental1-javaproggies.tar java/*.java 2&gt; /dev/null</strong></span>
+java/newprog.java
+
+<code class="prompt">jimmy:~&gt;</code> <span class="command"><strong>cd /var/tmp/</strong></span>
+
+<code class="prompt">jimmy:~&gt;</code> <span class="command"><strong>tar xvf incremental1-javaproggies.tar</strong></span>
+java/newprog.java
+</pre><p>Standard errors are redirected to <code class="filename">/dev/null</code>.  If you don't do this, <span class="command"><strong>tar</strong></span> will print a message for each unchanged file, telling you it won't be dumped.</p><p>This way of working has the disadvantage that it looks at timestamps on files.  Say that you download an archive into the directory containing your backups, and the archive contains files that have been created two years ago.  When checking the timestamps of those files against the timestamp on the initial archive, the new files will actually seem old to <span class="command"><strong>tar</strong></span>, and will not be included in an incremental backup made using the <code class="option">-N</code> option.</p><p>A better choice would be the <code class="option">-g</code> option, which will create a list of files to backup.  When making incremental backups, files are checked against this list.  This is how it works:</p><pre class="screen">
+<code class="prompt">jimmy:~&gt;</code> <span class="command"><strong>tar cvpf work-20030121.tar -g snapshot-20030121 work/</strong></span>
+work/
+work/file1
+work/file2
+work/file3
+
+<code class="prompt">jimmy:~&gt;</code> <span class="command"><strong>file snapshot-20030121</strong></span>
+snapshot-20030121: ASCII text
+</pre><p>The next day, user <span class="emphasis"><em>jimmy</em></span> works on <code class="filename">file3</code> a bit more, and creates <code class="filename">file4</code>.  At the end of the day, he makes a new backup:</p><pre class="screen">
+<code class="prompt">jimmy:~&gt;</code> <span class="command"><strong>tar cvpf work-20030122.tar -g snapshot-20030121 work/</strong></span>
+work/
+work/file3
+work/file4
+</pre><p>These are some very simple examples, but you could also use this kind of command in a cronjob (see <a class="xref" href="ch04s04.html#sect_04_04_04" title="4.4. Cron and crontab">Section 4.4, &#8220;Cron and crontab&#8221;</a>), which specifies for instance a snapshot file for the weekly backup and one for the daily backup.  Snapshot files should be replaced when taking full backups, in that case.</p><p>More information can be found in the <span class="command"><strong>tar</strong></span> documentation.</p><div class="tip" style="margin-left: 0.5in; margin-right: 0.5in;"><h3 class="title">The real stuff</h3><p>As you could probably notice, <span class="command"><strong>tar</strong></span> is OK when we are talking about a simple directory, a set of files that belongs together.  There are tools that are easier to manage, however, when you want to archive entire partitions or disks or larger projects.  We just explain about <span class="command"><strong>tar</strong></span> here because it is a very popular tool for distributing archives.  It will happen quite often that you need to install a software that comes in a so-called <span class="quote">&#8220;<span class="quote">compressed tarball</span>&#8221;</span>.  See <a class="xref" href="ch09s03.html" title="3. Using rsync">Section 3, &#8220;Using rsync&#8221;</a> for an easier way to perform regular backups.</p></div></div><div class="sect3"><div class="titlepage"><div><div><h4 class="title"><a name="sect_09_01_01_03"></a>1.1.3. Compressing and unpacking with <span class="command"><strong>gzip</strong></span> or <span class="command"><strong>bzip2</strong></span></h4></div></div></div><p>
+Data, including tarballs, can be compressed<a class="indexterm" name="idm9160"></a> using zip tools.  The <span class="command"><strong>gzip<a class="indexterm" name="idm9164"></a></strong></span> command will add the suffix .gz to the file name and remove the original file.
+</p><pre class="screen">
+<code class="prompt">jimmy:~&gt;</code> <span class="command"><strong>ls -la | grep tar</strong></span>
+-rw-rw-r-- 1 jimmy  jimmy    61440 Jun  6 14:08 images-without-dir.tar
+
+<code class="prompt">jimmy:~&gt;</code> <span class="command"><strong>gzip images-without-dir.tar</strong></span> 
+
+<code class="prompt">jimmy:~&gt;</code> <span class="command"><strong>ls -la images-without-dir.tar.gz </strong></span>
+-rw-rw-r-- 1 jimmy  jimmy    50562 Jun  6 14:08 images-without-dir.tar.gz
+</pre><p>Uncompress gzipped files with the <code class="option">-d</code> option<a class="indexterm" name="idm9175"></a>.</p><p><span class="command"><strong>bzip2<a class="indexterm" name="idm9180"></a></strong></span> works in a similar way, but uses an improved compression algorithm, thus creating smaller files.  See the <span class="command"><strong>bzip2</strong></span> info pages for more.</p><p>Linux software packages are often distributed in a gzipped tarball.  The sensible thing to do after unpacking that kind of archives is find the <code class="filename">README<a class="indexterm" name="idm9185"></a></code> and read it.  It will generally contain guidelines to installing the package.</p><p>The GNU <span class="command"><strong>tar</strong></span> command is aware of gzipped<a class="indexterm" name="idm9189"></a> files.  Use the command</p><div class="cmdsynopsis"><p><code class="command">tar <code class="option">zxvf</code> <code class="filename">file.tar.gz</code></code> </p></div><p>for unzipping and untarring <code class="filename">.tar.gz</code> or <code class="filename">.tgz</code> files.  Use</p><div class="cmdsynopsis"><p><code class="command">tar <code class="option">jxvf</code> <code class="filename">file.tar.bz2</code></code> </p></div><p>for unpacking <span class="command"><strong>tar</strong></span> archives that were compressed with <span class="command"><strong>bzip2</strong></span>.</p></div><div class="sect3"><div class="titlepage"><div><div><h4 class="title"><a name="sect_09_01_01_04"></a>1.1.4. Java archives</h4></div></div></div><p>The GNU project provides us with the <span class="command"><strong>jar<a class="indexterm" name="idm9210"></a></strong></span> tool for creating Java archives.  It is a Java application that combines multiple files into a single JAR<a class="indexterm" name="idm9212"></a> archive file.  While also being a general purpose archiving and compression tool, based on ZIP and the ZLIB compression format, <span class="command"><strong>jar</strong></span> was mainly designed to facilitate the packing of Java code, applets and/or applications in a single file.  When combined in a single archive, the components of a Java application, can be downloaded much faster.</p><p>Unlike <span class="command"><strong>tar</strong></span>, <span class="command"><strong>jar</strong></span> compresses by default, independent from other tools - because it is basically the Java version of <span class="command"><strong>zip</strong></span>.  In addition, it allows individual entries in an archive to be signed by the author, so that origins can be authenticated.</p><p>The syntax is almost identical as for the <span class="command"><strong>tar</strong></span> command, we refer to <span class="command"><strong>info <em class="parameter"><code>jar</code></em></strong></span> for specific differences.</p><div class="note" style="margin-left: 0.5in; margin-right: 0.5in;"><h3 class="title">tar, jar and symbolic links</h3><p>One noteworthy feature not really mentioned in the standard documentation is that <span class="command"><strong>jar</strong></span> will follow symbolic links.  Data to which these links are pointing will be included in the archive.  The default in <span class="command"><strong>tar</strong></span> is to only backup the symbolic link, but this behavior can be changed using the <code class="option">-h</code> to <span class="command"><strong>tar</strong></span>.</p></div></div><div class="sect3"><div class="titlepage"><div><div><h4 class="title"><a name="sect_09_01_01_05"></a>1.1.5. Transporting your data</h4></div></div></div><p>Saving copies of your data on another host is a simple but accurate way of making backups.  See <a class="xref" href="ch10.html" title="Chapter 10. Networking">Chapter 10, <i>Networking</i></a> for more information on <span class="command"><strong>scp</strong></span>, <span class="command"><strong>ftp</strong></span> and more.</p><p>In the next section we'll discuss local backup devices.</p></div></div></div><div class="navfooter"><hr><table width="100%" summary="Navigation footer"><tr><td width="40%" align="left"><a accesskey="p" href="ch09.html">Prev</a> </td><td width="20%" align="center"><a accesskey="u" href="ch09.html">Up</a></td><td width="40%" align="right"> <a accesskey="n" href="ch09s02.html">Next</a></td></tr><tr><td width="40%" align="left" valign="top">Chapter 9. Fundamental Backup Techniques </td><td width="20%" align="center"><a accesskey="h" href="index.html">Home</a></td><td width="40%" align="right" valign="top"> 2. Moving your data to a backup device</td></tr></table></div></body></html>

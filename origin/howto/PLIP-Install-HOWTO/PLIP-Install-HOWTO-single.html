@@ -1,0 +1,2838 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 3.2 Final//EN">
+<HTML>
+<HEAD>
+ <META NAME="GENERATOR" CONTENT="LinuxDoc-Tools 0.9.72">
+ <TITLE> PLIP Install HOWTO</TITLE>
+</HEAD>
+<BODY>
+<H1> PLIP Install HOWTO</H1>
+
+   
+<H2>Gilles Lamiral, <CODE>lamiral@linux-france.org</CODE>
+   </H2>$Revision$ $Date$ 
+<HR>
+<EM>     This paper describes how to install a <B>Gnu|Linux</B>
+    distribution on a computer without Ethernet card, or CD-ROM, but
+    just a <B>local floppy drive</B> and a <B>remote nfs server</B>
+    attached by a <B>Null-Modem parallel</B> cable. The nfs server has
+    a <B>cdrom drive</B> mounted and exported.</EM>
+<HR>
+<P>You can find the latest release of the <B>PLIP-Install-HOWTO</B>,
+by Gilles Lamiral, located at: <BR> <CODE>
+<A HREF="http://www.linuxdoc.org/HOWTO/PLIP-Install-HOWTO.html">http://www.linuxdoc.org/HOWTO/PLIP-Install-HOWTO.html</A></CODE></P>
+<P>If you have already read this HOWTO and you wonder what is new in this
+release, first read the section 
+<A HREF="#WHAT_IS_NEW">what's new</A>.</P>
+
+<H2><A NAME="PLIP_IMPATIENT"></A> <A NAME="s1">1. PLIP for the impatient </A></H2>
+
+
+<P>This section is used to avoid reading the document when you need to
+install a plip connection in one minute. Skip it.</P>
+
+<H2><A NAME="ss1.1">1.1 Source side</A>
+</H2>
+
+
+<P>
+<PRE>
+cat /proc/parport/0/hardware
+insmod parport
+insmod parport_pc io=0x378 irq=7 # Got those values in BIOS setup.
+insmod plip
+tail /var/log/messages
+ifconfig plip0 192.168.0.2 pointopoint 192.168.0.1 \
+         netmask 255.255.255.255 up
+ifconfig plip0
+ping -c1 192.168.0.2
+route -n
+</PRE>
+</P>
+
+<H2><A NAME="ss1.2">1.2 Target side</A>
+</H2>
+
+<P>
+<PRE>
+ifconfig plip1 192.168.0.1  pointopoint  192.168.0.2 \
+         netmask 255.255.255.255 up
+route add -host 192.168.0.2 dev plip1 # if the route is not present
+</PRE>
+</P>
+
+<H2><A NAME="ss1.3">1.3 Final tests</A>
+</H2>
+
+
+<P>
+<PRE>
+ping 192.168.0.1 # from 192.168.0.2
+ping 192.168.0.2 # from 192.168.0.1
+</PRE>
+</P>
+<P>Now all TCP/IP is available between the two computer via the parallel
+port. Have a nice trip !</P>
+
+<H2><A NAME="s2">2. Introduction</A></H2>
+
+<P>"PLIP is Parallel Line IP, that is, the transportation of IP packages
+over a parallel port." Donald Becker (becker@super.org).</P>
+<P>Writing a PLIP install HOWTO seems useless nowadays since Ethernet
+cards are cheap: NE2000 cards cost about the same as a Null-Modem
+cable. This is true for desktop computers, but not for laptop
+computers, in which the PCMCIA card costs more than 10 times as much
+the Null-Modem cable.  Moreover, there is a parallel port on every
+computer, but not always a network card.</P>
+<P>Of course, this howto can be used to install Linux on every personal
+computer without loss of generality.</P>
+<P>This paper is just what I've done to install a 
+<A HREF="http://www.debian.org">Debian GNU/Linux</A> distribution on
+a Toshiba Port&eacute;g&eacute; 620CT laptop, from a NFS exported
+cdrom drive, via a Null-Modem cable. </P>
+<P>A Null-Modem cable is also called a Null-Printer cable.</P>
+<P>A Null-Modem cable is also called a "LapLink" (or "Turbo Laplink")
+cable but the word "LapLink" is 
+<A HREF="http://www.marksonline.com/app/tmsearch/find_mark?tok=laplink">trademarked</A> by Traveling Software under the number 75466713
+since 1986, so I won't use it anymore.</P>
+<P>This HOWTO will be obsolete when every Linux distribution includes a
+PLIP install option. For example, the Debian installation only needs
+to add two commands to make this HOWTO obsolete (ifconfig +
+route). I hope one Debian maintainer will consider this point.</P>
+<P>I hoped this HOWTO would become obsolete but in fact it seems that
+it will never be, because some builders of some distributions do
+include PLIP installation sometimes but forget to maintain it in new
+releases (REDHAT for example).</P>
+<P>I would be happy to know if someone used the PLIP-Install-HOWTO
+to install other Linux distributions from other network protocols
+(ftp, http, nfs, samba, or even NT/Novell servers)</P>
+<P>Feedback with typos, bad English, comments, money, job, joy, fears,
+cries are welcome and recommended (not all with the same eagerness).</P>
+<P>If a translation in any language exists, please let me know, I'll be
+happy.</P>
+
+
+<H2><A NAME="LICENCE"></A> <A NAME="s3">3. License </A></H2>
+
+<P>This documentation used to be under the 
+<A HREF="http://www.opencontent.org/opl.shtml">OpenContent</A> license.
+It is not anymore. Do what you want with this document.</P>
+
+
+<H2><A NAME="s4">4. How did I write this howto ?    </A></H2>
+
+
+<P>I wrote this paper during the installation process but since I
+encountered several problems at the same time, my notes were
+disparate and sometimes I forgot to write the good command lines
+because I was too fed up to reboot (kernel compilations) and edit
+this file each time.</P>
+<P>When the installation went wrong (it did, I'm a beginner on laptops,
+plip, linux nfs, portmapper, Debian), I tried several things to fix
+the problems. When they remained too long, my brain was focused on
+solving, not writing.</P>
+<P>So, when the installation process finally succeeded, I decided to
+restart the process from scratch by noting everything in order to
+save <B>your</B> time. It was the first time I had installed Linux
+twice on the same computer.</P>
+<P>Then, in order to verify the document, I again restarted from
+scratch with a Slink Debian distribution (the next after the Hamm
+one). It was the first time I had installed Linux 3 times on the
+same computer. I hope it was the last time I have to do that.</P>
+
+<P><B>Conclusion</B>: If you do what is in this paper, it should
+work.</P>
+
+<H2><A NAME="s5">5. What do you need ?    </A></H2>
+
+<P>
+<UL>
+<LI> A Personal Computer, laptop or desktop, called the target
+computer or simply <B>target</B>.
+
+<P> </P>
+</LI>
+<LI> A 3 1/4" inch floppy drive on the <B>target</B>.
+
+<P> </P>
+</LI>
+<LI> Two or three fresh floppies.  They don't need to be
+formatted. You also need one more DOS formatted floppy if you have
+to play with <CODE>FIPS</CODE>.
+
+
+</LI>
+<LI> Another computer with a cdrom drive and nfs services,
+called source computer or simply <B>source</B>. It doesn't have
+to be a Linux system but just a system which can export a cdrom
+drive via nfs. In this HOWTO, I assume it is a Linux system.
+
+
+</LI>
+<LI> A cdrom distribution. I took a Debian Hamm (2.0r3) from
+an old Infomagic compilation. I think every distribution can be
+installed this way, but I'm not sure.  I've read a 
+<A HREF="http://www.linux-france.org/article/sys/Install-Plip/Install-Plip.html">French document</A>,
+written by Chmouel Boudjnah, saying the RedHat distribution has an
+easy installation process. Chmouel's document also deals with the
+Debian distribution, so if you read French, you can use Chmouel's
+document instead of this one.
+
+
+</LI>
+<LI> A Null-Modem DB 25 cable. Is it the same as a serial
+cable? You'll find the answer in the next release.
+
+<P> </P>
+</LI>
+<LI> Some time: 3 hours.
+
+
+</LI>
+<LI> Coffee. 1 liter.
+</LI>
+</UL>
+</P>
+
+<H2><A NAME="s6">6. The documentation     </A></H2>
+
+
+<P>I recommend these good readings in case you can't figure out how to
+solve a problem. I've read them. You should too if you're curious or
+conscientious.</P>
+<P>Please, do not forget to consider the 
+<A HREF="http://www.linuxdoc.org/mirrors.html">LDP mirrors</A>,
+listed at: <BR> 
+<A HREF="http://www.linuxdoc.org/mirrors.html">http://www.linuxdoc.org/mirrors.html</A></P>
+<P>Most HOWTOs are translated in 
+<A HREF="http://metalab.unc.edu/pub/Linux/docs/HOWTO/translations/">many languages</A>. Just go to the bottom of a mirror page and
+follow the <B><CODE>translations/</CODE></B> link.</P>
+
+<P>If you want to use Linux on a laptop, read the latest 
+<A HREF="http://mobilix.org/howtos.html">Linux-Mobile-Guide</A>,
+by Werner Heuser, located at: <BR> 
+<A HREF="http://mobilix.org/howtos.html">http://mobilix.org/howtos.html</A>.</P>
+<P>If you haven't installed any distribution yet, carefully read the
+<A HREF="http://www.linuxdoc.org/HOWTO/Installation-HOWTO/">Installation-HOWTO</A>, by Eric S. Raymond, located at:<BR>
+ 
+<A HREF="http://www.linuxdoc.org/HOWTO/Installation-HOWTO/">http://www.linuxdoc.org/HOWTO/Installation-HOWTO/</A>. And
+make more coffee :-)</P>
+<P>If you need information about your cdrom drive, read the 
+<A HREF="http://www.linuxdoc.org/HOWTO/CDROM-HOWTO.html">CDROM-HOWTO</A>, by Jeff Tranter, located at: <BR> 
+<A HREF="http://www.linuxdoc.org/HOWTO/CDROM-HOWTO.html">http://www.linuxdoc.org/HOWTO/CDROM-HOWTO.html</A>.</P>
+<P>If you haven't installed an nfs server yet, read the 
+<A HREF="http://www.linuxdoc.org/HOWTO/NFS-HOWTO.html">NFS-HOWTO</A>, by Nicolai Langfeldt, located at: <BR> 
+<A HREF="http://www.linuxdoc.org/HOWTO/NFS-HOWTO.html">http://www.linuxdoc.org/HOWTO/NFS-HOWTO.html</A>.</P>
+<P>If you need to compile a new kernel on the <B>source</B> box, read
+the 
+<A HREF="http://www.linuxdoc.org/HOWTO/Kernel-HOWTO.html">Kernel-HOWTO</A>, by Brian Ward, located at: <BR> 
+<A HREF="http://www.linuxdoc.org/HOWTO/Kernel-HOWTO.html">http://www.linuxdoc.org/HOWTO/Kernel-HOWTO.html</A>.</P>
+<P>If you are new to PLIP, read the 
+<A HREF="http://www.linuxdoc.org/HOWTO/mini/PLIP.html">PLIP     MINI-HOWTO</A>, by Andrea Controzzi, located at: <BR> 
+<A HREF="http://www.linuxdoc.org/HOWTO/mini/PLIP.html">http://www.linuxdoc.org/HOWTO/mini/PLIP.html</A>.</P>
+
+
+<P>If you plan to make your Null-Modem cable yourself, a good reading
+is the file 
+<A HREF="file:///usr/src/linux/Documentation/networking/PLIP.txt">PLIP.txt</A>, by Donald Becker, located at:<BR>
+<CODE>/usr/src/linux/Documentation/networking/PLIP.txt</CODE><BR>
+ on your <B>source</B> linux computer, Luke.
+Alternatively, read my notes in section "Building your own cable".</P>
+
+<H2><A NAME="s7">7. Conventions    </A></H2>
+
+
+<P>The file contents and line commands and install screen-shots are
+always in <CODE>typewriter</CODE> font, like this:</P>
+
+<P>
+<PRE>
+     #!/bin/bash
+     #############################################
+     #### This is the great file /bin/Windows ####
+     #############################################
+     
+     while [ "1" ]; do
+             echo "I do my best because I'm the best"
+             echo "Very soon, next Y2Kill (the 01/01/0000)"
+             echo "A new marvelous 64 bit release !"
+             echo "Please wait a little more"
+             sleep 18446744073709551615 # 2^64-1
+     done
+    
+</PRE>
+</P>
+<P>or this:</P>
+
+<P>
+<PRE>
+     $ killall Windows
+     Terminated
+    
+</PRE>
+</P>
+
+<P>The file content lines should never begin with white space. You'll
+have to remove them, if any. Sorry, I'm fed up with <CODE>C-a
+M-AltGr-\</CODE> (remember, I'm a French azerty writer). Tab-emacs
+reflex is untameable (coders who use Emacs always press the tabular
+key like a twitch).</P>
+<P>Command input lines begin with a dollar <CODE>$</CODE> (the prompt), you
+don't have to type the dollar, just type the rest of the line; other
+lines are the command output, you don't have to type them either.</P>
+<P>Because all the configuration commands are important, you'll need
+to use a system administrator shell, like root, on the
+<B>source</B> and the <B>target</B> computers.</P>
+<P>
+<PRE>
+     $ su
+     Password: blabla
+     # 
+    
+</PRE>
+</P>
+<P>The prompt will be shown as "<CODE>$</CODE>" in the remainder of this
+documentation "<CODE>$</CODE>", even if it should be "<CODE>#</CODE>". This
+is because "<CODE>#</CODE>" often means comment, so it is ambiguous. I
+don't like ambiguity in computer science.</P>
+
+
+<H2><A NAME="s8">8. Building your own cable    </A></H2>
+
+
+
+<P>Extract from /usr/src/linux/Documentation/networking/PLIP.txt,
+written by Donald Becker (becker@super.org):</P>
+<P>
+<PRE>
+Parallel Transfer Mode 0 Cable
+==============================
+
+The cable for the first transfer mode is a standard
+printer "null" cable which transfers data four bits at a time using
+data bit outputs of the first port (machine T) connected to the
+status bit inputs of the second port (machine R).  There are five
+status inputs, and they are used as four data inputs and a clock (data
+strobe) input, arranged so that the data input bits appear as contiguous
+bits with standard status register implementation.
+
+A cable that implements this protocol is available commercially as a
+"Null Printer" or "Turbo Laplink" cable.  It can be constructed with
+two DB-25 male connectors symmetrically connected as follows:
+
+    STROBE output       1*
+    D0->ERROR   2 - 15          15 - 2
+    D1->SLCT    3 - 13          13 - 3
+    D2->PAPOUT  4 - 12          12 - 4
+    D3->ACK     5 - 10          10 - 5
+    D4->BUSY    6 - 11          11 - 6
+    D5,D6,D7 are   7*, 8*, 9*
+    AUTOFD output 14*
+    INIT   output 16*
+    SLCTIN      17 - 17
+    extra grounds are 18*,19*,20*,21*,22*,23*,24*
+    GROUND      25 - 25
+* Do not connect these pins on either end
+
+If the cable you are using has a metallic shield it should be
+connected to the metallic DB-25 shell at one end only.
+    
+</PRE>
+</P>
+<P>I checked my cable twice. On both sides, pins are connected like
+this:</P>
+<P>
+<PRE>
+     1 -  1 Yes
+     2 - 15
+     3 - 13
+     4 - 12
+     5 - 10
+     6 - 11
+     7 not connected
+     8 not connected
+     9 not connected
+    10 -  5
+    11 -  6
+    12 -  4
+    13 -  3
+    14 - 14 Yes
+    15 -  2
+    16 - 16 Yes
+    17 - 17
+    18 not connected
+    19 not connected
+    20 not connected
+    21 not connected
+    22 not connected
+    23 not connected
+    25 - 25 not connected to metallic shield
+    
+</PRE>
+</P>
+<P>Unlike the cable described in the kernel document, my cable has pins
+1, 14, 16 connected.  It doesn't matter, apparently, since plip
+works fine for me.</P>
+
+<H2><A NAME="s9">9. Network parameters    </A></H2>
+
+
+<P>We will make a plip point-to-point network with this IP
+configuration:
+<UL>
+<LI> <B>target</B>: 192.168.0.1 netmask 255.255.255.255</LI>
+<LI> <B>source</B>: 192.168.0.2 netmask 255.255.255.255
+</LI>
+</UL>
+</P>
+<P>You should not already have those names in your name space:</P>
+<P>
+<PRE>
+     $ ping source
+     ping: unknown host source
+     
+     $ ping target
+     ping: unknown host target
+    
+</PRE>
+</P>
+<P>You should not already have those IP addresses in your network space:</P>
+<P>
+<PRE>
+     $ ping  192.168.0.1
+     PING 192.168.0.1 (192.168.0.1): 56 data bytes
+     ping: sendto: Network is unreachable
+     ping: wrote 192.168.0.1 64 chars, ret=-1
+     
+     --- 192.168.0.1 ping statistics ---
+     1 packets transmitted, 0 packets received, 100% packet loss
+     
+     $ ping 192.168.0.2
+     PING 192.168.0.2 (192.168.0.2): 56 data bytes
+     ping: sendto: Network is unreachable
+     ping: wrote 192.168.0.2 64 chars, ret=-1
+     
+     --- 192.168.0.2 ping statistics ---
+     1 packets transmitted, 0 packets received, 100% packet loss
+    
+</PRE>
+</P>
+<P>If those commands don't give you errors, change the names or the
+addresses.</P>
+<P>You can choose other addresses, names or netmask (netmask must be the
+same on both sides). In the rest of this document, I'll suppose you
+choose these addresses and these names.</P>
+
+<P>Add a line in <B><CODE>/etc/exports</CODE></B></P>
+<P>
+<PRE>
+     #### file /etc/exports ####
+     ...
+     /cdrom          source(ro) target(ro)
+     #### EOF ####
+     
+</PRE>
+ </P>
+
+<P>Because the portmapper tries to resolve IP addresses, add the IP
+addresses and names in <B><CODE>/etc/hosts</CODE></B></P>
+<P>
+<PRE>
+     #### file /etc/hosts ####
+     ...
+     192.168.0.1     target
+     192.168.0.2     source
+     #### EOF ####
+    
+</PRE>
+</P>
+<P>Verify you have the item <B><CODE>files</CODE></B> for the
+<B><CODE>hosts</CODE></B> search list in the file
+<B><CODE>/etc/nsswitch.conf</CODE></B></P>
+<P>
+<PRE>
+     #### file /etc/nsswitch.conf ####
+     ...
+     hosts:      files nis dns
+     ...
+     #### EOF ####
+    
+</PRE>
+</P>
+
+
+
+<H2><A NAME="s10">10. PLIP on the Source side    </A></H2>
+
+
+<P>This section describes how to set up the <CODE>plip</CODE> interface in
+the <B>source</B> server.  If you run into trouble, I suggest that
+you read the 
+<A HREF="http://www.linuxdoc.org/HOWTO/mini/PLIP.html">PLIP     MINI-HOWTO</A>.</P>
+
+<P>Check that your <CODE>lp</CODE> device is not set. You should
+<B>not</B> have this entry:</P>
+<P>
+<PRE>
+     $ cat /proc/devices 
+     Character devices:
+     ...
+     6 lp
+     ...
+    
+</PRE>
+</P>
+<P>If you do have it, kill the <CODE>lpd</CODE> daemon and remove the
+<CODE>lp</CODE> module:</P>
+<P>
+<PRE>
+     $ /etc/rc.d/init.d/lpd.init stop
+     Shutting down lpd: lpd
+
+     $ rmmod lp
+    
+</PRE>
+</P>
+<P>If you can't remove the <CODE>lp</CODE> module then you have to
+recompile the <B>kernel</B> with <CODE>lp</CODE> service as a module.</P>
+<P>Now, the "<CODE>6 lp</CODE>" line has disappeared from the
+<CODE>/proc/devices</CODE> file, which is a reflection of the kernel
+capabilities.</P>
+<P>You are not obliged to eliminate the lp device : the scheme may work
+with lp. Without guarantee (it works for me). Check it yourself.</P>
+
+<P>Check that your parallel port is handled:</P>
+<P>
+<PRE>
+     $ ls /proc/parport/
+     0/
+     
+     $ cat /proc/parport/0/hardware 
+     base:   0x378
+     irq:    7
+     dma:    none
+     modes:  SPP,ECP,ECPEPP,ECPPS2
+    
+</PRE>
+</P>
+<P>If you don't have any directory under <CODE>/proc/parport/</CODE> then
+you have to load the <CODE>parport</CODE> and <CODE>parport_pc
+modules</CODE>:</P>
+<P>
+<PRE>
+     $ insmod parport
+     $ insmod parport_pc
+    
+</PRE>
+</P>
+<P>You should see this new entry in
+<B><CODE>/var/log/messages</CODE></B>:</P>
+<P>
+<PRE>
+     Oct  9 20:50:47 louloutte kernel:
+     parport0: PC-style at 0x378 [SPP,ECP,ECPEPP,ECPPS2]
+
+     Oct  9 20:50:47 louloutte kernel: 
+     parport0: detected irq 7; 
+     use procfs to enable interrupt-driven operation.
+    
+</PRE>
+</P>
+<P>I repeat the message "detected <CODE>irq 7</CODE>, use procfs to enable
+interrupt-driven operation", so:</P>
+<P>
+<PRE>
+     $ echo 7 >  /proc/parport/0/irq
+    
+</PRE>
+</P>
+<P>Using a kernel 2.4 the last command is no longer available. Use instead:
+<PRE>
+        $ insmod parport
+        $ insmod parport_pc io=0x378 irq=7
+</PRE>
+</P>
+
+<P>Check that <CODE>plip</CODE> module is loaded:</P>
+<P>
+<PRE>
+     $ lsmod |grep plip
+    
+</PRE>
+</P>
+<P>If <CODE>plip</CODE> module is not loaded, then load it:</P>
+<P>
+<PRE>
+     $ insmod plip
+    
+</PRE>
+</P>
+<P>You should see something like this in
+<B><CODE>/var/log/messages</CODE></B></P>
+<P>
+<PRE>
+     ==> /var/log/messages &lt;==
+     Oct  8 16:34:12 louloutte kernel:
+     NET3 PLIP version 2.3-parport gniibe@mri.co.jp
+    
+     Oct  8 16:34:12 louloutte kernel: 
+     plip0: Parallel port at 0x378, using IRQ 7
+     
+</PRE>
+</P>
+<P>If you can't load the <CODE>plip</CODE> module then you have to
+recompile the <B>kernel</B> with <CODE>plip</CODE> service as a
+module.</P>
+<P>The syslog message says the module is loaded on the <CODE>plip0</CODE>
+interface. Configure the <CODE>plip0</CODE> interface:</P>
+<P>
+<PRE>
+     $ ifconfig plip0 source pointopoint target netmask 255.255.255.255 up
+    
+</PRE>
+</P>
+<P>Check that everything is okay.</P>
+<P>
+<PRE>
+     $ ifconfig plip0
+     plip0     Link encap:10Mbps Ethernet  HWaddr FC:FC:C0:A8:00:02
+          inet addr:192.168.0.2  P-t-P:192.168.0.1  Mask:255.255.255.255
+          UP POINTOPOINT RUNNING NOARP  MTU:1500  Metric:1
+          RX packets:0 errors:0 dropped:0 overruns:0
+          TX packets:0 errors:0 dropped:0 overruns:0
+          Interrupt:7 Base address:0x378 
+    
+</PRE>
+</P>
+
+<P>Now you can <CODE>ping</CODE> locally the <B>source</B> server:</P>
+<P>
+<PRE>
+     $ ping source
+     PING source (192.168.0.2): 56 data bytes
+     64 bytes from 192.168.0.2: icmp_seq=0 ttl=255 time=0.3 ms
+     64 bytes from 192.168.0.2: icmp_seq=1 ttl=255 time=0.2 ms
+     
+     --- source ping statistics ---
+     2 packets transmitted, 2 packets received, 0% packet loss
+     round-trip min/avg/max = 0.2/0.2/0.3 ms
+    
+</PRE>
+</P>
+<P>Verify that the route to <B>target</B> exists:</P>
+<P>
+<PRE>
+     $ route
+     Kernel IP routing table
+     Destination     Gateway         Genmask         Flags Metric Ref    Use Iface
+     target          *               255.255.255.255 UH    0      0        0 plip0
+    
+</PRE>
+</P>
+<P>If the route doesn't exist, add it:</P>
+<P>
+<PRE>
+     $ route add -host  192.168.0.1  dev plip0
+    
+</PRE>
+</P>
+
+<P>When the <B>target</B> <EM>is</EM> configured you will be able to
+do a ping test:</P>
+<P>
+<PRE>
+     $ ping target
+     PING 192.168.0.1 (192.168.0.1): 56 data bytes
+     64 bytes from 192.168.0.1: icmp_seq=0 ttl=64 time=4.5 ms
+     64 bytes from 192.168.0.1: icmp_seq=1 ttl=64 time=4.3 ms
+     
+     --- 192.168.0.1 ping statistics ---
+     2 packets transmitted, 2 packets received, 0% packet loss
+     round-trip min/avg/max = 4.3/4.4/4.5 ms
+    
+</PRE>
+</P>
+<P>But if you try it now you should have:</P>
+<P>
+<PRE>
+     $ ping target
+     PING target (192.168.0.1): 56 data bytes
+     
+     --- target ping statistics ---
+     5 packets transmitted, 0 packets received, 100% packet loss
+    
+</PRE>
+</P>
+<P>Now, the server network is ready to work.
+Congratulations.</P>
+
+
+<H2><A NAME="s11">11. The cdrom nfs server side    </A></H2>
+
+
+<P>This section describes how to mount and export via NFS a cdrom drive.</P>
+<P>Mount the cdrom. If you encounter a problem with your cdrom drive,
+read the <B><EM>CDROM-HOWTO</EM></B>. I assume that the cdrom
+device is <CODE>/dev/hdd</CODE> but it could be <CODE>/dev/sr0</CODE> or
+<CODE>/dev/hdb</CODE> etc. The mount point I choose is <CODE>/cdrom</CODE>
+but you can choose the one you want:</P>
+<P>
+<PRE>
+     $ mount -t iso9660 /dev/hdd  /cdrom
+    
+</PRE>
+ </P>
+<P>You have to set up nfs services.  If something goes wrong, read the
+<B><EM>NFS-HOWTO</EM></B></P>
+<P>Verify your kernel supports nfs:</P>
+<P>
+<PRE>
+     $ cat /proc/filesystems 
+             ext2
+     nodev   proc
+     nodev   nfs
+     nodev   ncpfs
+     nodev   devpts
+             iso9660
+    
+</PRE>
+</P>
+
+<P>Verify your portmapper can handle mountd and nfs client requests:</P>
+
+<P>
+<PRE>
+     $ rpcinfo -p
+     program vers proto   port
+     100000    2   tcp    111  portmapper
+     100000    2   udp    111  portmapper
+     100005    1   udp    655  mountd
+     100005    1   tcp    657  mountd
+     100003    2   udp   2049  nfs
+     100003    2   tcp   2049  nfs
+    
+</PRE>
+</P>
+<P>Lines with <CODE>nfs</CODE> or <CODE>portmapper</CODE> have to be there. We
+have NFS on tcp?  progress have been made!</P>
+<P>It doesn't matter if you have only NFS on udp. NFS has to work,
+that's the thing you need. </P>
+<P>Then, rerun <CODE>portmap</CODE>, <CODE>mountd</CODE>, <CODE>nfs</CODE>:</P>
+<P>
+<PRE>
+     $ /etc/rc.d/init.d/portmap.init stop
+     Stopping INET services: portmap 
+
+     $ /etc/rc.d/init.d/portmap.init start
+     Starting portmapper: portmap
+
+     $ /etc/rc.d/init.d/nfs stop
+     Shutting down NFS services: rpc.mountd rpc.nfsd 
+
+     $ /etc/rc.d/init.d/nfs start
+     Starting NFS services: rpc.mountd rpc.nfsd 
+    
+</PRE>
+</P>
+<P><CODE>/etc/rc.d/init.d/</CODE> is <CODE>/sbin/init.d/</CODE> on SuSE Linux
+systems. I had a dream last night: LSB was respected. (LDB: Linux
+Standard Base)</P>
+
+<P>Then, try to mount it "locally" (via nfs) on the <B>source</B> box
+and when the test is good remove the test directory:</P>
+<P>
+<PRE>
+     $ mkdir /tmp/nfstest
+     $ mount -t nfs source:/cdrom /tmp/nfstest
+     $ ls  /tmp/nfstest/
+     README             debian/            locatedb.3         tools/
+     TRANS.TBL          ftp.netscape.com/  ls_lR.3            upgrade/
+     boot/              install/           realaudio/
+     
+     $ echo great stuff !
+     $ umount /tmp/nfstest
+     $ rmdir /tmp/nfstest
+     
+</PRE>
+</P>
+<P>Bad luck ? Read the <B><EM>NFS-HOWTO</EM></B> and
+<B><CODE>/var/log/messages</CODE></B>.</P>
+<P>Check the nfs server with those commands:</P>
+<P>
+<PRE>
+     $ rpcinfo -p
+     
+</PRE>
+ </P>
+<P>Run <CODE>portmap</CODE> with the <CODE>-v</CODE> flag:</P>
+<P>
+<PRE>
+      $ portmap -v
+     
+</PRE>
+</P>
+<P>kill <CODE>portmap</CODE>, <CODE>mountd</CODE>, <CODE>nfsd</CODE> and rerun them
+in this order: <CODE>portmap</CODE>, <CODE>mountd</CODE>, <CODE>nfsd</CODE>.
+Take a rest, get more coffee. Read again the
+<B><EM>NFS-HOWTO</EM></B> and restart.</P>
+<P>Now, the exported cdrom drive nfs server is ready to work.
+Congratulations.</P>
+
+
+<H2><A NAME="s12">12. FIPS, PARTED, splitting of hard disk partitions    </A></H2>
+
+
+<P>This section is for anybody who has only one primary FAT partition
+(DOS, Windows 3.xx, NT) and wants to keep it without loosing
+data. Make some backups because if you burn it, I won't be
+responsible - you will.</P>
+<P>Journey to PARTED</P>
+<P>Andrew Clausen (clausen@gnu.org), GNU Parted maintainer, wrote "You
+might want to mention GNU Parted in the PLIP-Install Howto." That is
+done. Since I didn't try it I can only give you the links to 
+<A HREF="http://www.gnu.org/software/parted/">parted by http</A> and
+<A HREF="ftp://ftp.gnu.org/gnu/parted/">parted ftp</A>. Help
+yourself. Parted seems very good.</P>
+<P>Andrew said: "GNU Parted is a *LOT* more powerful than FIPS (think
+Partition Magic).  For example, it can convert FAT16 &lt;=> FAT32,
+change the size of the FATs, doesn't require a defragger, etc.  And
+it supports ext2, linux-swap..."</P>
+<P>Back to FIPS.</P>
+<P>Download 
+<A HREF="ftp://ftp.debian.org/pub/debian/tools/">FIPS</A>. Don't forget the mirrors ftp.<B>xx</B>.debian.org
+where <B>xx</B> is your country abbreviation (fr, fi, us, uk,
+etc.). </P>
+<P>At the time of this writing the archive file is called
+<B>fips20.zip</B>.</P>
+<P>The <B>fips</B> program is already in the debian cdrom
+distribution. I found it (yes, after downloading the
+<B>fips20.zip</B> file) in <CODE>/cdrom/debian/tools/fips15.zip</CODE>
+(It supposes your cdrom is mounted on <B>/cdrom</B>)</P>
+<P>I guess you are on a Unix world but you're not compelled to be. Go
+in a good working place on the <B>source</B> computer:</P>
+<P>
+<PRE>
+     $ mkdir /tmp/fips-2.0/
+     $ cd /tmp/fips-2.0/
+     $ unzip -l /archive/fips/fips20.zip
+     ...
+     $ unzip  /archive/fips/fips20.zip
+     ...
+     $ ls
+     $ dos2unix fips.doc fips.faq  readme.1st 
+    
+</PRE>
+</P>
+<P>
+<OL>
+<LI>Read the file readme.1st</LI>
+<LI>Read the file fips.doc</LI>
+<LI>Read the file fips.faq</LI>
+</OL>
+</P>
+<P>Boot your <B>target</B> computer. Be in pure DOS (quit Windows).</P>
+<P>Read again the file <B><CODE>fips.doc</CODE></B> from the section
+"5. Before you start".</P>
+<P>Be aware of hidden files. </P>
+<P>Graham's comment: Hidden files will not be moved by DeFrag (as far as
+I know), so FIPS will reclaim less space for use by Linux.  Use the
+ATTRIB command to remove the "hidden" attribute.  Some things may
+require that files are hidden, so it will be necessary to hide the
+same files again later. I think that it would also be a good idea to
+run scandisk at this moment.  Perhaps I do not trust DOS.</P>
+
+<P>Be aware to eliminate the "virtual memory" file (swap for Win*)
+during the fips process.  In Windows 3.11 (quite up to date, no?)
+this swap file is configured from
+Program-Manager->Control-Panel->Enhanced (a i386 chip icon).</P>
+<P>Click, Click->Click on the chip and re-click on a button
+called "Virtual Memory". </P>
+<P>Adjust the size to none, Click&lt;-Click&lt;-Click&lt;-Click back plus Alt-F4
+to close all your windows. Don't you think the Gates are closed too?</P>
+<P>Graham's comment: I am not sure that this is a good idea.  What
+happens if "386spart.par" is not hidden?  I think that DEFRAG will
+move it, and Windows will complain next time it starts, then rebuild
+the file.  Since we are clearly keeping DOS/Windows, the user will
+require a swap file again later.  By not deleting it, the disc space
+is reserved for that time. </P>
+<P>Graham's new comment: "Make sure that the file is not hidden (attrib
+-h -s 386spart.par), then delete it (del 386spart.par).  The disc
+space is then free.  Run FIPS.  Next time Windows starts, it will
+complain that the file is corrupt, and will recreate it."</P>
+<P>I don't what to say. I've just parroted FIPS manual because I
+succeeded with it.</P>
+<P>So drink coffee, and pray.</P>
+<P>Run <CODE>SCANDISK</CODE>:</P>
+<P>
+<PRE>
+     C:\> SCANDISK
+    
+</PRE>
+</P>
+<P>Correct every cluster. You should have no dead cluster now.</P>
+<P>Quit  <CODE>SCANDISK</CODE></P>
+
+<P>Run <CODE>DEFRAG</CODE> on C:</P>
+<P>
+<PRE>
+     C:\> DEFRAG C:
+    
+</PRE>
+</P>
+<P>All used clusters are at the beginning of the hard disk.</P>
+<P>Quit <CODE>DEFRAG</CODE></P>
+<P>Make a bootable floppy disk: </P>
+<P>
+<PRE>
+     C:\> FORMAT A: /S
+    
+</PRE>
+</P>
+<P>Copy <B><CODE>AUTOEXEC.BAT</CODE></B> and <B><CODE>CONFIG.SYS</CODE></B>
+to the new floppy if you want to keep your local features (keyboard
+keys etc.). Remove the line running <CODE>SMARTDRIVE.EXE</CODE> in
+<CODE>AUTOEXEC.BAT</CODE>.  Keep a minimal <CODE>AUTOEXEC.BAT</CODE></P>
+
+<P>On the <B>source</B> box: Copy the fips files
+<B>restorrb.exe</B>, <B>fips.exe</B> and <B>errors.txt</B> to
+this floppy disk.</P>
+<P>
+<PRE>
+    $ mcopy errors.txt fips.exe restorrb.exe a:
+    
+</PRE>
+</P>
+<P>Graham's comment: Doesn't this assume that mtools are installed?  If
+the floppy disc is mounted as type msdos, the standard "cp" command
+should do the job, and mtools would not be needed.  I have never
+used mtools, but I have played with DOS files from Linux.</P>
+<P>Yes, this assumes that mtools are installed. <CODE>mcopy</CODE> is
+faster to type than <CODE>mkdir, mount, cp, umount, rmdir</CODE>.</P>
+<P>Boot the <B>target</B> with the floppy. Run fips while reading the
+section "Using FIPS" in the file <B>fips.doc</B></P>
+<P><B>Do not forget</B> to answer <B>yes</B> when fips asks for a
+rootboot saving.</P>
+<P>When everything is ok, save your hard disk space:
+<PRE>
+     $ cd
+     $ rm -rf /tmp/fips-2.0/
+    
+</PRE>
+</P>
+<P>Now you have a nice free space for a new operating system.</P>
+
+
+<H2><A NAME="s13">13. Debian installation    </A></H2>
+
+
+<P>I'm a Debian proselyte since it is my first Debian installation.
+Debian lovers are the same kind of people as Macintosh lovers or
+Linux lovers in the operating systems space.  Nothing else
+counts. Since I'm already a Mac and Linux lover (and French too :-)
+it was time to fall in love.</P>
+<P>Debian is well, clearly and internationally documented. Thanks to
+all those people who bred this really open distribution.</P>
+<P>I could leave you on your own during the installation process. But
+since we have to interact with a shell during it, the entire process
+will be described in detail.</P>
+<P>I know the description is Debian specific. I prefer to give you a
+complete example than nothing except a ``run a shell at the right
+moment and type bla bla...''. I do like concrete examples.</P>
+<P>Simon Forget &lt;sforget@camelot.ca&gt; told me he could not use
+this howto with his Toshiba Libretto 50CT because the kernel could
+not recognize the pcmcia floppy drive during the installation
+process. I don't know why but there is a solution using plip, if you
+already have a dos partition on the <B>target</B> computer. </P>
+<P>This solution is simpler and faster because no floppy drive nor plip
+network is necessary during the installation process. If you are
+interested in this solution, go directly to the section 
+<A HREF="#INSTALL_FROM_A_DOS_PARTITION">Installing from a DOS     partition</A>. I'm keeping the old installation routine because this
+new one needs a DOS partition that becomes superfluous when you
+definitely want to leave the dark side.</P>
+
+
+<H2><A NAME="ss13.1">13.1 Preparing the two floppies    </A>
+</H2>
+
+
+<P>On the <B>source</B> side, mount the cdrom and go to the install
+directory</P>
+<P>
+<PRE>
+      $ mount -t iso9660 /dev/hdd  /cdrom
+     
+</PRE>
+</P>
+<P>The device for your CDROM may be /dev/hdb or /dev/hdc or another
+device (SCSI), depending on where is plugged your CDROM.</P>
+<P>
+<PRE>
+      $ cd /cdrom/debian/dists/stable/main/disks-i386/current/
+     
+</PRE>
+</P>
+<P>Read the file install.html with a browser or install.txt with a
+more, a less, a cat (or a dog?).</P>
+<P>Now, record the install (alias rescue) floppy. Write a
+"<CODE>resc1440.bin</CODE>" label on it:</P>
+<P>
+<PRE>
+      $ dd if=resc1440.bin of=/dev/fd0H1440
+     
+</PRE>
+</P>
+<P>Write the drivers floppy. Write a "<CODE>drv1440.bin</CODE>" label on it:</P>
+<P>
+<PRE>
+      $ dd if=drv1440.bin of=/dev/fd0H1440
+     
+</PRE>
+</P>
+<P>Then make sure that the floppies are write-protected.</P>
+<P>Now you're ready to start the real installation process.</P>
+
+<H2><A NAME="ss13.2">13.2 The real installation process     </A>
+</H2>
+
+<P>Insert the resc1440.bin floppy on <B>target</B> drive. Reboot
+your <B>target</B> box.</P>
+<P>
+<PRE>
+     Welcome to Debian GNU/Linux 2.x!
+     ...
+</PRE>
+</P>
+<P>Read the text.  The prompt is:</P>
+<P>
+<PRE>
+     boot:
+</PRE>
+</P>
+<P>Press <CODE>&lt;ENTER&gt;</CODE> </P>
+<P>
+<PRE>
+     Loading root.bin...........
+     loading linux...
+     ....
+</PRE>
+</P>
+<P>A new screen:</P>
+<P>
+<PRE>
+     Next: Select Color or Monochrome display
+</PRE>
+</P>
+<P>Choose yours with the arrow up/down keys and press <CODE>&lt;ENTER&gt;</CODE> </P>
+<P>
+<PRE>
+     Next: Continue with the installation
+</PRE>
+</P>
+<P>press <CODE>&lt;ENTER&gt;</CODE> </P>
+<P>
+<PRE>
+     Software in the Public Interest 
+             presents
+      *** Debian GNU/Linux 2.1 ***
+     ...
+</PRE>
+</P>
+<P>Read the text Press <CODE>&lt;ENTER&gt;</CODE> (You see
+<CODE>&lt;Continue&gt;</CODE> on the screen)</P>
+<P>
+<PRE>
+     Next: Configure the Keyboard
+</PRE>
+</P>
+<P>press <CODE>&lt;ENTER&gt;</CODE> 
+Select your country and press <CODE>&lt;ENTER&gt;</CODE> </P>
+<P>
+<PRE>
+     Next : Partition a Hard Disk
+</PRE>
+</P>
+<P>Press <CODE>&lt;ENTER&gt;</CODE> </P>
+<P>
+<PRE>
+     Select Disk Drive 
+     usually /dev/hda
+</PRE>
+</P>
+<P>If you have several disks choose the good one (where you want to
+install Linux) and press <CODE>&lt;ENTER&gt;</CODE></P>
+<P>You are now using the program <CODE>cfdisk</CODE>. Using
+<CODE>cfdisk</CODE> is safe until you decide to <CODE>[Write]</CODE> the
+partition on disk. Leaving <CODE>cfdisk</CODE> with <CODE>[Quit]</CODE> is
+safe.</P>
+<P>We are going to make just two new primary partitions, a Swap one and
+a big Linux one. If you want to create more partitions, leave some
+free space or extended partitions, you can. But read the
+documentation about "Partitioning" in the
+<EM>Installation-HOWTO</EM>, especially if you have more than 1024
+cylinders and  an old version of LILO.</P>
+<P>If you previously ran the <CODE>FIPS</CODE> program, you see the
+<CODE>hda1</CODE> partition (<CODE>DOSFAT16</CODE>). Switch to the next free
+partition with the up/down arrow keys.</P>
+<P>Select <CODE>[New]</CODE> with the right/left arrow keys and press
+<CODE>&lt;ENTER&gt;</CODE></P>
+<P>Select <CODE>[Primary]</CODE> and press <CODE>&lt;ENTER&gt;</CODE> </P>
+<P>Enter the size of your swap partition. Twice the RAM is usual if you
+have less than 128 megabytes of ram. If you have 2 gigabytes of
+RAM, it's because you don't want to swap. In that case, no swap
+partition is needed.</P>
+<P>Select <CODE>[Beginning]</CODE> and press <CODE>&lt;ENTER&gt;</CODE></P>
+<P>Select <CODE>[Type]</CODE> and press <CODE>&lt;ENTER&gt;</CODE>.  Type
+<CODE>82</CODE> (Linux Swap) and press <CODE>&lt;ENTER&gt;</CODE>.</P>
+<P>Switch to the next free partition with the up/down arrow
+keys. Select <CODE>[New]</CODE> and press <CODE>&lt;ENTER&gt;</CODE></P>
+<P>Select <CODE>[Primary]</CODE> and press <CODE>&lt;ENTER&gt;</CODE> </P>
+<P>Enter the size in MB (you can leave the default) and press
+<CODE>&lt;ENTER&gt;</CODE> Its type should be already Linux. If not,
+change to Linux (83) with <CODE>[Type]</CODE></P>
+<P>The partition table is defined now. Verify everything looks good. If
+you're not sure, read the documentation with <CODE>[Help]</CODE>. If
+doubts are still there, select <CODE>[Quit]</CODE> and leave the
+installation process. Go for a walk and restart from the beginning
+of this section.</P>
+<P>I assume you are confident now.</P>
+<P>Select <CODE>[Write]</CODE></P>
+<P>
+<PRE>
+     Are you sure you want to write the partition table to disk?
+</PRE>
+</P>
+<P>Type "<CODE>yes</CODE>" and press <CODE>&lt;ENTER&gt;</CODE> </P>
+<P>Select <CODE>[Quit]</CODE>  and press <CODE>&lt;ENTER&gt;</CODE> </P>
+<P>
+<PRE>
+     Next: Initialize and Activate a Swap Partition
+</PRE>
+</P>
+<P>Press <CODE>&lt;ENTER&gt;</CODE> </P>
+<P>
+<PRE>
+     Please select the partition to initialize as a swap device
+</PRE>
+</P>
+<P>Select <CODE>/dev/hda2</CODE> (normally already selected).
+Press <CODE>&lt;ENTER&gt;</CODE> </P>
+<P>
+<PRE>
+     Scan for Bad Blocks?
+</PRE>
+</P>
+<P>select <CODE>&lt;YES&gt;</CODE>  and press <CODE>&lt;ENTER&gt;</CODE> </P>
+<P>
+<PRE>
+     Are you Sure?
+</PRE>
+</P>
+<P>select <CODE>&lt;YES&gt;</CODE>  and press <CODE>&lt;ENTER&gt;</CODE> </P>
+<P>
+<PRE>
+     Initializing swap partition
+     ...
+</PRE>
+</P>
+
+<P>
+<PRE>
+     Next: Initialize a Linux Partition
+</PRE>
+</P>
+<P>Press <CODE>&lt;ENTER&gt;</CODE> </P>
+<P>
+<PRE>
+     Select Partition. Please select the partition to initialize as a
+     Linux "ext2" file-system.
+</PRE>
+</P>
+<P>Select <CODE>/dev/hda3</CODE> (normally already selected) and press
+<CODE>&lt;ENTER&gt;</CODE>.</P>
+<P>
+<PRE>
+     Scan for Bad Blocks?
+</PRE>
+</P>
+<P>Select <CODE>&lt;YES&gt;</CODE>  and press <CODE>&lt;ENTER&gt;</CODE> </P>
+<P>
+<PRE>
+     Are you Sure?
+</PRE>
+</P>
+<P>Select <CODE>&lt;YES&gt;</CODE>  and press <CODE>&lt;ENTER&gt;</CODE> </P>
+<P>A new page full of numbers.  You can take a rest because it takes
+some time (especially with a big hard disk).</P>
+<P>
+<PRE>
+     Next: Mount a Previously-Initialized Partition
+</PRE>
+</P>
+<P>Press <CODE>&lt;ENTER&gt;</CODE> </P>
+<P>
+<PRE>
+     Please select the partition to mount
+</PRE>
+</P>
+<P>Select <CODE>/dev/hda3</CODE> and press <CODE>&lt;ENTER&gt;</CODE> </P>
+<P>
+<PRE>
+     Mount the /dev/hda3 device as the Root FileSystem?
+</PRE>
+</P>
+<P>Select <CODE>&lt;Yes&lt;</CODE> and press <CODE>&lt;ENTER&gt;</CODE> </P>
+<P>
+<PRE>
+     Next: Install Operating System Kernel and Modules
+</PRE>
+</P>
+<P>Press <CODE>&lt;ENTER&gt;</CODE> </P>
+<P>
+<PRE>
+     Please select the medium you will use to install the system
+</PRE>
+</P>
+
+<P>Select <CODE>/dev/fd0</CODE> and press <CODE>&lt;ENTER&gt;</CODE> </P>
+<P>
+<PRE>
+     Please place the Rescue Floppy in the first floppy drive
+</PRE>
+</P>
+<P>The floppy is already there.<BR>
+Select <CODE>&lt;Continue&gt;</CODE> and press <CODE>&lt;ENTER&gt;</CODE> </P>
+<P>
+<PRE>
+     Installing the Rescue Floppy ...
+     Please place the Drivers Floppy in the first floppy drive
+</PRE>
+</P>
+
+<P>Eject the Rescue Floppy and insert the Drivers Floppy, the one I
+you labelled <CODE>drv1440.bin</CODE> (you did it, didn't you?).<BR>
+Select <CODE>&lt;Continue&gt;</CODE> and press <CODE>&lt;ENTER&gt;</CODE></P>
+<P>
+<PRE>
+     Installing the Drivers  Floppy ...
+</PRE>
+</P>
+<P>A new screen:</P>
+<P>
+<PRE>
+     Next: Configure Device Driver Modules
+</PRE>
+</P>
+<P>Press <CODE>&lt;ENTER&gt;</CODE> </P>
+<P>
+<PRE>
+     Select Category
+</PRE>
+</P>
+<P>Read the text.</P>
+<P>
+<PRE>
+     Please select the category of modules
+</PRE>
+</P>
+<P>Select <CODE>net</CODE> and press <CODE>&lt;ENTER&gt;</CODE> <BR>
+Select <CODE>plip</CODE>.</P>
+<P>
+<PRE>
+     Module plip
+</PRE>
+</P>
+<P>Select "Install the module in the kernel" and press <CODE>&lt;ENTER&gt;</CODE>  <BR>
+No parameters are needed.  <BR>
+Select <CODE>&lt;Ok&gt;</CODE> and press <CODE>&lt;ENTER&gt;</CODE> </P>
+<P>
+<PRE>
+     Installation succeeded
+     Please press ENTER when you are ready to continue.
+</PRE>
+</P>
+<P>Press <CODE>&lt;ENTER&gt;</CODE> </P>
+<P>Select <CODE>Exit</CODE> ("Finished with these modules") and press
+<CODE>&lt;ENTER&gt;</CODE> <BR> Then you see the same kind of
+screen again. <BR> Select <CODE>Exit</CODE> ("Finished with these
+modules") and press <CODE>&lt;ENTER&gt;</CODE></P>
+<P>
+<PRE>
+     Next: Configure the Network
+</PRE>
+</P>
+<P>Choose a name, you can use a different name than <CODE>debian</CODE> or
+<CODE>target</CODE>.<BR> Press <CODE>&lt;ENTER&gt;</CODE></P>
+<P>
+<PRE>
+     Is your system connect to a network? 
+</PRE>
+</P>
+<P>Select <CODE>&lt;No&gt;</CODE> and press <CODE>&lt;ENTER&gt;</CODE></P>
+<P><B>STOP STOP STOP</B>.  You see now:</P>
+<P>
+<PRE>
+     Next: Install the base system
+</PRE>
+</P>
+<P>Now we need a shell.</P>
+<P>Press <CODE>Alt F2</CODE> and <CODE>&lt;ENTER&gt;</CODE>
+You are in a root shell.</P>
+
+
+
+<H2><A NAME="ss13.3">13.3 An installation break: PLIP on the target side    </A>
+</H2>
+
+
+<P>You are in a root shell.</P>
+<P>Verify the plip module is loaded:</P>
+<P>
+<PRE>
+     $ lsmod
+     Module    Pages    Used by
+     plip          3          0
+    
+</PRE>
+</P>
+<P>Find the exact name of the plip interface:</P>
+<P>
+<PRE>
+     $ dmesg
+     ...
+     NET3 PLIP version 2.2 gniibe@mri.co.jp
+     plip1: Parallel port at 0x378, using assigned IRQ 7
+    
+</PRE>
+</P>
+<P>You can find the same information with</P>
+<P>
+<PRE>
+     $ cat /proc/kmsg
+     ...
+     &lt;4>NET3 PLIP version 2.2 gniibe@mri.co.jp
+     &lt;4>plip1: Parallel port at 0x378, using assigned IRQ 7
+     ...
+     
+     Ctrl-c (or ^C if you prefer)
+</PRE>
+</P>
+<P>Configure the plip interface:</P>
+<P>
+<PRE>
+     $ ifconfig plip1 192.168.0.1  pointopoint  192.168.0.2 netmask 255.255.255.255 up
+</PRE>
+</P>
+<P>Verify everything is ok:</P>
+<P>
+<PRE>
+     $ ifconfig plip1 
+     plip0     Link encap:Ethernet  HWaddr FC:FC:C0:A8:00:01
+          inet addr:192.168.0.1  P-t-P:192.168.0.2  Mask:255.255.255.255
+          UP POINTOPOINT RUNNING NOARP  MTU:1500  Metric:1
+          RX packets:0 errors:0 dropped:0 overruns:0 frame:0
+          TX packets:0 errors:0 dropped:0 overruns:0 carrier:0
+          Collisions:0
+          Interrupt:7 Base address:0x378
+</PRE>
+</P>
+<P>Verify the route to <B>source</B> exists:</P>
+<P>
+<PRE>
+     $ route 
+     Kernel IP routing table
+     Destination     Gateway         Genmask         Flags Metric Ref    Use Iface
+     127.0.0.0       0.0.0.0         255.0.0.0       U     0      0        0 lo
+</PRE>
+</P>
+<P>If not, like in the previous example, add the route to 192.168.0.2,
+the <B>source</B>:</P>
+<P>
+<PRE>
+     $ route add -host 192.168.0.2 dev plip1
+</PRE>
+</P>
+<P>Now the route is installed:</P>
+<P>
+<PRE>
+     $ route 
+     Kernel IP routing table
+     Destination     Gateway         Genmask         Flags Metric Ref    Use Iface
+     192.168.0.2     0.0.0.0         255.255.255.255 UH    0      0        0 plip1
+     127.0.0.0       0.0.0.0         255.0.0.0       U     0      0        0 lo
+</PRE>
+</P>
+
+<P>Now you can perform a successful <CODE>ping</CODE> from the
+<B>source</B> server (<CODE>ping</CODE> is not available on the Debian
+install process):</P>
+<P>
+<PRE>
+     $ ping target
+     PING target (192.168.0.1): 56 data bytes
+     64 bytes from 192.168.0.1: icmp_seq=0 ttl=64 time=14.0 ms
+     64 bytes from 192.168.0.1: icmp_seq=1 ttl=64 time=4.3 ms
+     
+     --- target ping statistics ---
+     2 packets transmitted, 2 packets received, 0% packet loss
+     round-trip min/avg/max = 4.3/9.1/14.0 ms
+</PRE>
+</P>
+<P>If it doesn't work, check the Null-Modem cable connection, rerun
+<CODE>dmesg</CODE>, <CODE>ifconfig</CODE>, <CODE>route</CODE>. Verify
+everything. Take a rest. Restart.</P>
+<P>When the ping is okay, return to the normal installation process:</P>
+<P>On the target: press <CODE>Alt F1</CODE></P>
+
+
+<H2><A NAME="ss13.4">13.4 Return to the normal install process    </A>
+</H2>
+
+
+<P>You are back to the normal installation process.  You should still
+see:</P>
+<P>
+<PRE>
+     Next: Install the base system
+</PRE>
+</P>
+<P>Press <CODE>&lt;ENTER&gt;</CODE> </P>
+<P>
+<PRE>
+     Please select the medium you will use to install the system
+</PRE>
+</P>
+<P>Select <CODE>nfs</CODE> and press <CODE>&lt;ENTER&gt;</CODE> </P>
+<P>
+<PRE>
+     Please choose the NFS server and the mount path ...
+</PRE>
+</P>
+<P>Type: <CODE>192.168.0.2:/cdrom</CODE><BR>
+Press <CODE>&lt;ENTER&gt;</CODE> </P>
+<P>
+<PRE>
+     Please choose the path inside the mounted NFS filesystem
+</PRE>
+</P>
+<P>Type /debian (normally already there) and press <CODE>&lt;ENTER&gt;</CODE> </P>
+<P>If no error message complains about the nfs mount then bravo. You can 
+verify this mount by entering the shell again:</P>
+<P>Press <CODE>Alt F2</CODE></P>
+<P>
+<PRE>
+     $ mount
+     ...
+     192.168.0.2:/cdrom on /instmnt type nfs (rw, addr=192.168.0.2)
+
+     $ ls /instmnt/debian
+     README                 README.non-US          doc/
+     README.CD-manufacture  README.pgp@            hamm/
+     README.mirrors.html    TRANS.TBL              tools/
+     README.mirrors.txt     dists/
+</PRE>
+</P>
+<P>Press <CODE>Alt F1</CODE></P>
+<P>You're back again to the normal installation process.</P>
+<P>Now the plip nfs cdrom connection is done. Let's go on and finish
+our job.</P>
+<P>
+<PRE>
+     Please select the directory containing a file base2_0.tgz
+</PRE>
+</P>
+<P>Select <CODE>list</CODE>  and press <CODE>&lt;ENTER&gt;</CODE> </P>
+<P>
+<PRE>
+     Please Wait 
+     The installation program is building a list of ...
+</PRE>
+</P>
+<P>A new screen:</P>
+<P>
+<PRE>
+     Select Archive Path
+     Please select the directory that you will use to install the Base
+     System from.
+</PRE>
+</P>
+<P>Only one long item, already selected. Press <CODE>&lt;ENTER&gt;</CODE></P>
+<P>
+<PRE>
+     The Base System is being extracted from
+     /instmnt/debian/dists/.....
+</PRE>
+</P>
+<P>Take a second rest, you deserve it </P>
+<P>
+<PRE>
+     Next: Configure the Base System
+</PRE>
+</P>
+<P>Press <CODE>&lt;ENTER&gt;</CODE> </P>
+<P>
+<PRE>
+     Select Timezone
+</PRE>
+</P>
+<P>Select your timezone and your directory and press <CODE>&lt;ENTER&gt;</CODE> </P>
+<P>
+<PRE>
+     Timezone Configuration
+</PRE>
+</P>
+<P>Read and press <CODE>&lt;ENTER&gt;</CODE> </P>
+<P>
+<PRE>
+     Timezone Configuration.
+</PRE>
+</P>
+<P>An other page.  Read, select <CODE>&lt;YES&gt;</CODE> and press
+<CODE>&lt;ENTER&gt;</CODE></P>
+<P>
+<PRE>
+     Next: Make Linux Bootable Directly From Hard Disk
+</PRE>
+</P>
+<P>Press <CODE>&lt;ENTER&gt;</CODE> </P>
+<P>
+<PRE>
+     Create Master Boot Record?
+</PRE>
+</P>
+<P>Read<BR>
+Select <CODE>&lt;Yes&gt;</CODE> and press <CODE>&lt;ENTER&gt;</CODE> </P>
+<P>
+<PRE>
+     Make Linux the Default Boot Partition?
+</PRE>
+</P>
+<P>Read.<BR>
+Select <CODE>&lt;No&gt;</CODE> and press <CODE>&lt;ENTER&gt;</CODE> </P>
+<P>
+<PRE>
+     Next: Make a boot Floppy
+</PRE>
+</P>
+<P>Press <CODE>&lt;ENTER&gt;</CODE> </P>
+<P>
+<PRE>
+     Change Disk
+     Please place a blank floppy disk in the first floppy drive.
+</PRE>
+</P>
+<P>Do it and press <CODE>&lt;ENTER&gt;</CODE> <BR>
+The floppy is being formatted </P>
+<P>
+<PRE>
+     Creating a filesystem on the floppy...
+     Copying the operating system kernel...
+</PRE>
+</P>
+<P>A new screen:</P>
+<P>
+<PRE>
+     Next: Reboot the System
+</PRE>
+</P>
+<P>Press <CODE>&lt;ENTER&gt;</CODE> </P>
+<P>
+<PRE>
+     Reboot the system ?
+</PRE>
+</P>
+<P>Remove the floppy and press <CODE>&lt;ENTER&gt;</CODE> </P>
+<P>The system reboots.  Are you still with the dark side?  I guess yes,
+so insert the boot floppy you've just made and reboot again with
+<CODE>Ctrl-Alt-Del</CODE></P>
+<P>See the boot messages.<BR> 
+Read the text.</P>
+<P>
+<PRE>
+     New password:
+</PRE>
+</P>
+<P>Enter a root password.</P>
+<P>
+<PRE>
+     Re-enter new password
+</PRE>
+</P>
+<P>Do it. And learn it.</P>
+<P>
+<PRE>
+     Shall I create a normal user account now? [Y/n]
+</PRE>
+</P>
+<P>Enter <CODE>n</CODE> and press <CODE>&lt;ENTER&gt;</CODE>. Unless you want
+to do it (it is safe and good, in fact).</P>
+<P>
+<PRE>
+     Shall I install shadow passwords? [Y/n]
+</PRE>
+</P>
+<P>Enter <CODE>y</CODE> and press <CODE>&lt;ENTER&gt;</CODE> </P>
+<P>
+<PRE>
+     Do you want to use a PPP connection to install
+</PRE>
+</P>
+<P>Enter <CODE>n</CODE> and press <CODE>&lt;ENTER&gt;</CODE> </P>
+<P>
+<PRE>
+     Now you may choose one of several selections ...
+     Do you want to perform this step?
+</PRE>
+</P>
+<P>Enter <CODE>n</CODE> and press <CODE>&lt;ENTER&gt;</CODE> </P>
+<P>
+<PRE>
+     I'm going to start the 'dselect' program...
+</PRE>
+</P>
+<P>Press <CODE>&lt;ENTER&gt;</CODE> <BR>
+Select <CODE>[Q]uit</CODE> and press <CODE>&lt;ENTER&gt;</CODE> </P>
+<P>
+<PRE>
+     You may now login as 'root' at the login: prompt...
+     ...
+     debian login:
+</PRE>
+</P>
+<P>Enter <CODE>root</CODE>.</P>
+<P>
+<PRE>
+     Password:
+</PRE>
+</P>
+<P>Enter the root password.</P>
+<P>
+<PRE>
+    ...
+     debian:~#
+</PRE>
+</P>
+<P>The system is installed and working. CONGRATULATIONS!</P>
+<P>My job stops here. Read the install documentation of your
+distribution and go on with the Unix system administration job.</P>
+<P>When you reboot your system, the plip connection won't be in good
+shape. But now you know what to do.</P>
+<P>I suggest you some work:
+<UL>
+<LI>Configure the plip interface for the normal boot process (in
+the file <CODE>/etc/init.d/network</CODE>).
+      </LI>
+<LI>Configure <CODE>/etc/fstat</CODE> on the <B>target</B> to
+simply mount the remote <B>source</B> cdrom via nfs.
+
+<PRE>
+      source:/cdrom              /cdrom   nfs     noauto,intr 1 2
+      
+</PRE>
+
+</LI>
+<LI>Learn Lilo. Configure it for your DOS and Linux systems and
+install it on a floppy.
+</LI>
+<LI>When you master Lilo on the floppy, install it on your hard
+drive.
+      </LI>
+<LI>Install and configure the X Window System.
+</LI>
+<LI>Have fun.
+</LI>
+<LI>Mail me some feedback.
+      </LI>
+</UL>
+     </P>
+
+<H2><A NAME="s14">14. Installing Slackware, Caldera    </A></H2>
+
+<P>This section is written by Florent SAUNIER. <BR>
+sabetflo@freesurf.fr</P>
+<P>Here, '&amp;' is used for the root prompt, rather than '$'.</P>
+
+<P>I have performed a Slackware installation using PLIP very
+succesfully. I have also been able to install RedHat and Caldera
+Open linux using the very same method described below.</P>
+<P>As previously specified by Gilles, a Slackware installation requires
+everything specified in the chapter "What do you need?" with the time
+increased to 10 hours if you desire to install xfree(86) and some
+development tools.</P>
+<P>Further on, you first need to read Gilles' installation as I set up
+mine according to his method.</P>
+<P>Finally, I have performed Slackware and Caldera installation on
+a Twinhead 550C laptop, with 8Mb Ram, and 2Gbytes Hard drive.</P>
+
+<H2><A NAME="ss14.1">14.1 Slakware installation     </A>
+</H2>
+
+<P>
+<UL>
+<LI>1- Make 2 disks (boot and root) and prepare a plip disk</LI>
+<LI>2- Install PLIP module</LI>
+<LI>3- Create a NFS drive to use PLIP with</LI>
+<LI>4- Launch the Slackware (or Caldera) Installation</LI>
+<LI>5- Drink all remaining  coffee and go to bed waiting completion of
+installation. Graham said: Comment ? Du café avant de dormir ?
+Non !  Le café au petit matin, après la nuit. Avant, du vin.</LI>
+</UL>
+</P>
+<H3>Making boot,root and plip disks      </H3>
+
+<P>To install Slackware verion using an ATAPI CDROM from your source,
+you will need the standard kernel image bareapm.i or bare.i. If you
+want to make an install with SCSI support, use the scsinet.i image.</P>
+<P>Other images exist, such as net.i which should include the PLIP
+function but on my i486 laptop, Twinhead550C, the image does not
+work.  In my experience, the standard image always works on
+any laptop I have used.</P>
+
+<H3>1a- creating the boot and root disks.       </H3>
+
+
+<P>From DOS (PC-DOS, DR-DOS, FreeDOS, ...) create the boot disk by typing:
+<PRE>
+ 
+    rawrite bareapm.i
+    
+</PRE>
+
+then create the root disks:
+<PRE>
+    rawrite color.gz.a  (if you are using a color screen)
+    
+</PRE>
+</P>
+
+<H3>1b- Creating the PLIP disk       </H3>
+
+<P>On a DOS formated disk copy the following files:
+<UL>
+<LI>1- plip.o (object program for the plip tool)</LI>
+<LI>2- parport_pc</LI>
+<LI>3- parport</LI>
+</UL>
+
+Those modules are compulsory prior to a PLIP install, you will find
+them into the Slackware installation CDROM under the directory
+<CODE>/MODULES</CODE>.  The same applies to the Caldera
+installation. Run a "find" if you cannot find them.</P>
+
+<H3>1c- launching the installation.       </H3>
+
+<P>Insert your boot disk in your Laptop and start the computer. 
+Follow the installation procedure and wait until the system ask for 
+the root disk.
+Insert it and wait for the prompt login: "Slackware login".</P>
+<P>To start the Slackware installation you must log in as root. Type
+"root" at the prompt. Be aware that at the time of installation your
+keyboard is still qwerty.</P>
+<H3>2a- Install PLIP module     </H3>
+
+<P>Install your source computer according to Gilles' instructions, 
+from chapter 7 to 9.    </P>
+<P>Install PLIP on the target.  To install the PLIP module you need to
+launch the program from your PLIP disk.  Remember you did it, no !!!</P>
+<P>Access your floppy disk with:
+<PRE>
+          $ mount /dev/fd0h1440 /floppy
+          $ cd /floppy
+          $ insmod parport      # it will install your parallel port
+          $ insmod parport_pc   # it will set it up
+          $ insmod plip         # it will install plip module
+    
+</PRE>
+
+If during the PLIP installation you encounter an error,  it means that
+your parallel port has not been correctly installed. You may type again
+the instruction above, it does work sometimes !!, or go to the parport 
+directory and write the appropriate setting.
+<PRE>
+      $ cd /proc/parport/0
+      $ vi IRQ            # Verify that 7 is written in it if you are using
+                          # that interrupt'
+     
+</PRE>
+
+See the chapter "PLIP on the source side" to get the proper setting.</P>
+<P>You should not bother too much as at 95% on the 5 laptops I have
+installed everyting went smoothly.  (Comment peut-on avoir "95% de
+cinq", said rational Graham)</P>
+
+
+<H3>3a- Now create your NFS drive.      </H3>
+
+<P>From that point I have chosen to use the creation of a NFS drive
+on the target computer. Then I will make an installation using the
+"From directory" option rather than from nfs.</P>
+<P>Do not forget you still have a US keyboard layout.  Of course you
+have set up your source according to chapter "Network parameters".
+You did then ping your source, but you cannot yet ping the target.</P>
+<P>So the first step is to configure your PLIP connection:
+On the target type:   
+<A NAME="SLACKWARE_TARGET_IP_ADRESS_IFCONFIG"></A> </P>
+<P>
+<PRE>
+       $ ifconfig plip0 192.168.0.1 pointopoint 192.168.0.2 netmask 255.255.255.255 up
+      
+</PRE>
+ </P>
+<P>Test your Plip configuration by pinging the target from the source</P>
+<P>
+<PRE>
+     $ ping target
+     
+</PRE>
+
+then mount  your nfs drive on the target:
+<PRE>
+     $ cd /
+     $ mkdir nfstest
+     $ mount -t nfs 192.168.0.2:/cdrom /nfstest
+     
+</PRE>
+
+<I>You have just configured a drive linked to your source
+directory /cdrom were you suppose to have the Slackware CDROM
+connected, from your target directory called nfstest</I>.</P>
+<P>Now everything is set up and you are ready to launch the Slackware
+installation program, by typing "setup".</P>
+<P><B>note:</B>if you do not have enough memory, below 8MB
+setup will not be launched, then you will have to make a swap
+space to allow the program to work.
+First, create your disk partition with your swap by typing
+<PRE>
+       $ fdisk
+      
+</PRE>
+</P>
+<P>Note which is your swap partition (e.g. /hda3), then quit fdisk with
+'w'. Once it's done, type:</P>
+<P>
+<PRE>
+       $ mkswap -c /dev/hda3
+       $ swapon /dev/ha3
+      
+</PRE>
+</P>
+<P>Your swap is now set up.
+You may then launch the "setup" program.</P>
+
+<H3>4a- Installing Slakware      </H3>
+
+<P>the setup programm shows various menu items:
+<UL>
+<LI>HELP - Help file</LI>
+<LI>KEYMAP - Keyboard select (Azerty at last !!!)</LI>
+<LI>ADDSWAP - Create and select swap</LI>
+<LI>TARGET - Select target</LI>
+<LI>SOURCE - select the source</LI>
+<LI>SELECT - Select packages to install</LI>
+<LI>CONFIGURE - Set up your Linux system and make LILO</LI>
+<LI>EXIT - bye bye setup </LI>
+</UL>
+</P>
+<P>4b- Select your keyboard, for French take -Fr-latin1.map</P>
+<P>4c- Select your swap partition if not already configured</P>
+<P>4d- Select the target, default is '/' </P>
+<P>4e- Select the source. tricky stuff: choose "Installing from a
+drive", then type the drive so : /nfstest/slackware
+<I>'/slackware' because your drive must point to your slackware
+CDROM directory</I></P>
+<P>4f- Select packages to install</P>
+<P>4g- Wait, Wait, Wait and Wait........</P>
+
+<H2><A NAME="ss14.2">14.2 Caldera Installation     </A>
+</H2>
+
+<P>     
+I told you that Caldera works also with that install. In fact, as 
+Caldera automatically launches its Setup program, once you arrived
+at the menu where you are supposed to choose your source disks, type
+ALT F2, go to another screen, then log on as root and make your 
+nfs drive as described above in points 2 to 4.
+Then go back to the installation screen with ALT F1, and type 
+the famous nfstest as your source directory. Caldera will then
+install without problem.</P>
+<H2><A NAME="ss14.3">14.3 Troubleshooting     </A>
+</H2>
+
+<P>If you are experiencing any trouble with that installation you may
+report it to me and I'll try to help as best as I can.</P>
+<H2><A NAME="s15">15. Installing RedHat 6.x    </A></H2>
+
+<P>This section is written by Dr. Tilmann Bubeck,
+bubeck@think-at-work.de</P>
+
+<P>I tried hard to install a laptop through PLIP with a RedHat 6.2 but
+the installer from RedHat is buggy and could not be used for
+PLIP. I verified that it was already broken in RedHat 6.1, but
+works in RedHat 5.2 as desired. Patches have been sent to RedHat
+and will hopefully be applied to the upcoming RedHat 7.0.</P>
+<P>So if you want to install a RedHat 6.x over PLIP you <B>must</B>
+follow these instructions.</P>
+<P>The problem is the "bootnet" disk. This disk should be used for
+PLIP installation but has 2 serious errors:</P>
+<P>
+<UL>
+<LI>it does not contain the necessary driver "parport_pc"</LI>
+<LI>it does not allow you to specify important module
+parameters to "parport_pc" (especially "iobase" and "irq").</LI>
+</UL>
+</P>
+
+<H2><A NAME="ss15.1">15.1 Using a fixed "bootnet" disk    </A>
+</H2>
+
+<P>Probably the easiest way to solve the above problem is to use a
+fixed "bootnet" disk. You can get a fixed "bootnet" disk for RedHat
+6.2 from 
+<A HREF="http://www-ti.informatik.uni-tuebingen.de/~bubeck/bootnet-plip-62.img">http://www-ti.informatik.uni-tuebingen.de/~bubeck/bootnet-plip-62.img</A></P>
+<P>Use the following command to copy the downloaded image to an empty disk:</P>
+<P><CODE>dd if=bootnet-plip-62.img of=/dev/fd0</CODE>. </P>
+<P>Then insert the disk and turn your computer on. When you come to
+the point where you must choose your network device driver please
+do:</P>
+<P>
+<UL>
+<LI>1- Choose "Parallel Port Module for PC" and select "specify
+module parameters".
+</LI>
+<LI>2- Enter iobase and interrupt for your parallel
+port. Typical values are iobase=0x378 or iobase=0x3bc. Interrupt most
+often is "irq=7".
+     </LI>
+<LI>3- Validate that the kernel loads the module and finds the
+parallel port. Use ALT+F4 to switch to kernel messages and look
+for a line saying: "parport: ... irq: 7".
+</LI>
+<LI>4- The installation will then try to access the network
+which is still not available. So the installer asks again for the
+installation method. Choose your method again.
+</LI>
+<LI>5- Now choose the "plip" module without any
+parameters. Again verify the loading of the module in the kernel
+messages.
+</LI>
+<LI>6- Network should be up and running, installation should
+proceed. If not, then check the modules parameters to
+"parport_pc".</LI>
+</UL>
+</P>
+
+<H2><A NAME="ss15.2">15.2 Building your own "bootnet" disk   </A>
+</H2>
+
+<P>If the above bootnet disk is not suitable for your needs, I will
+present a small description of how to transform a standard bootnet
+disk for using "plip". This description is quite short and is
+addressed to the advanced user.</P>
+<P>
+<UL>
+<LI>1- make a copy of the standard bootnet disk by using "dd".
+</LI>
+<LI>2- insert this copy of standard bootnet disk and mount it
+with: <CODE>mount /dev/fd0 /mnt</CODE>
+</LI>
+<LI>3- gunzip initial ramdisk with <CODE>cp /mnt/initrd.img
+/tmp/initrd.img.gz; gunzip /tmp/initrd.img.gz</CODE>
+</LI>
+<LI>4- Mount initial ramdisk with <CODE>mkdir /mnt2; mount -o loop
+/tmp/initrd.img /mnt2</CODE>
+</LI>
+<LI>5- gunzip and extract modules directory with: <CODE>cd /tmp;
+zcat /mnt2/modules/modules.cgz | cpio -ivd</CODE>
+</LI>
+<LI>6- You should now have a directory called with your kernel
+version number (e.g. "2.2.14-5.0BOOT") containing a lot
+of modules. Check if the modules "parport_pc.o" is
+included in this directory (it is unfortunately NOT
+included in RedHat 6.0-6.2). If you can not find it, then
+please build a custom kernel with the EXTRAVERSION number
+like your bootnet disk (in this case: "5.0BOOT") and
+"parport" support as module. Copy the newly created
+parport_pc.o module to your new modules directory: <CODE>cp
+.../parport_pc.o /tmp/2.2.14-5.0BOOT</CODE>.
+</LI>
+<LI>7- delete a normally unused module, so that you have
+additional space on the disk: <CODE>rm
+/tmp/2.2.14-5.0BOOT/sktr.o</CODE> (driver for token ring
+network adapter).
+</LI>
+<LI>8- rebuild modules archive with: <CODE>find
+/tmp/2.2.14-5.0BOOT | cpio -ov -H crc | gzip &gt;
+/mnt2/modules/modules.cgz</CODE>
+</LI>
+<LI>9- insert a new modules dependency line into modules.dep
+saying that module "parport_pc" needs module "parport":
+<CODE>echo "parport_pc: parport" &gt;&gt;
+/mnt2/modules/modules.dep</CODE>
+</LI>
+<LI>10- insert entry for parport_pc module into module-info so
+that the user can select the parport_pc module during
+installation. Append the following text to the end of
+/mnt2/modules/module-info: 
+<PRE>
+parport_pc
+        plip
+        "Parallel Port Module for PC"
+        io "Base I/O address"
+        irq "IRQ level"
+</PRE>
+
+
+</LI>
+<LI>11- unmount and gzip initial ramdisk with: <CODE>umount /mnt2;
+gzip -9 /tmp/initrd.img</CODE>
+</LI>
+<LI>12- copy initial ramdisk to bootnet disk and unmount: <CODE>cp /tmp/initrd.img.gz /mnt/initrd.img; umount /mnt</CODE></LI>
+</UL>
+</P>
+<P>By following these instructions, you get a bootnet disk containing
+all necessary modules and therefore allowing for a PLIP
+installation. Please follow the instructions elsewhere in this how-to
+on how to do the installation with the new disk.</P>
+
+<H2><A NAME="s16">16. Installing RedHat 7.0    </A></H2>
+
+<P>This section is written by 
+<A HREF="mailto:leonardjo@hetnet.nl">Leonard den Ottolander</A></P>
+<P>To install RedHat 7.0 over PLIP the easiest way to go is to use a
+patched bootnet.img which is available via the url 
+<A HREF="http://home.hetnet.nl/~ottolander">http://home.hetnet.nl/~ottolander</A>. This saves the need
+for a driver disk, which might be useful when installing on a
+machine which floppy drive stops functioning after boot (I made this
+bootnet-plip.img to do an install to a Toshiba Libretto 30 which has
+a funny PCMCIA floppy drive that is no longer available after boot).</P>
+<P>This disk is a full bootnet.img for RedHat 7.0, with the modules
+necessary for PLIP added to it. Since there was enough disk space,
+no modules had to be deleted. So you can use this image as if it
+were a full featured bootnet.img. No need for different disks.</P>
+<P>I am not going into detail on the actual installation procedure, but
+there are a few things to note:</P>
+<P>
+<UL>
+<LI>
+<P>The parport module should be loaded before the PLIP
+module. Specify i/o address and irq parameters for the parallel
+port when inserting the parallel port module.</P>
+</LI>
+<LI>
+<P>After inserting the parport_pc module the installer will show the
+"Installation method" screen a second time. This is expected
+behaviour. Choose the PLIP module this second time. No parameters
+need to be specified when inserting the PLIP module.</P>
+</LI>
+<LI>
+<P>When specifying network parameters, do not use a netmask of
+255.255.255.255 as you might normally do for a PLIP connection. If
+you do this by accident you will have to reboot to be able to
+mount the installation directory succesfully. Going back and
+respecifying the parameters will not help you out.</P>
+</LI>
+<LI>
+<P>When doing an NFS install with RedHat 7.0 make sure all files from
+the RedHat directories from both CD's are copied to the NFS mount
+point (cp -a RedHat for both CD's). It is not possible to use the
+mounted CD's.</P>
+</LI>
+</UL>
+</P>
+
+
+<H2><A NAME="ss16.1">16.1 Creating your own bootnet-plip disk     </A>
+</H2>
+
+<P>This section is a slightly adapted copy of the procedure to create
+a bootnet-plip image for RedHat 6.2 described by Tilmann
+Bubeck. Thanx Tilmann!</P>
+<P>
+<UL>
+<LI>
+<P>1) Mount a copy of the standard bootnet disk and copy all files to
+a temporary directory:
+<PRE>
+        mount -o loop -t vfat /tmp/bootnet.img /mnt/bootnet
+        cp -a /mnt/bootnet /tmp
+       
+</PRE>
+</P>
+</LI>
+<LI>
+<P>2) Gunzip the initial ramdisk, mount it and copy all files to a
+temporary directory:
+<PRE>
+        mv /tmp/bootnet/initrd.img /tmp/bootnet/initrd.gz
+        gzip -d /tmp/bootnet/initrd.gz
+        mount -o loop /tmp/bootnet/initrd /mnt/initrd
+        cp -a /mnt/initrd /tmp
+       
+</PRE>
+</P>
+
+</LI>
+<LI>
+<P>3) Gunzip and extract the modules directory with:
+<PRE>
+        cd /tmp
+        zcat /tmp/initrd/modules/modules.cgz | cpio -ivd 
+       
+</PRE>
+</P>
+
+</LI>
+<LI>
+<P>4) Install the kernel-BOOT-2.2.16-22 rpm and copy the modules
+parport.o, parport_pc.o and plip.o from /lib/modules/2.2.16-22BOOT
+to /tmp/2.2.16-22BOOT, or use the midnight commander to extract
+these files from rpm. When building modified boot disks you will
+always need the modules from the kernel-BOOT rpm.</P>
+
+</LI>
+<LI>
+<P>5) If you need additional space on your bootnet-plip disk, delete
+an unused module from the modules directory, fe:
+<PRE>
+        rm /tmp/2.2.16-22BOOT/old_tulip.o
+       
+</PRE>
+</P>
+<P>Note that this is not necessary for the RedHat 7.0 bootnet
+disk. There is enough space left for the added modules. Do *not*
+delete modules like sunrpc.o, lockd.o, nfs.o, fat.o, vfat.o and
+the like. This will make your disk useless. Use common sense.</P>
+
+</LI>
+<LI>
+<P>6) Rebuild the modules archive:
+<PRE>
+        find /tmp/2.2.16-22BOOT | cpio -ov -H crc | gzip > \
+        /tmp/initrd/modules/modules.cgz 
+       
+</PRE>
+</P>
+
+</LI>
+<LI>
+<P>7) Insert a new modules dependency line into modules.dep saying
+that module "parport_pc" needs module "parport":
+<PRE>
+        echo "parport_pc: parport" >> /tmp/initrd/modules/modules.dep 
+       
+</PRE>
+</P>
+
+</LI>
+<LI>
+<P>8) Insert entries for the parport_pc and plip modules into
+module-info. These entries should look like this:</P>
+<P>
+<PRE>
+    parport_pc
+        plip
+        "Parallel Port, Insert Before PLIP"
+        io "Base I/O address"
+        irq "IRQ level"
+    plip
+        plip
+        "PLIP (Parallel Link Interface Protocol)"
+        io "Base I/O address"
+        irq "IRQ level"
+      
+</PRE>
+</P>
+<P>You probably may omit the io and irq entries for plip.  Also
+delete any entries that refer to modules that you removed from
+the archive (ie old_tulip in the previous example).</P>
+
+</LI>
+<LI>
+<P>      
+9) Copy the modified module files to the initial ramdisk:
+<PRE>
+       cp -a /tmp/initrd/modules/module* /mnt/initrd/modules
+       
+</PRE>
+</P>
+
+</LI>
+<LI>
+<P>     
+10) Unmount and gzip the initial ramdisk and copy it to the disk
+image:
+<PRE>
+        umount /mnt/initrd
+        gzip -9 /tmp/bootnet/initrd
+        cp /tmp/bootnet/initrd.gz /mnt/bootnet/initrd.img
+        umount /mnt/bootnet
+       
+</PRE>
+</P>
+
+</LI>
+<LI>
+<P>     
+11) The file /tmp/bootnet.img is now your new
+bootnet-plip.img. You might want to clean up your temporary
+files:</P>
+<P>
+<PRE>
+        rm -r /tmp/2.2.16-22BOOT
+        rm -r /tmp/initrd
+        rm -r /tmp/bootnet   
+       
+</PRE>
+</P>
+
+</LI>
+</UL>
+</P>
+
+
+<H2><A NAME="INSTALL_SUSE"></A> <A NAME="s17">17. Installing Suse </A></H2>
+
+
+<P>The Suse installation process includes PLIP support (Network type
+configuration). If you encounter a problem installing a Suse distibution
+using PLIP, feel free to report them.</P>
+
+<H2><A NAME="INSTALL_FROM_A_DOS_PARTITION"></A> <A NAME="s18">18. Installing from a DOS partition </A>   </H2>
+
+<P>You can use this section if you already have a DOS partition on your
+<B>target</B> computer. I think it is a faster installation
+method.</P>
+<P>Read the section 5.3.1 "Installing from a DOS partition" from
+<A HREF="http://www.debian.org/releases/stable/i386/install.txt">install.txt</A>. This section is also available on the Debian
+CD in the html file 
+<A HREF="file:///cdrom/dists/stable/main/disks-i386/current/ch-install-methods.html#s-install-drive">ch-install-methods.html</A>.</P>
+<P>I am just going to help you to make the first point&nbsp;: "1. Get the
+following files from your nearest Debian repository"</P>
+<P>The transfer is easy with the floppy-disc based Linux from&nbsp;
+<A HREF="http://www.toms.net/rb/home.html">tomsrtbt</A>.</P>
+<P>Export the <B>source</B> cdrom drive via nfs.</P>
+<P>Read the file 
+<A HREF="http://www.toms.net/rb/tomsrtbt.FAQ">tomsrtbt.FAQ</A> </P>
+<P>Create the floppy under  DOS or Linux, you have the choice.</P>
+<P>
+<PRE>
+     Linux installation:
+     a) extract the .tar.gz archive
+     b) Be root
+     c) Be in the tomsrtbt-&lt;version&gt; directory
+     d) Have a blank floppy with no bad sectors
+     e) Do './install.s'
+     
+</PRE>
+</P>
+<P>Boot the <B>target</B> with the floppy. Login as root.</P>
+<P>
+<PRE>
+      $ insmod plip
+      $ ifconfig plip1 192.168.0.1 pointopoint 192.168.0.2 \
+      netmask 255.255.255.255 up
+      $ route add -host 192.168.0.2 dev plip1
+      $ mount -t nfs 192.168.0.2:/cdrom /cdrom
+      $ mkdir /c
+      $ mount -t msdos /dev/hda1 /c
+      $ mkdir /c/debian
+      $ cd /cdrom/dists/stable/main/disks-i386/current/
+      $ cp resc1440.bin drv1440.bin base2_1.tgz root.bin linux \
+      install.bat loadlin.exe /c/debian
+     
+</PRE>
+</P>
+<P>The <CODE>\</CODE> means the command line continues on the next line.
+The <CODE>cp</CODE> command takes some time. When finished, remove the
+floppy and then&nbsp;:
+<PRE>
+      $ reboot
+     
+</PRE>
+</P>
+<P>Boot under DOS.</P>
+<P>
+<PRE>
+      C:\> cd debian
+      C:\DEBIAN> install
+     
+</PRE>
+</P>
+<P>Now you start to install Debian from a DOS partition. You do not
+need plip or floppy during the installation process. Everything
+deals with the hard drive. Read the Debian install documentation, it
+is very good and clear.</P>
+
+
+<H2><A NAME="s19">19. Install the plip interface permanently    </A></H2>
+
+
+
+<H2><A NAME="ss19.1">19.1 On the source side     </A>
+</H2>
+
+
+<P>I use an old Linux RedHat 4.1 distribution. The location of the
+files can be different on other GNU/Linux distributions but the
+philosophy is the same (The Unix System V convention).</P>
+<P>Create the file <CODE>/etc/rc.d/init.d/plip</CODE> with this content:</P>
+<P>
+<PRE>
+#!/bin/sh
+
+##############################
+# file /etc/rc.d/init.d/plip #
+##############################
+
+# See how we were called.
+case "$1" in
+  start)
+        # Start daemons.
+        /bin/echo "Starting plip interface: "
+        /bin/echo "Doing /sbin/ifconfig plip0 source pointopoint target netmask 255.255.255.255 up"
+        /sbin/ifconfig plip0 source pointopoint target netmask 255.255.255.255 up
+        /bin/echo  "Doing /bin/ping -q -c 4 target"
+        /bin/ping -q -c 4 target
+        /bin/echo "Starting plip interface: done"
+        ;;
+  stop)
+        # Stop daemons.
+        /bin/echo  "Shutting down plip interface:"
+        /bin/echo  "Doing /sbin/ifconfig plip0 source pointopoint target netmask 255.255.255.255 down"
+        /sbin/ifconfig plip0 source pointopoint target netmask 255.255.255.255 down
+        /bin/echo  "Doing /sbin/modprobe  -r plip "
+        /sbin/modprobe  -r plip
+        /bin/echo "Shutting down plip interface: done"
+        ;;
+  *)
+        echo "Usage: $0 {start|stop}"
+        exit 1
+esac
+
+exit 0
+
+# === End of File ===
+
+    
+</PRE>
+</P>
+<P>Only the ifconfig lines are strictly necessary. Perhaps you will
+need to add some <CODE>modprobe</CODE> commands if you don't use
+<CODE>kerneld</CODE> or the <CODE>kmod</CODE> feature of new kernels 2.2.x</P>
+<P>Create the symbolic links in the <CODE>rc*.d</CODE> directories:</P>
+<P>
+<PRE>
+      
+      $ cd /etc/rc.d/rc0.d/
+      $ ln -s ../init.d/plip K97plip
+      
+      $ cd /etc/rc.d/rc1.d/
+      $ ln -s ../init.d/plip K92plip
+      
+      $ cd /etc/rc.d/rc3.d/
+      $ ln -s ../init.d/plip S11plip
+
+
+      $ cd /etc/rc.d/rc5.d/
+      $ ln -s ../init.d/plip S11plip
+     
+</PRE>
+</P>
+<P>You can choose other numbers. Make sure that the two-digit number
+after 'K' is greater than the number of every other file that stops
+a service depending on plip.</P>
+<P>Make sure that the two-digit number after 'S' is less than the
+number of every other file that start a service depending on plip:
+nfs, nis, ftp, http etc.</P>
+<P>Update the <CODE>/etc/conf.modules</CODE> file, choosing the correct
+IRQ number (7 is mine, yours may be different):</P>
+<P>
+<PRE>
+# /etc/conf.modules
+...
+alias parport_lowlevel parport_pc
+post-install parport_pc echo 7 >  /proc/parport/0/irq
+...
+     
+</PRE>
+</P>
+<P>Test the plip shell:</P>
+<P>
+<PRE>
+      $ /etc/rc.d/init.d/plip 
+      Usage: /etc/rc.d/init.d/plip {start|stop}
+
+      $ /etc/rc.d/init.d/plip stop
+      Shutting down plip interface: 
+      Doing /sbin/ifconfig plip0 source pointopoint target netmask 255.255.255.255 down 
+      Doing /sbin/modprobe  -r plip 
+      Shutting down plip interface: done
+
+      $ /etc/rc.d/init.d/plip start
+      Starting plip interface: 
+      Doing /sbin/ifconfig plip0 source pointopoint target netmask 255.255.255.255 up 
+      Doing /bin/ping -q -c 4 target
+      PING target (192.168.0.1): 56 data bytes
+      
+      --- target ping statistics ---
+      4 packets transmitted, 4 packets received, 0% packet loss
+      round-trip min/avg/max = 4.4/8.3/14.0 ms
+      Starting plip interface: done
+     
+</PRE>
+</P>
+<P>Updating the start scripts is a good occasion to reboot a Unix
+system, to check the modifications. Do it:</P>
+<P>
+<PRE>
+      $ init 6 # or "shutdown -r now" or "reboot"
+     
+</PRE>
+</P>
+
+
+
+<H2><A NAME="ss19.2">19.2 On the target side     </A>
+</H2>
+
+
+<P>Update the file <CODE>/etc/init.d/network</CODE>:</P>
+<P>
+<PRE>
+      #! /bin/sh
+      #######################
+      # /etc/init.d/network #
+      #######################
+
+      ifconfig lo 127.0.0.1
+      route add -net 127.0.0.0
+      
+      ifconfig plip1 192.168.0.1 pointopoint 192.168.0.2 netmask 255.255.255.255 up
+      route add -host 192.168.0.2 dev plip1
+     
+</PRE>
+</P>
+<P>That's all because the parport features are directly in the kernel.</P>
+<P>Updating the start scripts is a good occasion to reboot a Unix
+system, to check the modifications. Do it:</P>
+<P>
+<PRE>
+      $ init 6
+     
+</PRE>
+</P>
+
+<H2><A NAME="s20">20. Compatibility with a printer (lp)    </A></H2>
+
+<P>I use the same parallel port for printing on a printer and
+networking with my laptop without big problems. It takes less than
+one second to switch from printing to networking. I just add a cheap
+manual switch between the parallel port, the printer and the
+laptop. The cable between the switch and the desktop computer is a
+fully connected one. The switch is just the one used to shared
+printers when no network is available. It works.</P>
+<P>Sometimes, the kernel is not very happy because it can't finish its
+network job. In that case, I shut down the plip interface and restart
+it when needed.</P>
+<P>I bought a new parallel card last year but it is still in its
+box. I'll write an "install a second parallel port" when I succeed
+in opening the box and add that beautiful card in the last connector
+I have left.</P>
+
+
+<H2><A NAME="s21">21. Need to compile a new kernel ?    </A></H2>
+
+
+<P>Several times during the <B>source</B> server configuration we
+mentioned that a kernel compilation on the <B>source</B> computer
+could be needed.</P>
+<P>I list the things you need to change or set.  If you have never
+compiled a kernel, read the <EM>Kernel-HOWTO</EM>.</P>
+<P>
+<PRE>
+    Loadable module support  --->
+        [*] Enable loadable module support
+
+    General setup  --->
+        [*] Networking support
+        &lt;M> Parallel port support
+        &lt;M>    PC-style hardware
+
+    Networking options  --->
+        [*] TCP/IP networking
+    
+    Network device support  --->
+        [*] Network device support
+        &lt;*> Dummy net driver support
+        &lt;M> PLIP (parallel port) support
+        &lt;*> or &lt;M>  PPP (point-to-point) support 
+
+    Character devices  --->
+        &lt;M> Parallel printer support
+
+     
+    Filesystems  --->
+        [*] /proc filesystem support
+        &lt;*> or &lt;M> ISO 9660 CDROM filesystem support
+        Network File Systems  --->
+            &lt;*> or &lt;M> NFS filesystem support
+     
+     
+    
+</PRE>
+</P>
+
+
+<H2><A NAME="KNOWN_PROBLEMS"></A> <A NAME="s22">22. Known problems</A></H2>
+
+
+
+<H2><A NAME="ss22.1">22.1 plip 2.2.14 versus 2.2.16</A>
+</H2>
+
+
+<P>>From "Matt Haycraft" Matt.Haycraft@dakotaimaging.com</P>
+<P>Both sides have the right thing show up with ifconfig and route but ping
+(or anything else does not work) However what blows my mind is that the
+ifconfig section for both machines DOES show that packets are being
+received/transmitted.</P>
+
+<P>However it turned out to be a compatibility issue between 2.2.14 and
+2.2.16 and the plip code for each kernel version.  2.2.16 had some
+differences.  To address the issue, I copied the plip.c from the 2.2.16
+kernel to the source tree of 2.2.14 and recompiled the kernel module.
+Then everything worked!</P>
+
+<H2><A NAME="WHAT_IS_NEW"></A> <A NAME="s23">23. What's new</A></H2>
+
+<P>This tag is automatic so it IS the reference.  (Sometimes I forget to
+update the version number and the date)</P>
+<P>$Id$</P>
+<P>
+<PRE>
+$Log$
+Revision 1.40  2002/07/07 23:46:32  gilles
+Corrected tag problem
+
+Revision 1.39  2002/07/07 23:42:27  gilles
+Added Richard Barrington in "acknowledgements" section.
+
+Revision 1.38  2002/07/07 23:15:53  gilles
+Added a "Known problems" section
+Added "plip 2.2.14 versus 2.2.16" section. Thanks Matt.
+
+Revision 1.37  2002/07/07 22:56:44  gilles
+Adapted insmod parport_pc to 2.4 kernel
+</PRE>
+</P>
+<P>
+<DL>
+
+<DT><B>v1.36, 3 December 2001</B><DD>
+<P>
+<UL>
+<LI>Changed the 
+<A HREF="#LICENCE">licence</A>. Do what you want.
+</LI>
+<LI>Added a 
+<A HREF="#INSTALL_SUSE">Suse</A> section. Thanks
+Graham.
+</LI>
+<LI>Added a 
+<A HREF="#PLIP_IMPATIENT">PLIP for the impatient</A>
+section.
+</LI>
+<LI>Changed my email address. 
+</LI>
+</UL>
+</P>
+
+<DT><B>v1.31, 21 April 2001</B><DD>
+
+<P>
+<UL>
+<LI>Corrected a bad url in section "Installing RedHat
+7.0". Thanks Leonard.
+        </LI>
+<LI>Corrected broken links find by the nice 
+<A HREF="http://www.jmarshall.com/tools/cl/">clink</A> software.
+      </LI>
+</UL>
+</P>
+
+<DT><B>v1.30, 13 April 2001</B><DD>
+
+<P>
+<UL>
+<LI>Added section "Installing RedHat 7.0". Thanks Leonard.</LI>
+</UL>
+</P>
+
+<DT><B>v1.28, 18 December 2000</B><DD>
+
+<P>
+<UL>
+<LI>Corrected more mistakes in my English. Thanks again Graham.</LI>
+</UL>
+</P>
+
+
+<DT><B>v1.27, 11 August 2000</B><DD>
+
+<P>
+<UL>
+<LI>The SLIP line was not needed, SLIP is serial line
+oriented. The PPP line was partly wrong, we need PPP support by
+the kernel.
+
+<P> </P>
+</LI>
+<LI> Corrected more mistakes in my English, though I know
+that more remain and new ones come every time I write a
+sentence...
+        
+<P> </P>
+</LI>
+<LI> Added a "compatibility with a printer" section.
+                
+<P> </P>
+</LI>
+<LI> Added a Null-Printer == Null-Modem comment.
+        
+<P> </P>
+</LI>
+<LI> Added a "build your own cable" section.
+        
+<P> </P>
+</LI>
+<LI> Corrected a bug in the Slackware section. 
+<A HREF="#SLACKWARE_TARGET_IP_ADRESS_IFCONFIG">Here</A> (inverted
+IP adresses). Thanks to Brad Rigby.
+        
+<P> </P>
+</LI>
+<LI> Removed obsolete paragraph from the "Introduction" section.
+        
+<P> </P>
+</LI>
+<LI> Added request for information about translations in
+the "Introduction" section.
+        
+<P> </P>
+</LI>
+<LI> Mentioned the "what's new section" at the top of the
+document.
+        
+<P> </P>
+</LI>
+<LI> Added a vc-header in the What's new section
+        
+<P> </P>
+</LI>
+<LI> Added the WHAT_IS_NEW label
+        
+        
+
+</LI>
+</UL>
+</P>
+</DL>
+</P>
+<P>
+<DL>
+<DT><B>v1.22, 16 June 2000</B><DD>
+<P>
+<UL>
+<LI> Added a mention to PARTED
+http://www.gnu.org/software/parted as told by Andrew Clausen
+(clausen@gnu.org).
+
+<P> </P>
+</LI>
+<LI> Added section Installing Slackware, RedHat, or
+Caldera, by Florent SAUNIER.
+        
+<P> </P>
+</LI>
+<LI> Corrected some English faults, thanks to Graham and
+Tomas.
+    
+</LI>
+</UL>
+</P>
+</DL>
+</P>
+<P>
+<DL>
+<DT><B>v1.15,  26 November 1999</B><DD>
+<P>
+<UL>
+<LI>The section "What's new". It is this section.
+        
+<P> </P>
+</LI>
+<LI>The section  "Install the plip interface permanently".
+      
+<P> </P>
+</LI>
+<LI>The section "List of contributors and acknowledgements".
+
+<P> </P>
+</LI>
+<LI>Joined the different chapters dealing with the
+detailed Debian installation to form a single chapter with the
+actual chapters as just subsections.
+
+<P> </P>
+</LI>
+<LI> Made a new section "Installing from a DOS
+partition". A simpler and faster method.
+</LI>
+</UL>
+</P>
+</DL>
+</P>
+
+<H2><A NAME="s24">24. To do    </A></H2>
+
+
+<P>
+<UL>
+<LI>Check a kernel compilation from scratch (no last
+<CODE>.config</CODE> file) with only the options I gave. Add the
+missing ones if any.
+
+<P> </P>
+</LI>
+<LI>Make the Mandrake, Turbo Linux, and Stampede detailed
+installation chapters. Contributions are welcome. Gilles Lamiral won't
+do that job unless given new computers and CDs.
+
+<P>Debian (done), Red Hat (redone by Tilmann Bubeck), Slackware (done),
+Caldera OpenLinux (done), SuSE (done).</P>
+
+<P> </P>
+</LI>
+<LI>Make "The CD-ROM NFS server side" chapter become simply
+"the server side" chapter with subsections like "cdrom medium",
+"zip medium", "hard disk medium", and "ftp server" "nfs server",
+"samba server" "http server". Again, contributions are welcome.
+
+</LI>
+</UL>
+     </P>
+
+
+
+<H2><A NAME="s25">25. List of contributors and acknowledgements    </A></H2>
+
+
+<P>I thank all the people in this list of contributors or projects. If
+you think I forgot someone, do not hesitate to complain.</P>
+<P>
+<DL>
+<DT><B>Werner Heuser &lt;wehe@snafu.de&gt; </B><DD>
+<P>He said: "yesterday I had time enough to read your document. It's
+great and in the next issue of my HOWTO (probably 2. December) I
+will make a link to it."  </P>
+<P>He did.</P>
+
+</DL>
+</P>
+<P>
+<DL>
+<DT><B>LDP &lt;linux-howto@metalab.unc.edu&gt;</B><DD>
+<P>The Linux Documentation Project accepted the PLIP-Install-HOWTO
+without any hesitation.</P>
+</DL>
+</P>
+<P>
+<DL>
+<DT><B>Graham Bosworth &lt;graham@bozikins.connectfree.co.uk&gt;</B><DD>
+<P>Graham corrected my bad English all over the document. Several
+times. Graham told me that Suse includes a PLIP installation
+process.</P>
+</DL>
+</P>
+<P>
+<DL>
+<DT><B>Simon Forget &lt;sforget@camelot.ca&gt;</B><DD>
+<P>Simon had a problem with his pcmcia floppy drive. So he led me
+search for a solution that is, in fact, simpler and faster (the
+DOS one).</P>
+</DL>
+</P>
+
+<P>
+<DL>
+<DT><B>Andrew Clausen &lt;clausen@gnu.org&gt;</B><DD>
+<P>Andrew suggested that I talk about parted
+http://www.gnu.org/software/parted</P>
+</DL>
+</P>
+
+<P>
+<DL>
+<DT><B>Florent SAUNIER &lt;FlorentSAUNIER@sabetflo.freesurf.fr&gt;</B><DD>
+<P>Florent wrote the section called "Installing Slackware/Caldera".</P>
+</DL>
+</P>
+<P>
+<DL>
+<DT><B>Tomas Pospisek  &lt;tpo@spin.ch&gt;</B><DD>
+<P>Tomas also corrected my bad english.</P>
+</DL>
+</P>
+<P>
+<DL>
+<DT><B>Brad Rigby  &lt;brigby@rocketmail.com&gt;</B><DD>
+<P>Brad corrected a bug in the Slackware section (inverted IP
+adresses).</P>
+</DL>
+</P>
+<P>
+<DL>
+<DT><B>Donald Becker  &lt;becker@super.org&gt;</B><DD>
+<P>Donald wrote the PLIP kernel  documentation<BR>
+/usr/src/linux/Documentation/networking/PLIP.txt</P>
+
+</DL>
+</P>
+<P>
+<DL>
+<DT><B>Tilmann Bubeck  &lt;bubeck@think-at-work.de&gt;</B><DD>
+<P>Tilmann wrote the section called  "Installing RedHat 6.x".</P>
+
+</DL>
+</P>
+<P>
+<DL>
+<DT><B>Leonard den Ottolander  &lt;leonardjo@hetnet.nl&gt;</B><DD>
+<P>Leonard wrote the section called  "Installing RedHat 7.x".</P>
+
+</DL>
+</P>
+
+<P>
+<DL>
+<DT><B>Richard Barrington (rich_b_nz@clear.net.nz)</B><DD>
+
+<P>"Under linux 2.4, the described method of setting irq doesn't work. it
+needs insmod parport_pc io=0x378 irq=7 otherwise it will default to no
+irq." Thanks Richard.</P>
+</DL>
+</P>
+
+<P>
+<DL>
+<DT><B>Matt Haycraft (Matt.Haycraft@dakotaimaging.com)</B><DD>
+<P>Matt discovered and resolved a plip problem between 2.2.14 and 2.2.16
+kernels. See 
+<A HREF="#KNOWN_PROBLEMS">Known problems</A> section.</P>
+
+</DL>
+</P>
+
+
+
+
+</BODY>
+</HTML>

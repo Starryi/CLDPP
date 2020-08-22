@@ -1,0 +1,79 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1"><title>14. Setting up the X11 FBdev driver</title><link rel="stylesheet" type="text/css" href="style.css"><meta name="generator" content="DocBook XSL Stylesheets V1.79.1"><link rel="home" href="index.html" title="Framebuffer HOWTO"><link rel="up" href="index.html" title="Framebuffer HOWTO"><link rel="prev" href="ar01s13.html" title="13. Changing Console Modes"><link rel="next" href="ar01s15.html" title="15. How do I convert XFree86 mode-lines into framebuffer device timings?"></head><body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF"><div class="navheader"><table width="100%" summary="Navigation header"><tr><th colspan="3" align="center">14. Setting up the X11 FBdev driver</th></tr><tr><td width="20%" align="left"><a accesskey="p" href="ar01s13.html">Prev</a> </td><th width="60%" align="center"> </th><td width="20%" align="right"> <a accesskey="n" href="ar01s15.html">Next</a></td></tr></table><hr></div><div class="section"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="idm1232"></a>14. Setting up the X11 FBdev driver</h2></div></div></div><p>If you are not using XFree86 3.3.3.1 or later, you are
+			urged to upgrade to XFree86 3.3.3.1, as it includes a
+			FBdev X driver for framebuffer devices. Otherwise,
+			follow the steps below to either download or build your
+			own FBdev driver for older XFree86 versions such as
+			3.3.2, 3.3.3 etc.</p><p>Go to <a class="ulink" href="http://www.xfree86.org" target="_top">http://www.xfree86.org</a>, and
+			download the latest XServer sources archive, unpack,
+			and configure the drivers, following these
+			steps:</p><div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem"><p>Edit
+					<code class="code">xc/config/cf/xf86site.def</code>,
+					uncomment the <code class="code">#define</code> for
+					<code class="code">XF68FBDevServer</code></p></li><li class="listitem"><p>Comment out <span class="emphasis"><em>all</em></span>
+					references to
+					<code class="code">FB_VISUAL_STATIC_DIRECTCOLOR</code>,
+					as those are bogus and are not used any
+					more. If you are using XFree86 3.3.3.1,
+					there is no need to do this step as
+					this has all been
+					removed.</p></li><li class="listitem"><p>Edit
+					<code class="code">xc/programs/Xserver/hw/xfree86/os-support/linux/lnx_io.c</code>,
+					and change <code class="code">K_RAW</code> to
+					<code class="code">K_MEDIUMRAW</code></p></li></ul></div><p>And then build the driver. Don't worry about the m68k
+			references, it supports x86 platforms. Then build the
+			whole thing - it'll take a long time though as it's a
+			large source tree.</p><p>Alternatively, if you don't have the time to spare, you
+			can obtain the binaries from the sites below. Please
+			note that these are 'unofficial' builds and you use
+			them at your risk.</p><p>For libc5, use the one at: <a class="ulink" href="http://user.cs.tu-berlin.de/~kraxel/linux/XF68_FBDev.gz" target="_top">http://user.cs.tu-berlin.de/~kraxel/linux/XF68_FBDev.gz</a>.
+			For glibc2, download from these URLs (<a class="ulink" href="http://user.cs.tu-berlin.de/~kraxel/linux/XF68_FBDev.libc6.gz" target="_top">http://user.cs.tu-berlin.de/~kraxel/linux/XF68_FBDev.libc6.gz</a>
+			or <a class="ulink" href="http://pobox.com/~brion/linux/fbxserver.html" target="_top">     http://pobox.com/~brion/linux/fbxserver.html</a></p><p>There have been reports that X11 is non functional on
+			certain graphic cards with this vesafb feature enabled,
+			if this is happening, try the new XF86_FBdev driver for
+			X11.</p><p>This driver, along with vesafb can also help run X11 in
+			higher graphic resolutions with certain graphic
+			chipsets which are not supported by any of the current
+			X11 drivers. Examples are Matrox G200 et. al.</p><p>To configure the XF86_FBdev driver with your X11 system,
+			you'll need to edit your XF86Config for the
+			following:</p><div class="literallayout"><p><code class="code"><br>
+Section "Screen"<br>
+        Driver          "FBDev"<br>
+        Device          "Primary Card"<br>
+        Monitor         "Primary Monitor"<br>
+        SubSection      "Display"<br>
+                Modes           "default"<br>
+        EndSubSection<br>
+EndSection<br>
+		</code></p></div><p>You'll also need to set XkbDisable in the keyboard
+			section as well, or invoke the XF86_FBDev server with
+			the '<code class="code">-kb</code>' option to set up your keyboard
+			so it works properly. If you forget to set XkbDisable,
+			you will have to put the following lines in your
+			<code class="code">.Xmodmap</code> to straighten out the keyboard
+			mappings. Alternatively, you can edit your xkb to
+			reflect the list below.</p><p><span class="emphasis"><em>This is fixed in XFree86 3.3.3.1, and it is a
+				good idea to upgrade to this version anyway
+				because there are quite a few bug fixes, and
+				also, it includes FBDev as one of the drvers,
+				as I've mentioned previously.</em></span></p><div class="literallayout"><p><code class="code"><br>
+! Keycode settings required<br>
+keycode 104 = KP_Enter<br>
+keycode 105 = Control_R<br>
+keycode 106 = KP_Divide<br>
+keycode 108 = Alt_R Meta_R<br>
+keycode 110 = Home<br>
+keycode 111 = Up<br>
+keycode 112 = Prior<br>
+keycode 113 = Left<br>
+keycode 114 = Right<br>
+keycode 115 = End<br>
+keycode 116 = Down<br>
+keycode 117 = Next<br>
+keycode 118 = Insert<br>
+keycode 119 = Delete<br>
+		</code></p></div><p>You may need to do some fiddling around with this (try
+			copying the original definition from the original X11
+			driver that you were using and editing the name of the
+			driver to FBDev), but basically this is what you need
+			to do to use the vesafb X11 driver.</p><p>Hopefully the X11 problems with supported graphic cards
+			will be fixed in future releases.</p></div><div class="navfooter"><hr><table width="100%" summary="Navigation footer"><tr><td width="40%" align="left"><a accesskey="p" href="ar01s13.html">Prev</a> </td><td width="20%" align="center"> </td><td width="40%" align="right"> <a accesskey="n" href="ar01s15.html">Next</a></td></tr><tr><td width="40%" align="left" valign="top">13. Changing Console Modes </td><td width="20%" align="center"><a accesskey="h" href="index.html">Home</a></td><td width="40%" align="right" valign="top"> 15. How do I convert XFree86 mode-lines into framebuffer device timings?</td></tr></table></div></body></html>

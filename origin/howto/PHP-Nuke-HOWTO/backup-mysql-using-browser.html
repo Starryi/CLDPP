@@ -1,0 +1,378 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN""http://www.w3.org/TR/html4/loose.dtd">
+<HTML
+><HEAD
+><TITLE
+>How to backup your MySQL database using only the browser</TITLE
+><META
+NAME="GENERATOR"
+CONTENT="Modular DocBook HTML Stylesheet Version 1.79"><LINK
+REL="HOME"
+TITLE="PHP-Nuke: Management and Programming"
+HREF="index.html"><LINK
+REL="UP"
+TITLE="Miscellaneous"
+HREF="miscellaneous.html"><LINK
+REL="PREVIOUS"
+TITLE="How to embed a Flash object in PHP-Nuke News"
+HREF="flash-php-nuke-news.html"><LINK
+REL="NEXT"
+TITLE="Programmer's tools "
+HREF="tools.html"></HEAD
+><BODY
+CLASS="SECT1"
+BGCOLOR="#FFFFFF"
+TEXT="#000000"
+LINK="#0000FF"
+VLINK="#840084"
+ALINK="#0000FF"
+><DIV
+CLASS="NAVHEADER"
+><TABLE
+SUMMARY="Header navigation table"
+WIDTH="100%"
+BORDER="0"
+CELLPADDING="0"
+CELLSPACING="0"
+><TR
+><TH
+COLSPAN="3"
+ALIGN="center"
+>PHP-Nuke: Management and Programming</TH
+></TR
+><TR
+><TD
+WIDTH="10%"
+ALIGN="left"
+VALIGN="bottom"
+><A
+HREF="flash-php-nuke-news.html"
+ACCESSKEY="P"
+>Prev</A
+></TD
+><TD
+WIDTH="80%"
+ALIGN="center"
+VALIGN="bottom"
+>Chapter 27. Miscellaneous</TD
+><TD
+WIDTH="10%"
+ALIGN="right"
+VALIGN="bottom"
+><A
+HREF="tools.html"
+ACCESSKEY="N"
+>Next</A
+></TD
+></TR
+></TABLE
+><HR
+ALIGN="LEFT"
+WIDTH="100%"></DIV
+><DIV
+CLASS="SECT1"
+><H1
+CLASS="SECT1"
+><A
+NAME="BACKUP-MYSQL-USING-BROWSER"
+>27.16. How to backup your MySQL database using only the browser</A
+></H1
+><P
+>You want to do regular dumps of your MySQL database, but you are lazy and would like to automate the task.</P
+><P
+>If your <ACRONYM
+CLASS="ACRONYM"
+>PHP</ACRONYM
+> installation permits execution of commands through system() (e.g. you are not running in safe mode, or, if you are, safe_mode_exec_dir contains all the commands you need), you can trigger a backup of your MySQL database, just by pointing your browser to the following script (see <A
+HREF="http://www.karakas-online.de/forum/viewtopic.php?t=49"
+TARGET="_top"
+>How to backup your MySQL database using only the browser</A
+>):</P
+><TABLE
+BORDER="1"
+BGCOLOR="#E0E0E0"
+WIDTH="100%"
+><TR
+><TD
+><FONT
+COLOR="#000000"
+><PRE
+CLASS="SCREEN"
+>&#60;?php
+  // Enter your MySQL access data
+  $host= 'dbhost';
+  $user= 'dbuser';               
+  $pass= 'dbpassword';
+  $db=   'db';
+  $backupdir = 'backups';
+  // Compute day, month, year, hour and min.
+  $today = getdate();
+  $day = $today[mday];
+  if ($day &#60; 10) {
+      $day = "0$day";
+  }
+  $month = $today[mon];
+  if ($month &#60; 10) {
+      $month = "0$month";
+  }
+  $year = $today[year];
+  $hour = $today[hours];
+  $min = $today[minutes];
+  $sec = "00";
+  // Execute mysqldump command.
+  // It will produce a file named $db-$year$month$day-$hour$min.gz
+  // under $DOCUMENT_ROOT/$backupdir
+  system(sprintf(
+    'mysqldump --opt -h %s -u %s -p%s %s | gzip &#62; %s/%s/%s-%s%s%s-%s%s.gz',                                             
+    $host,
+    $user,
+    $pass,
+    $db,
+    getenv('DOCUMENT_ROOT'),
+    $backupdir,
+    $db,
+    $year,
+    $month,
+    $day,
+    $hour,
+    $min
+  ));
+  echo '+DONE';
+?&#62;</PRE
+></FONT
+></TD
+></TR
+></TABLE
+><P
+>Upload it to your backup directory (see code) and just reload it with your browser each time you want to do a backup.</P
+><DIV
+CLASS="TIP"
+><P
+></P
+><TABLE
+CLASS="TIP"
+WIDTH="100%"
+BORDER="0"
+><TR
+><TD
+WIDTH="25"
+ALIGN="CENTER"
+VALIGN="TOP"
+><IMG
+SRC="../images/tip.png"
+HSPACE="5"
+ALT="Tip"></TD
+><TH
+ALIGN="LEFT"
+VALIGN="MIDDLE"
+><B
+>Use cron on the client, if it is not available on the server</B
+></TH
+></TR
+><TR
+><TD
+>&nbsp;</TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+>If you are not allowed cron access on the web server (to start mysqldump directly there), you can set up your own cron job (on your home system!) to periodically call the above script.</P
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="TIP"
+><P
+></P
+><TABLE
+CLASS="TIP"
+WIDTH="100%"
+BORDER="0"
+><TR
+><TD
+WIDTH="25"
+ALIGN="CENTER"
+VALIGN="TOP"
+><IMG
+SRC="../images/tip.png"
+HSPACE="5"
+ALT="Tip"></TD
+><TH
+ALIGN="LEFT"
+VALIGN="MIDDLE"
+><B
+>Poor man's cron</B
+></TH
+></TR
+><TR
+><TD
+>&nbsp;</TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+>If you don't have cron, or a similar functionality on your system, you can still modify the above script to inform the browser to reget the file every xxx hours. A poor man's cron, so to say.
+<SPAN
+CLASS="INLINEMEDIAOBJECT"
+><IMG
+SRC="./images/icon_wink.png"></SPAN
+> </P
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="CAUTION"
+><P
+></P
+><TABLE
+CLASS="CAUTION"
+WIDTH="100%"
+BORDER="0"
+><TR
+><TD
+WIDTH="25"
+ALIGN="CENTER"
+VALIGN="TOP"
+><IMG
+SRC="../images/caution.png"
+HSPACE="5"
+ALT="Caution"></TD
+><TH
+ALIGN="LEFT"
+VALIGN="MIDDLE"
+><B
+>Protect your backup directory!</B
+></TH
+></TR
+><TR
+><TD
+>&nbsp;</TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+>Of course, the backup directory should at least be protected with a .htaccess file.</P
+></TD
+></TR
+></TABLE
+></DIV
+><DIV
+CLASS="CAUTION"
+><P
+></P
+><TABLE
+CLASS="CAUTION"
+WIDTH="100%"
+BORDER="0"
+><TR
+><TD
+WIDTH="25"
+ALIGN="CENTER"
+VALIGN="TOP"
+><IMG
+SRC="../images/caution.png"
+HSPACE="5"
+ALT="Caution"></TD
+><TH
+ALIGN="LEFT"
+VALIGN="MIDDLE"
+><B
+>Beware of the <ACRONYM
+CLASS="ACRONYM"
+>PHP</ACRONYM
+> execution limit!</B
+></TH
+></TR
+><TR
+><TD
+>&nbsp;</TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+>If your <ACRONYM
+CLASS="ACRONYM"
+>PHP</ACRONYM
+> has some timeout limit set (often 30 sec), you will not be able to dump really large databases (larger than, say, 2-5MB) through this method. It is the same limitation, as with the phpMyAdmin DB backup option. The only alternative you have in this case is telnet or ssh access, see  <A
+HREF="restore-php-nuke-from-backup.html#RESTORE-LARGE-BACKUP"
+>Section 26.2.2</A
+>.</P
+></TD
+></TR
+></TABLE
+></DIV
+><P
+>Note that phpMyAdmin (<A
+HREF="phpmyadmin.html"
+>Section 3.3</A
+>) also offers an excellent backup capability through the browser, with many options, like compression, structure and data backups, various backup file formats etc. However, you cannot automate backup creation with phpMyAdmin.</P
+></DIV
+><DIV
+CLASS="NAVFOOTER"
+><HR
+ALIGN="LEFT"
+WIDTH="100%"><TABLE
+SUMMARY="Footer navigation table"
+WIDTH="100%"
+BORDER="0"
+CELLPADDING="0"
+CELLSPACING="0"
+><TR
+><TD
+WIDTH="33%"
+ALIGN="left"
+VALIGN="top"
+><A
+HREF="flash-php-nuke-news.html"
+ACCESSKEY="P"
+>Prev</A
+></TD
+><TD
+WIDTH="34%"
+ALIGN="center"
+VALIGN="top"
+><A
+HREF="index.html"
+ACCESSKEY="H"
+>Home</A
+></TD
+><TD
+WIDTH="33%"
+ALIGN="right"
+VALIGN="top"
+><A
+HREF="tools.html"
+ACCESSKEY="N"
+>Next</A
+></TD
+></TR
+><TR
+><TD
+WIDTH="33%"
+ALIGN="left"
+VALIGN="top"
+>How to embed a Flash object in <SPAN
+CLASS="APPLICATION"
+>PHP-Nuke</SPAN
+> News</TD
+><TD
+WIDTH="34%"
+ALIGN="center"
+VALIGN="top"
+><A
+HREF="miscellaneous.html"
+ACCESSKEY="U"
+>Up</A
+></TD
+><TD
+WIDTH="33%"
+ALIGN="right"
+VALIGN="top"
+>Programmer's tools</TD
+></TR
+></TABLE
+></DIV
+></BODY
+></HTML
+>

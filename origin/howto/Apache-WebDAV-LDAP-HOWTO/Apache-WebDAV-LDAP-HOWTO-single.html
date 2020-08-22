@@ -1,0 +1,455 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1"><title>Apache based WebDAV Server with LDAP and SSL</title><link rel="stylesheet" type="text/css" href="style.css"><meta name="generator" content="DocBook XSL Stylesheets V1.79.1"><meta name="description" content=".This document is an HOWTO on installing a Apache based WebDAV server with LDAP for authentication and SSL encryption."></head><body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF"><div class="article"><div class="titlepage"><div><div><h2 class="title"><a name="Apache-WebDAV-LDAP-HOWTO"></a>Apache based WebDAV Server with LDAP and SSL </h2></div><div><div class="author"><h3 class="author"><span class="firstname">Saqib</span> <span class="surname">Ali</span></h3><div class="affiliation"><span class="orgname"><a class="ulink" href="http://www.xml-dev.com" target="_top">Offshore XML/XHTML Development</a><br></span><div class="address"><p><br>
+	   <code class="email">&lt;<a class="email" href="mailto:saqib@seagate.com">saqib@seagate.com</a>&gt;</code><br>
+         </p></div></div></div></div><div><div class="revhistory"><table style="border-style:solid; width:100%;" summary="Revision History"><tr><th align="left" valign="top" colspan="3"><b>Revision History</b></th></tr><tr><td align="left">Revision v4.1.2</td><td align="left">2003-10-17</td><td align="left">sa</td></tr><tr><td align="left" colspan="3">
+		 Added the SSL performance tuning section.
+         </td></tr><tr><td align="left">Revision v4.1.1</td><td align="left">2003-09-29</td><td align="left">sa</td></tr><tr><td align="left" colspan="3">
+		 Updated the SSL section based on the feedback received from readers.
+         </td></tr><tr><td align="left">Revision v4.1.0</td><td align="left">2003-09-02</td><td align="left">sa</td></tr><tr><td align="left" colspan="3">
+		 Updated the SSL section based on the feedback received from readers.
+         </td></tr><tr><td align="left">Revision v4.0.2</td><td align="left">2003-08-01</td><td align="left">sa</td></tr><tr><td align="left" colspan="3">
+		  Minor updates to the Apache configure cmd line. /dev/random referenced in the SSL section. 
+         </td></tr><tr><td align="left">Revision v4.0.1</td><td align="left">2003-07-27</td><td align="left">sa</td></tr><tr><td align="left" colspan="3">
+		  Added more information to the SSL section. 
+         </td></tr><tr><td align="left">Revision v4.0</td><td align="left">2003-06-29</td><td align="left">sa</td></tr><tr><td align="left" colspan="3">
+               Updated the HOWTO for Apache 2.0. Also the source is in XML
+         </td></tr></table></div></div><div><div class="abstract"><p class="title"><b>Abstract</b></p><p>.This document is an HOWTO on installing a Apache based WebDAV server with LDAP for authentication and SSL encryption.</p></div></div></div><hr></div><div class="toc"><p><b>Table of Contents</b></p><dl class="toc"><dt><span class="sect1"><a href="#intro">1. Introduction</a></span></dt><dd><dl><dt><span class="sect2"><a href="#idm52">1.1. About this document</a></span></dt><dt><span class="sect2"><a href="#idm59">1.2. Contributions to the document</a></span></dt><dt><span class="sect2"><a href="#idm63">1.3. What is Apache?</a></span></dt><dt><span class="sect2"><a href="#idm68">1.4. What is WebDAV?</a></span></dt><dt><span class="sect2"><a href="#idm82">1.5. What is PHP?</a></span></dt><dt><span class="sect2"><a href="#idm87">1.6. What is mySQL?</a></span></dt><dt><span class="sect2"><a href="#idm92">1.7. What do we need?</a></span></dt><dt><span class="sect2"><a href="#idm113">1.8. Assumptions</a></span></dt></dl></dd><dt><span class="sect1"><a href="#idm123">2. Requirements</a></span></dt><dd><dl><dt><span class="sect2"><a href="#idm126">2.1. Basics</a></span></dt><dt><span class="sect2"><a href="#idm129">2.2. Apache 2.0.46</a></span></dt><dt><span class="sect2"><a href="#idm133">2.3. OpenSSL</a></span></dt><dt><span class="sect2"><a href="#idm137">2.4. iPlanet LDAP Library</a></span></dt><dt><span class="sect2"><a href="#idm141">2.5. mod_auth_ldap</a></span></dt><dt><span class="sect2"><a href="#idm145">2.6. mySQL DB Engine</a></span></dt><dt><span class="sect2"><a href="#idm149">2.7. PHP</a></span></dt></dl></dd><dt><span class="sect1"><a href="#idm153">3. Installation</a></span></dt><dd><dl><dt><span class="sect2"><a href="#idm156">3.1. Pre-requisites</a></span></dt><dt><span class="sect2"><a href="#idm191">3.2. mySQL</a></span></dt><dt><span class="sect2"><a href="#idm228">3.3. Apache 2.0</a></span></dt><dt><span class="sect2"><a href="#idm254">3.4. mod_auth_ldap</a></span></dt><dt><span class="sect2"><a href="#idm267">3.5. CERT DB for LDAPS://</a></span></dt><dt><span class="sect2"><a href="#idm273">3.6. PHP</a></span></dt></dl></dd><dt><span class="sect1"><a href="#config-webdav">4. Configuring and Setting up the
+ WebDAV services</a></span></dt><dd><dl><dt><span class="sect2"><a href="#idm293">4.1. Modifications to  the
+<code class="filename">/usr/local/apache/conf/httpd.conf</code></a></span></dt><dt><span class="sect2"><a href="#idm309">4.2. Creating a directory for DAVLockDB</a></span></dt><dt><span class="sect2"><a href="#idm323">4.3. Enabling DAV</a></span></dt><dt><span class="sect2"><a href="#idm333">4.4. Create a Directory called DAVtest</a></span></dt><dt><span class="sect2"><a href="#idm347">4.5. Restart Apache</a></span></dt><dt><span class="sect2"><a href="#idm359">4.6. WebDAV server protocol compliance testing</a></span></dt></dl></dd><dt><span class="sect1"><a href="#idm383">5. WebDAV server management</a></span></dt><dd><dl><dt><span class="sect2"><a href="#idm396">5.1. Restricting access to DAV shares</a></span></dt><dt><span class="sect2"><a href="#idm416">5.2. Restricting write access to DAV shares</a></span></dt></dl></dd><dt><span class="sect1"><a href="#ssl">6. Implementing and using SSL to secure HTTP traffic</a></span></dt><dd><dl><dt><span class="sect2"><a href="#idm429">6.1. Introduction to SSL</a></span></dt><dt><span class="sect2"><a href="#idm493">6.2. Test Certificates</a></span></dt><dt><span class="sect2"><a href="#idm499">6.3. Certificates for Production use</a></span></dt><dt><span class="sect2"><a href="#idm503">6.4. How to generate a CSR</a></span></dt><dt><span class="sect2"><a href="#InstallingServerCert">6.5. Installing Server Private Key, and Server Certificate</a></span></dt><dt><span class="sect2"><a href="#idm605">6.6. Removing passphrase from the RSA Private Key</a></span></dt><dt><span class="sect2"><a href="#idm631">6.7. SSL Performance Tuning</a></span></dt></dl></dd><dt><span class="appendix"><a href="#idm656">A. HTTP/HTTPS Benchmarking tools</a></span></dt><dt><span class="appendix"><a href="#idm669">B. Hardware based SSL encryption solutions</a></span></dt><dt><span class="appendix"><a href="#idm679">C. Certificate Authorities</a></span></dt><dt><span class="glossary"><a href="#glossary">Glossary of PKI Terms</a></span></dt></dl></div><div class="sect1"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="intro"></a>1. Introduction</h2></div></div></div><p>The Objective of this document in to Setup a Apache + mySQL + PHP + WebDAV based Web Application Server, that uses LDAP for Authentication. The documentation will also provide details on the encrypting LDAP transactions.</p><div class="note" style="margin-left: 0.5in; margin-right: 0.5in;"><h3 class="title">Note:</h3><p>If you encounter any problems installing Apache or any of the modules please feel free to contact me @ <code class="email">&lt;<a class="email" href="mailto:saqib@seagate.com">saqib@seagate.com</a>&gt;</code></p></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="idm52"></a>1.1. About this document</h3></div></div></div><p>This document was originally written in 2001. Since then many updates and new additions have been made. Thanks to all the people who submitted updates and corrections.</p><p>The XML source of this document is available at <a class="ulink" href="http://www.xml-dev.com:8080/cocoon/mount/docbook/Apache-WebDAV-LDAP-HOWTO.xml" target="_top">http://www.xml-dev.com:8080/cocoon/mount/docbook/Apache-WebDAV-LDAP-HOWTO.xml</a>.</p><p>The latest version of the document is available at <a class="ulink" href="http://www.xml-dev.com:8080/cocoon/mount/docbook/Apache-WebDAV-LDAP-HOWTO.html" target="_top">http://www.xml-dev.com:8080/cocoon/mount/docbook/Apache-WebDAV-LDAP-HOWTO.html</a>.</p></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="idm59"></a>1.2. Contributions to the document</h3></div></div></div><p>If you like to contribute to the HOWTO, you can d/l the XML source from <a class="ulink" href="http://www.xml-dev.com:8080/cocoon/mount/docbook/Apache-WebDAV-LDAP-HOWTO.xml" target="_top">http://www.xml-dev.com:8080/cocoon/mount/docbook/Apache-WebDAV-LDAP-HOWTO.xml</a> , and send in the updated source to saqib@seagate.com ALONG WITH YOUR NAME IN THE LIST OF AUTHORS AND REVISION HISTORY :). That makes it easier for me contact the person if there are any updates/corrections. Thanks.
+</p></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="idm63"></a>1.3. What is Apache?</h3></div></div></div><p>The Apache HTTP Server is an open-source HTTP server for modern operating systems including UNIX and Windows NT. It provides HTTP services in sync with the current HTTP standards. </p><p>Thei Apache WebServer is available for free download from <a class="ulink" href="http://httpd.apache.org/" target="_top">http://httpd.apache.org/</a></p></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="idm68"></a>1.4. What is WebDAV?</h3></div></div></div><p> WebDAV stands for Web enabled Distributed Authoring and Versioning. It provides a collaborative environment for users to edit/manage files on web-servers. Technically DAV is an extension to the http protocol.</p><p>Here is a brief description of the extensions provided by DAV:</p><p><span class="bold"><strong>Overwrite Protection:</strong></span> Lock and Unlock mechanism to prevent the "lost update problem". DAV protocol support both shared and exclusive locks.</p><p><span class="bold"><strong>Properties:</strong></span> Metadata (title, subject, creater, etc)</p><p><span class="bold"><strong>Name-space management:</strong></span> Copy, Rename, Move and Deletion of files</p><p><span class="bold"><strong>Access Control:</strong></span> Limit access to various resources. Currently DAV assumes access control is already in place, and does not provide strong authentication mechanism.</p><p><span class="bold"><strong>Versioning:</strong></span> Revision control for the documents. Versioning is not implemented yet.</p></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="idm82"></a>1.5. What is PHP?</h3></div></div></div><p>PHP (recursive acronym for "PHP: Hypertext Preprocessor") is a widely-used Open Source general-purpose scripting language that is especially suited for Web development and can be embedded into HTML.</p><p>PHP is available from <a class="ulink" href="http://www.php.net" target="_top">http://www.php.net</a></p></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="idm87"></a>1.6. What is mySQL?</h3></div></div></div><p>MySQL, the most popular Open Source SQL database, is developed, distributed, and supported by MySQL AB</p><p>mySQL DB Engine can be downloaded from <a class="ulink" href="http://www.mysql.com/" target="_top">http://www.mysql.com/</a></p></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="idm92"></a>1.7. What do we need?</h3></div></div></div><p>
+The tools needed to achieve this objective are:</p><div class="orderedlist"><ol class="orderedlist" type="i"><li class="listitem"><p>C Compiler e.g. GCC</p></li><li class="listitem"><p>Apache 2 Web Server</p></li><li class="listitem"><p>LDAP Module for Apache</p></li><li class="listitem"><p>iPlanet LDAP lib files</p></li><li class="listitem"><p>SSL engine</p></li><li class="listitem"><p>PHP</p></li><li class="listitem"><p>mySQL DB Engine</p></li></ol></div><div class="note" style="margin-left: 0.5in; margin-right: 0.5in;"><h3 class="title">Note:</h3><p>All of these packages are free and are available for download on the net.</p></div></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="idm113"></a>1.8. Assumptions</h3></div></div></div><p> This document assumes that you have the following already installed on your system.</p><div class="orderedlist"><ol class="orderedlist" type="i"><li class="listitem"><p>gzip or gunzip - available from <a class="ulink" href="http://www.gnu.org" target="_top">http://www.gnu.org</a></p></li><li class="listitem"><p>gcc and GNU make - available from <a class="ulink" href="http://www.gnu.org" target="_top">http://www.gnu.org</a></p></li></ol></div></div></div><div class="sect1"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="idm123"></a>2. Requirements</h2></div></div></div><p>You'll have to download and compile several packages. This document will explain the compilation process, but you should be fimiliar with installing from source code.</p><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="idm126"></a>2.1. Basics</h3></div></div></div><p>You will need a machine running Solaris / Linux and GCC Compiler. GNU gnzip and GNU tar is also needed.</p></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="idm129"></a>2.2. Apache 2.0.46</h3></div></div></div><p>Apache is the HTTP server, it will be used to run the Web Application Server. Please download the Apache 2.0.46 source code from <a class="ulink" href="http://www.apache.org/dist/httpd/" target="_top">http://www.apache.org/dist/httpd/</a>.</p></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="idm133"></a>2.3. OpenSSL</h3></div></div></div><p>You will need to download the OpenSSL from <a class="ulink" href="http://www.openssl.org/source/" target="_top">http://www.openssl.org/source/</a> . Please download the latest version. OpenSSL installation will be used for SSL libraries for compiling mod_ssl with Apache, and for managing SSL certificates on the WebServer. Please download the OpenSSL source code gzipped file into /tmp/downloads</p></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="idm137"></a>2.4. iPlanet LDAP Library</h3></div></div></div><p>
+Download the iPlanet LDAP SDK from <a class="ulink" href="http://wwws.sun.com/software/download/products/3ec28dbd.html" target="_top">http://wwws.sun.com/software/download/products/3ec28dbd.html</a>. We will use iPlanet LDAP SDK, because it includes libraries for ldaps:// (LDAP over SSL)
+</p></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="idm141"></a>2.5. mod_auth_ldap</h3></div></div></div><p>mod_auth_ldap will be used for compiling LDAP support into Apache. Please download mod_auth_ldap from <a class="ulink" href="http://www.muquit.com/muquit/software/mod_auth_ldap/mod_auth_ldap_apache2.html" target="_top">http://www.muquit.com/muquit/software/mod_auth_ldap/mod_auth_ldap_apache2.html</a>
+</p></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="idm145"></a>2.6. mySQL DB Engine</h3></div></div></div><p>Download the appropriate mySQL build for your platform from <a class="ulink" href="http://www.mysql.com/downloads/index.html" target="_top">http://www.mysql.com/downloads/index.html</a></p></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="idm149"></a>2.7. PHP</h3></div></div></div><p>Download the PHP source code from <a class="ulink" href="http://www.php.net/downloads.php" target="_top">http://www.php.net/downloads.php</a></p></div></div><div class="sect1"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="idm153"></a>3. Installation</h2></div></div></div><p>First we hve take care of the few pre-requisites, and then we will get into the main installtion.</p><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="idm156"></a>3.1. Pre-requisites</h3></div></div></div><p>The application server as we plan to install, requires the SSL libraries and LDAP libraries. SSL engine is also required for managing the SSL certs for Apache 2.x</p><div class="sect3"><div class="titlepage"><div><div><h4 class="title"><a name="idm159"></a>3.1.1. iPlanet LDAP SDK</h4></div></div></div><p>Become root by using the su command:</p><pre class="screen"><span class="command"><strong>$ su -</strong></span></pre><p>Create the <code class="filename">/usr/local/iplanet-ldap-sdk.5</code> directory. Copy the <code class="filename">ldapcsdk5.08-Linux2.2_x86_glibc_PTH_OPT.OBJ.tar.gz</code> form <code class="filename">/tmp/downloads</code> to <code class="filename">/usr/local/iplanet-ldap-sdk.5</code> directory.</p><pre class="screen">
+<span class="command"><strong># mkdir /usr/local/iplanet-ldap-sdk.5</strong></span>
+<span class="command"><strong># cp /tmp/downloads/ldapcsdk5.08-Linux2.2_x86_glibc_PTH_OPT.OBJ.tar /usr/local/iplanet-ldap-sdk.5</strong></span>
+<span class="command"><strong># cd /usr/local/iplanet-ldap-sdk.5</strong></span>
+<span class="command"><strong># tar -xvf ldapcsdk5.08-Linux2.2_x86_glibc_PTH_OPT.OBJ.tar</strong></span>
+</pre><p>Now you should have all the required iPlanet LDAP lib files in the correct directory</p></div><div class="sect3"><div class="titlepage"><div><div><h4 class="title"><a name="idm175"></a>3.1.2. OpenSSL Engine</h4></div></div></div><p>Next we need to install the OpenSSL Engine</p><p>OpenSSL is an open source implementation of the SSL/TLS protocol. It is required to create and manage SSL certificates on the webserver. The installion is also necessary for the lib files that will be used by the SSL module for apache.</p><p>Change to the directory where you placed the OpenSSL source code files</p><pre class="screen"> <span class="command"><strong># cd /tmp/download</strong></span>
+<span class="command"><strong># gzip -d openssl.x.x.tar.gz</strong></span>
+<span class="command"><strong># tar -xvf openssl.x.x.tar</strong></span>
+<span class="command"><strong># cd openssl.x.x</strong></span>
+<span class="command"><strong># make</strong></span>
+<span class="command"><strong># make test</strong></span>
+<span class="command"><strong># make install</strong></span>
+</pre><p>Upon successful completion of the <span class="command"><strong>make install</strong></span> the openssl binaries should reside in <code class="filename">/usr/local/ssl</code></p></div></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="idm191"></a>3.2. mySQL</h3></div></div></div><p>Installaing mySQL is quite simple. The downloaded binaries have to be place in appropriate directory.</p><p>We start creating a user:group for mysql daemon, and copying the files to appropriate directories.</p><pre class="screen"> <span class="command"><strong># groupadd mysql</strong></span>
+<span class="command"><strong># useradd -g mysql mysql</strong></span>
+<span class="command"><strong># cd /usr/local</strong></span>
+<span class="command"><strong># gunzip &lt; /path/to/mysql-VERSION-OS.tar.gz | tar xvf - </strong></span>
+<span class="command"><strong># ln -s full-path-to-mysql-VERSION-OS mysql</strong></span>
+</pre><p>Next run the install_db script, and change permission on the files</p><pre class="screen"> <span class="command"><strong># cd mysql</strong></span>
+<span class="command"><strong># scripts/mysql_install_db</strong></span>
+<span class="command"><strong># chown -R mysql .</strong></span>
+</pre><div class="sect3"><div class="titlepage"><div><div><h4 class="title"><a name="idm206"></a>3.2.1. Starting mySQL</h4></div></div></div><p>Now start the mySQL server to verify the installation</p><pre class="screen"> <span class="command"><strong># bin/mysqld_safe --user=mysql &amp;</strong></span>
+</pre><p>Verify mySQL daemon is running, by using the ps -ef command. You should see the following output:</p><pre class="screen"><span class="command"><strong># ps -ef | grep mysql</strong></span>
+root      3237     1  0 May29 ?        00:00:00 /bin/sh bin/safe_mysqld
+mysql     3256  3237  0 May29 ?        00:06:58 /usr/local/mysql/bin/mysqld --defaults-extra-file=/usr/local/mysql/data/my.cnf --basedir=/usr/local/mysql --datadir=/usr/local/mysql/data --user=mysql --pid-file=/usr/local/mysql/data/downloa
+</pre></div><div class="sect3"><div class="titlepage"><div><div><h4 class="title"><a name="idm214"></a>3.2.2. Stopping mySQL</h4></div></div></div><p>To stop the MySQL server, follow the instructions below</p><pre class="screen"><span class="command"><strong># cd /usr/local/mysql</strong></span>
+<span class="command"><strong># ./bin/mysqladmin -u root -p shutdown</strong></span>
+</pre></div><div class="sect3"><div class="titlepage"><div><div><h4 class="title"><a name="idm220"></a>3.2.3. Locating Data Directory</h4></div></div></div><p>mySQL deamon stores all the information in a direcory called "Data Directory". If you followed the installation instructions above, your Data Directory should be located under <code class="filename">/use/local/mysql/data</code>.</p><p>To locate where your Data Directory is located, use the <span class="command"><strong>mysqladmin</strong></span> utility as follows:</p><pre class="screen">
+<span class="command"><strong># /usr/local/mysql/bin/mysqladmin variables -u root --password={your_password} | grep datadir</strong></span>
+</pre></div></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="idm228"></a>3.3. Apache 2.0</h3></div></div></div><p>Start by setting some FLAGS for the compiler</p><pre class="screen"><span class="command"><strong># export LDFLAGS="-L/usr/local/iplanet-ldap-sdk.5/lib/ -R/usr/local/iplanet-ldap-sdk.5/lib/:/usr/local/lib"</strong></span>
+<span class="command"><strong># export CPPFLAGS="-I/usr/local/iplanet-ldap-sdk.5/include"</strong></span>
+</pre><p>Next UNTAR the apache 2.0 source files, and execute the <code class="filename">configure</code> script.</p><pre class="screen"><span class="command"><strong># cd /tmp/download</strong></span>
+<span class="command"><strong># gzip -d httpd-2.0.46.tar.gz </strong></span>
+<span class="command"><strong># tar -xvf httpd-2.0.46.tar</strong></span>
+<span class="command"><strong># cd httpd-2.0.46</strong></span>
+<span class="command"><strong>#./configure --enable-so  --with-ssl --enable-ssl  --enable-rewrite   --enable-dav</strong></span>
+</pre><p>Next run the make command</p><pre class="screen"><span class="command"><strong># make</strong></span>
+<span class="command"><strong># make install</strong></span>
+</pre><div class="sect3"><div class="titlepage"><div><div><h4 class="title"><a name="idm246"></a>3.3.1. Starting Apache</h4></div></div></div><pre class="screen"><span class="command"><strong># /usr/local/apache2/bin/apachectl start</strong></span>
+</pre></div><div class="sect3"><div class="titlepage"><div><div><h4 class="title"><a name="idm250"></a>3.3.2. Stopping Apache</h4></div></div></div><pre class="screen"><span class="command"><strong># /usr/local/apache2/bin/apachectl stop</strong></span>
+</pre></div></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="idm254"></a>3.4. mod_auth_ldap</h3></div></div></div><p>Untar modauthldap_apache2.tar.gz</p><pre class="screen"><span class="command"><strong>cd /tmp/download</strong></span>
+<span class="command"><strong># gzip -d modauthldap_apache2.tar.gz</strong></span>
+<span class="command"><strong># tar -xvf modauthldap_apache2.tar</strong></span>
+<span class="command"><strong># cd modauthldap_apache2</strong></span>
+</pre><p>Now configure and install mod_auth_ldap</p><pre class="screen"><span class="command"><strong># ./configure --with-apxs=/usr/local/apache2/bin/apxs  --with-ldap-dir=/usr/local/iplanet-ldap-sdk.5/</strong></span>
+<span class="command"><strong># make</strong></span>
+<span class="command"><strong># make install</strong></span>
+</pre></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="idm267"></a>3.5. CERT DB for LDAPS://</h3></div></div></div><p>You will also need to get the cert7.db and key7.db from <a class="ulink" href="http://www.xml-dev.com/xml/key3.db" target="_top">http://www.xml-dev.com/xml/key3.db</a> and <a class="ulink" href="http://www.xml-dev.com/xml/cert7.db" target="_top">http://www.xml-dev.com/xml/cert7.db</a> and place it in the <code class="filename">/usr/local/apache2/sslcert/</code>directory.</p></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="idm273"></a>3.6. PHP</h3></div></div></div><p>Unzip the PHP Source Files</p><pre class="screen"><span class="command"><strong>gzip -d php-xxx.tar.gz</strong></span>
+<span class="command"><strong>tar -xvf php-xxx.tar</strong></span>
+</pre><p>Configure and run the make command</p><pre class="screen"><span class="command"><strong>cd php-xxx</strong></span>
+<span class="command"><strong>./configure --with-mysql --with-apxs=/usr/local/apache2/bin/apxs</strong></span>
+</pre><p>Compile the source code</p><pre class="screen"><span class="command"><strong># make </strong></span>
+<span class="command"><strong># make install</strong></span>
+</pre><p>Copy the php.ini file to the appropriate directory</p><pre class="screen"><span class="command"><strong>cp php.ini-dist /usr/local/lib/php.ini</strong></span>
+</pre></div></div><div class="sect1"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="config-webdav"></a>4. Configuring and Setting up the
+ WebDAV services</h2></div></div></div><p> Now for the easy part. In this section we will WebDAV enable a
+directory under Apache root.  </p><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="idm293"></a>4.1. Modifications to  the
+<code class="filename">/usr/local/apache/conf/httpd.conf</code></h3></div></div></div><p>
+Please verify that the following Apache directive appears in the 
+<code class="filename">/usr/local/apache/conf/httpd.conf</code> :</p><pre class="screen">
+  Addmodule mod_dav.c
+</pre><p> If it does not please add it. This directive informs Apache
+about DAV capability. The directive must be placed outside any
+container.  </p><p>
+Next we must specify where Apache should store 
+the DAVLockDB file. DAVLockDB is a lock database for the WebDAV. 
+This directory should be writable by the httpd process.
+</p><p>
+I store the DAVLock file under <code class="filename">/usr/local/apache/var</code>.
+I use this directory for other purposes as well. Please add the
+following line to your
+<code class="filename">/usr/local/apache/conf/httpd.conf</code> to specify
+that the DAVLockDB file will be under
+<code class="filename">/usr/local/apache/var</code> : </p><pre class="screen">
+  DAVLockDB      /usr/local/apache/var/DAVLock 
+</pre><p>The directive must be placed outside any container.</p></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="idm309"></a>4.2. Creating a directory for DAVLockDB</h3></div></div></div><p> As mentioned above a directory must be created  for DAVLockDB
+that can be written by the web server process. Usually web server
+process runs under the user '<span class="emphasis"><em>nobody</em></span>' . Please
+verify this for your system using the command: 
+</p><pre class="screen"><span class="command"><strong>ps -ef | grep httpd</strong></span></pre><p>
+Under <code class="filename">/usr/local/apache</code> create
+the directory and set the permissions on it using the following
+commands:  </p><pre class="screen">
+  <span class="command"><strong># cd /usr/local/apache</strong></span>
+  <span class="command"><strong># mkdir var</strong></span>
+  <span class="command"><strong># chmod -R 755 var/</strong></span>
+  <span class="command"><strong># chown -R nobody var/</strong></span>
+  <span class="command"><strong># chgrp -R nobody var/</strong></span>
+</pre></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="idm323"></a>4.3. Enabling DAV</h3></div></div></div><p> Enabling DAV is a trivial task. To enable DAV for a directory
+under Apache root, just add the following directive in the container
+for that particular directory: </p><pre class="screen">
+  DAV On
+</pre><p> This directive will enable DAV for the directory and its
+sub-directories.  </p><p>The following is a sample configuration that will enable WebDAV
+and LDAP authentication on
+<code class="filename">/usr/local/apache/htdocs/DAVtest</code>.  Place this in
+the <code class="filename">/usr/local/apache/conf/httpd.conf</code> file.
+</p><pre class="screen">
+ DavLockDB /tmp/DavLock
+&lt;Directory "/usr/local/apache2/htdocs/DAVtest"&gt;
+Options Indexes FollowSymLinks
+AllowOverride None
+order allow,deny
+allow from all
+AuthName "SMA Development server"
+AuthType Basic
+LDAP_Debug On
+#LDAP_Protocol_Version 3
+#LDAP_Deref NEVER
+#LDAP_StartTLS On
+LDAP_Server you.ldap.server.com 
+#LDAP_Port 389
+# If SSL is on, must specify the LDAP SSL port, usually 636
+LDAP_Port 636
+LDAP_CertDbDir /usr/local/apache2/sslcert
+Base_DN "o=SDS"
+UID_Attr uid
+DAV On
+#require valid-user
+require valid-user 
+#require roomnumber "123 Center Building"
+#require filter "(&amp;(telephonenumber=1234)(roomnumber=123))"
+#require group cn=rcs,ou=Groups
+&lt;/Directory&gt;
+</pre></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="idm333"></a>4.4. Create a Directory called DAVtest</h3></div></div></div><p>As mentioned in a earlier section, all DAV directories have to
+be writable by the WebServer process. In this example we assume
+WebServer is running under username '<span class="emphasis"><em>nobody</em></span>'.
+This is usually the case. To check httpd is running under what user,
+please use: </p><pre class="screen"><span class="command"><strong># ps -ef | grep httpd</strong></span></pre><p>Create a test directory  called '<code class="filename">DAVtest</code>'
+under <code class="filename">/usr/local/apache2/htdocs</code> :</p><p><span class="command"><strong># mkdir /usr/local/apache/htdocs/DAVtest</strong></span></p><p>Change the permissions on the directory  to make it is
+read-writable by the httpd process. Assuming the httpd is running
+under username '<span class="emphasis"><em>nobody</em></span>', use the following
+commands:</p><pre class="screen">
+  # cd /usr/local/apache/htdocs
+  # chmod -R 755 DAVtest/
+  # chown -R nobody DAVtest/
+  # chgrp -R nobody DAVtest/
+</pre></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="idm347"></a>4.5. Restart Apache</h3></div></div></div><p> Finally you must run the configuration test routine that comes
+with Apache to  verify the syntax in <code class="filename">httpd.conf</code> :
+</p><pre class="screen"><span class="command"><strong># /usr/local/apache/bin/apachectl configtest</strong></span></pre><p>
+If you get error messages please verify that you followed all of
+the above mentioned steps correctly. If you can not figure out the
+error message feel free to email me with the error message
+(<a class="ulink" href="mailto:saqib@seagate.com" target="_top">saqib@seagate.com</a>).
+</p><p>If the configtest is successful start the apache web-server: </p><p><span class="command"><strong># /usr/local/apache/bin/apachectl restart</strong></span></p><p>Now you have WebDAV enabled Apache Server with LDAP
+authentication and SSL encryption.  </p></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="idm359"></a>4.6. WebDAV server protocol compliance testing</h3></div></div></div><p>It is very important that the WebDAV that we just implemented be fully complaint with the WebDAV-2 protocol. If it is not 
+fully compatible, the client side WebDAV applications will not function properly.</p><p>To test the complaince we will use a tool called Litmus. Litmus is a WebDAV server protocol compliance test suite, 
+which aims to test whether a server is compliant with the WebDAV protocol as specified in RFC2518. </p><p>Please download the Litmus source code from <a class="ulink" href="http://www.webdav.org/neon/litmus/" target="_top">http://www.webdav.org/neon/litmus/</a> and place it in the /tmp/downloads directory.</p><p>Then use gzip and tar to extract the files:</p><pre class="screen">
+<span class="command"><strong># cd /tmp/downloads</strong></span>
+<span class="command"><strong># gzip -d litmus-0.6.x.tar.gz</strong></span>
+<span class="command"><strong># tar -xvf litmus-0.6.x.tar</strong></span>
+<span class="command"><strong># cd litmus-0.6.x</strong></span>
+</pre><p>Compiling and installing Litmus is easy:</p><pre class="screen">
+<span class="command"><strong># ./configure</strong></span>
+<span class="command"><strong># make</strong></span>
+<span class="command"><strong># make install</strong></span>
+</pre><p><span class="command"><strong>make install</strong></span> will install the Litmus binary files under <code class="filename">/usr/local/bin</code> and the help files under <code class="filename">/usr/local/man</code></p><p>To the test the complaince of the WebDAV server that you just installed, please use the following command</p><pre class="screen">
+<span class="command"><strong># /usr/local/bin/litmus http://you.dav.server/DAVtest userid passwd</strong></span>
+</pre></div></div><div class="sect1"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="idm383"></a>5. WebDAV server management</h2></div></div></div><p>In this section we will discuss about the various management task - e.g. using LDAP for access control, and working with DAV method on Apache</p><p>Most of the configuration changes for the DAV will have to done using the <code class="filename">httpd.conf</code> file. This file is located at <code class="filename">/usr/local/apache/conf/httpd.conf</code> </p><p><code class="filename">httpd.conf</code> is a text based configuration file that Apache uses. It can b editted using any text editor - I preffer using vi. Please make backup copy of this file, before changing it.</p><p>After making changes to the <code class="filename">httpd.conf</code> the Apache server has to be restarted using the <span class="command"><strong>/usr/local/apache/bin/apachectl restart</strong></span> command. 
+However before restarting you test for the validity of the <code class="filename">httpd.conf</code> by using the <span class="command"><strong>/usr/local/apache/bin/apachectl configtest</strong></span> comand. </p><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="idm396"></a>5.1. Restricting access to DAV shares</h3></div></div></div><p>In the previous section when we created the DAVtest share, we used the LDAP for authentication purposes. However anyone
+who can authenticates using their LDAP useri/passwd will be able to access that folder. </p><p>Using the <span class="command"><strong>require</strong></span> directive in the httpd.conf file, we can limit access to certain individuals or groups of individuals.</p><p>If we look at the DAVtest configuration from the previosu section: 
+</p><pre class="screen">
+  &lt;Directory /usr/local/apache/htdocs/DAVtest&gt;
+  Dav On
+  #Options Indexes FollowSymLinks
+
+  AllowOverride None
+  order allow,deny
+  allow from all
+  AuthName "LDAP_userid_password_required"
+  AuthType Basic
+  &lt;Limit GET PUT POST DELETE PROPFIND PROPPATCH MKCOL COPY MOVE LOCK UNLOCK&gt;
+  Require valid-user
+  &lt;/Limit&gt;
+  LDAP_Server ldap.server.com
+  LDAP_Port 389
+  Base_DN "o=ROOT"
+
+  UID_Attr uid
+  &lt;/Directory&gt;
+</pre><p>
+We see that the <span class="command"><strong>require</strong></span> is set to <span class="command"><strong>valid-user</strong></span>. Which means any valid authenticated user
+has access to this folder. 
+</p><div class="sect3"><div class="titlepage"><div><div><h4 class="title"><a name="idm405"></a>5.1.1. Restricting access based on Individual UID(s)</h4></div></div></div><p>LDAP UID can be used to restrict access to DAV folder.</p><p><span class="command"><strong>require valid-user</strong></span> directive can be changed to <span class="command"><strong>require user 334455 445566</strong></span></p><p>This will restrict access to individuals with UID 334455 and 445566. Anyone else will not be able to access this folder.</p></div><div class="sect3"><div class="titlepage"><div><div><h4 class="title"><a name="idm412"></a>5.1.2. Restricting access based on groups of individuals.</h4></div></div></div><p><span class="command"><strong>require</strong></span> can also be used to restrict access to groups of individuals. This can be either done using LDAP groups or LDAP filters. The filter must be valid LDAP filter syntax.</p></div></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="idm416"></a>5.2. Restricting write access to DAV shares</h3></div></div></div><p>It maybe be required that the editting for the resources on the DAV shares be restricted to certain individual, however anyone can view the resources. This can be easily done using the <span class="command"><strong>&lt;Limit&gt;</strong></span> tags in the httpd.conf file</p><p> 
+</p><pre class="screen">
+  &lt;Directory /usr/local/apache/htdocs/DAVtest&gt;
+  Dav On
+  #Options Indexes FollowSymLinks
+
+  AllowOverride None
+  order allow,deny
+  allow from all
+  AuthName "LDAP_userid_password_required"
+  AuthType Basic
+  &lt;Limit GET PUT POST DELETE PROPFIND PROPPATCH MKCOL COPY MOVE LOCK UNLOCK&gt;
+  Require valid-user
+  &lt;/Limit&gt;
+  LDAP_Server ldap.server.com
+  LDAP_Port 389
+  Base_DN "o=ROOT"
+
+  UID_Attr uid
+  &lt;/Directory&gt;
+</pre><p>
+</p><p>You restrict write access to certain individuals by changing the <span class="command"><strong>&lt;limit&gt;</strong></span> to
+</p><pre class="screen">
+  &lt;Limit PUT POST DELETE PROPPATCH MKCOL COPY MOVE LOCK UNLOCK&gt;
+  Require 334455
+  &lt;/Limit&gt;
+</pre><p>
+</p><p>Basically we are limiting the PUT POST DELETE PROPPATH MKCOL COPY MOVE LOCK and UNLOCK to an individual who has the UID of 334455. Everyone else will be able to use the methods GET and PROPFIND on the resources, but not any other method.</p></div></div><div class="sect1"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="ssl"></a>6. Implementing and using SSL to secure HTTP traffic</h2></div></div></div><p>
+Security of the data stored on a file server is very important these days. Compromised data can cost thousands of dollars to
+company. In the last section, we compiled LDAP authentication module into the Apache build to provide a Authentication 
+mechanism. However HTTP traffic is very insecure, and all data is transferred in clear text - meaning, the LDAP authentication
+(userid/passwd) will be transmitted as clear text as well. This creates a problem. Anyone can sniff these userid/passwd and gain
+access to DAV store. To prevent this we have to encrypt HTTP traffic, essentially HTTP + SSL or HTTPS. Anything transferred over
+HTTPS is encrypted, so the LDAP userid/passwd can not be easily deciphered. HTTPS runs on port 443. The resulting build from the last 
+section's compilation process will have Apache to listen to both port 80 (normal HTTP) and 443 (HTTPS). If you are just going
+to use this server for DAV, then I will highly suggest that you close port 80. In this section of the HOWTO I will provide some 
+information regarding SSL and maintaining SSL on a Apache HTTP server.  
+</p><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="idm429"></a>6.1. Introduction to SSL</h3></div></div></div><p>
+SSL (Secure Socket Layer) is a protocol layer that exists between the Network Layer and Application layer. As the name suggest
+SSL provides a mechanism for encrypting all kinds of traffic - LDAP, POP, IMAP and most importantly HTTP. 
+</p><p>
+The following is a over-simplified structure of the layers involved in SSL.
+</p><pre class="screen">
+
+	+-------------------------------------------+
+	|   LDAP   |    HTTP    |   POP   |   IMAP  |
+	+-------------------------------------------+
+	|                   SSL                     |
+	+-------------------------------------------+
+	|               Network Layer               |
+	+-------------------------------------------+
+	
+</pre><p>
+</p><div class="sect3"><div class="titlepage"><div><div><h4 class="title"><a name="idm434"></a>6.1.1. Encryption algorithms used in SSL</h4></div></div></div><p>
+	There are three kinds of cryptographic techniques used in SSL: Public-Private Key, Symmetric Key, and <a class="link" href="#digitsign" title="Digital Signature">Digital Signature</a>.
+</p><p>
+	<span class="strong"><strong>Public-Private Key Crytography - Initiating SSL connection: </strong></span> In this algorithm, encryption and decryption is performed using a pair of private and public keys.  The Web-server holds the private Key, and sends the Public key to the client in the Certificate. 
+</p><div class="orderedlist"><ol class="orderedlist" type="1"><li class="listitem"><p>The client request content from the Web Server using HTTPS.</p></li><li class="listitem"><p>The web server responds with a Digital Certificate which includes the server's public key.</p></li><li class="listitem"><p>The client checks to see if the certificate has expired.</p></li><li class="listitem"><p>Then the client checks if the Certificate Authority that signed the certificate, is a trusted authority listed in the browser. This explains why we need to get a certificate from a a trusted CA.</p></li><li class="listitem"><p>The client then checks to see if the Fully Qualified Domain Name (FQDN) of the web server matches the Comman Name (CN) on the certificate?</p></li><li class="listitem"><p>If everything is successful the SSL connection is initiated.</p></li></ol></div><div class="note" style="margin-left: 0.5in; margin-right: 0.5in;"><h3 class="title">Note:</h3><p>Anything encrypted with Private Key can only be decrypted by using the Public Key. Similarly anything encrypted using the Public Key can only be decrypted using the Private Key. There is a common mis-conception that only the Public Key is used for encryption and Private Key is used for decryption. This is not case. Any key can be used for encryption/decryption. However if one key is used for encryption then the other key must be used for decryption. e.g. A message can not encrypted and then decrypted using only the Public Key.</p><p><span class="emphasis"><em>Using Private Key to encrypt and a Public Key to decrypt ensures the integrity of the sender (owner of the Private Key) to the recipients. Using Public Key to encrypt and a Private Key to decrypt ensures that only the inteded recipient (owner of the Private Key) will have access to the data.</em></span>(i.e. only the person who holds the Private Key will be able to decipher the message).</p></div><p>
+	<span class="strong"><strong>Symmetric Cryptography - Actual transmission of data</strong></span>: After the SSL connection has been established, Symmetric cryptography is used for encrypting data as it uses less CPU cycles. In symmetric cryptography the data can be encrypted and decrypted using the same key. The Key for symmetric cryptography is exchanged during the initiation process, using Public Key Cryptography. </p><p><span class="strong"><strong>Message Digest</strong></span> The server uses message digest algoritm such as <a class="link" href="#hmac" title="HMAC: Keyed Hashing for Message Authentication">HMAC</a>, <a class="link" href="#sha1" title="SHA-1: Secure Hash Algorithm">SHA-1</a>, <a class="link" href="#md5" title="Message Digest 5 - MD5">MD5</a> to verify the integrity of the transferred data.</p></div><div class="sect3"><div class="titlepage"><div><div><h4 class="title"><a name="idm465"></a>6.1.2. Ensuring Authenticity and Integrity</h4></div></div></div><p>Encryption Process</p><pre class="screen">
+            Sender's                 Receiver's
+           PrivateKey                 PublicKey
+          ,-.                     ,-.
+         (   )..........         (   )..........
+          `-' ''''|'|'||          `-' ''''''''||
+                  | |                    |
+                  | |                    |
+   .----------.   | |    .----------.    |     .----------.
+   |          |   V |    |          |    V     |          |
+   |Clear Text|---------&gt;|CipherText|---------&gt;|CipherText|
+   |          |  Step1   |    1     |  Step2   |    2     |\
+   `----------'     |    `----------'          `----------' \    __
+         |          |                                        \   [_'
+         |          |                                   step5 \   |
+         |Step3     |                                       __  --|--
+         |          |                                  _.--'      |
+         V          |                            _..-''          / \
+    .---------.     |    .---------.       _..-''              Receiver
+    |  SHA 1  |     V    | Digital | _..-''
+    |MsgDigest|---------&gt;|Signature|'            _
+    `---------'  Step4   `---------'         _  (_)
+        _____ ____   ____  ____ _   _ ____ _| |_ _  ___  ____
+       | ___ |  _ \ / ___)/ ___) | | |  _ (_   _) |/ _ \|  _ \
+       | ____| | | ( (___| |   | |_| | |_| || |_| | |_| | | | |
+       |_____)_| |_|\____)_|    \__  |  __/  \__)_|\___/|_| |_|
+                               (____/|_|
+	</pre><div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: opencircle; "><li class="listitem" style="list-style-type: circle"><p>Step1: In this step the Original "Clear Text" message is encrypted using the Sender's Private Key, which results in Cipher Text 1. This ensures the Authenticity of the sender.</p></li><li class="listitem" style="list-style-type: circle"><p>Step2: In this step the "CipherText 1" is encrypted using Receiver's Public Key resulting in "CipherText 2". This will ensure the Authenticity of the Receiver i.e. only the Receiver can decipher the Messsage using his Private Key.</p></li><li class="listitem" style="list-style-type: circle"><p>Step3: Here the SHA1 Message Digest of the "Clear Text" is created.</p></li><li class="listitem" style="list-style-type: circle"><p>Step4: SHA1 Message Digest is then encrypted using Sender's Private Key resulting in the Digital Signature of the "ClearText". This Digital Signature can be used by the receiver to ensure the Integrity of the message and authenticity of the Sender.</p></li><li class="listitem" style="list-style-type: circle"><p>Step5: The "Digital Signature" and the "CipherText 2" are then send to the Receiver.</p></li></ul></div><p>Decryption Process</p><pre class="screen">
+           Receiver's               Sender's
+           PrivateKey               PublicKey
+         ,-.                     ,-.
+        (   )..........         (   )..........
+         `-' ''''''''||          `-' '''''''|||
+                |                      |    |
+                |                      |    |
+  .----------.  |       .----------.   |    | .----------.
+  |          |  V       |          |   V    | |          |       .---#1----.
+  |CipherText|---------&gt;|CipherText|---------&gt;|ClearText |------&gt;|  SHA 1  |
+  |    2     |  Step1   |    1     |  Step2 | |          | Step3 |MsgDigest|
+  `----------'          `----------'        | `----------'       `---------'
+                                            |                        ||
+                                            |                        ||Step5
+                                            |                        ||
+                                            |                        ||
+                               .---------.  |                    .---------.
+                               | Digital |  V                    |  SHA 1  |
+                               |Signature|----------------------&gt;|MsgDigest|
+                 _             `---------'  Step4     _          `---#2----'
+                | |                               _  (_)
+              __| |_____  ____  ____ _   _ ____ _| |_ _  ___  ____
+             / _  | ___ |/ ___)/ ___) | | |  _ (_   _) |/ _ \|  _ \
+            ( (_| | ____( (___| |   | |_| | |_| || |_| | |_| | | | |
+             \____|_____)\____)_|    \__  |  __/  \__)_|\___/|_| |_|
+                                    (____/|_|
+</pre><div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: opencircle; "><li class="listitem" style="list-style-type: circle"><p>Step1: In this step the "CipherText 2" message is decrypted using the Receiver's Private Key, which results in Cipher Text 1.</p></li><li class="listitem" style="list-style-type: circle"><p>Step2: In this step the "CipherText 1" is decrypted using Sender's Public Key resulting in "ClearText".</p></li><li class="listitem" style="list-style-type: circle"><p>Step3: Here the SHA1 Message Digest of the "Clear Text" is created.</p></li><li class="listitem" style="list-style-type: circle"><p>Step4: The "Digital Signature" is then decrypted using Sender's Public Key, resulting the "SHA 1 MSG Digest".</p></li><li class="listitem" style="list-style-type: circle"><p>Step5: The "SHA1 MsgDigest #1" is then compared against "SHA1 MsgDigest #2". If they are equal, the data was not modified during transmission, and the integrity of the Original "Clear Text" has been maintained</p></li></ul></div></div></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="idm493"></a>6.2. Test Certificates</h3></div></div></div><p>While compiling Apache we created a test certificate. We used the makefile provided by
+mod_ssl to create this custom Certificate. We used the command:
+</p><pre class="screen"><span class="command"><strong># make certificate TYPE=custom</strong></span></pre><p>
+</p><p>This certificate can be used for testing purposes.</p></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="idm499"></a>6.3. Certificates for Production use</h3></div></div></div><p>
+	For production use you will need a certificate from a Certificate Authority (hereafter CA). Certificate Authorities are certificate vendors, who are listed as a Trusted CA in the user's browser. As mentioned in the Encryption Algorithms section, if the CA is not listed as a trusted authority, your user will get a warning message when trying to connect to a secure location.
+</p><p>
+Similarly the test certificates will also cause a warning message to appear on the user's browser.
+</p></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="idm503"></a>6.4. How to generate a CSR</h3></div></div></div><p>
+CSR or Certificate Signing Request must be sent to the trusted CA for signing. This section discusses howto create a CSR,
+and send it to the CA of your choice. <span class="command"><strong># openssl req</strong></span> command can be used to a CSR as follows:
+</p><pre class="screen">
+<span class="command"><strong># cd /usr/local/apache/conf/</strong></span>
+<span class="command"><strong># /usr/local/ssl/bin/openssl req -new -nodes -keyout private.key -out public.csr</strong></span>
+Generating a 1024 bit RSA private key
+............++++++
+....++++++
+writing new private key to 'private.key'
+-----
+You are about to be asked to enter information that will be incorporated
+into your certificate request.
+What you are about to enter is what is called a Distinguished Name or a DN.
+There are quite a few fields but you can leave some blank
+For some fields there will be a default value,
+If you enter '.', the field will be left blank.
+-----
+Country Name (2 letter code) [AU]:US
+State or Province Name (full name) [Some-State]:California
+Locality Name (eg, city) []:San Jose
+Organization Name (eg, company) [Internet Widgits Pty Ltd]:Seagate 
+Organizational Unit Name (eg, section) []:Global Client Server
+Common Name (eg, YOUR name) []:xml.seagate.com
+Email Address []:saqib@seagate.com
+
+Please enter the following 'extra' attributes
+to be sent with your certificate request
+A challenge password []:badpassword
+An optional company name []:
+
+</pre><div class="note" style="margin-left: 0.5in; margin-right: 0.5in;"><h3 class="title">"PRNG not seeded"</h3><p>If you do not have <code class="filename">/dev/random</code> on your system you will get a <span class="emphasis"><em>"PRNG not seeded"</em></span> error message. In that case you can use the following command:</p><pre class="screen"><span class="command"><strong># /usr/local/ssl/bin/openssl req -rand <code class="filename">some_file.ext</code> -new -nodes -keyout private.key -out public.csr </strong></span>
+</pre><p>Replace some_file.ext with the name of a existing file on your file system. Any file can be specified. Openssl will use that file to generate the seed</p><p>Solaris 9 comes with <code class="filename">/dev/random</code>. However on Solaris you might have to install the <a class="ulink" href="http://sunsolve.sun.com/pub-cgi/findPatch.pl?patchId=112438" target="_top">112438</a> patch to get the /dev/random</p></div><p>
+At this point you will be asked several questions about your server to generate the Certificate Singning Request</p><p>
+Note: Your Common Name (CN) is the Fully Qualified DNS (FQDN) name of your webserver e.g. dav.server.com . If you put in anything else, it will NOT work. Remember the password that you use, for future reference.
+</p><p>Once the process is complete, you will have <code class="filename">private.key</code> and a <code class="filename">public.csr</code> . You will need to submit the <code class="filename">public.csr</code> to the Certification Authority. At this pointe the public.key is not encrypted. To encrypt:
+</p><pre class="screen"> <span class="command"><strong># mv private.key private.key.unecrpyted</strong></span>
+<span class="command"><strong># /usr/local/ssl/bin/openssl rsa -in private.key.unecrpyted -des3 -out private.key</strong></span>
+</pre></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="InstallingServerCert"></a>6.5. Installing Server Private Key, and Server Certificate</h3></div></div></div><p>Once the Certification Authority processes your request, they will send an encoded certificate (Digital Certificate) back to you. The Digital Certificate is in the format defined by X.509 v3. The following shows the structure of a typical X509 v3 Digital Certificate</p><div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: opencircle; "><li class="listitem" style="list-style-type: circle"><p>Certificate
+			</p><div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: opencircle; "><li class="listitem" style="list-style-type: circle"><p>Version</p></li><li class="listitem" style="list-style-type: circle"><p>Serial Number</p></li><li class="listitem" style="list-style-type: circle"><p>Algorithm ID</p></li><li class="listitem" style="list-style-type: circle"><p>Issuer</p></li></ul></div><p>
+			</p><div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: opencircle; "><li class="listitem" style="list-style-type: circle"><p>Validity</p></li><li class="listitem" style="list-style-type: circle"><div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: opencircle; "><li class="listitem" style="list-style-type: circle"><p>Not Before</p></li><li class="listitem" style="list-style-type: circle"><p>Not After</p></li></ul></div></li></ul></div><p>
+			</p><div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: opencircle; "><li class="listitem" style="list-style-type: circle"><p>Subject</p></li></ul></div><p>
+			</p><div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: opencircle; "><li class="listitem" style="list-style-type: circle"><p>Subject Public Key Info</p></li><li class="listitem" style="list-style-type: circle"><div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: opencircle; "><li class="listitem" style="list-style-type: circle"><p>Public Key Algorithm</p></li><li class="listitem" style="list-style-type: circle"><p>RSA Public Key</p></li></ul></div></li></ul></div><p>
+			</p><div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: opencircle; "><li class="listitem" style="list-style-type: circle"><p>Extensions</p></li></ul></div><p>
+		</p></li><li class="listitem" style="list-style-type: circle"><p>Certificate Signature Algorithm</p></li><li class="listitem" style="list-style-type: circle"><p>Certificate Signature</p></li></ul></div><div class="sect3"><div class="titlepage"><div><div><h4 class="title"><a name="idm574"></a>6.5.1. Verifying a Digital Certificate</h4></div></div></div><p>To verify a X.509 Certificate use the following command</p><pre class="screen"><span class="command"><strong># openssl verify <code class="filename">server.crt</code></strong></span>
+server.crt: OK </pre><p>Where <code class="filename">server.crt</code> is the name of the file that contains the Digital Certificate</p></div><div class="sect3"><div class="titlepage"><div><div><h4 class="title"><a name="viewingdigitcertcontent"></a>6.5.2. Viewing the contents of a Digital Certificate</h4></div></div></div><p>The contents of a Digital Certificate can be viewed by using the <span class="command"><strong># openssl x509</strong></span> command as follows:</p><pre class="screen"><span class="command"><strong># openssl x509 -text -in <code class="filename">server.crt</code></strong></span>
+Certificate:
+    Data:
+        Version: 3 (0x2)
+        Serial Number: 312312312 (0x0)
+        Signature Algorithm: md5WithRSAEncryption
+	Issuer: C=US, O=GTE Corporation, CN=GTE CyberTrust Root
+        Validity
+            Not Before: Feb  8 03:25:50 2000 GMT
+            Not After : Feb  8 03:25:50 2001 GMT
+	    Subject: C=US, ST=New York, L=Pelham, O=xml-dev, OU=web, CN=www.xml-dev.com/Email=saqib@xml-dev.com
+        Subject Public Key Info:
+            Public Key Algorithm: rsaEncryption
+            RSA Public Key: (1024 bit)
+                Modulus (1024 bit):
+		............
+		............
+                Exponent: 65537 (0x10001)
+    Signature Algorithm: md5WithRSAEncryption
+    	............
+	............
+
+	</pre></div><div class="sect3"><div class="titlepage"><div><div><h4 class="title"><a name="idm589"></a>6.5.3. Modifying the httpd.conf to Install the Certificates</h4></div></div></div><p> You will need to place this certificate on the server, and tell Apache where to find it.</p><p>For this example, the Private Key is placed in the <code class="filename">/usr/local/apache2/conf/ssl.key/</code> directory, and the Sever Certificate is placed in the <code class="filename">/usr/local/apache2/conf/ssl.crt/</code>.</p><p>Copy the file received from the Certification to a file called <code class="filename">server.crt</code> in the <code class="filename">/usr/local/apache2/conf/ssl.crt/</code>.</p><p>And place the private.key generated in the previous step in the <code class="filename">/usr/local/apache2/conf/ssl.key/</code></p><p>Then modify the <code class="filename">/usr/local/apache2/conf/ssl.conf</code> to point to the correct Private Key and Server Certificate files:</p><pre class="screen">
+#   Server Certificate:
+#   Point SSLCertificateFile at a PEM encoded certificate.  If
+#   the certificate is encrypted, then you will be prompted for a
+#   pass phrase.  Note that a kill -HUP will prompt again.  Keep
+#   in mind that if you have both an RSA and a DSA certificate you
+#   can configure both in parallel (to also allow the use of DSA
+#   ciphers, etc.)
+<span class="strong"><strong>SSLCertificateFile /usr/local/apache2/conf/ssl.crt/server.crt</strong></span>
+#SSLCertificateFile /usr/local/apache2/conf/ssl.crt/server-dsa.crt
+
+#   Server Private Key:
+#   If the key is not combined with the certificate, use this
+#   directive to point at the key file.  Keep in mind that if
+#   you've both a RSA and a DSA private key you can configure
+#   both in parallel (to also allow the use of DSA ciphers, etc.)
+<span class="strong"><strong>SSLCertificateKeyFile /usr/local/apache2/conf/ssl.key/private.key</strong></span>
+#SSLCertificateKeyFile /usr/local/apache2/conf/ssl.key/server-dsa.key
+</pre></div></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="idm605"></a>6.6. Removing passphrase from the RSA Private Key</h3></div></div></div><p>RSA Private Key stored on the webserver is usually encrypted, and you need a passphrase to parse the file. That is why you
+are prompted for a passphrase when start Apache with modssl:</p><p>
+</p><pre class="screen">
+<span class="command"><strong># apachectl startssl</strong></span>
+<span class="command"><strong>Apache/1.3.23 mod_ssl/2.8.6 (Pass Phrase Dialog)</strong></span>
+<span class="command"><strong>Some of your private key files are encrypted for security reasons.</strong></span>
+<span class="command"><strong>In order to read them you have to provide us with the pass phrases.</strong></span>
+<span class="command"><strong>Server your.server.dom:443 (RSA)</strong></span>
+<span class="command"><strong>Enter pass phrase:</strong></span>
+</pre><p>
+</p><p>Encrypting the RSA Private Key is very important. If a cracker gets hold of your "Unencrypted RSA Private Key" he/she can easily impersonate your webserver. If the Key is encrypted, the cracker can not do anything without brute forcing the passphrase. Use of a strong (ie: long) passphrase is encouraged. </p><p>However encrypting the Key can sometimes be nuisance, since you will be prompted for a passphrase everytime you start the web-server. Especially if you are using rc scripts to start the webserver at boot time. The prompt for a passphrase will stop the boot process, waiting for your input.</p><p>You can get rid of the passphrase prompt easily by decrypting the Key. However make sure that no one can hold of this Key. I would 
+recommend Hardening and Securing guidelines be followed before decrypting the Key on the webserver.</p><p>To decrypt the Key:</p><p>First make a copy of the encrypted key</p><pre class="screen"><span class="command"><strong># cp server.key server.key.cryp</strong></span></pre><p>Then re-write the key with encryption. You will be prompted for the original encrypted Key passphrase</p><pre class="screen"><span class="command"><strong># /usr/local/ssl/bin/openssl rsa -in server.key.cryp -out server.key</strong></span>
+read RSA key
+Enter PEM pass phrase:
+writing RSA key
+</pre><p>
+</p><p>
+One way to secure the decrypted Private Key is to make readable only by the root:
+</p><pre class="screen">
+<span class="command"><strong># chmod 400 server.key</strong></span>
+</pre><p>
+</p></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="idm631"></a>6.7. SSL Performance Tuning</h3></div></div></div><div class="sect3"><div class="titlepage"><div><div><h4 class="title"><a name="idm633"></a>6.7.1. Inter Process SSL Session Cache</h4></div></div></div><p>Apache uses a multi-process model, in which all the request are NOT handled by the same process. This causes the SSL Session Information to be lost when a Client makes multiple requests. Multiple SSL HandShakes causes lot of overhead on the webserver and the client. To avoid this, SSL Session Information must be stored in a inter-process Session Cache, allowing all the  processes to have access to the handshake information. SSLSessionCache Directive the in <code class="filename">/usr/local/apache2/conf/ssl.conf</code> file can be used to specify the location of the SSL Session Cache:</p><pre class="screen">
+SSLSessionCache        shmht:logs/ssl_scache(512000)
+#SSLSessionCache        shmcb:logs/ssl_scache(512000)
+#SSLSessionCache         dbm:logs/ssl_scache
+SSLSessionCacheTimeout  300
+</pre><p>Using dbm:logs/ssl_scache creates the Cache as DBM hashfile on the local disk.</p><p>Using shmht:logs/ssl_scache(512000) creates the Cache in Shared Memory Segment</p><div class="note" style="margin-left: 0.5in; margin-right: 0.5in;"><h3 class="title">shmht vs shmcb</h3><p>shmht: uses a Hash Table to Cache the SSL HandShake Information in the Shared Memory</p><p>shmht: uses a Cyclic Buffer to Cache the SSL HandShake Informationin the Shared Memory</p></div><div class="note" style="margin-left: 0.5in; margin-right: 0.5in;"><h3 class="title">Note:</h3><p>Not all platforms/OS support creation of Hash table in the Shared Memory. So dbm:logs/ssl_scache must be used instead</p></div></div><div class="sect3"><div class="titlepage"><div><div><h4 class="title"><a name="idm647"></a>6.7.2. Verifying SSLSession Cache</h4></div></div></div><p>To verify if the SSLSessionCache is working properly, you can use the <span class="command"><strong>openssl</strong></span> utility with the <span class="command"><strong>-reconnect</strong></span> as follows:</p><pre class="screen">
+<span class="command"><strong># openssl s_client -connect your.server.dom:443 -state  -reconnect</strong></span>
+
+CONNECTED(00000003)
+.......
+.......
+Reused, TLSv1/SSLv3, Cipher is EDH-RSA-DES-CBC3-SHA
+SSL-Session:
+.....
+Reused, TLSv1/SSLv3, Cipher is EDH-RSA-DES-CBC3-SHA
+SSL-Session:
+.....
+Reused, TLSv1/SSLv3, Cipher is EDH-RSA-DES-CBC3-SHA
+SSL-Session:
+.....
+Reused, TLSv1/SSLv3, Cipher is EDH-RSA-DES-CBC3-SHA
+SSL-Session:
+.....
+Reused, TLSv1/SSLv3, Cipher is EDH-RSA-DES-CBC3-SHA
+SSL-Session:
+.....
+</pre><p><span class="command"><strong>-reconnect</strong></span> forces the s_client to connect to the server 5 times using the same SSL session ID. You should see 5 attempts of Reusing the same Session-ID as shown above. </p></div></div></div><div class="appendix"><h2 class="title" style="clear: both"><a name="idm656"></a>A. HTTP/HTTPS Benchmarking tools</h2><p>The following is a list of some of the OpenSource BenchMarking tools for WebServers</p><div class="orderedlist"><ol class="orderedlist" type="i"><li class="listitem"><p><a class="ulink" href="http://distcache.sourceforge.net/" target="_top">SSLswamp</a> - For stress-testing/benchmarking connction to a SSL enable server</p></li><li class="listitem"><p><a class="ulink" href="http://www.hpl.hp.com/personal/David_Mosberger/httperf.html" target="_top">HTTPERF</a> - A Tool for Measuring Web Server Performance</p></li><li class="listitem"><p><a class="ulink" href="http://httpd.apache.org/docs-2.1/en/programs/ab.html" target="_top">ab</a> - Apache HTTP server benchmarking tool</p></li></ol></div></div><div class="appendix"><h2 class="title" style="clear: both"><a name="idm669"></a>B. Hardware based SSL encryption solutions</h2><p>The following is a Hardware Based SSL encryption solution available:</p><div class="orderedlist"><ol class="orderedlist" type="i"><li class="listitem"><p><a class="ulink" href="http://www.ncipher.com" target="_top">CHIL (Cryptographic Hardware Interface Library)</a>  by nCipher</p></li><li class="listitem"><p><a class="ulink" href="http://httpd.apache.org/docs-2.1/en/programs/ab.html" target="_top">ab</a> - Apache HTTP server benchmarking tool</p></li></ol></div></div><div class="appendix"><h2 class="title" style="clear: both"><a name="idm679"></a>C. Certificate Authorities</h2><p>The following is list of Certificate Authorities that are trusted by the various browsers:</p><div class="orderedlist"><ol class="orderedlist" type="i"><li class="listitem"><p><a class="ulink" href="http://www.baltimore.com/" target="_top">Baltimore</a></p></li><li class="listitem"><p><a class="ulink" href="http://www.entrust.com/" target="_top">Entrust</a></p></li><li class="listitem"><p><a class="ulink" href="http://www.globalsign.net/" target="_top">GeoTrust</a></p></li><li class="listitem"><p><a class="ulink" href="http://www.thawte.com" target="_top">Thawte</a></p></li><li class="listitem"><p><a class="ulink" href="http://www.trustcenter.de/" target="_top">TrustCenter</a></p></li></ol></div></div><div class="glossary"><div class="titlepage"><div><div><h2 class="title"><a name="glossary"></a>Glossary of PKI Terms</h2></div></div></div><div class="glossdiv"><h3 class="title">A</h3><dl><dt><a name="asymmetric_crypt"></a><span class="glossterm">Asymmetric Cryptography</span></dt><dd class="glossdef"><p>In this Cryptography a Key Pair - Private and Public Key is used. Private Key is kept secret and the Public Key is Widely distributed.</p></dd></dl></div><div class="glossdiv"><h3 class="title">C</h3><dl><dt><a name="certificate"></a><span class="glossterm">Certificate</span></dt><dd class="glossdef"><p>A Data Record that contains the information as defined in the <a class="link" href="#InstallingServerCert" title="6.5. Installing Server Private Key, and Server Certificate">X.509 Format</a>. </p></dd><dt><a name="ca"></a><span class="glossterm">Certificate Authority (CA)</span></dt><dd class="glossdef"><p>Issuer of the Digital Certificate. Also validates the Identity of the End-Entity that posseses the Digital Certificate.</p></dd><dt><a name="csr"></a><span class="glossterm">Certificate Signing Request (CSR)</span></dt><dd class="glossdef"><p>Certificate Signing Request (CSR) is what you send to a Certifiate Authority (CA) to get enrolled. A CSR contains the Public Key of the End-Entity that is a requesting the Digital Certificate.</p></dd><dt><a name="cn"></a><span class="glossterm">Common Name (CN)</span></dt><dd class="glossdef"><p>Common Name is the name of the End-Entity e.g. Saqib Ali. If the End-Entity is a WebServer the CN is the Fully Qualified Domain Name (FQDN) of the WebServer</p></dd></dl></div><div class="glossdiv"><h3 class="title">D</h3><dl><dt><a name="digitcert"></a><span class="glossterm">Digital Certificate</span></dt><dd class="glossdef"><p>A certificate that binds a Public Key to a Subject (end-entity). This certificate also contains other indentifying information about the subject as defined in the <a class="link" href="#InstallingServerCert" title="6.5. Installing Server Private Key, and Server Certificate">X.509 Format</a>. It is signed by Issuing CA, using CA's pivate key. e.g. of a <a class="link" href="#viewingdigitcertcontent" title="6.5.2. Viewing the contents of a Digital Certificate">digital certificate</a></p></dd><dt><a name="digitsign"></a><span class="glossterm">Digital Signature</span></dt><dd class="glossdef"><p>A Digital Signature is created by signing the Message Digest (Message Hash) using the Private Key. It ensures the Identity of the Sender, and the Integrity of the Data.</p></dd></dl></div><div class="glossdiv"><h3 class="title">E</h3><dl><dt><a name="end_entity"></a><span class="glossterm">End-Entity</span></dt><dd class="glossdef"><p>An entity that participates in the PKI. Usually a Server, Service, Router, or a Person. A CA is not a End-Entity. An RA is an End-Entity to the CA</p></dd></dl></div><div class="glossdiv"><h3 class="title">H</h3><dl><dt><a name="hash"></a><span class="glossterm">Hash</span></dt><dd class="glossdef"><p>A hash is Hexadecimal number generated from a string of text such that, no two different strings can produce the same hash.</p></dd><dt><a name="hmac"></a><span class="glossterm">HMAC: Keyed Hashing for Message Authentication</span></dt><dd class="glossdef"><p>HMAC is an implementation of Message Authentication Code Algorithm.</p></dd></dl></div><div class="glossdiv"><h3 class="title">M</h3><dl><dt><a name="mac"></a><span class="glossterm">Message Authentication Code</span></dt><dd class="glossdef"><p>Similar to a Message Digest (Hash/Fingerprint), except the Shared Secret Key is used in the process of calculating the Hash. Since a shared secret key is used, an attacker can not change the Message Digest. However the shared secret key has to be first communicated to the participating entities, unlike Digital Signature where Message Digest is signed using the Private Key. HMAC is an example of a Message Authentication Code Algorithm.</p></dd><dt><a name="md5"></a><span class="glossterm">Message Digest 5 - MD5</span></dt><dd class="glossdef"><p>Message Digest 5 (MD5) is a 128-bit one-way hash function</p></dd></dl></div><div class="glossdiv"><h3 class="title">P</h3><dl><dt><a name="private_key"></a><span class="glossterm">Private Key</span></dt><dd class="glossdef"><p>Private Key is the Key in Asymmetric Cryptography that is kept secret by the owner (End-Entity). Can be used for encryption or decryption</p></dd><dt><a name="public_key"></a><span class="glossterm">Public Key</span></dt><dd class="glossdef"><p>Public Key is the Key in Asymmetric Cryptography that is widely distributed. Can be used for encryption or decryption</p></dd><dt><a name="pki"></a><span class="glossterm">Public Key Infrastructure (PKI)</span></dt><dd class="glossdef"><p>Public Key Infrastructure</p></dd></dl></div><div class="glossdiv"><h3 class="title">S</h3><dl><dt><a name="sha1"></a><span class="glossterm">SHA-1: Secure Hash Algorithm</span></dt><dd class="glossdef"><p>Secure Hash Algorithm (SHA-1) is a 160-bit one-way hash function. Maximum message is 2^64 bits.</p></dd><dt><a name="sslayer"></a><span class="glossterm">Secure Socket Layer (SSL)</span></dt><dd class="glossdef"><p>Secure Socket Layer (SSL) is a security protocol that provides authentication (Digital Certificate), confidentiality (encryption), and data integrity (Message Digest - MD5, SHA etc).</p></dd><dt><a name="symmetric_crypt"></a><span class="glossterm">Symmetric Cryptography</span></dt><dd class="glossdef"><p>In this cryptography the message the encrypted and decrypted by the same key. (((n^2-n))/2) keys are required for n users who want to participate in this system of cryptography. </p></dd></dl></div></div></div></body></html>

@@ -1,0 +1,373 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1"><title>Debian and Windows Shared Printing mini-HOWTO</title><link rel="stylesheet" type="text/css" href="style.css"><meta name="generator" content="DocBook XSL Stylesheets V1.79.1"></head><body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF"><div class="article"><div class="titlepage"><div><div><h2 class="title"><a name="linux_windows_printing"></a>Debian and Windows Shared Printing mini-HOWTO</h2></div><div><div class="author"><h3 class="author"><span class="firstname">Ian</span> <span class="surname">Ward</span></h3><div class="affiliation"><div class="address"><p><br>
+<code class="email">&lt;<a class="email" href="mailto:ian%20at%20excess%20dot%20org">ian at excess dot org</a>&gt;</code><br>
+    </p></div></div></div></div><div><p class="pubdate">2005-07-01</p></div><div><div class="revhistory"><table style="border-style:solid; width:100%;" summary="Revision History"><tr><th align="left" valign="top" colspan="3"><b>Revision History</b></th></tr><tr><td align="left">Revision 1.6</td><td align="left">2005-07-01</td><td align="left">iw</td></tr><tr><td align="left" colspan="3">Clarified hpijs requirement, added lpinfo and lpoptions commands</td></tr><tr><td align="left">Revision 1.5</td><td align="left">2005-06-19</td><td align="left">iw</td></tr><tr><td align="left" colspan="3">Added note about becoming root to execute commands</td></tr><tr><td align="left">Revision 1.4</td><td align="left">2004-01-05</td><td align="left">iw</td></tr><tr><td align="left" colspan="3">Wording corrections</td></tr><tr><td align="left">Revision 1.3</td><td align="left">2003-11-18</td><td align="left">iw</td></tr><tr><td align="left" colspan="3">Removed incorrect lpadmin -h usage</td></tr><tr><td align="left">Revision 1.2</td><td align="left">2003-10-03</td><td align="left">iw</td></tr><tr><td align="left" colspan="3">Note about woody and gs-esp, conflict with bash's enable command and fix for XP/2000 clients</td></tr><tr><td align="left">Revision 1.1</td><td align="left">2003-06-26</td><td align="left">iw</td></tr><tr><td align="left" colspan="3">Added passwords on windows shared printers, Corrections</td></tr><tr><td align="left">Revision 1.0</td><td align="left">2003-05-15</td><td align="left">tmm</td></tr><tr><td align="left" colspan="3">Initial release, reviewed by LDP</td></tr><tr><td align="left">Revision 0.8</td><td align="left">2003-04-11</td><td align="left">iw</td></tr><tr><td align="left" colspan="3">converted from LaTeX</td></tr></table></div></div></div><hr></div><div class="toc"><p><b>Table of Contents</b></p><dl class="toc"><dt><span class="sect1"><a href="#introduction">1. Introduction</a></span></dt><dt><span class="sect1"><a href="#getting_started">2. Getting Started</a></span></dt><dd><dl><dt><span class="sect2"><a href="#linuxprintingcomponents">2.1. Linux Printing Components</a></span></dt><dt><span class="sect2"><a href="#packages">2.2. Required Packages</a></span></dt><dt><span class="sect2"><a href="#basicprconfig">2.3. CUPS Local Printer Configuration</a></span></dt><dt><span class="sect2"><a href="#basics">2.4. Linux Printing Basics</a></span></dt></dl></dd><dt><span class="sect1"><a href="#printing_to_windows">3. Printing To Windows PCs</a></span></dt><dd><dl><dt><span class="sect2"><a href="#to_windows">3.1. Connecting To Windows</a></span></dt><dt><span class="sect2"><a href="#to_windows_cupsconfig">3.2. CUPS Configuration</a></span></dt></dl></dd><dt><span class="sect1"><a href="#sharing_with_windows">4. Sharing Printers With Windows PCs</a></span></dt><dd><dl><dt><span class="sect2"><a href="#sharing_basics">4.1. Sharing Basics</a></span></dt><dt><span class="sect2"><a href="#share_samba_config">4.2. Samba Configuration</a></span></dt><dt><span class="sect2"><a href="#share_cups_config">4.3. CUPS Configuration</a></span></dt></dl></dd><dt><span class="sect1"><a href="#troubleshooting">5. Troubleshooting</a></span></dt><dd><dl><dt><span class="sect2"><a href="#connect_failure">5.1. Failing To Connect To Windows Printers</a></span></dt><dt><span class="sect2"><a href="#other_failure">5.2. Other Failures</a></span></dt></dl></dd><dt><span class="sect1"><a href="#license">6. License</a></span></dt></dl></div><div class="sect1"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="introduction"></a>1. Introduction</h2></div></div></div><p>
+   Debian GNU/Linux 
+   (<a class="ulink" href="http://www.debian.org" target="_top">http://www.debian.org</a>)
+is the premier volunteer-supported Linux distribution.
+Unfortunately, setting up printers in Debian can be difficult. Also,
+simple step-by-step instructions for sharing printers between Windows
+and Linux using the latest tools are hard to find. This HOWTO was 
+written to address both problems.
+</p><p>
+This HOWTO will demonstrate how to use command-line tools to configure your
+Debian system for printing. It will explain how to send documents
+from Linux to Windows printers and how to share Linux printers with
+Windows PCs. Some troubleshooting examples are also given.
+</p><p>
+The primary url for this document is
+<a class="ulink" href="http://excess.org/docs/linux_windows_printing.html" target="_top">
+http://excess.org/docs/linux_windows_printing.html</a>.
+The source Docbook/XML and EPS files for this document may be downloaded from 
+<a class="ulink" href="http://excess.org/docs/src/" target="_top">
+http://excess.org/docs/src/</a>.
+Please forward bug reports, corrections and suggestions regarding this document
+to ian at excess dot org.  
+</p></div><div class="sect1"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="getting_started"></a>2. Getting Started</h2></div></div></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="linuxprintingcomponents"></a>2.1. Linux Printing Components</h3></div></div></div><p>
+The main components we will be using include:
+</p><div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem"><p>
+CUPS
+</p><p>
+The Common UNIX Printing System 
+(<a class="ulink" href="http://www.cups.org" target="_top">http://www.cups.org</a>)
+is a print spooler and a set
+of support programs for using and administering printers.
+</p></li><li class="listitem"><p>
+Samba
+</p><p>
+Samba 
+(<a class="ulink" href="http://www.samba.org" target="_top">http://www.samba.org</a>)
+is software that allows non-Windows computers to act
+like Windows computers on a network by implementing Windows file
+and printer sharing protocols.
+</p></li><li class="listitem"><p>
+Printer Drivers
+</p><p>
+LinuxPrinting.org
+(<a class="ulink" href="http://www.linuxprinting.org" target="_top">http://www.linuxprinting.org</a>)
+offers the largest number of printer drivers
+and maintains a database of printers supported under Linux. You must
+download a printer driver for each model of printer you want to use 
+in Linux.  A printer driver consists of a PPD file and a filter
+program, or only a PPD file for PostScript printers.
+</p></li></ul></div><p>
+</p></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="packages"></a>2.2. Required Packages</h3></div></div></div><p>
+All of the required programs and libraries are part of the standard
+Debian archive. You may download and install these packages with the
+usual Debian packaging tools. The following is a list of packages
+you need:
+</p><div class="variablelist"><dl class="variablelist"><dt><span class="term">cupsys</span></dt><dd><p>CUPS server</p></dd><dt><span class="term">cupsys-bsd</span></dt><dd><p>CUPS BSD commands</p></dd><dt><span class="term">cupsys-client</span></dt><dd><p>CUPS client programs</p></dd><dt><span class="term">foomatic-bin</span></dt><dd><p>LinuxPrinting.org printer support programs</p></dd><dt><span class="term">samba</span></dt><dd><p>Samba SMB/CIFS server for UNIX</p></dd><dt><span class="term">smbclient</span></dt><dd><p>Samba SMB/CIFS client for UNIX</p></dd><dt><span class="term">gs-esp</span></dt><dd><p>ESP Ghostscript
+(<a class="ulink" href="http://www.cups.org/ghostscript.php" target="_top">
+http://www.cups.org/ghostscript.php</a>)</p><p>Not available as a Debian GNU/Linux 3.0 (a.k.a. woody) package,
+use <span class="quote">&#8220;<span class="quote">gs</span>&#8221;</span> instead.</p></dd><dt><span class="term">a2ps</span></dt><dd><p>GNU A2PS
+(<a class="ulink" href="http://www.gnu.org/software/a2ps/" target="_top">
+http://www.gnu.org/software/a2ps/</a>)</p></dd></dl></div><p>
+The following commands will install these packages.
+You will have to become root or use <span class="command"><strong>sudo</strong></span> to execute these commands:
+</p><p>
+</p><pre class="programlisting">apt-get update
+apt-get install cupsys cupsys-bsd cupsys-client foomatic-bin samba smbclient gs-esp a2ps
+</pre><p>
+</p><p>
+Additional packages may be required for specific printers. For example,
+the <span class="emphasis"><em>hpijs</em></span> package must be installed for many HP InkJet, 
+DeskJet and LaserJet printers to function properly. The PPD files for these 
+printers are identified by the string <code class="filename">hpijs</code> in their 
+filenames.
+</p></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="basicprconfig"></a>2.3. CUPS Local Printer Configuration</h3></div></div></div><p>
+The <span class="command"><strong>lpadmin</strong></span> command is used to configure printers. The
+following is an example of setting up a laser printer with CUPS.
+You will have to become root or use <span class="command"><strong>sudo</strong></span> to execute these commands:
+</p><pre class="programlisting">/usr/sbin/lpadmin -p Laser -v parallel:/dev/lp0 -P /root/laser.ppd
+/usr/bin/enable Laser
+/usr/sbin/accept Laser
+/usr/sbin/lpadmin -d Laser
+</pre><p>
+Please note that bash has a builtin command called
+<span class="command"><strong>enable</strong></span>, so bash users must use the full path 
+(<span class="command"><strong>/usr/bin/enable</strong></span>) to enable printers.
+</p><p>
+The first command creates a new printer called <span class="quote">&#8220;<span class="quote">Laser</span>&#8221;</span>
+that is connected to the first parallel port and is using the PPD 
+file <code class="filename">/root/laser.ppd</code>.
+<span class="quote">&#8220;<span class="quote">Laser</span>&#8221;</span> is then enabled and told to accept jobs with 
+the <span class="command"><strong>enable</strong></span> and <span class="command"><strong>accept</strong></span> commands.
+The last command sets <span class="quote">&#8220;<span class="quote">Laser</span>&#8221;</span> as the default printer. 
+</p><p>
+If your printer is connected to a USB port or if you do not know the 
+correct device-uri for your printer try running 
+<span class="command"><strong>/usr/sbin/lpinfo -v</strong></span> to get a list of available
+printer devices.
+</p><p>
+Make sure your printer's page size and other options are set correctly
+by running <span class="command"><strong>/usr/bin/lpoptions -l</strong></span>.
+More detailed information about printer configuration
+is available in the CUPS documentation.
+</p></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="basics"></a>2.4. Linux Printing Basics</h3></div></div></div><div class="figure"><a name="printlocal"></a><p class="title"><b>Figure 1. Printing Locally</b></p><div class="figure-contents"><div><img src="printing_basics.png" alt="Printing Locally"></div></div></div><br class="figure-break"><p>
+Documents are spooled by using either <span class="command"><strong>lpr</strong></span> or
+<span class="command"><strong>lp</strong></span> followed
+by the file name. You may view the printer queue and check the printer
+status with the command <span class="command"><strong>lpstat -o</strong></span> or 
+<span class="command"><strong>lpstat -p</strong></span>. To cancel a print job use either
+<span class="command"><strong>cancel</strong></span> or <span class="command"><strong>lprm</strong></span> followed by the job id.
+</p><p>
+The CUPS spooler daemon is called <span class="emphasis"><em>cupsd</em></span>. 
+It converts documents
+to PostScript, then converts them to a format native to the printer
+<a class="xref" href="#printlocal" title="Figure 1. Printing Locally">Figure 1, &#8220;Printing Locally&#8221;</a>. Printers that do not understand PostScript
+use a rasterized, or bitmap, format for documents. Rasterized formats
+can be much larger than the original PostScript, and will take longer
+to send to the printer.
+</p><p>
+Filters are programs used to convert documents from one format to
+another. The CUPS spooler will do its best to find a suitable filter
+for the documents you send. If no filter suitable for converting your
+document is installed you will receive an error similar to <code class="computeroutput">lpr:
+unable to print file: client-error-document-format-not-supported.</code>
+</p><p>
+Many applications do not include filters for their documents formats.
+Documents created with these applications can only be printed from
+within the application itself, unless the document is exported to
+PostScript or another standard format.
+</p></div></div><div class="sect1"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="printing_to_windows"></a>3. Printing To Windows PCs</h2></div></div></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="to_windows"></a>3.1. Connecting To Windows</h3></div></div></div><div class="figure"><a name="netprint"></a><p class="title"><b>Figure 2. Network Printing</b></p><div class="figure-contents"><div><img src="to_windows.png" alt="Network Printing"></div></div></div><br class="figure-break"><p>
+SMB and CIFS are the Windows file and printer sharing protocols.
+We use Samba to speak to the Windows PCs using these protocols. Before
+configuring CUPS we should make sure we can connect to the Windows
+PC with <span class="command"><strong>smbclient</strong></span>, the Samba SMB/CIFS client
+<a class="xref" href="#netprint" title="Figure 2. Network Printing">Figure 2, &#8220;Network Printing&#8221;</a>. 
+</p><p>
+The following is an example of creating a connection to a Windows
+PC:
+
+</p><pre class="programlisting">/usr/bin/smbclient -L rice -U fred
+
+added interface ip=10.6.7.234 bcast=10.6.7.255 nmask=255.255.255.0
+Got a positive name query response from 10.6.7.8 ( 10.6.7.8 )
+Password: (not shown)
+
+Sharename  Type  Comment
+PRINTER$   Disk
+INKJET     Printer
+STUFF      Disk
+IPC$       IPC    Remote Inter Process Communication 
+</pre><p>
+</p><p>
+The command shown asks for a list of shares on a Windows PC
+named <span class="quote">&#8220;<span class="quote">rice</span>&#8221;</span>, with the user id <span class="quote">&#8220;<span class="quote">fred</span>&#8221;</span>.
+The result shows a printer named <span class="quote">&#8220;<span class="quote">INKJET</span>&#8221;</span>. 
+</p><p>
+If Windows naming service is unavailable you will need to specify
+the IP address of the Windows PC with the <code class="option">-I</code> switch as in:
+
+</p><pre class="programlisting">/usr/bin/smbclient -I 10.6.7.8 -L rice -N
+</pre><p>
+</p><p>
+For more information see the Samba documentation about 
+<span class="command"><strong>smbclient</strong></span> usage.
+</p></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="to_windows_cupsconfig"></a>3.2. CUPS Configuration</h3></div></div></div><p>
+Once you have found a Windows printer you may configure CUPS. First
+verify that your installation of CUPS has the smb backend with the
+following command:
+</p><pre class="programlisting">ls -l /usr/lib/cups/backend/smb
+</pre><p>
+</p><p>
+If this file does not exist create it by issuing the following:
+</p><pre class="programlisting">ln -s `which smbspool` /usr/lib/cups/backend/smb
+</pre><p>
+</p><p>
+The following is an example of setting up the printer shown above.  
+You will have to become root or use <span class="command"><strong>sudo</strong></span> to execute these commands:
+</p><pre class="programlisting">/usr/sbin/lpadmin -p RicePrinter -v smb://fred:mypass@rice/INKJET -P /root/inkjet.ppd
+/usr/bin/enable RicePrinter
+/usr/sbin/accept RicePrinter
+/usr/sbin/lpadmin -d RicePrinter
+</pre><p>
+</p><p>
+As mentioned above, bash has a builtin command called
+<span class="command"><strong>enable</strong></span>, so bash users must use the full path 
+(<span class="command"><strong>/usr/bin/enable</strong></span>) to enable printers.
+</p><p>
+The <span class="quote">&#8220;<span class="quote">lpadmin</span>&#8221;</span> command sets up a the shared Windows printer by
+giving the username, password, netbios name and printer name as a single
+parameter.
+See <a class="xref" href="#basicprconfig" title="2.3. CUPS Local Printer Configuration">Section 2.3, &#8220;CUPS Local Printer Configuration&#8221;</a> for a further explanation of the commands
+above. 
+</p><p>
+Your printer is now ready to test. Send a file to the printer with
+the <span class="command"><strong>lp</strong></span> command followed by a filename, or 
+by printing a document from within an application.
+</p></div></div><div class="sect1"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="sharing_with_windows"></a>4. Sharing Printers With Windows PCs</h2></div></div></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="sharing_basics"></a>4.1. Sharing Basics</h3></div></div></div><div class="figure"><a name="printshare"></a><p class="title"><b>Figure 3. Printer Sharing</b></p><div class="figure-contents"><div><img src="from_windows.png" alt="Printer Sharing"></div></div></div><br class="figure-break"><p>
+Samba uses <span class="emphasis"><em>nmbd</em></span> and <span class="emphasis"><em>smbd</em></span> 
+daemons to share files and printers with Windows PCs. 
+<span class="emphasis"><em>nmbd</em></span> acts as a Windows naming service,
+broadcasting your computer's name to Windows PCs on the LAN. 
+<span class="emphasis"><em>smbd</em></span> accepts file and printer requests from 
+Windows PCs <a class="xref" href="#printshare" title="Figure 3. Printer Sharing">Figure 3, &#8220;Printer Sharing&#8221;</a>. 
+</p><p>
+You will need to download and install Windows printer drivers for
+each Linux printer you are sharing. Windows printer drivers can be
+found by searching the web site of your printer manufacturer. 
+</p></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="share_samba_config"></a>4.2. Samba Configuration</h3></div></div></div><p>
+If you are allowing anonymous access to your printer you will need
+to create a user account for remote print jobs:
+
+</p><pre class="programlisting">/usr/sbin/adduser --system --disabled-password smbprint
+</pre><p>
+</p><p>
+This command adds a user called <span class="quote">&#8220;<span class="quote">smbprint</span>&#8221;</span> to your system. Make
+sure there is enough disk space in <code class="filename">/home/smbprint</code>, the 
+<span class="quote">&#8220;<span class="quote">smbprint</span>&#8221;</span> user's home directory, to spool files. Check 
+that the <span class="quote">&#8220;<span class="quote">smbprint</span>&#8221;</span> user does not have permission on your 
+system to read or modify sensitive files and directories. If you have 
+configured CUPS to restrict printing to certain users on your system,
+you must allow the <span class="quote">&#8220;<span class="quote">smbprint</span>&#8221;</span> user to access printers you
+want to share.
+</p><p>
+The Samba configuration file is <code class="filename">/etc/samba/smb.conf</code>. 
+The following is an example configuration file set up to use CUPS with 
+the <span class="quote">&#8220;<span class="quote">smbprint</span>&#8221;</span> user:
+
+</p><pre class="programlisting">[global]
+  printcap name = cups  
+  printing = cups   
+  security = share   
+[printers]   
+  browseable = yes   
+  printable = yes   
+  public = yes   
+  create mode = 0700   
+  guest only = yes   
+  use client driver = yes
+  guest account = smbprint   
+  path = /home/smbprint   
+</pre><p>
+</p><p>
+Please note that this configuration will allow printing by anyone
+that can make a network connection to your computer and is
+not recommended for computers on untrusted networks, such as
+computers with direct Internet connections.  If you need to
+implement access control, set <span class="emphasis"><em>security = user</em></span> or 
+<span class="emphasis"><em>security = domain</em></span>
+and read the Samba man pages for further information.
+</p><p>
+Once you have added the above settings to your Samba configuration
+file you must restart Samba with the command:
+
+</p><pre class="programlisting">/etc/init.d/samba restart
+</pre><p>
+</p></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="share_cups_config"></a>4.3. CUPS Configuration</h3></div></div></div><p>
+Windows printer drivers format their output for the printer before
+sending it across the network.  You must configure CUPS to accept
+the pre-formatted output by uncommenting the following line from
+<code class="filename">/etc/cups/mime.convs</code>:
+</p><pre class="programlisting">application/octet-stream   application/vnd.cups-raw   0   -
+</pre><p>
+</p><p>
+Also uncomment the following line from 
+<code class="filename">/etc/cups/mime.types</code>:
+</p><pre class="programlisting">application/octet-stream
+</pre><p>
+</p><p>
+Now CUPS must be told to allow connections from other machines on
+the network.  Add these lines to <code class="filename">/etc/cups/cupsd.conf</code>:
+</p><pre class="programlisting">&lt;Location /printers&gt;
+ AuthType None
+ Order Deny,Allow
+ Deny From None
+ Allow From All
+&lt;/Location&gt;
+</pre><p>
+As in the Samba configuration, this configuration allows any computer
+to connect to your printers and is not recommended for computers on
+untrusted networks.  For information about tightening access control
+to your printers, see the <code class="filename">cupsd.conf</code> man page
+and the CUPS documentation.
+</p><p>
+Finally, restart cups with the following command:
+</p><pre class="programlisting">/etc/init.d/cupsys restart
+</pre><p>
+</p><p>
+Your Linux printers should now be shared to Windows PCs on the LAN.
+Follow the usual steps for adding a network printer to your Windows
+PCs, and remember to print a test page.
+</p></div></div><div class="sect1"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="troubleshooting"></a>5. Troubleshooting</h2></div></div></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="connect_failure"></a>5.1. Failing To Connect To Windows Printers</h3></div></div></div><p>
+When <span class="emphasis"><em>smbspool</em></span>, the 
+<span class="command"><strong>smbclient</strong></span> utility CUPS uses,
+fails to connect properly it emits error messages
+that are humorous but not very helpful. One such message is <code class="computeroutput">Unable
+to connect to SAMBA host: Success.</code> Another sign of connection failures
+is when documents seem to get stuck on the queue when printing to
+Windows printers.
+</p><p>
+View the most recent entries in the CUPS log with the following command:
+
+</p><pre class="programlisting">/usr/bin/tail /var/log/cups/error_log
+</pre><p>
+</p><p>
+If you see a message similar to <code class="computeroutput">cli_connect() failed...</code> then
+<span class="emphasis"><em>smbspool</em></span> could not find the Windows PC you are 
+trying to connect to. 
+Check the spelling of the Windows PC's host name. Check that the
+Windows PC is turned on and that its network connection is functioning
+properly. Make sure you can connect to it using 
+<span class="command"><strong>smbclient</strong></span> as shown in <a class="xref" href="#to_windows" title="3.1. Connecting To Windows">Section 3.1, &#8220;Connecting To Windows&#8221;</a>.
+</p><p>
+If you see a message similar to <code class="computeroutput">SMB tree connect failed: ERRSRV
+- ERRinvnetname</code> then <span class="command"><strong>smbclient</strong></span> connected 
+to the Windows PC
+but could not connect to the printer you requested. Check the spelling
+of the shared printer using <span class="command"><strong>smbclient</strong></span> as shown in 
+<a class="xref" href="#to_windows" title="3.1. Connecting To Windows">Section 3.1, &#8220;Connecting To Windows&#8221;</a>.
+</p></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="other_failure"></a>5.2. Other Failures</h3></div></div></div><p>
+Other failures include being unable to print to a local printer and
+having your print jobs disappear from the queue without being printed.
+You may also see vague error messages such as <code class="computeroutput">Child process 2384
+exited with status 32.</code>
+</p><p>
+Increase CUPS' logging level to <span class="quote">&#8220;<span class="quote">debug</span>&#8221;</span> to see more messages about
+what happened before the print job failed. 
+</p><div class="orderedlist"><ol class="orderedlist" type="1"><li class="listitem"><p>
+Open the main CUPS configuration file <code class="filename">/etc/cups/cupsd.conf</code> in
+a text editor.
+</p></li><li class="listitem"><p>
+Change the line that reads <span class="quote">&#8220;<span class="quote">LogLevel warn</span>&#8221;</span> to <span class="quote">&#8220;<span class="quote">LogLevel debug</span>&#8221;</span>.
+</p></li><li class="listitem"><p>
+Save the configuration file and exit the text editor.
+</p></li><li class="listitem"><p>Restart the CUPS server with the command:
+
+</p><pre class="programlisting">/etc/init.d/cupsys restart
+</pre><p>
+</p></li></ol></div><p>
+You can follow the CUPS log with the following command:
+
+</p><pre class="programlisting">/usr/bin/tail -f /var/log/cups/error_log
+</pre><p>
+</p><p>
+You should see a line that reads <code class="computeroutput">Scheduler shutting down due to
+SIGTERM</code>. This indicates that the CUPS server was stopped successfully. 
+</p><p>
+Send your print job again and watch for useful debug messages that
+appear. One example of a useful debug message is <code class="computeroutput">GNU Ghostscript
+7.05: Can't start ijs server 'hpijs'.</code> In this case the solution
+is to install the <span class="quote">&#8220;<span class="quote">hpijs</span>&#8221;</span> package.
+</p><p>
+If you cannot determine the cause of the failure, do an Internet search
+for key terms in error messages you see; it is likely that someone
+has solved your problem before. You may also try upgrading the packages
+listed in <a class="xref" href="#packages" title="2.2. Required Packages">Section 2.2, &#8220;Required Packages&#8221;</a> to their latest versions.
+</p></div></div><div class="sect1"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="license"></a>6. License</h2></div></div></div><p>
+Copyright © 2003 Ian Ward.
+</p><p>
+This manual is free software; you may redistribute it and/or modify it under
+the terms of the GNU General Public License as published by the Free Software 
+Foundation; either version 2, or (at your option) any later version.
+</p><p>
+This is distributed in the hope that it will be useful, but without any 
+warranty; without even the implied warranty of merchantability or fitness for
+a particular purpose. See the GNU General Public License for more details.
+</p><p>
+A copy of the GNU General Public License is available as 
+/usr/share/common-licenses/GPL in the Debian GNU/Linux distribution or on the
+World Wide Web at http://www.gnu.org/copyleft/gpl.html. You can also obtain it
+by writing to the Free Software Foundation, Inc., 59 Temple Place, Suite 330,
+Boston, MA 02111-1307, USA. 
+</p></div></div></body></html>

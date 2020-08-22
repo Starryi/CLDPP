@@ -1,0 +1,150 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1"><title>2. hotplug: input.rc</title><link rel="stylesheet" type="text/css" href="style.css"><meta name="generator" content="DocBook XSL Stylesheets V1.79.1"><link rel="home" href="index.html" title="XFree Local Multi-User HOWTO"><link rel="up" href="apc.html" title="Appendix C. Scripts"><link rel="prev" href="apcs01.html" title="1. hotplug: input.agent"><link rel="next" href="apcs03.html" title="3. hotplug &amp; XFree supporting event devices: input.agent"></head><body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF"><div class="navheader"><table width="100%" summary="Navigation header"><tr><th colspan="3" align="center">2. hotplug: <code class="filename">input.rc</code></th></tr><tr><td width="20%" align="left"><a accesskey="p" href="apcs01.html">Prev</a> </td><th width="60%" align="center">Appendix C. Scripts</th><td width="20%" align="right"> <a accesskey="n" href="apcs03.html">Next</a></td></tr></table><hr></div><div class="sect1"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="scripts_input-rc"></a>2. hotplug: <code class="filename">input.rc</code></h2></div></div></div><p><code class="filename">/etc/hotplug/input.rc</code></p><pre class="programlisting">
+#!/bin/bash
+#
+# input.rc	This loads handlers for those input devices
+#		that have drivers compiled in kernel
+#		Currently stopping is not supported
+#
+# Best invoked via /etc/init.d/hotplug or equivalent, with
+# writable /tmp, /usr mounted, and syslogging active.
+#
+
+
+PATH=/sbin:/bin:/usr/sbin:/usr/bin
+PROCDIR=/proc/bus/input
+
+# source function library
+if [ -f /etc/init.d/functions ]; then
+	. /etc/init.d/functions
+elif [ -f /etc/rc.d/init.d/functions ]; then
+	. /etc/rc.d/init.d/functions
+fi
+
+if [ -f /etc/hotplug/hotplug.functions ]; then
+	. /etc/hotplug/hotplug.functions
+fi
+
+input_reset_state () {
+
+    PRODUCT=
+    NAME=
+    PHYS=
+    EV=
+    KEY=
+    REL=
+    ABS=
+    MSC=
+    LED=
+    SND=
+    FF=
+
+}
+
+#
+# "COLD PLUG" ... load input handlers for compile-in input drivers loaded
+# before the OS could really handle hotplug, perhaps because /sbin or
+# $HOTPLUG_DIR wasn't available or /tmp wasn't writable.  When/if the
+# /sbin/hotplug program is invoked then, hotplug event notifications
+# get dropped.  To make up for such "cold boot" errors, we synthesize
+# all the hotplug events we expect to have seen already.  They can be
+# out of order, and some might be duplicates.
+#
+input_boot_events ()
+{
+    if [ ! -r $PROCDIR/devices ]; then
+	    echo $"** can't synthesize input events - $PROCDIR/devices missing"
+	    return
+    fi
+
+    ACTION=add
+    export ACTION
+
+    export PRODUCT NAME PHYS EV KEY REL ABS MSC LED SND FF
+    input_reset_state
+
+    declare line
+
+    #
+    # the following reads from /proc/bus/input/devices. It is inherently
+    # racy (esp. as this file may be changed by input.agent invocation)
+    # but so far input devices do not appear in sysfs
+    #
+    while read line; do
+	case "$line" in
+	    I:* )	# product ID
+		eval "${line#I: }"
+		PRODUCT=$Bus/$Vendor/$Product/$Version
+	    ;;
+	    N:* )	# name
+		eval "${line#N: }"
+		NAME="$Name"
+	    ;;
+	    P:* )	# Physical
+		eval "${line#P: }"
+		PHYS=$Phys
+	;;
+	    B:* )	# Controls supported
+		line="${line#B: }"
+		eval "${line%%=*}=\"${line#*=}\""
+	    ;;
+	    "" )	# End of block
+		debug_mesg "Invoking input.agent"
+		debug_mesg "PRODUCT=$PRODUCT"
+		debug_mesg "NAME=$NAME"
+		debug_mesg "PHYS=$PHYS"
+		debug_mesg "EV=$EV"
+		debug_mesg "KEY=$KEY"
+		debug_mesg "REL=$REL"
+		debug_mesg "ABS=$ABS"
+		debug_mesg "MSC=$MSC"
+		debug_mesg "LED=$LED"
+		debug_mesg "SND=$SND"
+		debug_mesg "FF=$FF"
+		/etc/hotplug/input.agent &lt; /dev/null
+		input_reset_state
+	    ;;
+	esac
+    done &lt; $PROCDIR/devices
+}
+
+
+# See how we were called.
+case "$1" in
+  start)
+	input_boot_events
+        ;;
+  stop)
+	: not supported currently
+        ;;
+  status)
+	echo $"INPUT status for kernel: " `uname -srm`
+	echo ''
+
+	echo "INPUT devices:"
+	if [ -r $PROCDIR/devices ]; then
+	    grep "^[INHP]:" $PROCDIR/devices
+	else
+	    echo "$PROCDIR/devices not available"
+	fi
+	echo ''
+
+	echo "INPUT handlers:"
+	if [ -r $PROCDIR/handlers ]; then
+	    cat $PROCDIR/handlers
+	else
+	    echo "$PROCDIR/handlers not available"
+	fi
+
+	echo ''
+
+	;;
+  restart)
+	# always invoke by absolute path, else PATH=$PATH:
+	$0 stop &amp;&amp; $0 start
+	;;
+  *)
+        echo $"Usage: $0 {start|stop|status|restart}"
+        exit 1
+esac
+
+      </pre></div><div class="navfooter"><hr><table width="100%" summary="Navigation footer"><tr><td width="40%" align="left"><a accesskey="p" href="apcs01.html">Prev</a> </td><td width="20%" align="center"><a accesskey="u" href="apc.html">Up</a></td><td width="40%" align="right"> <a accesskey="n" href="apcs03.html">Next</a></td></tr><tr><td width="40%" align="left" valign="top">1. hotplug: <code class="filename">input.agent</code> </td><td width="20%" align="center"><a accesskey="h" href="index.html">Home</a></td><td width="40%" align="right" valign="top"> 3. hotplug &amp; XFree supporting event devices: <code class="filename">input.agent</code></td></tr></table></div></body></html>

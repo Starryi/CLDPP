@@ -1,0 +1,203 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1"><title>2. CDROM driver (sr or scd)</title><link rel="stylesheet" type="text/css" href="style.css"><meta name="generator" content="DocBook XSL Stylesheets V1.79.1"><link rel="home" href="index.html" title="The Linux 2.4 SCSI subsystem HOWTO"><link rel="up" href="ch09.html" title="Chapter 9. Upper level drivers"><link rel="prev" href="ch09s01.html" title="1. Disk driver (sd)"><link rel="next" href="ch09s03.html" title="3. Tape driver (st)"></head><body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF"><div class="navheader"><table width="100%" summary="Navigation header"><tr><th colspan="3" align="center">2. CDROM driver (sr or scd)</th></tr><tr><td width="20%" align="left"><a accesskey="p" href="ch09s01.html">Prev</a> </td><th width="60%" align="center">Chapter 9. Upper level drivers</th><td width="20%" align="right"> <a accesskey="n" href="ch09s03.html">Next</a></td></tr></table><hr></div><div class="sect1"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="sr"></a>2. CDROM driver (sr or scd)</h2></div></div></div><p>
+CDROM and DVD drives (and WORM devices) are accessible via the sr upper 
+level device driver.
+While "sr" is the device driver name, "sr_mod" is its module name.
+The device file name is either <code class="filename">/dev/sr&lt;n&gt;</code> or
+<code class="filename">/dev/scd&lt;n&gt;</code>.
+</p><p>
+Following is a diagram illustrating the CDROM subsystem of which sr is a
+part:
+</p><div class="mediaobject"><img src="cdrom.jpg"><div class="caption"><p>
+      The architecture of the CD-ROM subsystem.
+      </p></div></div><p>
+This diagram glosses over some of the differences between the 
+protocol stacks. CDROM device names are <span class="emphasis"><em>not</em></span> maintained
+by the uniform CDROM layer but rather by each individual protocol stack.
+In the case of the SCSI subsystem, device names are maintained by the
+sr driver while the IDE subsystem maintains device names with its
+central "ide" driver (i.e. not by the ide-cd driver). USB and IEEE1394
+cd devices names are maintained by their respective stacks. This may
+partially explain why the <code class="filename">/dev/cdrom</code> is often a
+symbolic link to the appropriate subsystem's device name.
+</p><p>
+Two types of SCSI devices are accessible via the sr driver:
+</p><div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem"><p>CD-ROM devices (including DVD players)
+[SCSI peripheral device code is 5]</p></li><li class="listitem"><p>"Write-once read-multiple" devices which are known as WORMs.
+[SCSI peripheral device code is 4]</p></li></ul></div><p>
+</p><p>
+The sr driver is capable of recognizing 256 CDROM/DVD drives when it is 
+loaded at kernel boot time or later as a module. However, once it is 
+loaded, it will only recognize a fixed number of additional drives. The 
+number of additional drives that can be accommodated is set by the kernel
+configuration parameter CONFIG_SR_EXTRA_DEVS whose default value is 2.
+</p><p>
+People often use the <span class="command"><strong>dd</strong></span> command to read a data CDROM
+containing an iso9660 file system. If a count argument is not given then
+the <span class="command"><strong>dd</strong></span> command will read the number of 2048 byte sectors
+indicated by the SCSI Read Capacity command. Unfortunately this can 
+include unwritten (or "run out") sectors at the end of the image that can
+cause I/O errors. Use the <span class="command"><strong>isosize</strong></span> command (see its man 
+page) to find the true length of the iso9660 image and use that in the
+"count=" argument given to the <span class="command"><strong>dd</strong></span> command.
+</p><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="srbparams"></a>2.1. sr boot parameters</h3></div></div></div><p>
+None.
+</p></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="srmparams"></a>2.2. sr module parameters</h3></div></div></div><p>
+Doing a test to find out if a cdrom drive supports XA mode (mode 2) triggers
+firmware bugs on some drives. Consequently the check for XA mode support is
+turned off by default. The following module parameter is provided:
+</p><pre class="programlisting">
+    xa_test=&lt;0|1&gt;
+</pre><p>
+to override the default. [Currently there seems to be no way to turn on
+XA mode testing when the sr driver is built into the kernel.]
+</p></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="srproc"></a>2.3. sr proc interface</h3></div></div></div><p>
+All the following files are readable by all and produce ASCII output
+when read:
+</p><pre class="programlisting">
+ /proc/sys/dev/cdrom/autoclose
+ /proc/sys/dev/cdrom/autoeject
+ /proc/sys/dev/cdrom/check_media
+ /proc/sys/dev/cdrom/debug
+ /proc/sys/dev/cdrom/info
+ /proc/sys/dev/cdrom/lock
+</pre><p>
+They reflect the current state of the CDROM subsystem. This location
+is part of the procfs's window through to the sysctl configuration
+mechanism (see <span class="command"><strong>man sysctl</strong></span>). All but
+<code class="filename">info</code> are writable by the superuser. There is
+a column for each CDROM and DVD player in the system in
+<code class="filename">info</code> (not just SCSI devices). 
+</p><p>
+As an
+example, the auto eject feature can be turned on by the superuser with
+the command <span class="command"><strong>echo "1" &gt; /proc/sys/dev/cdrom/autoeject</strong></span>.
+This will cause cdroms to be ejected from the drive when unmounted.
+</p></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="sratapi"></a>2.4. ATAPI cdroms</h3></div></div></div><p>
+Many Linux users have no SCSI devices (or adapters) in their systems. They
+become a little perplexed as to why cd writer software (e.g. 
+<span class="command"><strong>cdrecord</strong></span> and <span class="command"><strong>cdrdao</strong></span>)
+and cd music reading programs (e.g. <span class="command"><strong>cdparanoia</strong></span>) use
+the Linux SCSI subsystem. The answer is that these programs need lower level
+access to these devices. ATAPI (ATA Packet Interface) is essentially
+a SCSI command set sent over an ATA 
+<a href="#ftn.idm489" class="footnote" name="idm489"><sup class="footnote">[10]</sup></a>
+transport. [The discussion in this section is also applicable to ATAPI
+tape drives and ATAPI floppy drives.]
+</p><p>
+Currently both <span class="command"><strong>cdrecord</strong></span> and <span class="command"><strong>cdparanoia</strong></span>
+interface to the SCSI generic driver (sg) and, in the case of ATAPI 
+cd devices, use the ide-scsi pseudo device driver to access the hardware.
+This may change in the future as in the 2.4 series kernels a packet
+interface ioctl has been added to the uniform cdrom layer (see the diagram
+in <a class="xref" href="ch09s02.html" title="2. CDROM driver (sr or scd)">Section 2, &#8220;CDROM driver (sr or scd)&#8221;</a> above).
+<a href="#ftn.idm495" class="footnote" name="idm495"><sup class="footnote">[11]</sup></a>
+</p><p>
+The default action of the IDE subsystem in Linux is to claim all ATA
+devices for its built-in drivers. In the case of an ATAPI cd writer, it 
+will be claimed by the built-in ide-cd driver. Once this has happened, 
+the SCSI subsystem is unable to get control over an ATAPI device. The 
+ide-scsi (pseudo lower level SCSI) driver can only register ATAPI devices 
+in the SCSI subsystem that have <span class="emphasis"><em>not</em></span> already been 
+claimed by the IDE subsystem.
+</p><p>
+Notice the <span class="emphasis"><em>built-in</em></span> qualification in the previous 
+paragraph. If both the ide-cd and ide-scsi drivers are modules then the 
+first one loaded will claim the ATAPI cd devices (e.g. cd/dvd readers and 
+writers). Furthermore you can switch the controlling driver module by 
+<span class="command"><strong>rmmod</strong></span>-ing one and <span class="command"><strong>modprobe</strong></span>-ing the 
+other.
+</p><p>
+Probably the most flexible way to instruct the IDE core driver that you
+want the cd writer at <code class="filename">/dev/hdd</code> accessible to
+<span class="command"><strong>cdrecord</strong></span> is to use the kernel boot option: 
+"hdd=ide-scsi". This will cause the ide-cd driver to bypass 
+<code class="filename">/dev/hdd</code> (irrespective of whether ide-cd driver is 
+built-in or a module). As long as the ide-scsi driver is built-in or a 
+module then it will "capture" the cd writer
+at <code class="filename">/dev/hdd</code> (with the IDE core driver loading the
+ide-scsi module if required).
+</p><p>
+The ide-cd driver module can be instructed to ignore certain ATA devices
+with the following syntax:
+</p><pre class="programlisting">
+modprobe ide-cd ignore='hdc hdd'
+</pre><p>
+In this case the ide-cd driver will ignore the devices at 
+<code class="filename">/dev/hdc</code> and <code class="filename">/dev/hdd</code> .
+This effect can also be accomplished by placing a line like this: 
+"options ide-cd ignore=hdd" in the <code class="filename">/etc/modules.conf</code> 
+file.
+</p><p>
+A new option added in the lk 2.4 series is of the form "hdd=scsi".
+This option seems to have a similar function to the "hdd=ide-scsi"
+option discussed above. Furthermore "hdd=scsi" can only be used if
+both the SCSI mid-level and the ide-scsi drivers are built into the
+kernel (otherwise "BAD OPTION" is reported by the ide_setup function).
+</p><p>
+To find out whether an ATAPI cd device is "owned" by the SCSI subsystem, 
+the output of <span class="command"><strong>cat /proc/scsi/scsi</strong></span> can be checked. 
+Another technique is to observe the "drive name:" line of
+<span class="command"><strong>cat /proc/sys/dev/cdrom/info</strong></span> for "sr" entries. The
+following output is from my system:
+</p><pre class="programlisting">
+$ cat /proc/sys/dev/cdrom/info 
+CD-ROM information, Id: cdrom.c 3.12 2000/10/18
+
+drive name:             sr1     sr0
+drive speed:            16      0
+drive # of slots:       1       1
+Can close tray:         1       1
+Can open tray:          1       1
+Can lock tray:          1       1
+Can change speed:       1       1
+Can select disk:        0       0
+Can read multisession:  1       1
+Can read MCN:           1       1
+Reports media changed:  1       1
+Can play audio:         1       1
+Can write CD-R:         1       0
+Can write CD-RW:        1       0
+Can read DVD:           0       1
+Can write DVD-R:        0       0
+Can write DVD-RAM:      0       0
+</pre><p>
+</p><p>
+Once an ATAPI cd writer at /dev/hdd has been registered by the SCSI
+subsystem, then cdroms should be mounted via the "scd" device name
+and cd players should also use the "scd" device. Strangely the
+<span class="command"><strong>hdparm</strong></span> command should still use the <code class="filename">
+/dev/hdd</code> device file (or the "echo ... &gt; /proc/ide/hdd/settings"
+method described in this <a class="link" href="ch10s01.html#idescsi">section</a>).
+<a href="#ftn.idm523" class="footnote" name="idm523"><sup class="footnote">[12]</sup></a>
+</p></div><div class="footnotes"><br><hr style="width:100; text-align:left;margin-left: 0"><div id="ftn.idm489" class="footnote"><p><a href="#idm489" class="para"><sup class="para">[10] </sup></a>
+ATA is the modern name for what was previously known as IDE and/or EIDE.
+Note that the subsystem that controls ATA devices in Linux is called
+the "IDE" subsystem for historical reasons.
+</p></div><div id="ftn.idm495" class="footnote"><p><a href="#idm495" class="para"><sup class="para">[11] </sup></a>
+Other ATA devices such as tapes and floppies often use the ATAPI interface. 
+However, the vast majority of ATA disks do <span class="emphasis"><em>not</em></span> use
+the ATAPI interface.
+</p></div><div id="ftn.idm523" class="footnote"><p><a href="#idm523" class="para"><sup class="para">[12] </sup></a>
+In the linux 2.4 kernel series there has been an increase in problems when
+the ide-scsi driver is used so that <span class="command"><strong>cdrecord</strong></span> can control
+ATAPI (IDE) cd writers. The problem may be related to the aggressive manner 
+in which the IDE subsystem attempts to optimize the speed of data transfers 
+on devices it controls. Some people experiencing timeouts and machine lockups 
+have found that reducing the DMA setting via the <span class="command"><strong>hdparm</strong></span>
+command has fixed the problem. If the cd writer is connected to 
+<code class="filename">/dev/hdd</code> then users have reported success with one of
+these two commands: 
+</p><pre class="programlisting">
+    hdparm -d0 -c1 /dev/hdd 
+    hdparm -d 1 -X 34 /dev/hdd 
+</pre><p>
+The first one turns off DMA completely while the second one sets it in
+"multiword DMA mode 2". Cd writers do not need the types of speeds that 
+modern disks utilize. Even burning at "x16" implies a sustained transfer 
+rate of 16 times 150 KB/sec which is approximately 2.4 MB/sec, not
+really that fast. There has also been a report that moving a cd writer off
+a high speed IDE controller (Promise) and back to the motherboard's lower 
+speed IDE controllers has fixed a random IDE bus reset problem. Another 
+report suggests reducing (or turning off) the DMA on the IDE hard disk can 
+also stop lockups.
+</p></div></div></div><div class="navfooter"><hr><table width="100%" summary="Navigation footer"><tr><td width="40%" align="left"><a accesskey="p" href="ch09s01.html">Prev</a> </td><td width="20%" align="center"><a accesskey="u" href="ch09.html">Up</a></td><td width="40%" align="right"> <a accesskey="n" href="ch09s03.html">Next</a></td></tr><tr><td width="40%" align="left" valign="top">1. Disk driver (sd) </td><td width="20%" align="center"><a accesskey="h" href="index.html">Home</a></td><td width="40%" align="right" valign="top"> 3. Tape driver (st)</td></tr></table></div></body></html>

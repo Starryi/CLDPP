@@ -1,0 +1,41 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1"><title>2. Design</title><link rel="stylesheet" type="text/css" href="style.css"><meta name="generator" content="DocBook XSL Stylesheets V1.79.1"><link rel="home" href="index.html" title="Pocket Linux Guide"><link rel="up" href="ch03.html" title="Chapter 3. Saving Space"><link rel="prev" href="ch03s01.html" title="1. Analysis"><link rel="next" href="ch03s03.html" title="3. Construction"></head><body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF"><div class="navheader"><table width="100%" summary="Navigation header"><tr><th colspan="3" align="center">2. Design</th></tr><tr><td width="20%" align="left"><a accesskey="p" href="ch03s01.html">Prev</a> </td><th width="60%" align="center">Chapter 3. Saving Space</th><td width="20%" align="right"> <a accesskey="n" href="ch03s03.html">Next</a></td></tr></table><hr></div><div class="sect1"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="idm367"></a>2. Design</h2></div></div></div><p>Take another look at the Bootdisk-HOWTO and notice how many
+    utilities can be squeezed onto a 1.44M floppy. There are three things that
+    make this possible. One is the use of shared libraries. The second is
+    stripped binaries. And the third is the use of a compressed filesystem. We
+    can use all of these techniques to save space on our root disk.</p><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="idm370"></a>2.1. Shared Libraries</h3></div></div></div><p>First, in order to use shared libraries we will need to rebuild
+      the BASH shell. This time we will configure it without using the
+      <code class="option">--enable-static-link</code> option. Once BASH is rebuilt we
+      need to figure out which libraries it is linked with and be sure to
+      include them on the root disk. The <span class="command"><strong>ldd</strong></span> command makes
+      this job easy. By typing <span class="command"><strong>ldd bash</strong></span> on the command-line
+      we can see a list of all the shared libraries that BASH uses. As long as
+      all these libraries are copied to the root disk, the new BASH build
+      should work fine.</p></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="idm376"></a>2.2. Stripped Binaries</h3></div></div></div><p>Next, we should strip any binaries that get copied to the root
+      disk. The manpage for <span class="command"><strong>strip</strong></span> does not give much
+      description of what it does other than to say, "strip discards all
+      symbols from the object files." It seems like removing pieces of a
+      binary would render it useless, but this is not the case. The reason it
+      works is because a large number of these discarded symbols are used for
+      debugging. While debugging symbols are very helpful to programmers
+      working to improve the code, they do not do much for the average
+      end-user other than take up more disk space. And since space is at a
+      premium, we should definitely remove as many symbols as possible from
+      BASH and any other binaries before we copy over them to the
+      ramdisk.</p><p>The process of stripping files to save space also works with
+      shared library files. But when stripping libraries it is important to
+      use the <code class="option">--strip-unneeded</code> option so as not to break
+      them. Using <code class="option">--strip-unneeded</code> shrinks the file size, but
+      leaves the symbols needed for relocation intact which is something that
+      shared libraries need to function properly.</p></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="idm383"></a>2.3. Compressed Root Filesystem</h3></div></div></div><p>Finally, we can tackle the problem of how to build a compressed
+      root filesystem. The Bootdisk-HOWTO suggests three ways of constructing
+      a compressed root filesystem using either a ramdisk, a spare hard drive
+      partition or a loopback device. This project will concentrate on using
+      the ramdisk approach. It seems logical that if the root filesystem is
+      going to be run from a ramdisk, it may as well be built on a ramdisk.
+      All we have to do is create a second extended filesystem on a ramdisk
+      device, mount it and copy files to it. Once the filesystem is populated
+      with all the files that the root disk needs, we simply unmount it,
+      compress it and write it out to floppy.</p><div class="note" style="margin-left: 0.5in; margin-right: 0.5in;"><h3 class="title">Note</h3><p>For this to work, we need to make sure the system used for
+        building has ramdisk support. If ramdisk is not available it is also
+        possible to use a loopback device. See the Bootdisk-HOWTO for more
+        information on using loopback devices.</p></div></div></div><div class="navfooter"><hr><table width="100%" summary="Navigation footer"><tr><td width="40%" align="left"><a accesskey="p" href="ch03s01.html">Prev</a> </td><td width="20%" align="center"><a accesskey="u" href="ch03.html">Up</a></td><td width="40%" align="right"> <a accesskey="n" href="ch03s03.html">Next</a></td></tr><tr><td width="40%" align="left" valign="top">1. Analysis </td><td width="20%" align="center"><a accesskey="h" href="index.html">Home</a></td><td width="40%" align="right" valign="top"> 3. Construction</td></tr></table></div></body></html>

@@ -1,0 +1,78 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1"><title>3. Construction</title><link rel="stylesheet" type="text/css" href="style.css"><meta name="generator" content="DocBook XSL Stylesheets V1.79.1"><link rel="home" href="index.html" title="Pocket Linux Guide"><link rel="up" href="ch07.html" title="Chapter 7. Enabling Multiple Users"><link rel="prev" href="ch07s02.html" title="2. Design"><link rel="next" href="ch07s04.html" title="4. Implementation"></head><body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF"><div class="navheader"><table width="100%" summary="Navigation header"><tr><th colspan="3" align="center">3. Construction</th></tr><tr><td width="20%" align="left"><a accesskey="p" href="ch07s02.html">Prev</a> </td><th width="60%" align="center">Chapter 7. Enabling Multiple Users</th><td width="20%" align="right"> <a accesskey="n" href="ch07s04.html">Next</a></td></tr></table><hr></div><div class="sect1"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="idm1378"></a>3. Construction</h2></div></div></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="idm1380"></a>3.1. Verify presence of getty and login</h3></div></div></div><pre class="programlisting"><code class="prompt">bash#</code> ls ~/staging/sbin/getty
+<code class="prompt">bash#</code> ls ~/staging/bin/login</pre></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="idm1386"></a>3.2. Modify inittab for multi-user mode</h3></div></div></div><p>Modify <code class="filename">~/staging/etc/inittab</code> by changing the
+      default runlevel and adding <span class="command"><strong>getty</strong></span> entries as shown
+      below.</p><pre class="programlisting"># /etc/inittab - init daemon configuration file
+#
+# Default runlevel
+id:2:initdefault:
+#
+# System initialization
+si:S:sysinit:/etc/init.d/rc S
+#
+# Runlevel scripts
+r0:0:wait:/etc/init.d/rc 0
+r1:1:respawn:/bin/sh
+r2:2:wait:/etc/init.d/rc 2
+r3:3:wait:/etc/init.d/rc 3
+r4:4:wait:/etc/init.d/rc 4
+r5:5:wait:/etc/init.d/rc 5
+r6:6:wait:/etc/init.d/rc 6
+#
+# Spawn virtual terminals
+1:235:respawn:/sbin/getty 38400 tty1 linux
+2:235:respawn:/sbin/getty 38400 tty2 linux
+3:235:respawn:/sbin/getty 38400 tty3 linux
+4:235:respawn:/sbin/getty 38400 tty4 linux
+5:235:respawn:/sbin/getty 38400 tty5 linux
+6:2345:respawn:/sbin/getty 38400 tty6 linux
+#
+# end of /etc/inittab</pre></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="idm1393"></a>3.3. Create tty devices</h3></div></div></div><pre class="programlisting"><code class="prompt">bash#</code> cd ~/staging/dev
+<code class="prompt">bash#</code> mknod ~/staging/dev/tty0 c 4 0
+<code class="prompt">bash#</code> mknod ~/staging/dev/tty1 c 4 1
+<code class="prompt">bash#</code> mknod ~/staging/dev/tty2 c 4 2
+<code class="prompt">bash#</code> mknod ~/staging/dev/tty3 c 4 3
+<code class="prompt">bash#</code> mknod ~/staging/dev/tty4 c 4 4
+<code class="prompt">bash#</code> mknod ~/staging/dev/tty5 c 4 5
+<code class="prompt">bash#</code> mknod ~/staging/dev/tty6 c 4 6
+<code class="prompt">bash#</code> mknod ~/staging/dev/tty c 5 0</pre></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="idm1406"></a>3.4. Create support files in /etc</h3></div></div></div><div class="sect3"><div class="titlepage"><div><div><h4 class="title"><a name="idm1408"></a>3.4.1. /etc/issue</h4></div></div></div><p>Create the file <code class="filename">~/staging/etc/issue</code> using
+        the example below or design a customized message.</p><pre class="programlisting">Connected to \l at \b bps.</pre><p>Be sure that "\l" is a lowercase letter L and not the number
+        one.</p></div><div class="sect3"><div class="titlepage"><div><div><h4 class="title"><a name="idm1415"></a>3.4.2. /etc/passwd</h4></div></div></div><p>Use a text editor to create a minimal passwd file conforming to
+        the Linux Standards Base (LSB) document. Save the file as
+        <code class="filename">~/staging/etc/passwd</code></p><pre class="programlisting">root::0:0:Super User:/root:/bin/sh
+bin:x:1:1:Legacy UID:/bin:/bin/false
+daemon:x:2:2:Legacy UID:/sbin:/bin/false</pre></div><div class="sect3"><div class="titlepage"><div><div><h4 class="title"><a name="idm1421"></a>3.4.3. /etc/group</h4></div></div></div><p>Use a text editor to create an LSB conforming group file and
+        save it as <code class="filename">~/staging/etc/group</code></p><pre class="programlisting">root::0:root
+bin:x:1:root,bin,daemon
+daemon:x:2:root,bin,daemon</pre></div><div class="sect3"><div class="titlepage"><div><div><h4 class="title"><a name="idm1427"></a>3.4.4. /etc/nsswitch.conf</h4></div></div></div><p>Create the following file and save it as
+        <code class="filename">~/staging/etc/nsswitch.conf</code></p><pre class="programlisting">passwd: files
+group:  files</pre></div></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="idm1433"></a>3.5. Copy required libraries</h3></div></div></div><pre class="programlisting"><code class="prompt">bash#</code> cp /lib/libnss_files.so.2 ~/staging/lib
+bash# strip --strip-unneeded ~/staging/lib/*</pre></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="idm1438"></a>3.6. Set directory and file permissions</h3></div></div></div><p>Set minimal privileges on all files and directories under
+      <code class="filename">~/staging</code>. Everything is owned by the root user and
+      the root group. Permissions are read-write for the owner and read-only
+      for the group. Exceptions to the blanket permissions are handled case by
+      case.</p><pre class="programlisting"><code class="prompt">bash#</code> cd ~/staging
+<code class="prompt">bash#</code> chown -R 0:0 ~/staging/*
+<code class="prompt">bash#</code> chmod -R 640 ~/staging/*</pre><p>Set execute permission on all directories. (Note the capital
+      "X")</p><pre class="programlisting"><code class="prompt">bash#</code> chmod -R +X ~/staging/*</pre><p>Files in <code class="filename">/bin</code> are read and execute for all,
+      but <code class="filename">su</code> is an exception.</p><pre class="programlisting"><code class="prompt">bash#</code> chmod 755 ~/staging/bin/*
+<code class="prompt">bash#</code> chmod 4750 ~/staging/bin/su</pre><p>Files in <code class="filename">/dev</code> have various permissions. Disk
+      devices should be accessible to administrators only. Other files like
+      <code class="filename">/dev/null</code> should have full privileges granted to
+      everyone.</p><pre class="programlisting"><code class="prompt">bash#</code> chmod 660 ~/staging/dev/fd0 dev/ram0
+<code class="prompt">bash#</code> chmod 666 ~/staging/dev/null
+<code class="prompt">bash#</code> chmod 622 ~/staging/dev/console
+<code class="prompt">bash#</code> chmod 600 ~/staging/dev/initctl
+<code class="prompt">bash#</code> chmod 622 ~/staging/dev/tty
+<code class="prompt">bash#</code> chmod 622 ~/staging/dev/tty?</pre><p>The <code class="filename">passwd</code> and <code class="filename">group</code>
+      files must be world readable.</p><pre class="programlisting"><code class="prompt">bash#</code> chmod 644 ~/staging/etc/passwd
+<code class="prompt">bash#</code> chmod 644 ~/staging/etc/group</pre><p>The scripts in <code class="filename">/etc/init.d</code> are read and
+      execute for administrators.</p><pre class="programlisting"><code class="prompt">bash#</code> chmod 750 ~/staging/etc/init.d/*</pre><p>Libraries need read and execute permissions for everyone.</p><pre class="programlisting"><code class="prompt">bash#</code> chmod 755 ~/staging/lib/*</pre><p>Only root should have access to the <code class="filename">/root</code>
+      directory.</p><pre class="programlisting"><code class="prompt">bash#</code> chmod 700 ~/staging/root</pre><p>Make files in <code class="filename">/sbin</code> read and execute for
+      administrators.</p><pre class="programlisting"><code class="prompt">bash#</code> chmod 750 ~/staging/sbin/*</pre><p>Temp should be read-write for all with the sticky bit set.</p><pre class="programlisting"><code class="prompt">bash#</code> chmod 1777 ~/staging/tmp</pre></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="idm1499"></a>3.7. Create the root disk image</h3></div></div></div><pre class="programlisting"><code class="prompt">bash#</code> cd /
+<code class="prompt">bash#</code> dd if=/dev/zero of=/dev/ram7 bs=1k count=4096
+<code class="prompt">bash#</code> mke2fs -m0 /dev/ram7 4096
+<code class="prompt">bash#</code> mount /dev/ram7 /mnt
+<code class="prompt">bash#</code> cp -dpR ~/staging/* /mnt
+<code class="prompt">bash#</code> umount /dev/ram7
+<code class="prompt">bash#</code> dd if=/dev/ram7 of=~/phase6-image bs=1k count=4096
+<code class="prompt">bash#</code> gzip -9 ~/phase6-image</pre></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="idm1511"></a>3.8. Copy the image to diskette</h3></div></div></div><p>Insert the diskette labeled "root disk" into drive fd0.</p><pre class="programlisting"><code class="prompt">bash#</code> dd if=~/phase6-image.gz of=/dev/fd0 bs=1k</pre></div></div><div class="navfooter"><hr><table width="100%" summary="Navigation footer"><tr><td width="40%" align="left"><a accesskey="p" href="ch07s02.html">Prev</a> </td><td width="20%" align="center"><a accesskey="u" href="ch07.html">Up</a></td><td width="40%" align="right"> <a accesskey="n" href="ch07s04.html">Next</a></td></tr><tr><td width="40%" align="left" valign="top">2. Design </td><td width="20%" align="center"><a accesskey="h" href="index.html">Home</a></td><td width="40%" align="right" valign="top"> 4. Implementation</td></tr></table></div></body></html>

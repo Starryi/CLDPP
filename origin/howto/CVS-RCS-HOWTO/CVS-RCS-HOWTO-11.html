@@ -1,0 +1,282 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 3.2 Final//EN">
+<HTML>
+<HEAD>
+ <META NAME="GENERATOR" CONTENT="LinuxDoc-Tools 0.9.72">
+ <TITLE>CVS-RCS-HOWTO Document for Linux (Source Code Control System): Remote, Multi-User CVS Repository </TITLE>
+ <LINK HREF="CVS-RCS-HOWTO-12.html" REL=next>
+ <LINK HREF="CVS-RCS-HOWTO-10.html" REL=previous>
+ <LINK HREF="CVS-RCS-HOWTO.html#toc11" REL=contents>
+</HEAD>
+<BODY>
+<A HREF="CVS-RCS-HOWTO-12.html">Next</A>
+<A HREF="CVS-RCS-HOWTO-10.html">Previous</A>
+<A HREF="CVS-RCS-HOWTO.html#toc11">Contents</A>
+<HR>
+<H2><A NAME="multiuser"></A> <A NAME="s11">11.</A> <A HREF="CVS-RCS-HOWTO.html#toc11">Remote, Multi-User CVS Repository </A></H2>
+
+<P>The Cederqvist manual at 
+<A HREF="http://cvshome.org/docs/manual/cvs_2.html#SEC30">http://cvshome.org/docs/manual/cvs_2.html#SEC30</A> 
+describes how to setup CVS for external access.</P>
+<P>In order to use CVS for a group, one has to set up a permissions 
+system to allow people to access the system from other machines. 
+There are three ways to do this (:server:, :pserver:, and :ext:). 
+The pserver mechanism and use of rsh are 
+both insecure.  Only the :ext: (with ssh) offers sufficient security 
+protection.</P>
+<P>If you set CVS_RSH to SSH or some other rsh replacement, 
+the instructions <B>may be</B> similar to `.rhosts' but 
+consult the documentation for your rsh replacement.</P>
+<P>To get ssh visit
+<A HREF="http://rpmfind.net">http://rpmfind.net</A> and in the search box enter "ssh".
+Or visit 
+<A HREF="http://www.redhat.com/apps/download">http://www.redhat.com/apps/download</A> and in the search box enter "ssh".
+Download and install the ssh RPM and then configure CVS to use it.  
+See also 
+<A HREF="http://www.ssh.org">http://www.ssh.org</A>.</P>
+<P>Note: If you plan to configure CVS for use with rsh then 
+you MUST do this critical step:
+<HR>
+<PRE>
+bash# chmod 600 .rhosts
+</PRE>
+<HR>
+</P>
+<P>See also JA-SIG UPortal CVS repository 
+<A HREF="http://www.mis3.udel.edu/~jlaker/development">http://www.mis3.udel.edu/~jlaker/development</A>.</P>
+
+
+<H2><A NAME="sshauth"></A> <A NAME="ss11.1">11.1</A> <A HREF="CVS-RCS-HOWTO.html#toc11.1">SSH Authentication </A>
+</H2>
+
+<P>If you're tired of entering passwords for each simple CVS command, then 
+you can distribute your ssh-identity from the client to the server in order
+to allow automatic identification (i.e. no password needed!), this can be done by 
+On the CVS server box do:
+<HR>
+<PRE>
+For ssh 1: 
+bash$ cd $HOME
+bash$ ssh-keygen
+
+For ssh 2: 
+bash$ cd $HOME
+bash$ ssh-keygen -t rsa
+</PRE>
+<HR>
+</P>
+<P>You should be asked to save 'your identification' in /home/developer/.ssh/identity
+(ssh 1) or /home/developer/.ssh/id_rsa.pub (ssh 2) (or wherever $HOME points to),
+just hit enter. When asked for password and confirmation of password, continue
+hitting enter. Then copy your public key (identity.pub for ssh 1 or id_rsa.pub for
+ssh 2) to the server using secure copy (a part of ssh): </P>
+<P>
+<HR>
+<PRE>
+ssh 1: 
+clientbox$ scp .ssh/identity.pub developer@serverbox.domain.com:~/.ssh
+
+ssh 2: 
+clientbox$ scp .ssh/id_rsa.pub developer@serverbox.domain.com:~/.ssh
+</PRE>
+<HR>
+</P>
+<P>Then log onto the server and fix the authorized_keys file. 
+<HR>
+<PRE>
+ssh 1: 
+clientbox$ ssh developer@serverbox.domain.com
+serverbox$ cd .ssh
+serverbox$ cat identity.pub >> authorized_keys
+
+ssh 2: 
+clientbox$ ssh developer@serverbox.domain.com
+serverbox$ cd .ssh
+serverbox$ cat id_rsa.pub >> authorized_keys2
+serverbox$ chmod go-w authorized_keys2
+</PRE>
+<HR>
+</P>
+<P>You should now be able to ssh directly from the client to server without having to
+enter password, this can be tested with: </P>
+<P>
+<HR>
+<PRE>
+ssh 1 or ssh 2: 
+clientbox$ ssh developer@serverbox.domain.com
+</PRE>
+<HR>
+</P>
+<P>Version control from this point should not require you to enter the password.</P>
+<P>Note: This enables anyone getting access to your client to continue into the server
+without knowing the password on the server. </P>
+<P>Encrypted Disks</P>
+<P>If you fear such a situation, this can (somewhat) be prevented by using a encrypted
+disk, e.g. PGPDisk holding the $HOME directory on the client. So when an intruder
+takes over your machine s/he needs to know the password for your encrypted disk in
+order to get further into the server. Another advantage of using a encrypted disk is
+that your (checked out) source code can reside on it.</P>
+
+
+<H2><A NAME="sshtunnel"></A> <A NAME="ss11.2">11.2</A> <A HREF="CVS-RCS-HOWTO.html#toc11.2">Securing CVS by pserver Port Forwarding using an SSH Tunnel </A>
+</H2>
+
+
+<P>From : 
+<A HREF="http://www.cycom.co.uk/howto/cvssshtunnel.html">http://www.cycom.co.uk/howto/cvssshtunnel.html</A></P>
+<P>The Concurrent Versions System, in its "pserver" client/server mode, and secured by "ssh" encrypted tunnels, can allow multiple authors to safely collaborate over the internet. CVS is a source file version control system optimised for wide area networks, concurrent editing, and reuse of 3rd party source libraries. Pserver is a protocol used for communication between CVS clients and servers. SSH is a tool to transparently encrypt TCP/IP network connections.
+MSWindows users can use a posix shell</P>
+<P>The tools discussed here are most functional in a unix environment but windows users can obtain similar functions by using a posix shell available from http://www.cygwin.com/. which will include an openssh package in 'latest' and a cvs package in 'contrib'. Other native windows ports of the tools are available but may lack needed features such as SSH2 DSA support.
+Creating the CVS Repository on the repository server machine</P>
+<P>If you are a contributing author, you don't need to know how the repository was created. You may skip this section.
+If you are the unix repository administrator, you would create a directory and run
+cvs init
+then adjust the control files in CVSROOT to suit the permitted users (writers, passwd). It is convenient to have all files owned by "cvsuser"
+Starting the repository service</P>
+<P>If you are a contributing author, you don't need to know how the repository server is started. You may skip this section. If you are the unix repository administrator, you allow the server to be started by xinetd with security constraints that specify that only clients local to the server machine may connect. To do this, create a configuration file named "/etc/xinetd.d/cvspserver" with contents similar to:</P>
+<P>
+<HR>
+<PRE>
+service cvspserver
+{
+        flags           = REUSE
+        socket_type     = stream
+        wait            = no
+        user            = cvsuser
+        server          = /usr/bin/cvs
+        server_args     = -f --allow-root=/cycomcvs pserver
+        passenv         =
+        log_on_failure  += USERID
+        only_from               = 127.0.0.1
+        bind                    = 127.0.0.1
+}   
+</PRE>
+<HR>
+</P>
+
+<P>then restart the xinetd super-service.
+Generating a public/private DSA keypair on the author's client machine</P>
+<P>Contributing authors must perform this step only once. The "ssh" tools have various ways of authenticating users. The method chosen here is to use the DSA Digital Signature Algorithm. This is a public/private keypair algorithm which means that the secret private key need never be communicated to anyone and can stay safe on the clients hard disk (protected by a passphrase). The public key can be advertised to anyone with no loss of security. If you do not already have the ssh tools then you should obtain them from http://www.openssh.com/. They must support SSH2 as we use the DSA algorithm not RSA.</P>
+<P>A unix client will generate the keypair using:-
+ssh-keygen -d
+This will result in the creation of a file "&nbsp;/.ssh/id_dsa.pub". You must send this public file to the unix repository administrator. Do not send any other file nor reveal any passphrase.
+Authorizing a client to tunnel to the repository server machine</P>
+<P>If you are a contributing author, you don't need to know how authorization is allowed. You may skip this section.
+If you are the unix repository administrator, on receipt of a clients "id_dsa.pub" file, append the single line therein to the "&nbsp;cvsnobody/.ssh/authorized_keys2" file on the server.
+Creating the secure tunnel between author's client machine and the repository server machine.</P>
+<P>CVS keeps a single copy of the master sources called a source repository. Remote authors access the repository using CVS client programs which talk to the repository service using a "pserver" protocol and connect using a registered TCP/IP port (port 2401).</P>
+<P>The pserver protocol is insecure because passwords are transmitted unencrypted and there are often some hacked hosts on a network that are sniffing for passwords. The connection to be used for the pserver protocol therefore needs to be encrypted where it passes over any network. The "ssh" suite of programs provides such encrypted connections.</P>
+<P>SSH will create a secure tunnel which makes the repository service appear to be local to your client machine. Similarly, your client machine will appear to be local to the repository service. Both client and server are fooled into thinking that they are on the same machine and that no traffic travels over any network.</P>
+<P>The single line unix command to achieve this is:-
+/usr/bin/ssh -v -a -e none -N -o 'KeepAlive=yes' -o 'BatchMode=yes' -L 2401:localhost:2401 cvsnobody@j2ee.cycom.co.uk
+The fixed cvsnobody user is just for ssh tunneling purposes; it is not relevant to CVS. The j2ee.cycom.co.uk is the repository server machine name. This command will block. To destroy the tunnel, cntrl-c the command. If the tunnel collapses in use, reestablish it by repeating the command. Use another window to operate the CVS clients.
+Operating CVS clients on the author's client machine</P>
+<P>Having established a tunnel, the remote CVS repository service now appears to be local to your client machine (i.e. at localhost). The CVS client programs obtain configuration data from a CVSROOT environment variable which should be set in unix (e.g in your ".bash_profile") using:-</P>
+<P>
+<HR>
+<PRE>
+CVSROOT=':pserver:jsharp@localhost:/cycomcvs'
+export CVSROOT
+</PRE>
+<HR>
+</P>
+
+<P>The username "jsharp" and the repository root "/cycomcvs" will have been sent to you by the repository administrator.</P>
+<P>The first CVS client command should always be:-
+cvs login
+You will be prompted for a password (again sent to you by the repository administrator).</P>
+<P>To create a new cvs working directory and populate it from Honest John Car Rental Demo sources, use :-</P>
+<P>
+<HR>
+<PRE>
+mkdir mywork
+cd mywork
+cvs co hjvh
+cvs co hjvhear
+cvs co hjvhmodel
+</PRE>
+<HR>
+</P>
+<P>To freshen an existing working directory with updates from other authors, use:-</P>
+<P>
+<HR>
+<PRE>
+cd mywork/hjvh
+cvs update
+</PRE>
+<HR>
+</P>
+<P>To publish the files that you have changed in an existing working directory, use:-</P>
+<P>
+<HR>
+<PRE>
+cd mywork/hjvh
+cvs commit
+</PRE>
+<HR>
+</P>
+<P>To publish a newly created file in an existing working directory, use:-</P>
+<P>
+<HR>
+<PRE>
+cd mywork/hjvh
+cd mywork/hjvh
+cvs add mynewfile.txt
+cvs commit
+</PRE>
+<HR>
+</P>
+<P>To import a new independent directory tree of sources into the repository, make sure all files in the tree are useful source and then use:-</P>
+<P>
+<HR>
+<PRE>
+cd projdir
+cvs import projdir projV1_1 proj_V1_1
+cd ..
+mv projdir origprojsources
+cvs co projdir
+</PRE>
+<HR>
+</P>
+
+
+
+<H2><A NAME="remoteeg"></A> <A NAME="ss11.3">11.3</A> <A HREF="CVS-RCS-HOWTO.html#toc11.3">An Example - Access Remote CVS Server </A>
+</H2>
+
+<P>To access a remote cvs server, here is an example:
+<HR>
+<PRE>
+
+# Set env variable
+export EDITOR=/bin/vi
+export CVSROOT=:pserver:yourname@cvs.tldp.org:/cvsroot
+
+# Login to remote cvs server
+cvs -d $CVSROOT login
+
+# Goto some local directory
+cd $HOME/&lt;somedirectory>
+
+# You MUST create a new directory, as below... 
+mkdir cvsroot   # Create the local cvs directory which has the same name as in CVSROOT 
+
+# Now get the files from remote CVS repository
+cd cvsroot 
+cvs get LDP/howto   # Or you can do 'cvs get . ' which will get everything
+
+# After you make changes some file and later check-in that do
+cd $HOME/&lt;somedirectory>/cvsroot
+cvs ci -m "your update comments here" LDP/howto/somefilename.java
+</PRE>
+<HR>
+</P>
+
+
+
+
+<HR>
+<A HREF="CVS-RCS-HOWTO-12.html">Next</A>
+<A HREF="CVS-RCS-HOWTO-10.html">Previous</A>
+<A HREF="CVS-RCS-HOWTO.html#toc11">Contents</A>
+</BODY>
+</HTML>

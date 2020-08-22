@@ -1,0 +1,235 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 3.2 Final//EN">
+<HTML>
+<HEAD>
+ <META NAME="GENERATOR" CONTENT="LinuxDoc-Tools 0.9.72">
+ <TITLE>RPM-for-Unix HOW-TO: Installing 8000 RPMs</TITLE>
+ <LINK HREF="RPM-for-Unix-HOWTO-7.html" REL=next>
+ <LINK HREF="RPM-for-Unix-HOWTO-5.html" REL=previous>
+ <LINK HREF="RPM-for-Unix-HOWTO.html#toc6" REL=contents>
+</HEAD>
+<BODY>
+<A HREF="RPM-for-Unix-HOWTO-7.html">Next</A>
+<A HREF="RPM-for-Unix-HOWTO-5.html">Previous</A>
+<A HREF="RPM-for-Unix-HOWTO.html#toc6">Contents</A>
+<HR>
+<H2><A NAME="s6">6.</A> <A HREF="RPM-for-Unix-HOWTO.html#toc6">Installing 8000 RPMs</A></H2>
+
+<P>Once RPM program is installed, it is a gateway to thousands of RPM packages
+which can be easily installed on the system.</P>
+<P>Prepare the rpm directories
+<HR>
+<PRE>
+bash# su - root
+bash# mkdir -p /usr/local/src/redhat/BUILD
+bash# mkdir -p /usr/local/src/redhat/RPMS/sparc64
+bash# mkdir -p /usr/local/src/redhat/RPMS/noarch
+bash# mkdir -p /usr/local/src/redhat/SOURCES
+bash# mkdir -p /usr/local/src/redhat/SPECS
+bash# mkdir -p /usr/local/src/redhat/SRPMS
+</PRE>
+<HR>
+</P>
+<P>You may want to edit the <B>rpmrc</B> file. In case of solaris 8,
+I had to remove the <B>-m64</B> option for gcc, since it was giving compile errors.
+To show the values, RPM will use for all of the options that may be set in rpmrc files
+(/usr/local/lib/rpm/rpmrc, /usr/lib/rpm/rpmrc, /etc/rpmrc, &nbsp;/.rpmrc ), type:
+<HR>
+<PRE>
+bash$ rpm --showrc | less
+</PRE>
+<HR>
+</P>
+<H2><A NAME="bootstrap"></A> <A NAME="ss6.1">6.1</A> <A HREF="RPM-for-Unix-HOWTO.html#toc6.1">Bootstrap Programs - The Rocket Soars Up!!</A>
+</H2>
+
+<P>Before building rpms you need the following basic programs:
+<UL>
+<LI> install program from fileutils*.tar.gz</LI>
+<LI> patch*.tar.gz</LI>
+<LI> autoconf*.tar.gz</LI>
+<LI> automake*.tar.gz</LI>
+<LI> libtool*.tar.gz</LI>
+<LI> gcc*.tar.gz</LI>
+</UL>
+
+You should download the tar.gz files or 
+<A HREF="RPM-for-Unix-HOWTO-3.html#Unix packages">Unix packages</A>
+. I downloaded solaris packages for fileutils.pkg,
+patch.pkg, libtool.pkg, gcc and others.
+You should install them in a temporary location like $HOME/localtmp
+<HR>
+<PRE>
+bash# mkdir $HOME/localtmp
+bash# cd $HOME/localtmp
+bash# gzip -d libtool*.tar.gz
+bash# tar -xvf libtool*.tar
+bash# ./configure --with-prefix=$HOME/localtmp
+bash# make; make install
+</PRE>
+<HR>
+
+You should include the temporary location of autoconf by:
+<HR>
+<PRE>
+bash# PATH=$HOME/localtmp/bin:$PATH
+bash# export PATH
+</PRE>
+<HR>
+</P>
+<H2><A NAME="foundationrpm"></A> <A NAME="ss6.2">6.2</A> <A HREF="RPM-for-Unix-HOWTO.html#toc6.2">Install Foundation RPMs </A>
+</H2>
+
+<P>There are few basic rpms which must be installed before any other rpm is installed.
+In this section, foundation rpms are listed which are found by using:
+<HR>
+<PRE>
+bash# rpm -qR &lt;packagename>
+bash# rpm -qR textinfo
+bash# rpm -qR fileutils
+bash# rpm -qR setup
+</PRE>
+<HR>
+</P>
+<P>The foundation rpms in the order of dependency are as follows:
+<UL>
+<LI> fileutils*.rpm</LI>
+<LI> grep*.rpm (You may have to edit grep.spec and commentout --without-included-regex)</LI>
+<LI> gawk*.rpm</LI>
+<LI> sed*.rpm</LI>
+<LI> texinfo*.rpm</LI>
+<LI> zlib*.rpm and zlib-devel</LI>
+<LI> patch*.rpm</LI>
+<LI> setup*.rpm</LI>
+<LI> filesystem*.rpm (You may not want install this if it effects /proc directory)</LI>
+<LI> textutils*.rpm</LI>
+<LI> glibc-common*.rpm</LI>
+<LI> basesystem*.rpm</LI>
+<LI> mktemp*.rpm</LI>
+<LI> bash*.rpm</LI>
+<LI> m4*.rpm (autoconf needs this)</LI>
+<LI> autoconf </LI>
+<LI> bison </LI>
+<LI> binutils >= 2.9.1.0.25 </LI>
+<LI> gas, as, ld which are in binutils</LI>
+<LI> shutils - for 'id' command </LI>
+</UL>
+</P>
+<P>Second stage foundation rpms are as follows.
+After installing the foundation rpms, next important rpm is gcc, the order of rpms you need is:
+<UL>
+<LI> glibc*.rpm</LI>
+<LI> binutils*.rpm</LI>
+<LI> kernel-headers*.rpm</LI>
+<LI> glibc-devel*.rpm</LI>
+<LI> gcc*.rpm</LI>
+</UL>
+</P>
+<P>Third stage rpms are as follows:
+<UL>
+<LI> popt*.rpm</LI>
+<LI> rpm*.rpm</LI>
+<LI> perl*.rpm</LI>
+<LI> And many others....</LI>
+</UL>
+</P>
+<P>As from previous section you should have exported temp 
+location of autoconf, gcc and other programs by:
+<HR>
+<PRE>
+bash# PATH=$HOME/localtmp/bin:$PATH
+bash# export PATH
+
+bash# rpm -i fileutils*.src.rpm
+bash# rpm -i zlib*.src.rpm
+bash# rpm -i texinfo*.src.rpm
+
+bash# cd /usr/local/src/redhat/SPECS
+bash# rpm -ba fileutils.spec
+</PRE>
+<HR>
+</P>
+<P>After the build is successful, install it with "nodeps and excludedocs" to minimize
+the failures. After substantial installations of many foundation rpms you can "freshen"
+the rpms with rpm command.
+<HR>
+<PRE>
+bash# cd /usr/local/src/redhat/RPMS/sparc64
+bash# rpm -i --nodeps --excludedocs fileutils*.rpm
+</PRE>
+<HR>
+
+Move on to build and install the next rpm in the list texinfo, zlib, patch,....</P>
+<H2><A NAME="troublefoundation"></A> <A NAME="ss6.3">6.3</A> <A HREF="RPM-for-Unix-HOWTO.html#toc6.3">Troubleshoot Building Foundation RPMs </A>
+</H2>
+
+<P>On Solaris 2.8, I encountered following problems which were fixed by 
+correcting the spec file:
+<UL>
+<LI> <B>texinfo*.rpm: </B> 
+Edit the file texinfo.spec and change __spec_install_post, %build and %install sections:
+<HR>
+<PRE>
+%define Rpmpath /usr/local
+%define __spec_install_post %{Rpmpath}/lib/rpm/brp-strip \; %{Rpmpath}/lib/rpm/brp-strip-comment-note \; rm -f
+
+%build
+%define _mandir %{_prefix}/share/man
+%define _infodir %{_prefix}/share/info
+%configure
+
+%install
+#mkdir -p ${RPM_BUILD_ROOT}/{etc,sbin}        .....this line is causing problems
+mkdir -p ${RPM_BUILD_ROOT}/etc
+mkdir -p ${RPM_BUILD_ROOT}/sbin
+</PRE>
+<HR>
+
+
+</LI>
+<LI> <B>textutils*.rpm: </B> 
+Create a new unix group called 'other'. Type 'groupadd other'
+and see 'man groupadd'. Second problem - edit textutils.spec file and in %files section replace
+hard-coded filenames/pathnames with %{_prefix}.
+<HR>
+<PRE>
+%files
+# replace below line
+#/usr/bin/*
+# with the line given below
+%{_prefix}/bin/*
+</PRE>
+<HR>
+
+
+</LI>
+<LI> <B>patch*.rpm: </B> 
+Edit patch.spec file and in %files section replace
+hard-coded filenames/pathnames with %{_prefix}.
+<HR>
+<PRE>
+%files
+# replace below line
+#/usr/bin/*
+# with the line given below
+%{_prefix}/bin/*
+</PRE>
+<HR>
+
+
+</LI>
+<LI> <B>gawk*.rpm: </B> 
+Edit gawk.spec file and in %files section and %install section replace
+hard-coded filenames/pathnames like /usr/something with %{_prefix}/something.
+
+</LI>
+<LI> <B>m4*.rpm: </B> 
+Edit m4.spec file and in %build section, the configure takes only
+--prefix and --exec-prefix. Also comment out autoconf.</LI>
+</UL>
+</P>
+<HR>
+<A HREF="RPM-for-Unix-HOWTO-7.html">Next</A>
+<A HREF="RPM-for-Unix-HOWTO-5.html">Previous</A>
+<A HREF="RPM-for-Unix-HOWTO.html#toc6">Contents</A>
+</BODY>
+</HTML>

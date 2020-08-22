@@ -1,0 +1,343 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN""http://www.w3.org/TR/html4/loose.dtd">
+<HTML
+><HEAD
+><TITLE
+>How to allow anonymous web link submissions</TITLE
+><META
+NAME="GENERATOR"
+CONTENT="Modular DocBook HTML Stylesheet Version 1.79"><LINK
+REL="HOME"
+TITLE="PHP-Nuke: Management and Programming"
+HREF="index.html"><LINK
+REL="UP"
+TITLE="How to solve common probems with PHP-Nuke"
+HREF="solve-common-problems-php-nuke.html"><LINK
+REL="PREVIOUS"
+TITLE="How to find all registration links"
+HREF="find-all-registration-links.html"><LINK
+REL="NEXT"
+TITLE="How to disable DEBUG mode"
+HREF="disable-debug-mode.html"></HEAD
+><BODY
+CLASS="SECT1"
+BGCOLOR="#FFFFFF"
+TEXT="#000000"
+LINK="#0000FF"
+VLINK="#840084"
+ALINK="#0000FF"
+><DIV
+CLASS="NAVHEADER"
+><TABLE
+SUMMARY="Header navigation table"
+WIDTH="100%"
+BORDER="0"
+CELLPADDING="0"
+CELLSPACING="0"
+><TR
+><TH
+COLSPAN="3"
+ALIGN="center"
+>PHP-Nuke: Management and Programming</TH
+></TR
+><TR
+><TD
+WIDTH="10%"
+ALIGN="left"
+VALIGN="bottom"
+><A
+HREF="find-all-registration-links.html"
+ACCESSKEY="P"
+>Prev</A
+></TD
+><TD
+WIDTH="80%"
+ALIGN="center"
+VALIGN="bottom"
+>Chapter 26. How to solve common probems with PHP-Nuke</TD
+><TD
+WIDTH="10%"
+ALIGN="right"
+VALIGN="bottom"
+><A
+HREF="disable-debug-mode.html"
+ACCESSKEY="N"
+>Next</A
+></TD
+></TR
+></TABLE
+><HR
+ALIGN="LEFT"
+WIDTH="100%"></DIV
+><DIV
+CLASS="SECT1"
+><H1
+CLASS="SECT1"
+><A
+NAME="ALLOW-ANONYMOUS-WEB-LINK-SUBMISSIONS"
+>26.6. How to allow anonymous web link submissions</A
+></H1
+><P
+><DIV
+CLASS="FIGURE"
+><A
+NAME="FIG-WEBLINKS-5"
+></A
+><P
+><B
+>Figure 26-5.    Administration panel: Web Links.
+   </B
+></P
+><DIV
+CLASS="MEDIAOBJECT"
+><P
+><IMG
+SRC="./images/weblinks.png"><DIV
+CLASS="CAPTION"
+><P
+>Administration panel: Web Links.</P
+></DIV
+></P
+></DIV
+></DIV
+></P
+><P
+>Suppose you need to allow anonymous users to submit web links that then must be approved by an Administrator. Is this possible with the vanilla install of PHP-Nule?</P
+><P
+>It turns out that yes, it is - very easily indeed! But instead of just presenting you the solution, we will also describe how we arrived at it (see <A
+HREF="http://www.nukeforums.com/forums/viewtopic.php?t=18795"
+TARGET="_top"
+>Anonymous Web Link Submissions</A
+>):</P
+><P
+>We first thought that if the Web Links module was visible by all visitors, it would also allow them to suggest a link. We tried it, but we got the error:</P
+><A
+NAME="AEN19317"
+></A
+><BLOCKQUOTE
+CLASS="BLOCKQUOTE"
+><P
+>You are not a registered user or you have not logged in.</P
+><P
+>If you were registered you could add links on this website.</P
+><P
+>Becoming a registered user is a quick and easy process.</P
+><P
+>Why do we require registration for access to certain features?</P
+><P
+>So we can offer you only the highest quality content,</P
+><P
+>each item is individually reviewed and approved by our staff.</P
+><P
+>We hope to offer you only valuable information.</P
+></BLOCKQUOTE
+><P
+>Obviously, <SPAN
+CLASS="APPLICATION"
+>PHP-Nuke</SPAN
+> made a check if this was a registered user - and issued that statement. But where was this check located in the code?</P
+><P
+>To find it, we used the same bottom-up approach of <A
+HREF="common-installation-problems.html#SORRY-SUCH-FILE-DOESNT-EXIST"
+>Section 3.9.6</A
+> and <A
+HREF="find-all-registration-links.html"
+>Section 26.5</A
+>: </P
+><P
+>We first had to find the place where the above error was echoed. We thus searched the whole code tree for all occurences of a word that most probably would appear only in the error above - we chose the word "valuable". It turned out that the word "valuable" was in some unrelated text consntants - but it was also in the _LINKSNOTUSER7 text constant that was translated in all modules/Web_Links/language/lang-XXXX.php files!</P
+><P
+>Armed with this information, we only had to do a second search, this time for all occurences of the string "_LINKSNOTUSER" in the whole code tree of <SPAN
+CLASS="APPLICATION"
+>PHP-Nuke</SPAN
+>. We got again dozens of language files in the output, but we also got the modules/Web_Links/index.php file. Indeed, if at all, it must be this file where the check is made! </P
+><P
+>We thus checked the relevant lines of modules/Web_Links/index.php and the code went like this:</P
+><TABLE
+BORDER="1"
+BGCOLOR="#E0E0E0"
+WIDTH="100%"
+><TR
+><TD
+><FONT
+COLOR="#000000"
+><PRE
+CLASS="SCREEN"
+>if (is_user($user) || $links_anonaddlinklock == 1) {
+--&#62; do the work here &#60;--
+}else {
+    echo "&#60;center&#62;"._LINKSNOTUSER1."&#60;br&#62;"
+        .""._LINKSNOTUSER2."&#60;br&#62;&#60;br&#62;"
+        .""._LINKSNOTUSER3."&#60;br&#62;"
+        .""._LINKSNOTUSER4."&#60;br&#62;"
+        .""._LINKSNOTUSER5."&#60;br&#62;"
+        .""._LINKSNOTUSER6."&#60;br&#62;"
+        .""._LINKSNOTUSER7."&#60;br&#62;&#60;br&#62;"
+        .""._LINKSNOTUSER8."";
+}</PRE
+></FONT
+></TD
+></TR
+></TABLE
+><P
+>So that's where the check is made! You can see it for yourself, because the code is almost speaking natural language:</P
+><A
+NAME="AEN19350"
+></A
+><BLOCKQUOTE
+CLASS="BLOCKQUOTE"
+><P
+>If is user or anon add link</P
+></BLOCKQUOTE
+><P
+>We first thought we had to remove the check "if is user", but then we saw that "or $links_anonaddlinklock == 1" which made us suspicious. So there was some kind of configuration variable ( $links_anonaddlinklock) which can control the outcome of the test!</P
+><P
+>We know from experience that such variables are set in a separate <ACRONYM
+CLASS="ACRONYM"
+>PHP</ACRONYM
+> file, in the same folder of the module. If you didn't have this experience, then you would just have to do a third search for all occurences of the string "links_anonaddlinklock" in the text of all files - there shouldn't be that many.</P
+><P
+>Indeed, $links_anonaddlinklock is set in modules/Web_Links/l_config.php:</P
+><TABLE
+BORDER="1"
+BGCOLOR="#E0E0E0"
+WIDTH="100%"
+><TR
+><TD
+><FONT
+COLOR="#000000"
+><PRE
+CLASS="SCREEN"
+># $links_anonaddlinklock:       Lock Unregistered users from Suggesting New Links? 
+                                (0=Yes 1=No)
+...many other comments
+######################################################################
+...many other variables
+$links_anonaddlinklock = 0;</PRE
+></FONT
+></TD
+></TR
+></TABLE
+><P
+>So you just have to set</P
+><TABLE
+BORDER="1"
+BGCOLOR="#E0E0E0"
+WIDTH="100%"
+><TR
+><TD
+><FONT
+COLOR="#000000"
+><PRE
+CLASS="SCREEN"
+>$links_anonaddlinklock = 1;</PRE
+></FONT
+></TD
+></TR
+></TABLE
+><P
+>in modules/Web_Links/l_config.php and any user, also unregistered ones, will be able to suggest Web Links!</P
+><DIV
+CLASS="TIP"
+><P
+></P
+><TABLE
+CLASS="TIP"
+WIDTH="100%"
+BORDER="0"
+><TR
+><TD
+WIDTH="25"
+ALIGN="CENTER"
+VALIGN="TOP"
+><IMG
+SRC="../images/tip.png"
+HSPACE="5"
+ALT="Tip"></TD
+><TH
+ALIGN="LEFT"
+VALIGN="MIDDLE"
+><B
+>A general approach to problem solving</B
+></TH
+></TR
+><TR
+><TD
+>&nbsp;</TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+>You can use this bottom-up approach to solve many similar problems of your daily work as an administrator of a <SPAN
+CLASS="APPLICATION"
+>PHP-Nuke</SPAN
+> system.</P
+></TD
+></TR
+></TABLE
+></DIV
+></DIV
+><DIV
+CLASS="NAVFOOTER"
+><HR
+ALIGN="LEFT"
+WIDTH="100%"><TABLE
+SUMMARY="Footer navigation table"
+WIDTH="100%"
+BORDER="0"
+CELLPADDING="0"
+CELLSPACING="0"
+><TR
+><TD
+WIDTH="33%"
+ALIGN="left"
+VALIGN="top"
+><A
+HREF="find-all-registration-links.html"
+ACCESSKEY="P"
+>Prev</A
+></TD
+><TD
+WIDTH="34%"
+ALIGN="center"
+VALIGN="top"
+><A
+HREF="index.html"
+ACCESSKEY="H"
+>Home</A
+></TD
+><TD
+WIDTH="33%"
+ALIGN="right"
+VALIGN="top"
+><A
+HREF="disable-debug-mode.html"
+ACCESSKEY="N"
+>Next</A
+></TD
+></TR
+><TR
+><TD
+WIDTH="33%"
+ALIGN="left"
+VALIGN="top"
+>How to find all registration links</TD
+><TD
+WIDTH="34%"
+ALIGN="center"
+VALIGN="top"
+><A
+HREF="solve-common-problems-php-nuke.html"
+ACCESSKEY="U"
+>Up</A
+></TD
+><TD
+WIDTH="33%"
+ALIGN="right"
+VALIGN="top"
+>How to disable DEBUG mode</TD
+></TR
+></TABLE
+></DIV
+></BODY
+></HTML
+>

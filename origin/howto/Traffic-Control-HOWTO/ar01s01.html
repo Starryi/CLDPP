@@ -1,0 +1,108 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1"><title>1. Introduction to Linux Traffic Control</title><link rel="stylesheet" type="text/css" href="style.css"><meta name="generator" content="DocBook XSL Stylesheets V1.79.1"><link rel="home" href="index.html" title="Traffic Control HOWTO"><link rel="up" href="index.html" title="Traffic Control HOWTO"><link rel="prev" href="index.html" title="Traffic Control HOWTO"><link rel="next" href="ar01s02.html" title="2. Overview of Concepts"></head><body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF"><div class="navheader"><table width="100%" summary="Navigation header"><tr><th colspan="3" align="center">1. Introduction to Linux Traffic Control</th></tr><tr><td width="20%" align="left"><a accesskey="p" href="index.html">Prev</a> </td><th width="60%" align="center"> </th><td width="20%" align="right"> <a accesskey="n" href="ar01s02.html">Next</a></td></tr></table><hr></div><div class="section"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="intro"></a>1. Introduction to Linux Traffic Control</h2></div></div></div><p>
+    Linux offers a very rich set of tools for managing and manipulating the
+    transmission of packets.  The larger Linux community is very familiar with
+    the tools available under Linux for packet mangling and firewalling
+    (netfilter, and before that, ipchains) as well as hundreds of network
+    services which can run on the operating system.  Few inside the community
+    and fewer outside the Linux community are aware of the tremendous power of
+    the traffic control subsystem which has grown and matured under kernels
+    2.2 and 2.4.
+  </p><p>
+    This HOWTO purports to introduce the
+    <a class="link" href="ar01s02.html" title="2. Overview of Concepts">concepts of traffic control</a>,
+    <a class="link" href="ar01s03.html" title="3. Traditional Elements of Traffic Control">the traditional elements (in general)</a>,
+    <a class="link" href="ar01s04.html" title="4. Components of Linux Traffic Control">the components of the Linux traffic control
+    implementation</a> and provide some
+    <a class="link" href="ar01s08.html" title="8. Rules, Guidelines and Approaches">guidelines</a>
+    .
+    This HOWTO represents the collection, amalgamation and synthesis of the
+    <a class="ulink" href="http://lartc.org/howto/" target="_top">LARTC HOWTO</a>, documentation from individual projects and importantly
+    the <a class="ulink" href="http://vger.kernel.org/vger-lists.html#lartc" target="_top">LARTC 
+         mailing list</a> over a period of study.
+  </p><p>
+    The impatient soul, who simply wishes to experiment right now, is
+    recommended to the <a class="ulink" href="http://tldp.org/HOWTO/Traffic-Control-tcng-HTB-HOWTO/" target="_top">
+           Traffic Control using tcng and HTB HOWTO</a> and <a class="ulink" href="http://lartc.org/howto/" target="_top">LARTC HOWTO</a> for
+    immediate satisfaction.
+  </p><p>
+  </p><div class="section"><div class="titlepage"><div><div><h3 class="title"><a name="i-assumptions"></a>1.1. Target audience and assumptions about the reader</h3></div></div></div><p>
+      The target audience for this HOWTO is the network administrator or savvy
+      home user who desires an introduction to the field of traffic control
+      and an overview of the tools available under Linux for implementing
+      traffic control.
+    </p><p>
+      I assume that the reader is comfortable with UNIX concepts and the
+      command line and has a basic knowledge of IP networking.  Users who wish
+      to implement traffic control may require the ability to patch, compile
+      and install a kernel or software package
+      <a href="#ftn.idm113" class="footnote" name="idm113"><sup class="footnote">[1]</sup></a>.  For users with newer kernels
+      (2.4.20+, see also
+      <a class="xref" href="ar01s05.html#s-kernel" title="5.1. Kernel requirements">Section 5.1, &#8220;Kernel requirements&#8221;</a>), however, the ability to install and use
+      software may be all that is required.
+    </p><p>
+      Broadly speaking, this HOWTO was written with a sophisticated user in
+      mind, perhaps one who has already had experience with traffic control
+      under Linux.  I assume that the reader may have
+      no prior traffic control experience.
+    </p></div><div class="section"><div class="titlepage"><div><div><h3 class="title"><a name="i-conventions"></a>1.2. Conventions</h3></div></div></div><p>
+      This text was written in
+      <a class="ulink" href="http://www.docbook.org/" target="_top">DocBook</a>
+      (<a class="ulink" href="http://www.docbook.org/xml/4.2/index.html" target="_top">version 4.2</a>)
+      with
+      <a class="ulink" href="http://vim.sourceforge.net/" target="_top"><span class="command"><strong>vim</strong></span></a>.
+      All formatting has been applied by
+      <a class="ulink" href="http://xmlsoft.org/XSLT/" target="_top">xsltproc</a> based on
+      <a class="ulink" href="http://docbook.sourceforge.net/projects/xsl/" target="_top">DocBook
+      XSL</a> and
+      <a class="ulink" href="http://www.tldp.org/LDP/LDP-Author-Guide/usingldpxsl.html" target="_top">LDP
+      XSL</a> stylesheets.  Typeface formatting and display conventions
+      are similar to most printed and electronically distributed technical
+      documentation.
+    </p></div><div class="section"><div class="titlepage"><div><div><h3 class="title"><a name="i-recommendation"></a>1.3. Recommended approach</h3></div></div></div><p>
+      I strongly recommend to the eager reader making a first foray into the
+      discipline of traffic control, to become only casually familiar with the
+      <a class="link" href="ar01s05.html#s-iproute2-tc"><span class="command"><strong>tc</strong></span></a> command line utility, before concentrating on <a class="link" href="ar01s05.html#s-tcng" title="5.3. tcng, Traffic Control Next Generation"><span class="command"><strong>tcng</strong></span></a>.  The
+      <span class="command"><strong>tcng</strong></span> software package defines an entire language for describing
+      traffic control structures.
+      At first, this language may seem daunting, but mastery of these basics
+      will quickly provide the user with a much wider ability to employ (and
+      deploy) traffic control configurations than the direct use of <span class="command"><strong>tc</strong></span>
+      would afford.
+    </p><p>
+      Where possible, I'll try to prefer describing the behaviour of
+      the Linux traffic control system in an abstract manner, although in
+      many cases I'll need to supply the syntax of one or the other common
+      systems for defining these structures.  I may not supply examples in
+      both the <span class="command"><strong>tcng</strong></span> language and the <span class="command"><strong>tc</strong></span> command line, so the wise user
+      will have some familiarity with both.
+    </p><p>
+    </p></div><div class="section"><div class="titlepage"><div><div><h3 class="title"><a name="i-missing"></a>1.4. Missing content, corrections and feedback</h3></div></div></div><p>
+      There is content yet missing from this HOWTO.  In particular, the
+      following items will be added at some point to this documentation.
+    </p><div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem"><p>
+          A section of examples.
+        </p></li><li class="listitem"><p>
+          A section detailing the classifiers.
+        </p></li><li class="listitem"><p>
+          A section discussing the techniques for measuring traffic.
+        </p></li><li class="listitem"><p>
+          A section covering meters.
+        </p></li><li class="listitem"><p>
+          More details on <span class="command"><strong>tcng</strong></span>.
+        </p></li><li class="listitem"><p>
+          Descriptions of newer qdiscs, specifically, Controlled Delay
+          (codel), Fair Queue Controlled Delay (fq_codel), Proportional
+          Integrated controller Enhanced (pie), Stochastic Fair Blue (sfb),
+          Heavy Hitter Filter (hhf), Choke (choke).
+        </p></li></ul></div><p>
+      I welcome suggestions, corrections and feedback at <code class="email">&lt;<a class="email" href="mailto:martin@linux-ip.net">martin@linux-ip.net</a>&gt;</code>.  All errors
+      and omissions are strictly my fault.  Although I have made every effort
+      to verify the factual correctness of the content presented herein, I
+      cannot accept any responsibility for actions taken under the influence
+      of this documentation.
+    </p><p>
+    </p></div><div class="footnotes"><br><hr style="width:100; text-align:left;margin-left: 0"><div id="ftn.idm113" class="footnote"><p><a href="#idm113" class="para"><sup class="para">[1] </sup></a>
+          See <a class="xref" href="ar01s05.html" title="5. Software and Tools">Section 5, &#8220;Software and Tools&#8221;</a> for more details on the use or
+          installation of a particular traffic control mechanism, kernel or
+          command line utility.
+        </p></div></div></div><div class="navfooter"><hr><table width="100%" summary="Navigation footer"><tr><td width="40%" align="left"><a accesskey="p" href="index.html">Prev</a> </td><td width="20%" align="center"> </td><td width="40%" align="right"> <a accesskey="n" href="ar01s02.html">Next</a></td></tr><tr><td width="40%" align="left" valign="top">Traffic Control HOWTO </td><td width="20%" align="center"><a accesskey="h" href="index.html">Home</a></td><td width="40%" align="right" valign="top"> 2. Overview of Concepts</td></tr></table></div></body></html>

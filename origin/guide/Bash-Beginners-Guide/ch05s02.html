@@ -1,0 +1,114 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1"><title>2. Interactive editing</title><link rel="stylesheet" type="text/css" href="style.css"><meta name="generator" content="DocBook XSL Stylesheets V1.79.1"><meta name="keywords" content="Linux, Scripts, linux, Bash, guide, Guide, Exercises, exercises, bash, scripting, Scripting, awk, sed, variables, functions, loops, conditionals"><link rel="home" href="index.html" title="Bash Guide for Beginners"><link rel="up" href="ch05.html" title="Chapter 5. The GNU sed stream editor"><link rel="prev" href="ch05s01.html" title="1. Introduction"><link rel="next" href="ch05s03.html" title="3. Non-interactive editing"></head><body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF"><div class="navheader"><table width="100%" summary="Navigation header"><tr><th colspan="3" align="center">2. Interactive editing</th></tr><tr><td width="20%" align="left"><a accesskey="p" href="ch05s01.html">Prev</a> </td><th width="60%" align="center">Chapter 5. The GNU sed stream editor</th><td width="20%" align="right"> <a accesskey="n" href="ch05s03.html">Next</a></td></tr></table><hr></div><div class="sect1"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="sect_05_02"></a>2. Interactive editing</h2></div></div></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="sect_05_02_01"></a>2.1. Printing lines containing a pattern</h3></div></div></div><p>This is something you can do with <span class="command"><strong>grep</strong></span>, of course, but you can't do a <span class="quote">&#8220;<span class="quote">find and replace</span>&#8221;</span> using that command.  This is just to get<a class="indexterm" name="idm3741"></a> you started.</p><p>This is our example text file:</p><pre class="screen">
+<code class="prompt">sandy ~&gt;</code> <span class="command"><strong>cat <code class="option">-n</code> <code class="filename">example</code></strong></span>
+     1  This is the first line of an example text.
+     2  It is a text with erors.
+     3  Lots of erors.
+     4  So much erors, all these erors are making me sick.
+     5  This is a line not containing any errors.
+     6  This is the last line.
+
+<code class="prompt">sandy ~&gt;</code>
+</pre><p>We want <span class="command"><strong>sed</strong></span> to find all the lines containing our search pattern, in this case <span class="quote">&#8220;<span class="quote">erors</span>&#8221;</span>.  We use the <span class="command"><strong>p</strong></span> to obtain the result:</p><pre class="screen">
+<code class="prompt">sandy ~&gt;</code> <span class="command"><strong>sed  <em class="parameter"><code>'/erors/p'</code></em> <code class="filename">example</code></strong></span>
+This is the first line of an example text.
+It is a text with erors.
+It is a text with erors.
+Lots of erors.
+Lots of erors.
+So much erors, all these erors are making me sick.
+So much erors, all these erors are making me sick.
+This is a line not containing any errors.
+This is the last line.
+
+<code class="prompt">sandy ~&gt;</code>
+</pre><p>As you notice, <span class="command"><strong>sed</strong></span> prints the entire file, but the lines containing the search string are printed twice.  This is not what we want.  In order to only print those lines matching our pattern, use the <code class="option">-n</code> option:</p><pre class="screen">
+<code class="prompt">sandy ~&gt;</code> <span class="command"><strong>sed <code class="option">-n</code> <em class="parameter"><code>'/erors/p'</code></em> <code class="filename">example</code></strong></span>
+It is a text with erors.
+Lots of erors.
+So much erors, all these erors are making me sick.
+
+<code class="prompt">sandy ~&gt;</code>
+</pre></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="sect_05_02_02"></a>2.2. Deleting lines of input containing a pattern</h3></div></div></div><p>We use the same example text file.  Now we only want to see the lines <span class="emphasis"><em>not</em></span> containing<a class="indexterm" name="idm3775"></a> the search string:</p><pre class="screen">
+<code class="prompt">sandy ~&gt;</code> <span class="command"><strong>sed <em class="parameter"><code>'/erors/d'</code></em> <code class="filename">example</code></strong></span>
+This is the first line of an example text.
+This is a line not containing any errors.
+This is the last line.
+
+<code class="prompt">sandy ~&gt;</code>
+</pre><p>The <span class="command"><strong>d</strong></span> command results in excluding lines from being displayed.</p><p>Matching lines starting with a given pattern and ending in a second pattern are showed like this:</p><pre class="screen">
+<code class="prompt">sandy ~&gt;</code> <span class="command"><strong>sed <code class="option">-n</code> <em class="parameter"><code>'/^This.*errors.$/p'</code></em> <code class="filename">example</code></strong></span>
+This is a line not containing any errors.
+
+<code class="prompt">sandy ~&gt;</code>
+</pre><p>Note that the last dot needs to be escaped in order to actually match.  In our example the expression just matches any character, including the last dot.</p></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="sect_05_02_03"></a>2.3. Ranges of lines</h3></div></div></div><p>This time we want to take out the lines containing the errors.  In the example these are lines 2 to 4.  Specify this range<a class="indexterm" name="idm3798"></a> to address, together with the <span class="command"><strong>d</strong></span> command:</p><pre class="screen">
+<code class="prompt">sandy ~&gt;</code> <span class="command"><strong>sed <em class="parameter"><code>'2,4d'</code></em> <code class="filename">example</code></strong></span>
+This is the first line of an example text.
+This is a line not containing any errors.
+This is the last line.
+
+<code class="prompt">sandy ~&gt;</code>
+</pre><p>To print the file starting from a certain line until the end of the file, use a command similar to this:</p><pre class="screen">
+<code class="prompt">sandy ~&gt;</code> <span class="command"><strong>sed <em class="parameter"><code>'3,$d'</code></em> <code class="filename">example</code></strong></span>
+This is the first line of an example text.
+It is a text with erors.
+
+<code class="prompt">sandy ~&gt;</code>
+</pre><p>This only prints the first two lines of the example file.</p><p>The following command prints the first line containing the pattern <span class="quote">&#8220;<span class="quote">a text</span>&#8221;</span>, up to and including the next line containing the pattern <span class="quote">&#8220;<span class="quote">a line</span>&#8221;</span>:</p><pre class="screen">
+<code class="prompt">sandy ~&gt;</code> <span class="command"><strong>sed <code class="option">-n</code> <em class="parameter"><code>'/a text/,/This/p'</code></em> <code class="filename">example</code></strong></span>
+It is a text with erors.
+Lots of erors.
+So much erors, all these erors are making me sick.
+This is a line not containing any errors.
+
+<code class="prompt">sandy ~&gt;</code>
+</pre></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="sect_05_02_04"></a>2.4. Find and replace with sed</h3></div></div></div><p>In the example file, we will now search and replace<a class="indexterm" name="idm3829"></a> the errors instead of only (de)selecting the lines containing the search string.</p><pre class="screen">
+<code class="prompt">sandy ~&gt;</code> <span class="command"><strong>sed <em class="parameter"><code>'s/erors/errors/'</code></em> <code class="filename">example</code></strong></span>
+This is the first line of an example text.
+It is a text with errors.
+Lots of errors.
+So much errors, all these erors are making me sick.
+This is a line not containing any errors.
+This is the last line.
+
+<code class="prompt">sandy ~&gt;</code>
+</pre><p>As you can see, this is not exactly the desired effect: in line 4, only the first occurrence of the search string has been replaced, and there is still an 'eror' left.  Use the <span class="command"><strong>g</strong></span> command to indicate to <span class="command"><strong>sed</strong></span> that it should examine the entire line instead of stopping at the first occurrence of your string:</p><pre class="screen">
+<code class="prompt">sandy ~&gt;</code> <span class="command"><strong>sed <em class="parameter"><code>'s/erors/errors/g'</code></em> <code class="filename">example</code></strong></span>
+This is the first line of an example text.
+It is a text with errors.
+Lots of errors.
+So much errors, all these errors are making me sick.
+This is a line not containing any errors.
+This is the last line.
+
+<code class="prompt">sandy ~&gt;</code>
+</pre><p>To insert a string at the beginning of each line of a file, for instance for quoting:</p><pre class="screen">
+<code class="prompt">sandy ~&gt;</code> <span class="command"><strong>sed <em class="parameter"><code>'s/^/&gt; /'</code></em> <code class="filename">example</code></strong></span>
+&gt; This is the first line of an example text.
+&gt; It is a text with erors.
+&gt; Lots of erors.
+&gt; So much erors, all these erors are making me sick.
+&gt; This is a line not containing any errors.
+&gt; This is the last line.
+
+<code class="prompt">sandy ~&gt;</code>
+</pre><p>Insert some string at the end of each line:</p><pre class="screen">
+<code class="prompt">sandy ~&gt;</code> <span class="command"><strong>sed <em class="parameter"><code>'s/$/EOL/'</code></em> <code class="filename">example</code></strong></span>
+This is the first line of an example text.EOL
+It is a text with erors.EOL
+Lots of erors.EOL
+So much erors, all these erors are making me sick.EOL
+This is a line not containing any errors.EOL
+This is the last line.EOL
+
+<code class="prompt">sandy ~&gt;</code>
+</pre><p>Multiple find and replace commands are separated with individual <code class="option">-e</code> options:</p><pre class="screen">
+<code class="prompt">sandy ~&gt;</code> <span class="command"><strong>sed <code class="option">-e</code> <em class="parameter"><code>'s/erors/errors/g'</code></em> <code class="option">-e</code> <em class="parameter"><code>'s/last/final/g'</code></em> <code class="filename">example</code></strong></span>
+This is the first line of an example text.
+It is a text with errors.
+Lots of errors.
+So much errors, all these errors are making me sick.
+This is a line not containing any errors.
+This is the final line.
+
+<code class="prompt">sandy ~&gt;</code>
+</pre><p>Keep in mind that by default <span class="command"><strong>sed</strong></span> prints its results to the standard output, most likely your terminal window.  If you want to save the output<a class="indexterm" name="idm3874"></a> to a file, redirect it:</p><div class="cmdsynopsis"><p><code class="command">sed <code class="option">option</code> <code class="function">'some/expression'</code> <code class="filename">file_to_process</code> &gt; <code class="filename">sed_output_in_a_file</code></code> </p></div><div class="tip" style="margin-left: 0.5in; margin-right: 0.5in;"><h3 class="title">More examples</h3><p>Plenty of <span class="command"><strong>sed</strong></span> examples can be found in the startup scripts for your machine, which are usually in <code class="filename">/etc/init.d</code> or <code class="filename">/etc/rc.d/init.d</code>.  Change into the directory containing the initscripts on your system and issue the following command:</p><div class="cmdsynopsis"><p><code class="command">grep <em class="parameter"><code>sed</code></em> <code class="filename">*</code></code> </p></div></div></div></div><div class="navfooter"><hr><table width="100%" summary="Navigation footer"><tr><td width="40%" align="left"><a accesskey="p" href="ch05s01.html">Prev</a> </td><td width="20%" align="center"><a accesskey="u" href="ch05.html">Up</a></td><td width="40%" align="right"> <a accesskey="n" href="ch05s03.html">Next</a></td></tr><tr><td width="40%" align="left" valign="top">1. Introduction </td><td width="20%" align="center"><a accesskey="h" href="index.html">Home</a></td><td width="40%" align="right" valign="top"> 3. Non-interactive editing</td></tr></table></div></body></html>

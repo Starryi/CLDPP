@@ -1,0 +1,96 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1"><title>8. Backing up and restoring over the network</title><link rel="stylesheet" type="text/css" href="style.css"><meta name="generator" content="DocBook XSL Stylesheets V1.79.1"><meta name="keywords" content="RedHat, redhat, maddy, linus, linux, Linux, Securing, Optimising, security, secure, openna, gerhard"><link rel="home" href="index.html" title="Securing and Optimizing Linux"><link rel="up" href="whywhen.html" title="Chapter 33. Why's and When's of Backup and Restore"><link rel="prev" href="chap29sec310.html" title="7. Restoring files with dump"><link rel="next" href="Appendix.html" title="Part I. Appendixes"></head><body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF"><div class="navheader"><table width="100%" summary="Navigation header"><tr><th colspan="3" align="center">8. Backing up and restoring over the network</th></tr><tr><td width="20%" align="left"><a accesskey="p" href="chap29sec310.html">Prev</a> </td><th width="60%" align="center">Chapter 33. Why's and When's of Backup and Restore</th><td width="20%" align="right"> <a accesskey="n" href="Appendix.html">Next</a></td></tr></table><hr></div><div class="section"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="idm24060"></a>8. Backing up and restoring over the network</h2></div></div></div><p>
+Backups allow you to restore the availability and integrity of information resources following security breaches and accidents. Without a backup, you may be unable to restore a computer's data after system failures and security 
+breaches. It is important to develop a plan that is broad enough to cover all the servers you plan to deploy. We must determine what categories of files will be backed up. For example, you may choose to back up only user data 
+files <abbr class="abbrev">i.e.</abbr> <code class="filename">/home</code> because damaged system files should be reloaded from the original distribution media.
+</p><p>
+There are common technological approaches to file backups. For network servers, an authoritative version of the informational content of the server is created and maintained on a secure machine that is backed up. If the server 
+is compromised and its content damaged, it can be reloaded from the secure system maintaining the authoritative version. This approach is typically used for public servers, such as Web servers, because the content changes at 
+more predictable intervals.
+</p><p>
+It is important to ensure that backups are performed in a secure manner and that the contents of the backups remain secure. We recommend that the plan specify that:
+</p><div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem"><p>
+The source data is encrypted before being transmitted to the storage medium.
+</p></li><li class="listitem"><p>
+The data remains encrypted on the backup storage media.
+</p></li><li class="listitem"><p>
+The storage media are kept in a physically secure facility that is protected from man-made and natural disasters.
+</p></li></ul></div><p>
+</p><p>
+You should make sure that transfer of your backup happens in a secure manner over the network. In the previous sections, we have shown you how to make a backup onto both a tape and files from the same system where you execute 
+the backup procedure, with utilities like <span class="command"><strong>tar</strong></span> and <span class="command"><strong>dump</strong></span>. These programs <span class="command"><strong>tar</strong></span> and <span class="command"><strong>dump</strong></span> are capable of making backups over the network as well. To be able 
+to backup over the network you must ensure that the packages named rmt and rsh are installed on your system. The rmt utility provides remote access to tape devices for programs like <span class="command"><strong>dump</strong></span>, and <span class="command"><strong>tar</strong></span>. 
+To complement this, the rsh package contains a set of programs which allow users to run commands on remote machines, login to other machines and copy files between machines, <span class="emphasis"><em>rsh, rlogin and rcp are this set of programs</em></span>.
+</p><p>
+Since rsh can be easily hacked, and rmt depends on rsh to be able to work, we have chosen to not install them in our setup installation, see <a class="link" href="installlin.html" title="Chapter 3. Installation of your Linux Server">Installation of your Linux Server</a> for more information, due to security reasons. 
+Therefore, we must find another way to make backups over the network in a secure manner. SSH technology is the solution for our problem <a class="link" href="soft-netsecured.html" title="Chapter 15. Software -Securities">Software -Securities</a>, because it also has the ability to copy data across 
+the network with its <span class="command"><strong>scp</strong></span> command, through encryption. The following is a method that permits us to use the potential of SSH software to transfer our backups made with <span class="command"><strong>tar</strong></span> or dump in a secure manner via the 
+<span class="command"><strong>scp</strong></span> SSH utility.
+</p><div class="section"><div class="titlepage"><div><div><h3 class="title"><a name="idm24088"></a>8.1. Using the scp SSH command </h3></div></div></div><p>
+The <span class="command"><strong>scp</strong></span> command copies files between hosts on a network. It uses SSH for data transfer, and uses the same authentication, and provides the same security, as SSH. Unlike the rcp utility that comes with the package rsh, scp will ask 
+for passwords or passphrases. In our example below, we transfer a backup file made with the <span class="command"><strong>tar</strong></span> archive program. The procedure to transfer a backup file or tape made with dump program is the same.
+
+To use scp to copy a backup tape or file to a remote secure system, use the command:
+</p><pre class="screen">
+[admin@deep /]# scp &lt;localdir/to/filelocation&gt; &lt;user@host:/dir/for/file&gt;
+</pre><p>
+
+Where &lt;localdir/to/filelocation&gt; is the directory where your backup file resides on your local server, 
+and &lt;user@host:/dir/for/file&gt; represents, in this order: 
+</p><div class="orderedlist"><ol class="orderedlist" type="I"><li class="listitem"><p>
+The username, <code class="literal">user</code> of the person on the remote site that will hold the backup file, 
+</p></li><li class="listitem"><p>
+The hostname, <code class="literal">host</code> of the remote host where you want to send the backup file, 
+</p></li><li class="listitem"><p>
+The remote directory of this host where you want to place the transferred backup file.
+</p></li></ol></div><p>
+</p><div class="example"><a name="idm24103"></a><p class="title"><b>Example 33.2. scp SSH command</b></p><div class="example-contents"><p>
+A real example will look like this:
+</p><pre class="screen">
+[admin@deep /]# <span class="command"><strong>scp</strong></span> -Cp /backups/deep-01Feb.<span class="command"><strong>tar</strong></span> admin@backupserver:/archive/deep/deep-01Feb.<span class="command"><strong>tar</strong></span>
+</pre><p>
+</p><pre class="literallayout"><code class="computeroutput">
+admin@backupserver's password:
+deep-01Feb.tgz            |      10479 KB | 154.1 kB/s | ETA: 00:00:00 | 100%
+</code></pre><p>
+</p></div></div><br class="example-break"><div class="important" style="margin-left: 0.5in; margin-right: 0.5in;"><h3 class="title">
+<span class="inlinemediaobject"><img src="./images/Important.gif" alt="Important"></span>
+</h3><p>
+The <code class="literal">C</code> option enables compression for fast data transfer over the encrypted session, the <code class="literal">p</code> option indicates that the modification and access 
+times as well as modes of the source file should be preserved on the copy. This is usually desirable. It is important to note that the <code class="filename">dir/for/file</code> directory 
+on the remote host, <code class="filename">/archive/deep</code> in our example, must be owned by the <code class="literal">username</code> you specify in your scp command <code class="literal">admin</code> is 
+this username in our example, or you may receive error message like: <code class="computeroutput">scp: /archive/deep/deep-01Feb.<span class="command"><strong>tar</strong></span>: Permission denied.</code>
+</p></div><p>
+To use scp to copy a remote tape or file to the local system, use the command:
+</p><pre class="screen">
+[admin@deep /]# scp &lt;user@host:/dir/for/file&gt; &lt;localdir/to/filelocation&gt;
+</pre><p>
+
+Where &lt;user@host:/dir/for/file&gt; represents, in this order; 
+</p><div class="orderedlist"><ol class="orderedlist" type="I"><li class="listitem"><p>
+The username <code class="literal">user</code> of the person on the remote site that holds the backup file, 
+</p></li><li class="listitem"><p>
+The hostname <code class="literal">host</code> of the remote host where you want to get the backup file, 
+</p></li><li class="listitem"><p>
+The remote directory of this host where the backup file is kept, 
+</p></li><li class="listitem"><p>
+&lt;localdir/to/filelocation&gt; is the local directory on your system where your want to place the backup file that you get from the remote host.
+</p></li></ol></div><p>
+</p><div class="example"><a name="idm24141"></a><p class="title"><b>Example 33.3. scp SSH command</b></p><div class="example-contents"><p>
+A real example would look like this:
+</p><pre class="screen">
+[admin@deep /]# <span class="command"><strong>scp</strong></span> -Cp admin@backupserver:/archive/deep/deep-01Feb.tar /backups
+</pre><p>
+</p><pre class="literallayout"><code class="computeroutput">
+admin@backupserver's password:
+deep-01Feb.tgz            |      10479 KB | 154.1 kB/s | ETA: 00:00:00 | 100%
+</code></pre><p>
+</p></div></div><br class="example-break"><div class="important" style="margin-left: 0.5in; margin-right: 0.5in;"><h3 class="title">
+<span class="inlinemediaobject"><img src="./images/Important.gif" alt="Important"></span>
+</h3><p>
+It is important to note that the <code class="filename">localdir/to/filelocation</code> directory on the local host, <code class="filename">/backups</code> in our example, must be owned 
+by the <code class="literal">username</code> you specify in your scp command, <code class="literal">admin</code> is this username in our example or you may receive an error message like: <code class="computeroutput">/backups/deep-01Feb.tar: Permission denied.</code>
+</p></div><div class="section"><div class="titlepage"><div><div><h4 class="title"><a name="prt7chscatd"></a>8.1.1. Alternatives to <span class="command"><strong>tar</strong></span> and dump backups</h4></div></div></div><table border="0" summary="Simple list" class="simplelist"><tr><td>
+AMANDA Homepage: <a class="link" href="appendixa.html#prtinxfp26" title="Alternatives to tar and dump backups">http://www.cs.umd.edu/projects/amanda/</a>
+</td></tr><tr><td>
+BRU Homepage: <a class="link" href="appendixa.html#prtinxfp26" title="Alternatives to tar and dump backups">http://www.bru.com/</a>
+</td></tr></table></div></div></div><div class="navfooter"><hr><table width="100%" summary="Navigation footer"><tr><td width="40%" align="left"><a accesskey="p" href="chap29sec310.html">Prev</a> </td><td width="20%" align="center"><a accesskey="u" href="whywhen.html">Up</a></td><td width="40%" align="right"> <a accesskey="n" href="Appendix.html">Next</a></td></tr><tr><td width="40%" align="left" valign="top">7. Restoring files with dump </td><td width="20%" align="center"><a accesskey="h" href="index.html">Home</a></td><td width="40%" align="right" valign="top"> Part I. Appendixes</td></tr></table></div></body></html>

@@ -1,0 +1,142 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1"><title>4. Supplicant: Setting up Xsupplicant</title><link rel="stylesheet" type="text/css" href="style.css"><meta name="generator" content="DocBook XSL Stylesheets V1.79.1"><link rel="home" href="index.html" title="802.1X Port-Based Authentication HOWTO"><link rel="up" href="index.html" title="802.1X Port-Based Authentication HOWTO"><link rel="prev" href="ar01s03.html" title="3. Authentication Server: Setting up FreeRADIUS"><link rel="next" href="ar01s05.html" title="5. Authenticator: Setting up the Authenticator (Access Point)"></head><body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF"><div class="navheader"><table width="100%" summary="Navigation header"><tr><th colspan="3" align="center">4. Supplicant: Setting up Xsupplicant</th></tr><tr><td width="20%" align="left"><a accesskey="p" href="ar01s03.html">Prev</a> </td><th width="60%" align="center"> </th><td width="20%" align="right"> <a accesskey="n" href="ar01s05.html">Next</a></td></tr></table><hr></div><div class="sect1"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="xsupplicant"></a>4. Supplicant: Setting up Xsupplicant</h2></div></div></div><p>
+ The Supplicant is usually a laptop or other (wireless) device that
+ requires authentication. <span class="application">Xsupplicant</span>
+ does the bidding of being the <span class="quote">&#8220;<span class="quote">Supplicant</span>&#8221;</span> part of the
+ IEEE 802.1X-2001 standard.
+ </p><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="instxsup"></a>4.1. Installing Xsupplicant</h3></div></div></div><div class="procedure"><a name="idm379"></a><p class="title"><b>Procedure 3. Installing Xsupplicant</b></p><ol class="procedure" type="1"><li class="step"><p>
+    Download the latest source from <a class="ulink" href="http://www.open1x.org/" target="_top">http://www.open1x.org/</a> 
+    </p><pre class="screen">
+    <code class="prompt"># </code><strong class="userinput"><code><span class="command"><strong>cd </strong></span>/usr/local/src</code></strong>
+    <code class="prompt"># </code><strong class="userinput"><code><span class="command"><strong>wget </strong></span>http://belnet.dl.sourceforge.net/sourceforge/open1x/xsupplicant-1.0.tar.gz</code></strong>
+    <code class="prompt"># </code><strong class="userinput"><code><span class="command"><strong>tar </strong></span>zxfv xsupplicant-1.0.tar.gz</code></strong>
+    <code class="prompt"># </code><strong class="userinput"><code><span class="command"><strong>cd </strong></span>xsupplicant</code></strong>
+    </pre></li><li class="step"><p>
+    Configure, make, and install:
+    </p><pre class="screen">
+    <code class="prompt"># </code><strong class="userinput"><code><span class="command"><strong>./configure</strong></span></code></strong>
+    <code class="prompt"># </code><strong class="userinput"><code><span class="command"><strong>make</strong></span></code></strong>
+    <code class="prompt"># </code><strong class="userinput"><code><span class="command"><strong>make install</strong></span></code></strong>
+    </pre></li><li class="step"><p>
+    If the configuration file wasn't installed (copied) into the "etc"
+    folder, do it manually:
+    </p><pre class="screen">
+    <code class="prompt"># </code><strong class="userinput"><code><span class="command"><strong>mkdir </strong></span>-p /usr/local/etc/1x</code></strong>
+    <code class="prompt"># </code><strong class="userinput"><code><span class="command"><strong>cp </strong></span>etc/tls-example.conf /usr/local/etc/1x</code></strong>
+    </pre></li></ol></div><p>
+  If installation fails, check the <code class="filename">README</code> and
+  <code class="filename">INSTALL</code> files included with the source. You may
+  also check out the <a class="ulink" href="http://sourceforge.net/docman/display_doc.php?docid=23371&amp;group_id=60236" target="_top">official
+  documentation</a>.
+  </p></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="confxsup"></a>4.2. Configuring Xsupplicant</h3></div></div></div><div class="procedure"><a name="idm424"></a><p class="title"><b>Procedure 4. Configuring Xsupplicant</b></p><ol class="procedure" type="1"><li class="step"><p>
+   The Supplicant must have access to the root certificate.
+   </p><p>
+   If the Supplicant needs to authenticate against the Authentication
+   Server (authentication both ways), the Supplicant must have
+   certificates as well.
+   </p><p>
+   Create a certificate folder, and move the certificates into it: 
+   </p><pre class="screen">
+    <code class="prompt"># </code><strong class="userinput"><code><span class="command"><strong>mkdir</strong></span> -p /usr/local/etc/1x/certs</code></strong>
+    <code class="prompt"># </code><strong class="userinput"><code><span class="command"><strong>cp</strong></span> root.pem /usr/local/etc/1x/certs/</code></strong>
+    <code class="prompt"># </code>(copy optional client certificate(s) into the same folder)
+   </pre></li><li class="step"><p>
+   Open and edit the configuration file:
+   </p><pre class="programlisting">
+   # startup_command: the command to run when Xsupplicant is first started.
+   #   This command can do things such as configure the card to associate with
+   #   the network properly.
+   startup_command = &lt;BEGIN_COMMAND&gt;/usr/local/etc/1x/startup.sh&lt;END_COMMAND&gt;
+   </pre><p>
+   The <code class="filename">startup.sh</code> will be created shortly.
+   </p></li><li class="step"><p>
+   When the client is authenticated, it will transmit a DHCP request or
+   manually set an IP address. Here, the Supplicant sets its IP address
+   manually in <code class="filename">startup2.sh</code>:
+   </p><pre class="programlisting">
+   # first_auth_command: the command to run when Xsupplicant authenticates to
+   #   a wireless network for the first time.  This will usually be used to
+   #   start a DHCP client process.
+   #first_auth_command = &lt;BEGIN_COMMAND&gt;dhclient %i&lt;END_COMMAND&gt;
+   first_auth_command = &lt;BEGIN_COMMAND&gt;/usr/local/etc/1x/startup2.sh&lt;END_COMMAND&gt;
+   </pre></li><li class="step"><p>
+   Since <span class="quote">&#8220;<span class="quote">-i</span>&#8221;</span> is just for debugging purpose (and may
+   go away according to the developers),
+   <span class="quote">&#8220;<span class="quote">allow_interfaces</span>&#8221;</span> must be set:
+   </p><pre class="programlisting">
+   allow_interfaces = eth0
+   deny_interfaces = eth1
+   </pre></li><li class="step"><p>
+   Next, under the <span class="quote">&#8220;<span class="quote">NETWORK SECTION</span>&#8221;</span>, we'll configure
+   PEAP:
+   </p><pre class="programlisting">
+   # We'll be using PEAP
+   allow_types = eap_peap
+
+   # Don't want any eavesdropper to learn the username during the
+   # first phase (which is unencrypted), so 'identity hiding' is 
+   # used (using a bogus username).
+   identity = &lt;BEGIN_ID&gt;anonymous&lt;END_ID&gt;
+
+   eap-peap {
+      # As in tls, define either a root certificate or a directory
+      # containing root certificates.
+      root_cert = /usr/local/etc/1x/certs/root.pem
+      #root_dir = /path/to/root/certificate/dir
+      #crl_dir = /path/to/dir/with/crl
+      chunk_size = 1398
+      random_file = /dev/urandom
+      #cncheck = myradius.radius.com   # Verify that the server certificate
+                                       # has this value in its CN field.
+      #cnexact = yes                   # Should it be an exact match?
+      session_resume = yes
+
+      # Currently 'all' is just mschapv2.
+      # If no allow_types is defined, all is assumed.
+      #allow_types = all # where all = MSCHAPv2, MD5, OTP, GTC, SIM
+      allow_types = eap_mschapv2
+
+      # Right now, you can do any of these methods in PEAP:
+      eap-mschapv2 {
+        username = &lt;BEGIN_UNAME&gt;testuser&lt;END_UNAME&gt;
+        password = &lt;BEGIN_PASS&gt;Secret149&lt;END_PASS&gt;
+      }
+   }
+   </pre></li><li class="step"><p>
+   The Supplicant must first associate with the access point. The
+   script <code class="filename">startup.sh</code> does that job. It is also
+   the first command <span class="application">Xsupplicant</span> executes.
+   </p><div class="note" style="margin-left: 0.5in; margin-right: 0.5in;"><h3 class="title">Note</h3><p>
+   Notice the bogus key we give to iwconfig (<span class="emphasis"><em>enc
+   000000000</em></span>)! This key is used to tell the driver
+   to run in encrypted mode. The key gets replaced after successful
+   authentication. This can be set to <span class="emphasis"><em>enc 
+   off</em></span> only if encryption is disabled in the AP (for
+   testing purposes).
+   </p></div><p>
+   Both <code class="filename">startup.sh</code> and
+   <code class="filename">startup2.sh</code> must be saved under
+   <code class="filename">/usr/local/etc/1x/</code>.
+   </p><pre class="programlisting">
+   #!/bin/bash
+   echo "Starting startup.sh"
+   # Take down interface (if it's up)
+   /sbin/ifconfig eth0 down
+   # To make sure the routes are flushed
+   sleep 1
+   # Configuring the interface with a bogus key
+   /sbin/iwconfig eth0 mode managed essid testnet enc 000000000
+   # Bring the interface up and make sure it listens to multicast packets
+   /sbin/ifconfig eth0 allmulti up
+   echo "Finished startup.sh"
+   </pre></li><li class="step"><p>
+   This next file is used to set the IP address statically. This can
+   be omitted if a DHCP server is present (as it typically is, in many
+   access points).
+   </p><pre class="programlisting">
+   #!/bin/bash
+   echo "Starting startup2.sh"
+   # Assigning an IP address
+   /sbin/ifconfig eth0 192.168.1.5 netmask 255.255.255.0
+   echo "Finished startup2.sh"
+   </pre></li></ol></div></div></div><div class="navfooter"><hr><table width="100%" summary="Navigation footer"><tr><td width="40%" align="left"><a accesskey="p" href="ar01s03.html">Prev</a> </td><td width="20%" align="center"> </td><td width="40%" align="right"> <a accesskey="n" href="ar01s05.html">Next</a></td></tr><tr><td width="40%" align="left" valign="top">3. Authentication Server: Setting up FreeRADIUS </td><td width="20%" align="center"><a accesskey="h" href="index.html">Home</a></td><td width="40%" align="right" valign="top"> 5. Authenticator: Setting up the Authenticator (Access
+ Point)</td></tr></table></div></body></html>

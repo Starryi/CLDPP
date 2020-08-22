@@ -1,0 +1,349 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN""http://www.w3.org/TR/html4/loose.dtd">
+<HTML
+><HEAD
+><TITLE
+>Search engines and dynamic URLs</TITLE
+><META
+NAME="GENERATOR"
+CONTENT="Modular DocBook HTML Stylesheet Version 1.79"><LINK
+REL="HOME"
+TITLE="PHP-Nuke: Management and Programming"
+HREF="index.html"><LINK
+REL="UP"
+TITLE="Optimizing PHP-Nuke "
+HREF="optimizing-php-nuke.html"><LINK
+REL="PREVIOUS"
+TITLE="Optimizing PHP-Nuke "
+HREF="optimizing-php-nuke.html"><LINK
+REL="NEXT"
+TITLE="mod_rewrite"
+HREF="mod-rewrite.html"></HEAD
+><BODY
+CLASS="SECT1"
+BGCOLOR="#FFFFFF"
+TEXT="#000000"
+LINK="#0000FF"
+VLINK="#840084"
+ALINK="#0000FF"
+><DIV
+CLASS="NAVHEADER"
+><TABLE
+SUMMARY="Header navigation table"
+WIDTH="100%"
+BORDER="0"
+CELLPADDING="0"
+CELLSPACING="0"
+><TR
+><TH
+COLSPAN="3"
+ALIGN="center"
+>PHP-Nuke: Management and Programming</TH
+></TR
+><TR
+><TD
+WIDTH="10%"
+ALIGN="left"
+VALIGN="bottom"
+><A
+HREF="optimizing-php-nuke.html"
+ACCESSKEY="P"
+>Prev</A
+></TD
+><TD
+WIDTH="80%"
+ALIGN="center"
+VALIGN="bottom"
+>Chapter 25. Optimizing <SPAN
+CLASS="APPLICATION"
+>PHP-Nuke</SPAN
+></TD
+><TD
+WIDTH="10%"
+ALIGN="right"
+VALIGN="bottom"
+><A
+HREF="mod-rewrite.html"
+ACCESSKEY="N"
+>Next</A
+></TD
+></TR
+></TABLE
+><HR
+ALIGN="LEFT"
+WIDTH="100%"></DIV
+><DIV
+CLASS="SECT1"
+><H1
+CLASS="SECT1"
+><A
+NAME="SEARCH-ENGINES-AND-DYNAMIC-URLS"
+>25.1. Search engines and dynamic URLs</A
+></H1
+><P
+>The ability to transfer information from one script to another is essential to modern dynamic web pages. Usually, the scripts will use the well-known GET method for this purpose. For example, to edit your personal information, <SPAN
+CLASS="APPLICATION"
+>PHP-Nuke</SPAN
+> calls the Your_Account module with an URL like:</P
+><TABLE
+BORDER="1"
+BGCOLOR="#E0E0E0"
+WIDTH="100%"
+><TR
+><TD
+><FONT
+COLOR="#000000"
+><PRE
+CLASS="SCREEN"
+>http://www.yourdomain.com/modules.php?name=Your_Account&#38;op=edituser</PRE
+></FONT
+></TD
+></TR
+></TABLE
+><P
+>The "name" and "op" are so-called URL parameters and are passed to the modules.php script through the GET method. This is what happens besides the scenes:</P
+><P
+>The modules.php file includes mainfile.php, as practically every piece of <SPAN
+CLASS="APPLICATION"
+>PHP-Nuke</SPAN
+> code does, directly or indirectly (see <A
+HREF="block-creation.html"
+>Section 20.2</A
+>, for blocks and <A
+HREF="creating-modules.html"
+>Chapter 21</A
+>, for modules). In mainfile.php, one of the first things that is checked, is whether you have register_globals set to OFF in your php.ini:</P
+><TABLE
+BORDER="1"
+BGCOLOR="#E0E0E0"
+WIDTH="100%"
+><TR
+><TD
+><FONT
+COLOR="#000000"
+><PRE
+CLASS="SCREEN"
+>if (!ini_get("register_globals")) {
+    import_request_variables('GPC');
+}</PRE
+></FONT
+></TD
+></TR
+></TABLE
+><P
+>If it is, the above code will call <A
+HREF="http://www.php.net/manual/en/function.import-request-variables.php"
+TARGET="_top"
+>import_request_variables</A
+> and import all GET variables (i.e. "name" and "op" in the example) in the $_GET array. Using the types parameter, you can specify which request variables to import with import_request_variables . You can use 'G', 'P' and 'C' characters respectively for GET, POST and Cookie, as in the example from mainfile.php above.</P
+><P
+>The code goes on to submit each variable in the $_GET array to a series of checks that should guard against any misuse of the parameters for cracking purposes (see <A
+HREF="guard-security-vulnerabilities-in-php-nuke.html#SECURITY-AUDIT"
+>Section 23.4.3</A
+>), but this is not going to be pursued further here (see <A
+HREF="how-secure-is-php-nuke.html"
+>Section 23.1</A
+> for the security perspective on PHP-Nuke). We are rather going to concentrate on a different aspect of URL parameter passing: the GET method of transferring parameters between scripts makes your web pages unfriendly for search engines - up to the point that they may not be indexed at all!</P
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="SEARCH-ENGINES-AND-GET-METHOD"
+>25.1.1. Search engines and the GET method</A
+></H2
+><P
+>When a search engine spider encounters an URL with many parameters while indexing your pages, it will ignore the URL and not index that particular page. Just how many parameters are too many for a search engine, is difficult to say. The search engines are deliberately vague on this point, just as they are on almost every other point regarding their algorithms. For example, <A
+HREF="http://www.google.com"
+TARGET="_top"
+>Google</A
+> states the following in its <A
+HREF="http://www.google.com/webmasters/guidelines.html"
+TARGET="_top"
+>Guidelines for Webmasters</A
+>:</P
+><A
+NAME="AEN17636"
+></A
+><BLOCKQUOTE
+CLASS="BLOCKQUOTE"
+><P
+>Allow search bots to crawl your sites without session ID's or arguments that track their path through the site. These techniques are useful for tracking individual user behavior, but the access pattern of bots is entirely different. Using these techniques may result in incomplete indexing of your site, as bots may not be able to eliminate URLs that look different but actually point to the same page. </P
+></BLOCKQUOTE
+><P
+>This does not mean that Google will not spider dynamic pages at all, however (although this seems to have been the case in the past, though). Somewhere in the first months of 2003, Google's algoritms became intelligent enough to tackle the tricky problem of dynamic URLs - well, at least partly, see <A
+HREF="http://www.webmasterworld.com/forum3/12370.htm"
+TARGET="_top"
+>Google is now better at spidering dynamic sites</A
+>. Observational evidence suggests that Google will now index a page whose URL contains no more than 2-3 parameters with short names (URLs with 2 parameters is the maximum for Google right now, said Marissa Mayer of Google in the <A
+HREF="http://www.seroundtable.com/archives/000024.html"
+TARGET="_top"
+>Search Engines Strategies  Chicago December 10th  Day Two</A
+>, Dec. 10th 2003 ). </P
+><P
+>Still, the problem remains for URLs with many parameters, as well as session IDs. A page that uses session IDs can generate an infinite amount of pages for a spider to visit. These types of pages are blocked from being indexed not only by Google, but from other search engines as well.</P
+><P
+>If a bot ignores a page due to a session <ACRONYM
+CLASS="ACRONYM"
+>ID</ACRONYM
+> or a large number of GET parameters on the URL, it will also ignore all pages referenced by that page (unless it finds its way to them through some other link that it can follow). Since every <SPAN
+CLASS="APPLICATION"
+>PHP-Nuke</SPAN
+> module is accessible through an URL of the form</P
+><TABLE
+BORDER="1"
+BGCOLOR="#E0E0E0"
+WIDTH="100%"
+><TR
+><TD
+><FONT
+COLOR="#000000"
+><PRE
+CLASS="SCREEN"
+>http://www.yourdomain.com/modules.php?name=Your_Account&#38;op=edituser</PRE
+></FONT
+></TD
+></TR
+></TABLE
+><P
+>and the <SPAN
+CLASS="APPLICATION"
+>PHP-Nuke</SPAN
+> forums with at least 4 URL parameters, one of which is a session ID,</P
+><TABLE
+BORDER="1"
+BGCOLOR="#E0E0E0"
+WIDTH="100%"
+><TR
+><TD
+><FONT
+COLOR="#000000"
+><PRE
+CLASS="SCREEN"
+>http://www.yourdomain.com/modules.php?name=Forums&#38;file=viewforum&#38;f=1
+&#38;sid=9bd5f57e4615bbd6d9e2677ea7cbb781</PRE
+></FONT
+></TD
+></TR
+></TABLE
+><P
+>you run the risk that the majority of your pages will be unknown to the search engines. As a rule of thumb we can say that, if this happens, it will cost you two thirds of your external referrals<A
+NAME="AEN17660"
+HREF="#FTN.AEN17660"
+><SPAN
+CLASS="footnote"
+>[1]</SPAN
+></A
+>. This can cost you your web existence and can mean the difference between success and failure for your website!</P
+><P
+>Why? Because search engines create multiple entry points into your website, a fact that many people fail to realize. Most people you know may be coming to your website through its main index.php page, mainly because it is easier to remember, or it's just the web address you printed on the business card you gave to them. But a well-indexed website will soon begin driving traffic to deeper located pages. The search engines have rendered elaborately crafted entry pages almost obsolete: today, every page of your website can be an entry page.</P
+><P
+>It is also overseen by the average webmaster that these interior pages often draw a different kind of users than the index page: users arriving there are much more qualified because they are looking for information specific to a certain topic. Because they are looking for very specific information, they are also more likely to convert on a sale or action that you have prepared for them.</P
+><P
+>If the search engines are not able to spider your dynamic content because of the GET parameters in the URL, you are losing - these more qualified visitors often won't find your website. Thus it is very important that you find a way to make as much of your website as possible visible to the search engines.</P
+><P
+>If you budget affords it, you can choose the lazy way: some serach engines, like Inktomi (FIXM: URL!), offer a Paid Inclusion Program. In a Paid Inclusion Program, it is <EM
+>you</EM
+> who submits a list of URLs to the search engine to crawl, not the search engine that finds them automatically. This way, the search engine can be sure that the list of URLs you submitted contains real content that is of importance to you and that none of the URLs contain duplicate content of one and the same page (something that can easy happen with session IDs and an automatic spider, for example). </P
+><P
+>On the plus side of a Paid Inclusion Program, you will get your pages indexed, the URLs will be the correct ones and the world will be able to search and find you. The downside is that you have to pay for each and every URL you want to have indexed. If this strains your budget, you will have to search for alternatives.</P
+><P
+>It turns out that such an alternative exists, thanks to the Swiss-Army-Knife of URL manipulation that is called mod_rewrite.</P
+></DIV
+></DIV
+><H3
+CLASS="FOOTNOTES"
+>Notes</H3
+><TABLE
+BORDER="0"
+CLASS="FOOTNOTES"
+WIDTH="100%"
+><TR
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+WIDTH="5%"
+><A
+NAME="FTN.AEN17660"
+HREF="search-engines-and-dynamic-urls.html#AEN17660"
+><SPAN
+CLASS="footnote"
+>[1]</SPAN
+></A
+></TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+WIDTH="95%"
+><P
+>A typical website will get about two thirds of its external traffic from search engines and one third from sites that link directly to it. Of course, your mileage may vary.</P
+></TD
+></TR
+></TABLE
+><DIV
+CLASS="NAVFOOTER"
+><HR
+ALIGN="LEFT"
+WIDTH="100%"><TABLE
+SUMMARY="Footer navigation table"
+WIDTH="100%"
+BORDER="0"
+CELLPADDING="0"
+CELLSPACING="0"
+><TR
+><TD
+WIDTH="33%"
+ALIGN="left"
+VALIGN="top"
+><A
+HREF="optimizing-php-nuke.html"
+ACCESSKEY="P"
+>Prev</A
+></TD
+><TD
+WIDTH="34%"
+ALIGN="center"
+VALIGN="top"
+><A
+HREF="index.html"
+ACCESSKEY="H"
+>Home</A
+></TD
+><TD
+WIDTH="33%"
+ALIGN="right"
+VALIGN="top"
+><A
+HREF="mod-rewrite.html"
+ACCESSKEY="N"
+>Next</A
+></TD
+></TR
+><TR
+><TD
+WIDTH="33%"
+ALIGN="left"
+VALIGN="top"
+>Optimizing <SPAN
+CLASS="APPLICATION"
+>PHP-Nuke</SPAN
+></TD
+><TD
+WIDTH="34%"
+ALIGN="center"
+VALIGN="top"
+><A
+HREF="optimizing-php-nuke.html"
+ACCESSKEY="U"
+>Up</A
+></TD
+><TD
+WIDTH="33%"
+ALIGN="right"
+VALIGN="top"
+>mod_rewrite</TD
+></TR
+></TABLE
+></DIV
+></BODY
+></HTML
+>

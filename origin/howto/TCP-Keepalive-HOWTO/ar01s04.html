@@ -1,0 +1,105 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1"><title>4. Programming applications</title><link rel="stylesheet" type="text/css" href="style.css"><meta name="generator" content="DocBook XSL Stylesheets V1.79.1"><link rel="home" href="index.html" title="TCP Keepalive HOWTO"><link rel="up" href="index.html" title="TCP Keepalive HOWTO"><link rel="prev" href="ar01s03.html" title="3. Using TCP keepalive under Linux"><link rel="next" href="ar01s05.html" title="5. Adding support to third-party software"></head><body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF"><div class="navheader"><table width="100%" summary="Navigation header"><tr><th colspan="3" align="center">4. Programming applications</th></tr><tr><td width="20%" align="left"><a accesskey="p" href="ar01s03.html">Prev</a> </td><th width="60%" align="center"> </th><td width="20%" align="right"> <a accesskey="n" href="ar01s05.html">Next</a></td></tr></table><hr></div><div class="sect1"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="programming"></a>4. Programming applications</h2></div></div></div><p>
+    This section deals with programming code needed if you want to create
+    applications that use keepalive. This is not a programming manual, and it
+    requires that you have previous knowledge in C programming and in
+    networking concepts. I consider you familiar with sockets, and with
+    everything concerning the general aspects of your application.
+  </p><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="codeneeding"></a>4.1. When your code needs keepalive support</h3></div></div></div><p>
+      Not all network applications need keepalive support. Remember that it is
+      TCP keepalive support. So, as you can imagine, only TCP sockets can take
+      advantage of it.
+    </p><p>
+      The most beautiful thing you can do when writing an application is to make
+      it as customizable as possible, and not to force decisions. If you want to
+      consider the happiness of your users, you should implement keepalive and
+      let the users decide if they want to use it or not by using a
+      configuration parameter or a switch on the command line.
+    </p></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="setsockopt"></a>4.2. The <code class="function">setsockopt</code> function call</h3></div></div></div><p>
+      All you need to enable keepalive for a specific socket is to set the
+      specific socket option on the socket itself. The prototype of the function
+      is as follows:
+
+      </p><pre class="synopsis">
+  int <code class="function">setsockopt</code>(int s, int level, int optname,
+                 const void *optval, socklen_t optlen)
+      </pre><p>
+    </p><p>
+      The first parameter is the socket, previously created with the
+      <span class="citerefentry"><span class="refentrytitle"><code class="function">socket</code></span>(2)</span>; the second one must be <code class="constant">
+      SOL_SOCKET</code>, and the third must be <code class="constant">SO_KEEPALIVE
+      </code>. The fourth parameter must be a boolean integer value,
+      indicating that we want to enable the option, while the last is the size
+      of the value passed before.
+    </p><p>
+      According to the manpage, <span class="returnvalue">0</span> is returned upon
+      success, and <span class="returnvalue">-1</span> is returned on error (and
+      <code class="varname">errno</code> is properly set).
+    </p><p>
+      There are also three other socket options you can set for keepalive when
+      you write your application. They all use the <code class="constant">SOL_TCP</code>
+      level instead of <code class="constant">SOL_SOCKET</code>, and they override
+      system-wide variables only for the current socket. If you read without
+      writing first, the current system-wide parameters will be returned.
+    </p><div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem"><p><code class="constant">TCP_KEEPCNT</code>: overrides <code class="varname">
+        tcp_keepalive_probes</code></p></li><li class="listitem"><p><code class="constant">TCP_KEEPIDLE</code>: overrides <code class="varname">
+        tcp_keepalive_time</code></p></li><li class="listitem"><p><code class="constant">TCP_KEEPINTVL</code>: overrides <code class="varname">
+        tcp_keepalive_intvl</code></p></li></ul></div></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="examples"></a>4.3. Code examples</h3></div></div></div><p>
+      This is a little example that creates a socket, shows that keepalive is
+      disabled, then enables it and checks that the option was effectively set.
+    </p><div class="informalexample"><pre class="programlisting">
+            /* --- begin of keepalive test program --- */
+
+#include &lt;stdio.h&gt;
+#include &lt;stdlib.h&gt;
+#include &lt;unistd.h&gt;
+#include &lt;sys/types.h&gt;
+#include &lt;sys/socket.h&gt;
+#include &lt;netinet/in.h&gt;
+
+int main(void);
+
+int main()
+{
+   int s;
+   int optval;
+   socklen_t optlen = sizeof(optval);
+
+   /* Create the socket */
+   if((s = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP)) &lt; 0) {
+      perror("socket()");
+      exit(EXIT_FAILURE);
+   }
+
+   /* Check the status for the keepalive option */
+   if(getsockopt(s, SOL_SOCKET, SO_KEEPALIVE, &amp;optval, &amp;optlen) &lt; 0) {
+      perror("getsockopt()");
+      close(s);
+      exit(EXIT_FAILURE);
+   }
+   printf("SO_KEEPALIVE is %s\n", (optval ? "ON" : "OFF"));
+
+   /* Set the option active */
+   optval = 1;
+   optlen = sizeof(optval);
+   if(setsockopt(s, SOL_SOCKET, SO_KEEPALIVE, &amp;optval, optlen) &lt; 0) {
+      perror("setsockopt()");
+      close(s);
+      exit(EXIT_FAILURE);
+   }
+   printf("SO_KEEPALIVE set on socket\n");
+
+   /* Check the status again */
+   if(getsockopt(s, SOL_SOCKET, SO_KEEPALIVE, &amp;optval, &amp;optlen) &lt; 0) {
+      perror("getsockopt()");
+      close(s);
+      exit(EXIT_FAILURE);
+   }
+   printf("SO_KEEPALIVE is %s\n", (optval ? "ON" : "OFF"));
+
+   close(s);
+
+   exit(EXIT_SUCCESS);
+}
+
+            /* ---  end of keepalive test program  --- */
+    </pre></div></div></div><div class="navfooter"><hr><table width="100%" summary="Navigation footer"><tr><td width="40%" align="left"><a accesskey="p" href="ar01s03.html">Prev</a> </td><td width="20%" align="center"> </td><td width="40%" align="right"> <a accesskey="n" href="ar01s05.html">Next</a></td></tr><tr><td width="40%" align="left" valign="top">3. Using TCP keepalive under Linux </td><td width="20%" align="center"><a accesskey="h" href="index.html">Home</a></td><td width="40%" align="right" valign="top"> 5. Adding support to third-party software</td></tr></table></div></body></html>

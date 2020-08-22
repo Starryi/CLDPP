@@ -1,0 +1,96 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1"><title>4. Set Up The Head Node</title><link rel="stylesheet" type="text/css" href="style.css"><meta name="generator" content="DocBook XSL Stylesheets V1.79.1"><link rel="home" href="index.html" title="The Beowulf HOWTO"><link rel="up" href="index.html" title="The Beowulf HOWTO"><link rel="prev" href="ar01s03.html" title="3. Requirements"><link rel="next" href="ar01s05.html" title="5. Set Up Slave Nodes"></head><body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF"><div class="navheader"><table width="100%" summary="Navigation header"><tr><th colspan="3" align="center">4. Set Up The Head Node</th></tr><tr><td width="20%" align="left"><a accesskey="p" href="ar01s03.html">Prev</a> </td><th width="60%" align="center"> </th><td width="20%" align="right"> <a accesskey="n" href="ar01s05.html">Next</a></td></tr></table><hr></div><div class="sect1"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="idm70"></a>4. Set Up The Head Node</h2></div></div></div><p>So let's get "wolfing." Choose the most powerful box to be the head
+    node. Install Linux there and choose every package you want. The only
+    requirement is that you choose "Network Servers" [in Red Hat terminology]
+    because you need to have NFS and ssh. That's all you need. In my case, I
+    was going to do development of the Beowulf application, so I added X and C
+    development.</p><p>It is my experience that you do not actually need NFS, but I found
+    it invaluable for copying files between nodes, and for automating the
+    install process. Later in this document I will describe how you can run a
+    simple Beowulf application without the use of NFS, but a more complex
+    application may use NFS or actually depend upon it.</p><p>Those of you researching Beowulf systems will also know how you can
+    have a second network card on the head node so you can access it from the
+    outside world. This is not required for the operation of a cluster.</p><p>I learned the hard way: use a password that obeys the strong
+    password constraints for your Linux distribution. I used an easily typed
+    password like "a" for my user, and the whole thing did not work. When I
+    changed my password to a legal password, with mixed numbers, characters,
+    upper and lower case, it worked.</p><p>If you use lam as your message passing interface, you will read in
+    the manual to turn OFF the firewalls, because they use random port numbers
+    to communicate between nodes. Here is a rule: If the manual tells you to
+    do something, DO IT! The lam manual also tells you to run as a non-root
+    user. Make the same user for every box. Build every box on the cluster
+    with that same user and password. I named that non root user "wolf".
+    </p><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="idm77"></a>4.1. Hosts</h3></div></div></div><p>First we modify /etc/hosts. In it, you will see the comments
+      telling you to leave the "localhost" line alone. Ignore that advice and
+      change it to not include the name of your box in the loopback
+      address.</p><p>Modify the line that says: </p><pre class="screen">127.0.0.1 wolf00 localhost.localdomain localhost</pre><p>...to now say: </p><pre class="screen">127.0.0.1 localhost.localdomain localhost </pre><p>Then add all the boxes you want on your cluster. Note: This is not
+      required for the operation of a Beowulf cluster; only convenient, so
+      that you may type a simple "wolf01" when you refer to a box on your
+      cluster instead of the more tedious 192.168.0.101:</p><pre class="screen">192.168.0.100 wolf00
+192.168.0.101 wolf01
+192.168.0.102 wolf02
+192.168.0.103 wolf03
+192.168.0.104 wolf04</pre></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="idm86"></a>4.2. Groups</h3></div></div></div><p>In order to responsibly set up your cluster, especially if you are
+      a "user" of your boxes [see Definitions], you should have some measure
+      of security.</p><p>After you create your user, create a group, and add the user to
+      the group. Then, you may modify your files and directories to only be
+      accessible by the users within that group:</p><pre class="screen">groupadd beowulf 
+usermod -g beowulf wolf </pre><p>...and add the following to /home/wolf/.bash_profile:</p><pre class="screen">umask 007</pre><p>Now any files created by the user "wolf" [or any user within the
+      group] will be automatically only writeable by the group
+      "beowulf".</p></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="idm94"></a>4.3. NFS</h3></div></div></div><p>Refer to the following web site: <a class="ulink" href="http://www.ibiblio.org/mdw/HOWTO/NFS-HOWTO/server.html" target="_top">http://www.ibiblio.org/mdw/HOWTO/NFS-HOWTO/server.html</a></p><p>Print that up, and have it at your side. I will be directing you
+      how to modify your system in order to create an NFS server, but I have
+      found this site invaluable, as you may also.</p><p>Make a directory for everybody to share:</p><pre class="screen">mkdir /mnt/wolf 
+chmod 770 /mnt/wolf 
+chown wolf:beowulf /mnt/wolf -R </pre><p>Go to the /etc directory, and add your "shared" directory to the
+      exports file:</p><pre class="screen">cd /etc 
+cat &gt;&gt; exports 
+/mnt/wolf 192.168.0.100/192.168.0.255 (rw) 
+&lt;control d&gt;</pre></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="idm103"></a>4.4. IP Addresses</h3></div></div></div><p>My network is 192.168.0.nnn because it is one of the "private" IP
+      ranges. Thomas Sterling talks about it on page 106 of his book. It is
+      inside my firewall, and works just fine.</p><p>My head node, which I call "wolf00" is 192.168.0.100, and every
+      other node is named "wolfnn", with an ip of 192.168.0.100 + nn. I am
+      following the sage advice of many of the web pages out there, and
+      setting myself up for an easier task of scaling up my cluster.</p></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="idm107"></a>4.5. Services</h3></div></div></div><p>Make sure that services we want are up:</p><pre class="screen">chkconfig -add sshd 
+chkconfig -add nfs 
+chkconfig -add rexec 
+chkconfig -add rlogin 
+chkconfig -level 3 rsh on 
+chkconfig -level 3 nfs on 
+chkconfig -level 3 rexec on 
+chkconfig -level 3 rlogin on</pre><p>...And, during startup, I saw some services that I know I don't
+      want, and in my opinion, could be removed. You may add or remove others
+      that suit your needs; just include the ones shown above.</p><pre class="screen">chkconfig -del atd 
+chkconfig -del rsh
+chkconfig -del sendmail</pre></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="idm113"></a>4.6. SSH</h3></div></div></div><p>To be responsible, we make ssh work. While logged in as root, you
+      must modify the /etc/ssh/sshd_config file. The lines:</p><pre class="screen">#RSAAuthentication yes 
+#AuthorizedKeysFile .ssh/authorized_keys</pre><p>...are commented out, so uncomment them [remove the #].</p><p>Reboot, and log back in as wolf, because the operation of your
+      cluster will always be done from the user "wolf". Also, the hosts file
+      modifications done earlier must take effect. Logging out and back in
+      will not do this. To be sure, reboot the box, and make sure your prompt
+      shows hostname "wolf00".</p><p>To generate your public and private SSH keys, do this:</p><pre class="screen">ssh-keygen -b 1024 -f ~/.ssh/id_rsa -t rsa -N "" </pre><p>...and it will display a few messages, and tell you that it created
+      the public / private key pair. You will see these files, id_rsa and
+      id_rsa.pub, in the /home/wolf/.ssh directory.</p><p>Copy the id_rsa.pub file into a file called "authorized_keys"
+      right there in the .ssh directory. We will be using this file later.
+      Verify that the contents of this file show the hostname [the reason we
+      rebooted the box]. Modify the security on the files, and the
+      directory:</p><pre class="screen">chmod 644 ~/.ssh/auth* 
+chmod 755 ~/.ssh </pre><p>According to the LAM user group, only the head node needs to log
+      on to the slave nodes; not the other way around. Therefore when we copy
+      the public key files, we only copy the head node's key file to each
+      slave node, and set up the agent on the head node. This is MUCH easier
+      than copying all authorized_keys files to all nodes. I will describe
+      this in more detail later.</p><p>Note: I only am documenting what the LAM distribution of the
+      message passing interface requires; if you chose another message passing
+      interface to build your cluster, your requirements may differ.</p><p>At the end of /home/wolf/.bash_profile, add the following
+      statements [again this is lam-specific; your requirements may
+      vary]:</p><pre class="screen">export LAMRSH='ssh -x' 
+ssh-agent sh -c 'ssh-add &amp;&amp; bash'</pre></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="idm128"></a>4.7. MPI</h3></div></div></div><p>Lastly, put your message passing interface on the box. As stated
+      in 1.2 Requirements, I used lam. You can get lam from here:</p><p><a class="ulink" href="http://www.lam-mpi.org/" target="_top">
+      http://www.lam-mpi.org/</a></p><p>...but you can use any other message passing interface or parallel
+      virtual machine software you want. Again, I am showing you what worked
+      for me.</p><p>You can either build LAM from the supplied source, or use their
+      precompiled RPM package. It is not in the scope of this document to
+      describe that; I just got the source and followed the directions, and in
+      another experiment I installed their rpm. Both of them worked fine.
+      Remember the whole reason we are doing this is to learn; go forth and
+      learn.</p><p>You may also read more documentation regarding LAM and other
+      message passing interface software <a class="ulink" href="http://www.tldp.org/HOWTO/Scientific-Computing-with-GNU-Linux/systems.html" target="_top">here.</a></p></div></div><div class="navfooter"><hr><table width="100%" summary="Navigation footer"><tr><td width="40%" align="left"><a accesskey="p" href="ar01s03.html">Prev</a> </td><td width="20%" align="center"> </td><td width="40%" align="right"> <a accesskey="n" href="ar01s05.html">Next</a></td></tr><tr><td width="40%" align="left" valign="top">3. Requirements </td><td width="20%" align="center"><a accesskey="h" href="index.html">Home</a></td><td width="40%" align="right" valign="top"> 5. Set Up Slave Nodes</td></tr></table></div></body></html>

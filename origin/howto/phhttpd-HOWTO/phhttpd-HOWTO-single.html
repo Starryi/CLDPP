@@ -1,0 +1,914 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN""http://www.w3.org/TR/html4/loose.dtd">
+<HTML
+><HEAD
+><TITLE
+>PHHTTPD HTTP Accelerator HOWTO</TITLE
+><META
+NAME="GENERATOR"
+CONTENT="Modular DocBook HTML Stylesheet Version 1.79"></HEAD
+><BODY
+CLASS="ARTICLE"
+BGCOLOR="#FFFFFF"
+TEXT="#000000"
+LINK="#0000FF"
+VLINK="#840084"
+ALINK="#0000FF"
+><DIV
+CLASS="ARTICLE"
+><DIV
+CLASS="TITLEPAGE"
+><H1
+CLASS="TITLE"
+><A
+NAME="AEN2"
+>PHHTTPD HTTP Accelerator HOWTO</A
+></H1
+><H3
+CLASS="AUTHOR"
+><A
+NAME="AEN4"
+>Zach Brown</A
+></H3
+><H3
+CLASS="AUTHOR"
+><A
+NAME="AEN7"
+>David C. Merrill</A
+></H3
+><P
+CLASS="COPYRIGHT"
+>Copyright &copy; 2000 Zach Brown</P
+><P
+CLASS="COPYRIGHT"
+>Copyright &copy; 2001 David C. Merrill</P
+><P
+CLASS="PUBDATE"
+>2001-04-24<BR></P
+><DIV
+CLASS="REVHISTORY"
+><TABLE
+WIDTH="100%"
+BORDER="0"
+><TR
+><TH
+ALIGN="LEFT"
+VALIGN="TOP"
+COLSPAN="3"
+><B
+>Revision History</B
+></TH
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+>Revision 1.1</TD
+><TD
+ALIGN="LEFT"
+>2001-04-24</TD
+><TD
+ALIGN="LEFT"
+>Revised by: DCM</TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+COLSPAN="3"
+>Converted to DocBook 4.1 article, with some minor language cleanup.
+      Copyright passed from Zach Brown to David C. Merrill.</TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+>Revision 1.0</TD
+><TD
+ALIGN="LEFT"
+>2000</TD
+><TD
+ALIGN="LEFT"
+>Revised by: ZB</TD
+></TR
+><TR
+><TD
+ALIGN="LEFT"
+COLSPAN="3"
+>Initial release.</TD
+></TR
+></TABLE
+></DIV
+><DIV
+><DIV
+CLASS="ABSTRACT"
+><P
+></P
+><A
+NAME="AEN18"
+></A
+><P
+>This document explains the use of the phhttpd http server
+  accelerator under Linux.</P
+><P
+>As of the later 2.3 kernels, and offically in 2.4 and later, the TUX
+  http accelerator is included in the standard Linux kernel tree.
+  Therefore, this document should be considered obsolete for most users.
+  </P
+><P
+></P
+></DIV
+></DIV
+><HR></DIV
+><DIV
+CLASS="TOC"
+><DL
+><DT
+><B
+>Table of Contents</B
+></DT
+><DT
+>1. <A
+HREF="#COPYRIGHT"
+>Copyright and License</A
+></DT
+><DT
+>2. <A
+HREF="#INTRODUCTION"
+>Introduction</A
+></DT
+><DD
+><DL
+><DT
+>2.1. <A
+HREF="#AEN38"
+>Architectural Overview</A
+></DT
+><DT
+>2.2. <A
+HREF="#AEN43"
+>Supported Systems</A
+></DT
+></DL
+></DD
+><DT
+>3. <A
+HREF="#CONFIGURATION"
+>Configuration File</A
+></DT
+><DD
+><DL
+><DT
+>3.1. <A
+HREF="#AEN49"
+>Overview</A
+></DT
+><DT
+>3.2. <A
+HREF="#AEN55"
+>Global Config Section</A
+></DT
+><DT
+>3.3. <A
+HREF="#AEN99"
+>Virtual Servers</A
+></DT
+></DL
+></DD
+><DT
+>4. <A
+HREF="#LOGGING"
+>Logging</A
+></DT
+><DD
+><DL
+><DT
+>4.1. <A
+HREF="#AEN139"
+>Overview</A
+></DT
+><DT
+>4.2. <A
+HREF="#AEN142"
+>Configuration</A
+></DT
+><DT
+>4.3. <A
+HREF="#AEN161"
+>Format and Strange Behaviour</A
+></DT
+></DL
+></DD
+><DT
+>5. <A
+HREF="#RUNTIME"
+>Run Time Facilities</A
+></DT
+><DD
+><DL
+><DT
+>5.1. <A
+HREF="#AEN171"
+>Overview</A
+></DT
+><DT
+>5.2. <A
+HREF="#AEN178"
+>Log Rotating</A
+></DT
+><DT
+>5.3. <A
+HREF="#AEN188"
+>Status Reporting</A
+></DT
+></DL
+></DD
+></DL
+></DIV
+><DIV
+CLASS="SECT1"
+><H2
+CLASS="SECT1"
+><A
+NAME="COPYRIGHT"
+>1. Copyright and License</A
+></H2
+><P
+>This document is copyright 2000 by Zach Brown, and 2001 by David C. Merrill.
+It is released under the GNU Free Documentation License, which is hereby incorporated
+by reference.</P
+></DIV
+><DIV
+CLASS="SECT1"
+><HR><H2
+CLASS="SECT1"
+><A
+NAME="INTRODUCTION"
+>2. Introduction</A
+></H2
+><P
+>phhttpd is an HTTP accelerator.  It serves fast static HTTP fetches from a 
+local file-system 
+and passes slower dynamic requests back to a waiting server.  It features
+a lean networking I/O core and an aggressive content cache that help it
+perform its job efficiently.</P
+><DIV
+CLASS="SECT2"
+><HR><H3
+CLASS="SECT2"
+><A
+NAME="AEN38"
+>2.1. Architectural Overview</A
+></H3
+><P
+> 
+phhttpd features a very slim I/O core.  It does all its networking
+work using non-blocking system calls driven by whatever event model
+is most appropriate for the host operating system.  This 
+allows a single execution context
+to handle as many client connections as the event model dictates.</P
+><P
+>phhttpd's job is to serve static content as quickly as it possibly
+can.  To do this it maintains a cache of content in memory.  When
+a request is serviced, phhttpd saves a reference to the on disk content
+and whatever HTTP headers are dependent on the content.  The next time
+a request for this content is received, phhttpd can service it 
+very quickly.  This cache can be prepopulated (populated at run time), or can
+be built dynamically as requests come in.  Its size may also be
+capped by the administrator so that it doesn't overwhelm a system.</P
+><P
+>phhttpd is a threaded stand alone daemon.  The number of threads
+is currently statically defined at run time.  Incoming connections
+are evenly balanced among the running threads, regardless of what
+content they may be serving.  Connections are served by the thread
+that accepted them until the transfer is done.</P
+></DIV
+><DIV
+CLASS="SECT2"
+><HR><H3
+CLASS="SECT2"
+><A
+NAME="AEN43"
+>2.2. Supported Systems</A
+></H3
+><P
+>phhttpd is currently only expected to build and run on Linux
+systems using glibc2.1 under a kernel that supports passing POLL*
+information over real-time SIGIO signals.  This means later 2.3.x 
+kernels or a 2.2.x kernel that has been patched. </P
+><P
+>I badly want this to change.  If you're interested in doing porting
+work to other Operating Systems, please do let me know.</P
+></DIV
+></DIV
+><DIV
+CLASS="SECT1"
+><HR><H2
+CLASS="SECT1"
+><A
+NAME="CONFIGURATION"
+>3. Configuration File</A
+></H2
+><DIV
+CLASS="SECT2"
+><H3
+CLASS="SECT2"
+><A
+NAME="AEN49"
+>3.1. Overview</A
+></H3
+><P
+>phhttpd uses an XML config file format to express how it should behave
+while running.  More information on XML may be found near 
+<A
+HREF="http://www.w3.org/XML/"
+TARGET="_top"
+>http://www.w3.org/XML/</A
+></P
+><P
+>phhttpd's configuration centers around the concept of virtual servers.
+For us, a virtual server may be thought of as the merging of a document
+tree and the actions phhttpd takes while serving that content.  </P
+><P
+>phhttpd.conf may be thought of as having two main sections.
+The global section, which defines properties that are consistent
+across the entire running phhttpd server, and multiple  virtual sections
+that describe properties of that only apply to a virtual server.
+There will only be one global section while multiple virtual sections
+are allowed.</P
+></DIV
+><DIV
+CLASS="SECT2"
+><HR><H3
+CLASS="SECT2"
+><A
+NAME="AEN55"
+>3.2. Global Config Section</A
+></H3
+><P
+>The global section defines properties of the running server that don't
+apply to a single virtual server.  It should be enclosed in </P
+><P
+><P
+></P
+><DIV
+CLASS="VARIABLELIST"
+><P
+><B
+>Global config entities</B
+></P
+><DL
+><DT
+><CODE
+CLASS="SGMLTAG"
+>cache max=NUM</CODE
+></DT
+><DD
+><P
+>Sets the maximum number of cached responses that will be held in memory.  Each
+cached responses holds a minimal amount of memory.  More importantly, each
+cached response holds an open file descriptor to the file with real content and
+
+an <CODE
+CLASS="FUNCTION"
+>mmap()</CODE
+>ed region of that content.  phhttpd will start pruning the cache when
+
+it notices either of these two resources coming under pressure, but has no way
+
+to easily deduce that its running low on memory.  The administrator may set this
+
+value to set an upper bound on the number of responses to keep in memory.&#13;</P
+></DD
+><DT
+><CODE
+CLASS="SGMLTAG"
+>&#13;control file=PATH&#13;</CODE
+></DT
+><DD
+><P
+>&#13;This specifies the file that will be used to talk with <B
+CLASS="COMMAND"
+>phhttpd_ctl</B
+>.&#13;</P
+></DD
+><DT
+><CODE
+CLASS="SGMLTAG"
+>&#13;globallog file=PATH&#13;</CODE
+></DT
+><DD
+><P
+>&#13;This specifies the file to which global messages will be logged.&#13;</P
+></DD
+><DT
+><CODE
+CLASS="SGMLTAG"
+>&#13;mime file=PATH&#13;</CODE
+></DT
+><DD
+><P
+>&#13;This specifies the file that contains the mapping of file extensions to <ACRONYM
+CLASS="ACRONYM"
+>MIME</ACRONYM
+> types.  It should be of the form:
+
+<TABLE
+BORDER="0"
+BGCOLOR="#E0E0E0"
+WIDTH="90%"
+><TR
+><TD
+><FONT
+COLOR="#000000"
+><PRE
+CLASS="PROGRAMLISTING"
+>&#13;text/sgml                       sgml sgm
+
+video/mpeg                      mpeg mpg mpe</PRE
+></FONT
+></TD
+></TR
+></TABLE
+>&#13;</P
+></DD
+><DT
+><CODE
+CLASS="SGMLTAG"
+>&#13;timeout inactivity=NUM&#13;</CODE
+></DT
+><DD
+><P
+>&#13;Controls various network connection timeouts.  'inactivity' sets the amount
+
+of time that a connection can be idle before phhttpd will forcibly disconnect it.
+
+inactivity defaults to 0, which lets the connections idle until TCP timeouts
+
+take effect.&#13;</P
+></DD
+><DT
+><CODE
+CLASS="SGMLTAG"
+>&#13;sendfile&#13;</CODE
+></DT
+><DD
+><P
+>&#13;Enabling this option tells phhttpd to use <CODE
+CLASS="FUNCTION"
+>sendfile()</CODE
+> rather than
+
+<CODE
+CLASS="FUNCTION"
+>write()</CODE
+>ing from an <CODE
+CLASS="FUNCTION"
+>mmap()</CODE
+>ed region.  
+
+Avoiding calling <CODE
+CLASS="FUNCTION"
+>mmap()</CODE
+> will
+
+shorten the amount of time it takes to build cached responses.&#13;</P
+></DD
+></DL
+></DIV
+>&#13;</P
+></DIV
+><DIV
+CLASS="SECT2"
+><HR><H3
+CLASS="SECT2"
+><A
+NAME="AEN99"
+>3.3. Virtual Servers</A
+></H3
+><P
+>A Virtual Server can be thought of as the abstraction serving up a content tree
+
+( <SPAN
+CLASS="QUOTE"
+>"docroot"</SPAN
+> in <B
+CLASS="COMMAND"
+>Apache</B
+> speak).  There are a set of attributes
+
+that are used to define a virtual server.  These attributes are used to decide which
+
+virtual server will process a client's request.  Then there are attributes which define
+
+how the content is served.</P
+><P
+> A virtual server must have a docroot.  The virtual tag in the config
+
+file has a docroot attribute that must be set.</P
+><P
+><TABLE
+BORDER="0"
+BGCOLOR="#E0E0E0"
+WIDTH="100%"
+><TR
+><TD
+><FONT
+COLOR="#000000"
+><PRE
+CLASS="PROGRAMLISTING"
+>&#60;virtual docroot=PATH&#62;
+
+	...
+
+&#60;/virtual&#62;&#13;</PRE
+></FONT
+></TD
+></TR
+></TABLE
+>
+
+There can be as many virtual sections in the configuration file as one likes.&#13;</P
+><P
+>&#13;<P
+></P
+><DIV
+CLASS="VARIABLELIST"
+><P
+><B
+>Global Config Entities</B
+></P
+><DL
+><DT
+><CODE
+CLASS="SGMLTAG"
+>&#13;md5 &#13;</CODE
+></DT
+><DD
+><P
+>&#13;This enables the generation of the Content-MD5: header.  This greatly increases the
+
+cost of creating a cached response for this virtual, because the MD5 function must
+
+be applied to the entire content of the response.  Once the response is created, though,
+
+there is no per-request overhead.&#13;</P
+></DD
+><DT
+><CODE
+CLASS="SGMLTAG"
+>&#13;prepop &#13;</CODE
+></DT
+><DD
+><P
+>&#13;This will cause phhttpd to traverse the entire docroot at initialization time and prepare
+
+cached responses for all the files it finds.  This happens in the back ground during
+
+normal operation, so there is no dramatic increase in the time it takes for phhttpd
+
+to start serving connections.&#13;</P
+></DD
+><DT
+><CODE
+CLASS="SGMLTAG"
+>&#13;name &#13;</CODE
+></DT
+><DD
+><P
+>&#13;This tag surrounds the string that will be used to identify the server.  This string
+
+will be compared to the Host: header given in the request from the client, or will
+
+be compared to the 'host part' of the full URL if that was given.  This will be
+
+used in combination with the network address and port pair to determine if a request
+
+should be served by a virtual server.&#13;</P
+></DD
+><DT
+><CODE
+CLASS="SGMLTAG"
+>&#13;listen v4=DOT.TED.QU.AD port=PORT &#13;</CODE
+></DT
+><DD
+><P
+>&#13;This virtual server will be chosen to serve an incoming request if that request was
+
+made to the network address specified in this entity.  There can be as many of these
+
+as one likes in a given virtual server, and '*' may be specified for either parameter to
+
+indicate that all addresses or ports should match.&#13;</P
+></DD
+><DT
+><CODE
+CLASS="SGMLTAG"
+>&#13;logs&#13;</CODE
+></DT
+><DD
+><P
+>&#13;The logs section of the virtual server define the per virtual log files that should
+
+be written to during operation.  See the following section on logging.&#13;</P
+></DD
+></DL
+></DIV
+>&#13;</P
+></DIV
+></DIV
+><DIV
+CLASS="SECT1"
+><HR><H2
+CLASS="SECT1"
+><A
+NAME="LOGGING"
+>4. Logging</A
+></H2
+><P
+><SPAN
+CLASS="QUOTE"
+>"All kids love log!"</SPAN
+></P
+><DIV
+CLASS="SECT2"
+><HR><H3
+CLASS="SECT2"
+><A
+NAME="AEN139"
+>4.1. Overview</A
+></H3
+><P
+>&#13;phhttpd maintains log buffers for each log it writes to.  Logged events are put in
+
+these buffers at reporting time rather than being immediately written to disk.  These
+
+logs are written as they are filled during normal operation, or at regular intervals.
+
+This greatly reduces the performance impact of keeping detailed logs.&#13;</P
+></DIV
+><DIV
+CLASS="SECT2"
+><HR><H3
+CLASS="SECT2"
+><A
+NAME="AEN142"
+>4.2. Configuration</A
+></H3
+><P
+>&#13;phhttpd keeps interesting logs on a virtual server granularity.
+
+You can specify which logs you wish to keep by including an entity
+
+in the log section of a virtual server for each source you wish to log.
+
+There is an entity for each source of logging, and attributes to that
+
+entity define where it is logged.
+
+It looks something like this:<TABLE
+BORDER="0"
+BGCOLOR="#E0E0E0"
+WIDTH="100%"
+><TR
+><TD
+><FONT
+COLOR="#000000"
+><PRE
+CLASS="PROGRAMLISTING"
+>&#13;&#60;logs&#62;
+
+	&#60;LOGSOURCE mode=OCTALMODE file=PATH&#62;
+
+	...
+
+&#60;/logs&#62;</PRE
+></FONT
+></TD
+></TR
+></TABLE
+>&#13;</P
+><P
+><CODE
+CLASS="VARNAME"
+>mode</CODE
+> is the octal permissions mode of the file that is
+
+to be opened.  As it is parsed by dumb routines, a leading 0 is highly recommended.
+
+<CODE
+CLASS="VARNAME"
+>file</CODE
+> is the file to which the logged events will be written.
+
+The LOG_SOURCE is one of:
+
+<DIV
+CLASS="INFORMALTABLE"
+><P
+></P
+><A
+NAME="AEN149"
+></A
+><TABLE
+BORDER="0"
+FRAME="void"
+CLASS="CALSTABLE"
+><COL><COL><TBODY
+><TR
+><TD
+>access</TD
+><TD
+>Successfully answered requests</TD
+></TR
+><TR
+><TD
+>agent</TD
+><TD
+>&#13;The value given in the 'User-Agent' HTTP request header</TD
+></TR
+><TR
+><TD
+>referer</TD
+><TD
+>&#13;The string given in the 'Referer' HTTP request header</TD
+></TR
+></TBODY
+></TABLE
+><P
+></P
+></DIV
+>&#13;</P
+></DIV
+><DIV
+CLASS="SECT2"
+><HR><H3
+CLASS="SECT2"
+><A
+NAME="AEN161"
+>4.3. Format and Strange Behaviour</A
+></H3
+><P
+>&#13;phhttpd log entries are contained with a single line in a text file.  They contain
+
+the time the log entry was written, an opaque token that is associated with the connection
+
+that caused the log entry, followed by the actual entry.  &#13;</P
+><P
+>The contents of the 'referer' and 'agent' log entries is simply the string
+
+that was given with the header.  The contents of the 'access' log is a little more
+
+interesting.  It has the decoded relative URL that was asked for, followed by the total bytes
+
+that were transfered, and the time in seconds that it took to transfer. 
+
+<TABLE
+BORDER="0"
+BGCOLOR="#E0E0E0"
+WIDTH="100%"
+><TR
+><TD
+><FONT
+COLOR="#000000"
+><PRE
+CLASS="PROGRAMLISTING"
+>&#13;387f7a45 387f7a45800210ac8910500 /index.html - 2132 0&#13;</PRE
+></FONT
+></TD
+></TR
+></TABLE
+>
+
+is an entry from an 'access' log.&#13;</P
+><P
+>The first field is the time in seconds since the Unix epoch, a.k.a. <CODE
+CLASS="VARNAME"
+>time_t</CODE
+>.  The second field is associated with the client connection that caused the log
+
+entry.  It is constant for the duration of the connection, and is written to all the logs
+
+entries, of whatever type, that are generated.  This allows a log parser to do more complete
+
+connection granularity analysis.  As it happens, this opaque token is currently built up
+
+of the time the client was connected, its remote and local network address, etc, but these
+
+values most _not_ be parsed as they may change in the future.&#13;</P
+><P
+>&#13;Entries generated by a thread will be written in chronological order.  If, however,
+
+multiple threads are sharing an output file the resulting entries may not be written
+
+in chronological order.  It is up to the parsing programs to use the 'time' field
+
+to sort by, if they care about chronological order.&#13;</P
+></DIV
+></DIV
+><DIV
+CLASS="SECT1"
+><HR><H2
+CLASS="SECT1"
+><A
+NAME="RUNTIME"
+>5. Run Time Facilities</A
+></H2
+><DIV
+CLASS="SECT2"
+><H3
+CLASS="SECT2"
+><A
+NAME="AEN171"
+>5.1. Overview</A
+></H3
+><P
+>While phhttpd is running it listens to a 'control' socket for messages from the
+
+administrator.  The currently provided <B
+CLASS="COMMAND"
+>phhttpd_ctl</B
+> program allows
+
+the administrator to minimally interact with phhttpd.  This provides both control
+
+and status reporting.&#13;</P
+><P
+>&#13;<B
+CLASS="COMMAND"
+>phhttpd_ctl</B
+> always wants a <CODE
+CLASS="PARAMETER"
+>--control</CODE
+> argument
+
+that specifies the control socket of the running phhttpd daemon.  This should match
+
+the &#60;control&#62; tag specified in the config file.&#13;</P
+></DIV
+><DIV
+CLASS="SECT2"
+><HR><H3
+CLASS="SECT2"
+><A
+NAME="AEN178"
+>5.2. Log Rotating</A
+></H3
+><P
+>&#13;phhttpd can be told to rotate its logs so that existing logs may be processed.&#13;</P
+><P
+>&#13;The <CODE
+CLASS="PARAMETER"
+>--rotate</CODE
+> argument to <B
+CLASS="COMMAND"
+>phhttpd_ctl</B
+> tells phhttpd
+
+to rename the existing files to a unique name, open new files with the previously used names,
+
+then close the renamed logs and start using the newly created files.  <B
+CLASS="COMMAND"
+>phhttpd_ctl</B
+>
+
+will output the names of the newly created files which will be safe to use once the command
+
+exits.&#13;</P
+><P
+>&#13;The <CODE
+CLASS="PARAMETER"
+>--reopen</CODE
+> argument to <B
+CLASS="COMMAND"
+>phhttpd_ctl</B
+> tells phhttpd
+
+to close the existing file logs and reopen the files with the filenames that were configured.
+
+This implies that an external entity has moved the files to new names and wants phhttpd
+
+to stop using them.&#13;</P
+></DIV
+><DIV
+CLASS="SECT2"
+><HR><H3
+CLASS="SECT2"
+><A
+NAME="AEN188"
+>5.3. Status Reporting</A
+></H3
+><P
+>&#13;The <CODE
+CLASS="PARAMETER"
+>--status</CODE
+> argument to <B
+CLASS="COMMAND"
+>phhttpd_ctl</B
+> tells phhttpd
+
+to return a quick status blurb about the server.  It contains miscellaneous information
+
+about the running state of the server.&#13;</P
+></DIV
+></DIV
+></DIV
+></BODY
+></HTML
+>

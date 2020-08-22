@@ -1,0 +1,58 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1"><title>7. The /etc/ipsec.secrets file</title><link rel="stylesheet" type="text/css" href="style.css"><meta name="generator" content="DocBook XSL Stylesheets V1.79.1"><meta name="keywords" content="RedHat, redhat, maddy, linus, linux, Linux, Securing, Optimising, security, secure, openna, gerhard"><link rel="home" href="index.html" title="Securing and Optimizing Linux"><link rel="up" href="fSWAn.html" title="Chapter 25. Linux FreeS/WAN VPN"><link rel="prev" href="chap25sec203e.html" title="6. The /etc/ipsec.conf file"><link rel="next" href="chap25sec205.html" title="8. Configure RSA private keys secrets"></head><body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF"><div class="navheader"><table width="100%" summary="Navigation header"><tr><th colspan="3" align="center">7. The <code class="filename">/etc/ipsec.secrets</code> file</th></tr><tr><td width="20%" align="left"><a accesskey="p" href="chap25sec203e.html">Prev</a> </td><th width="60%" align="center">Chapter 25. Linux FreeS/WAN VPN</th><td width="20%" align="right"> <a accesskey="n" href="chap25sec205.html">Next</a></td></tr></table><hr></div><div class="section"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="idm14954"></a>7. The <code class="filename">/etc/ipsec.secrets</code> file</h2></div></div></div><p>
+The file <code class="filename">ipsec.secrets</code> stores the secrets used by the pluto daemon to authenticate communication between both gateways. Two different kinds of secrets can be configured in this file, which 
+are preshared secrets and <acronym class="acronym">RSA</acronym> private keys. You must check the modes and permissions of this file to be sure that the super-user <code class="literal">root</code> owns the file, and its permissions are set to block all 
+access by others.
+ </p><div class="procedure"><ol class="procedure" type="1"><li class="step"><p>
+An example secret is supplied in the <code class="filename">ipsec.secrets</code> file by default. You should change it by creating your own. With automatic keying you may have a shared secret up to 256 bits, which is 
+then used during the key exchanges to make sure a man in the middle attack does not occur.
+To create a new shared secret, use the following commands:
+</p><pre class="screen">
+[root@deep] /# <span class="command"><strong>ipsec</strong></span> ranbits 256  &gt; temp
+</pre><p>
+New, random keys are created with the ranbits(8) utility in the file named <code class="filename">temp.</code> The ranbits utility may pause for a few seconds if not enough entropy is available immediately.
+</p><div class="caution" style="margin-left: 0.5in; margin-right: 0.5in;"><h3 class="title">  
+<span class="inlinemediaobject"><img src="./images/Caution.gif" alt="Caution"></span>
+</h3><p>
+Dont forget to delete the temporary file as soon as you are done with it.
+</p></div><p>
+</p></li><li class="step"><p>
+Now that our new shared secret key has been created in the <code class="filename">temp</code> file, we must put it in the <code class="filename">/etc/ipsec.secrets</code> file. When editing the <code class="filename">ipsec.secrets</code> 
+file, you should see something like the following appearing in your text editor. Each line has the <acronym class="acronym">IP</acronym> addresses of the two gateways plus the secret. It should look something like this:
+</p><pre class="programlisting">
+# This file holds shared secrets which are currently the only inter-Pluto
+# authentication mechanism.  See ipsec_pluto(8) manpage.  Each secret is
+# (oversimplifying slightly) for one pair of negotiating hosts.
+
+# The shared secrets are arbitrary character strings and should be both
+# long and hard to guess.
+
+# Note that all secrets must now be enclosed in quotes, even if they have
+# no white space inside them.
+
+10.0.0.1 11.0.0.1         "jxVS1kVUTTulkVRRTnTujSm444jRuU1mlkklku2nkW3nnVu
+V2WjjRRnulmlkmU1Run5VSnnRT"
+
+</pre><p>
+</p><ol type="a" class="substeps"><li class="step"><p>
+Edit the ipsec.secrets file, <span class="command"><strong>vi</strong></span> <code class="filename">/etc/ipsec.secrets</code> and change the default secrets keys:
+</p><pre class="programlisting">
+10.0.0.1 11.0.0.1  " jxVS1kVUTTulkVRRTnTujSm444jRuU1mlkklku2nkW3nnVu
+V2WjjRRnulmlkmU1Run5VSnnRT "
+</pre><p>
+To read:
+</p><pre class="programlisting">
+208.164.186.1 208.164.186.2 "0x9748cc31_2e99194f_d230589b_cd846b57_dc070b01_74b66f34_19c40a1a_804906ed"
+</pre><p>
+
+Where <code class="literal">208.164.186.1</code> and <code class="literal">208.164.186.2</code> are the <acronym class="acronym">IP</acronym> addresses of the two gateways and <code class="literal">"0x9748cc31_2e99194f_d230589b_cd846b57_dc070b01_74b66f34_19c40a1a_804906ed"</code> 
+<span class="emphasis"><em>note that the quotes are required</em></span> is the shared secret we have generated above with the command <strong class="userinput"><code>ipsec ranbits 256 &gt; temp</code></strong> in the <code class="filename">temp</code> file.
+</p></li></ol></li><li class="step"><p>
+The files <code class="filename">ipsec.conf</code> and <code class="filename">ipsec.secrets</code> must be copied to the second gateway machine so as to be identical on both ends. The only exception to this is the <code class="filename">ipsec.conf</code> file, which 
+must have in it a section labeled by the line config setup with the correct interface settings for the second gateway, if they differ from the first. The <code class="filename">ipsec.secrets</code> file, contrary to the <acronym class="acronym">RSA</acronym> private key, 
+should absolutely have the same-shared secrets on the two gateways.
+</p></li></ol></div><div class="important" style="margin-left: 0.5in; margin-right: 0.5in;"><h3 class="title">
+<span class="inlinemediaobject"><img src="./images/Important.gif" alt="Important"></span>
+</h3><p>
+The file <code class="filename">/etc/ipsec.secrets</code> should have permissions <code class="literal">rw------- </code>(600) and be owned by the super-user <code class="literal">root.</code> The file <code class="filename">/etc/ipsec.conf</code> is installed 
+with permissions <code class="filename">rw-r--r</code> (644) and must be owned also by <code class="literal">root.</code>
+</p></div></div><div class="navfooter"><hr><table width="100%" summary="Navigation footer"><tr><td width="40%" align="left"><a accesskey="p" href="chap25sec203e.html">Prev</a> </td><td width="20%" align="center"><a accesskey="u" href="fSWAn.html">Up</a></td><td width="40%" align="right"> <a accesskey="n" href="chap25sec205.html">Next</a></td></tr><tr><td width="40%" align="left" valign="top">6. The <code class="filename">/etc/ipsec.conf</code> file </td><td width="20%" align="center"><a accesskey="h" href="index.html">Home</a></td><td width="40%" align="right" valign="top"> 8. Configure <acronym class="acronym">RSA</acronym> private keys secrets</td></tr></table></div></body></html>

@@ -1,0 +1,61 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1"><title>3. Procedure</title><link rel="stylesheet" type="text/css" href="style.css"><meta name="generator" content="DocBook XSL Stylesheets V1.79.1"><link rel="home" href="index.html" title="Linux+Win9x+Grub HOWTO"><link rel="up" href="index.html" title="Linux+Win9x+Grub HOWTO"><link rel="prev" href="ar01s02.html" title="2. Requirements"></head><body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF"><div class="navheader"><table width="100%" summary="Navigation header"><tr><th colspan="3" align="center">3. Procedure</th></tr><tr><td width="20%" align="left"><a accesskey="p" href="ar01s02.html">Prev</a> </td><th width="60%" align="center"> </th><td width="20%" align="right"> </td></tr></table><hr></div><div class="sect1"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="proc"></a>3. Procedure</h2></div></div></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="idm49"></a>3.1. Creating the Windows partition</h3></div></div></div><p>
+If you already have a clear partition or disk for your Windows installation, you can skip this section.  Otherwise, you'll need to run a partition editor to defragment your disk and create a new partition for Windows.  I used <a class="ulink" href="http://www.gnu.org/software/parted/" target="_top">GNU Parted</a> for my installation; sfdisk should work as well.  <span class="emphasis"><em>DO NOT</em></span> use fdisk, it won't preserve your data.  And note, this process is not guaranteed, make sure to backup any important files before you begin.
+</p><p>Here is how my partition table looked pre-install:</p><pre class="programlisting">
+Device	    Start	 End	      System
+
+/dev/hda1   1		 3	      Linux
+/dev/hda2   4		 1222	      Extended
+/dev/hda5   4		 36	      Linux swap
+/dev/hda6   37		 1222	      Linux
+</pre><p>
+/dev/hda1 is my /boot partition (you may or may not have a separate boot partition for Linux), /dev/hda2 is an extended partition which contains two logical drives, /dev/hda5 and /dev/hda6, which contain my Linux swap partition and Linux installation partition.
+</p><p>
+As root, run your partition editor.  Resize your Linux partition to however small you decide to make it. (Make sure this size isn't smaller than the amount of data on your disk.)  The program will defragment for a good while and then change the partition table.  Resize the extended partition which contains your Linux partition accordingly.  You should now have enough unused space on your disk in which to create a new primary Windows partition.  Go ahead and create the partition with a Win95 FAT32 (LBA) filesystem on it.  Now your partition table should look something like this:
+</p><pre class="programlisting">
+Device	     Start	    End	     System
+
+/dev/hda1    1		    3	     Linux
+/dev/hda2    4		    905	     Extended
+/dev/hda3    906	    1222     Win95 FAT32 (LBA)
+/dev/hda5    4		    36	     Linux swap
+/dev/hda6    37		    905	     Linux
+</pre><p>
+I strongly recommend that you run fdisk at this point and write down all of your partition information on a piece of paper.  If you make a mistake in your installation, Windows will be all too happy to rewrite your partition table to its liking, and you'll need to know what your partitions look like in case of emergency.
+</p></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="idm60"></a>3.2. Installing GRUB</h3></div></div></div><div class="sect3"><div class="titlepage"><div><div><h4 class="title"><a name="idm62"></a>3.2.1. Installation</h4></div></div></div><p>
+You should have either an RPM or source package of <a class="ulink" href="http://www.gnu.org/software/grub/" target="_top">GRUB</a> somewhere on your disk.  Go through the appropriate installation procedure for your system.  GRUB should now be installed but not loaded.  As root run:</p><pre class="programlisting">
+# /sbin/grub-install /dev/hda
+</pre><p>This will load GRUB into the master boot record of your disk.  Now you need to edit /boot/grub/grub.conf to configure the GRUB boot menu:
+</p></div><div class="sect3"><div class="titlepage"><div><div><h4 class="title"><a name="idm68"></a>3.2.2. Editing grub.conf</h4></div></div></div><pre class="programlisting">
+default=0
+timeout=10
+splashimage=(hd0,0)/grub/splash.xpm.gz
+title Red Hat Linux (2.4.7-10)
+	root (hd0,0)
+	kernel /vmlinuz-2.4.7-10 ro root=/dev/hda6
+	initrd /initrd-2.4.7-10.img
+
+title Windows 98
+	map (hd0,0) (hd0,2)
+	map (hd0,2) (hd0,0)
+	rootnoverify (hd0,2)
+	chainloader +1
+
+title DOS Boot Disk
+	map (hd0,0) (hd0,2)
+	map (hd0,2) (hd0,0)
+	chainloader (fd0)+1
+</pre><p>Let's go through and see what this means.</p><p>"default=0" and "timeout=10" will cause Linux to boot in 10 seconds if you don't touch anything.  "splashimage" is self-explanatory and not very important.</p><p>
+"title" denotes each boot setting and the text that follows is what will appear in your menu at startup.  "root" specifies which partition contains your Linux kernel image (this may or may not be your actual root (/) partition).  So, "root (hd0,0)" tells GRUB that the kernel is on the first partition of /dev/hda.  You can see that GRUB has a funny numbering system, 0-3 for primary partitions and 4+ for logical partitions.  The next line tells GRUB just where to find your kernel and where your actual root partition with your Linux system is.  "initrd" tells where your init ramdisk image is located.  Note that these few lines will probably be somewhat different if you don't have a separate /boot partition.  Look at the GRUB info page if you need more help.
+</p><p>
+The "map" lines under the Windows 98 section are essential for getting your installation to work.  These are the magical lines that trick Windows into believing that it's installed on the first partition of the first disk.  If you don't map the Windows partition to (hd0,0), Windows will destroy your partition table and you won't be able to boot anything.
+</p><p>
+"rootnoverify" tells GRUB to boot from the Windows partition, but not to attempt to mount it, and "chainloader +1" tells GRUB to chain to Windows' bootloader which will start Windows.
+</p><p>
+The "DOS boot disk" section is needed if you are going to boot from floppy to begin the Windows install, but it will also come in handy after your install if you ever want to use a DOS boot disk for whatever reason.  If your Windows install CD is bootable, you'll need to have a "Windows boot disk" section which chainloads to whatever your CDROM device is called.
+</p><p>
+Now save grub.conf and exit your text editor.  Unlike LILO, GRUB does not require you to run any executable after you've modified the boot configuration.  Now, with your emergency Linux boot disk handy, try rebooting your computer.  When the system comes up you should see the GRUB menu with your three boot options.  Select Linux.  Hopefully, Linux will boot as usual and you'll have installed GRUB properly.  If it doesn't, you thankfully have a Linux boot disk so that you can boot into Linux and fix your grub.conf.  Once you've got GRUB successfully booting Linux, it's time to install Windows.
+</p></div></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="idm78"></a>3.3. Installing Windows</h3></div></div></div><p>
+Remove all diskettes and CDs from your computer and reboot.  <span class="emphasis"><em>DO NOT boot your computer with the installation media already in the drive.</em></span>  If you do that, your BIOS will just boot the Windows install directly and GRUB won't get a chance to work its magic.  When the GRUB menu comes up, insert your floppy or CD and select the DOS boot disk or Windows install CD boot, depending on your installation method.  Windows install should see the partition you've made for it on the C: drive.  Go ahead and install Windows.
+</p><p>
+That's it.  Your computer is now all set as a dual boot machine.
+</p></div></div><div class="navfooter"><hr><table width="100%" summary="Navigation footer"><tr><td width="40%" align="left"><a accesskey="p" href="ar01s02.html">Prev</a> </td><td width="20%" align="center"> </td><td width="40%" align="right"> </td></tr><tr><td width="40%" align="left" valign="top">2. Requirements </td><td width="20%" align="center"><a accesskey="h" href="index.html">Home</a></td><td width="40%" align="right" valign="top"> </td></tr></table></div></body></html>

@@ -1,0 +1,90 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1"><title>1. Displaying user messages</title><link rel="stylesheet" type="text/css" href="style.css"><meta name="generator" content="DocBook XSL Stylesheets V1.79.1"><meta name="keywords" content="Linux, Scripts, linux, Bash, guide, Guide, Exercises, exercises, bash, scripting, Scripting, awk, sed, variables, functions, loops, conditionals"><link rel="home" href="index.html" title="Bash Guide for Beginners"><link rel="up" href="ch08.html" title="Chapter 8. Writing interactive scripts"><link rel="prev" href="ch08.html" title="Chapter 8. Writing interactive scripts"><link rel="next" href="ch08s02.html" title="2. Catching user input"></head><body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF"><div class="navheader"><table width="100%" summary="Navigation header"><tr><th colspan="3" align="center">1. Displaying user messages</th></tr><tr><td width="20%" align="left"><a accesskey="p" href="ch08.html">Prev</a> </td><th width="60%" align="center">Chapter 8. Writing interactive scripts</th><td width="20%" align="right"> <a accesskey="n" href="ch08s02.html">Next</a></td></tr></table><hr></div><div class="sect1"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="sect_08_01"></a>1. Displaying user messages</h2></div></div></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="sect_08_01_01"></a>1.1. Interactive or not?</h3></div></div></div><p>Some scripts run without any interaction from the user at all.  Advantages of non-interactive scripts include:</p><div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem"><p>The script runs in a predictable way every time.</p></li><li class="listitem"><p>The script can run in the background.</p></li></ul></div><p>Many scripts, however, require input from the user, or give output to the user as the script is running.  The advantages of interactive scripts are, among others:</p><div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem"><p>More flexible scripts can be built.</p></li><li class="listitem"><p>Users can customize the script as it runs or make it behave in different ways.</p></li><li class="listitem"><p>The script can report its progress as it runs.</p></li></ul></div><p>When writing interactive scripts, never hold back on comments.  A script that prints appropriate messages is much more user-friendly and can be more easily debugged.  A script might do a perfect job, but you will get a whole lot of support calls if it does not inform the user about what it is doing.  So include messages that tell the user to wait for output because a calculation is being done.  If possible, try to give an indication of how long the user will have to wait.  If the waiting should regularly take a long time when executing a certain task, you might want to consider integrating some processing indication in the output of your script.</p><p>When prompting the user for input, it is also better to give too much than too little information about the kind of data to be entered.  This applies to the checking of arguments and the accompanying usage message as well.</p><p>Bash has the <span class="command"><strong>echo</strong></span> and <span class="command"><strong>printf</strong></span> commands to provide comments for users, and although you should be familiar with at least the use of <span class="command"><strong>echo</strong></span> by now, we will discuss some more examples in the next sections.</p></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="sect_08_01_02"></a>1.2. Using the echo built-in command</h3></div></div></div><p>The <span class="command"><strong>echo</strong></span> built-in command outputs its arguments, separated by spaces and terminated with a newline character.  The return status is always zero.  <span class="command"><strong>echo</strong></span> takes a couple of options:</p><div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem"><p><code class="option">-e</code>: interprets backslash-escaped characters.</p></li><li class="listitem"><p><code class="option">-n</code>: suppresses the trailing newline.</p></li></ul></div><p>As an example of adding comments, we will make the <code class="filename">feed.sh</code> and <code class="filename">penguin.sh</code> from <a class="xref" href="ch07s02.html#sect_07_02_01_02" title="2.1.2. Checking command line arguments">Section 2.1.2, &#8220;Checking command line arguments&#8221;</a> a bit better:</p><pre class="screen">
+<code class="prompt">michel ~/test&gt;</code> <span class="command"><strong>cat <code class="filename">penguin.sh</code></strong></span>
+#!/bin/bash
+
+# This script lets you present different menus to Tux.  He will only be happy
+# when given a fish.  To make it more fun, we added a couple more animals.
+
+if [ "$menu" == "fish" ]; then
+  if [ "$animal" == "penguin" ]; then
+    echo -e "Hmmmmmm fish... Tux happy!\n"
+  elif [ "$animal" == "dolphin" ]; then
+    echo -e "\a\a\aPweetpeettreetppeterdepweet!\a\a\a\n"
+  else
+    echo -e "*prrrrrrrt*\n"
+  fi
+else
+  if [ "$animal" == "penguin" ]; then
+    echo -e "Tux don't like that.  Tux wants fish!\n"
+    exit 1
+  elif [ "$animal" == "dolphin" ]; then
+    echo -e "\a\a\a\a\a\aPweepwishpeeterdepweet!\a\a\a"
+    exit 2
+  else
+    echo -e "Will you read this sign?!  Don't feed the "$animal"s!\n"
+    exit 3
+  fi
+fi
+
+<code class="prompt">michel ~/test&gt;</code> <span class="command"><strong>cat <code class="filename">feed.sh</code></strong></span>
+#!/bin/bash
+# This script acts upon the exit status given by penguin.sh
+
+if [ "$#" != "2" ]; then
+  echo -e "Usage of the feed script:\t$0 food-on-menu animal-name\n"
+  exit 1
+else
+
+  export menu="$1"
+  export animal="$2"
+
+  echo -e "Feeding $menu to $animal...\n"
+
+  feed="/nethome/anny/testdir/penguin.sh"
+
+  $feed $menu $animal
+
+result="$?"
+
+  echo -e "Done feeding.\n"
+
+case "$result" in
+
+  1)
+    echo -e "Guard: \"You'd better give'm a fish, less they get violent...\"\n"
+    ;;
+  2)
+    echo -e "Guard: \"No wonder they flee our planet...\"\n"
+    ;;
+  3)
+    echo -e "Guard: \"Buy the food that the Zoo provides at the entry, you ***\"\n"
+    echo -e "Guard: \"You want to poison them, do you?\"\n"
+    ;;
+  *)
+    echo -e "Guard: \"Don't forget the guide!\"\n"
+    ;;
+  esac
+
+fi
+
+echo "Leaving..."
+echo -e "\a\a\aThanks for visiting the Zoo, hope to see you again soon!\n"
+
+<code class="prompt">michel ~/test&gt;</code> <span class="command"><strong>feed.sh <em class="parameter"><code>apple camel</code></em></strong></span>
+Feeding apple to camel...
+
+Will you read this sign?!  Don't feed the camels!
+
+Done feeding.
+
+Guard: "Buy the food that the Zoo provides at the entry, you ***"
+
+Guard: "You want to poison them, do you?"
+
+Leaving...
+Thanks for visiting the Zoo, hope to see you again soon!
+
+<code class="prompt">michel ~/test&gt;</code> <span class="command"><strong>feed.sh <em class="parameter"><code>apple</code></em></strong></span>
+Usage of the feed script:       ./feed.sh food-on-menu animal-name
+
+</pre><p>More about escape characters can be found in <a class="xref" href="ch03s03.html#sect_03_03_02" title="3.2. Escape characters">Section 3.2, &#8220;Escape characters&#8221;</a>.  The following table gives an overview of sequences recognized by the <span class="command"><strong>echo</strong></span> command:</p><div class="table"><a name="tab_08_01"></a><p class="title"><b>Table 8.1. Escape sequences used by the echo command</b></p><div class="table-contents"><table class="table" summary="Escape sequences used by the echo command" border="1"><colgroup><col><col></colgroup><thead><tr><th align="left">Sequence</th><th align="left">Meaning</th></tr></thead><tbody><tr><td align="left">\a</td><td align="left">Alert (bell).</td></tr><tr><td align="left">\b</td><td align="left">Backspace.</td></tr><tr><td align="left">\c</td><td align="left">Suppress trailing newline.</td></tr><tr><td align="left">\e</td><td align="left">Escape.</td></tr><tr><td align="left">\f</td><td align="left">Form feed.</td></tr><tr><td align="left">\n</td><td align="left">Newline.</td></tr><tr><td align="left">\r</td><td align="left">Carriage return.</td></tr><tr><td align="left">\t</td><td align="left">Horizontal tab.</td></tr><tr><td align="left">\v</td><td align="left">Vertical tab.</td></tr><tr><td align="left">\\</td><td align="left">Backslash.</td></tr><tr><td align="left">\0NNN</td><td align="left">The eight-bit character whose value is the octal value NNN (zero to three octal digits).</td></tr><tr><td align="left">\NNN</td><td align="left">The eight-bit character whose value is the octal value NNN (one to three octal digits).</td></tr><tr><td align="left">\xHH</td><td align="left">The eight-bit character whose value is the hexadecimal value (one or two hexadecimal digits).</td></tr></tbody></table></div></div><br class="table-break"><p>For more information about the <span class="command"><strong>printf</strong></span> command and the way it allows you to format output, see the Bash info pages.  Keep in mind that there might be differences between different versions of Bash.</p></div></div><div class="navfooter"><hr><table width="100%" summary="Navigation footer"><tr><td width="40%" align="left"><a accesskey="p" href="ch08.html">Prev</a> </td><td width="20%" align="center"><a accesskey="u" href="ch08.html">Up</a></td><td width="40%" align="right"> <a accesskey="n" href="ch08s02.html">Next</a></td></tr><tr><td width="40%" align="left" valign="top">Chapter 8. Writing interactive scripts </td><td width="20%" align="center"><a accesskey="h" href="index.html">Home</a></td><td width="40%" align="right" valign="top"> 2. Catching user input</td></tr></table></div></body></html>

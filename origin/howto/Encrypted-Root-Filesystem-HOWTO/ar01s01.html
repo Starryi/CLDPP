@@ -1,0 +1,152 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1"><title>1. Preparing the system</title><link rel="stylesheet" type="text/css" href="style.css"><meta name="generator" content="DocBook XSL Stylesheets V1.79.1"><link rel="home" href="index.html" title="Encrypted Root Filesystem HOWTO"><link rel="up" href="index.html" title="Encrypted Root Filesystem HOWTO"><link rel="prev" href="index.html" title="Encrypted Root Filesystem HOWTO"><link rel="next" href="ar01s02.html" title="2. Creating the encrypted root filesystem"></head><body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF"><div class="navheader"><table width="100%" summary="Navigation header"><tr><th colspan="3" align="center">1. Preparing the system</th></tr><tr><td width="20%" align="left"><a accesskey="p" href="index.html">Prev</a> </td><th width="60%" align="center"> </th><td width="20%" align="right"> <a accesskey="n" href="ar01s02.html">Next</a></td></tr></table><hr></div><div class="sect1"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="preparing-system"></a>1. Preparing the system</h2></div></div></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="partition-layout"></a>1.1. Setting up the partition layout</h3></div></div></div><p>
+Your hard disk (hda) should contain at least three partitions:
+        </p><div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem"><p>
+hda1: this small unencrypted partition will ask for
+a password in order to mount the encrypted root filesystem.
+            </p></li><li class="listitem"><p>
+hda2: this partition will contain your encrypted root filesystem;
+make sure it is large enough.
+            </p></li><li class="listitem"><p>
+hda3: this partition holds the current GNU/Linux system.
+            </p></li></ul></div><p>
+        </p><p>
+At this point, both hda1 and hda2 are unused. hda3 is where your
+Linux distribution is currently installed; /usr and /boot must
+<span class="emphasis"><em>not</em></span> be separated from this partition.
+        </p><p>
+Here's an example of what your partition layout might look like:
+        </p><p>
+</p><pre class="screen"># fdisk -l /dev/hda
+
+Disk /dev/hda: 255 heads, 63 sectors, 2432 cylinders
+Units = cylinders of 16065 * 512 bytes
+
+   Device Boot    Start       End    Blocks   Id  System
+/dev/hda1             1         1      8001   83  Linux
+/dev/hda2             2       263   2104515   83  Linux
+/dev/hda3           264       525   2104515   83  Linux
+/dev/hda4           526      2047  12225465   83  Linux</pre><p>
+        </p></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="debian-packages"></a>1.2. Required packages</h3></div></div></div><p>
+If you use Debian, the following packages are mandatory:
+        </p><p>
+</p><pre class="screen">apt-get install gcc make libncurses5-dev patch bzip2 wget</pre><p>
+        </p><p>
+To make copy &amp; paste easier, you should also install:
+        </p><p>
+</p><pre class="screen">apt-get install lynx gpm</pre><p>
+        </p></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="install-kernel-2.4"></a>1.3. Installing Linux-2.4.29</h3></div></div></div><p>
+There are two main projects which add loopback encryption support in the
+kernel: cryptoloop and loop-AES. This howto is based on loop-AES, since it
+features an extremely fast and highly optimized implementation of Rijndael
+in assembly language, and therefore provides maximum performance if
+you have an IA-32 (x86) CPU. Besides, there are some
+<a class="ulink" href="http://groups.google.com/groups?selm=1emrG-1Ck-25%40gated-at.bofh.it" target="_top">security concerns</a>
+about cryptoloop.
+        </p><p>
+First of all, download and unpack the loop-AES package:
+        </p><p>
+</p><pre class="screen">cd /usr/src
+wget http://loop-aes.sourceforge.net/loop-AES/loop-AES-v3.0b.tar.bz2
+tar -xvjf loop-AES-v3.0b.tar.bz2</pre><p>
+        </p><p>
+Then you must download and patch the kernel source:
+        </p><p>
+</p><pre class="screen">wget http://ftp.kernel.org/pub/linux/kernel/v2.4/linux-2.4.29.tar.bz2
+tar -xvjf linux-2.4.29.tar.bz2
+cd linux-2.4.29
+rm include/linux/loop.h drivers/block/loop.c
+patch -Np1 -i ../loop-AES-v3.0b/kernel-2.4.28.diff</pre><p>
+        </p><p>
+Setup the keyboard map:
+        </p><p>
+</p><pre class="screen">dumpkeys | loadkeys -m - &gt; drivers/char/defkeymap.c</pre><p>
+        </p><p>
+Next, configure your kernel; make sure the following options are set:
+        </p><p>
+</p><pre class="screen">make menuconfig
+
+    Block devices  ---&gt;
+
+        &lt;*&gt; Loopback device support
+        [*]   AES encrypted loop device support (NEW)
+
+        &lt;*&gt; RAM disk support
+        (4096)   Default RAM disk size (NEW)
+        [*]   Initial RAM disk (initrd) support
+
+    File systems  ---&gt;
+
+        &lt;*&gt; Ext3 journalling file system support
+        &lt;*&gt; Second extended fs support
+
+(important note: do not enable /dev file system support)</pre><p>
+        </p><p>
+Compile the kernel and install it:
+        </p><p>
+</p><pre class="screen">make dep bzImage
+make modules modules_install
+cp arch/i386/boot/bzImage /boot/vmlinuz</pre><p>
+        </p><p>
+If grub is your bootloader, update /boot/grub/menu.lst
+or /boot/grub/grub.conf:
+        </p><p>
+</p><pre class="screen">cat &gt; /boot/grub/menu.lst &lt;&lt; EOF
+default 0
+timeout 10
+color green/black light-green/black
+title Linux
+    root (hd0,2)
+    kernel /boot/vmlinuz ro root=/dev/hda3
+EOF</pre><p>
+        </p><p>
+Otherwise, update /etc/lilo.conf and run lilo:
+        </p><p>
+</p><pre class="screen">cat &gt; /etc/lilo.conf &lt;&lt; EOF
+lba32
+boot=/dev/hda
+prompt
+timeout=60
+image=/boot/vmlinuz
+    label=Linux
+    read-only
+    root=/dev/hda3
+EOF
+lilo</pre><p>
+        </p><p>
+You may now restart the system.
+        </p></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="install-kernel-2.6"></a>1.4. Installing Linux-2.6.10</h3></div></div></div><p>
+Proceed as described in the previous section, using loop-aes'
+<span class="emphasis"><em>kernel-2.6.10.diff</em></span> patch instead, and make
+sure cryptoloop support is <span class="emphasis"><em>not</em></span> activated.
+Note that modules support require that you have the module-init-tools
+package installed.
+        </p></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="install-util-linux"></a>1.5. Installing util-linux-2.12p</h3></div></div></div><p>
+The losetup program, which is part of the util-linux package, must be
+patched and recompiled in order to add strong cryptography support.
+Download, unpack and patch util-linux:
+        </p><p>
+</p><pre class="screen">cd /usr/src
+wget http://ftp.kernel.org/pub/linux/utils/util-linux/util-linux-2.12p.tar.bz2
+tar -xvjf util-linux-2.12p.tar.bz2
+cd util-linux-2.12p
+patch -Np1 -i ../loop-AES-v3.0b/util-linux-2.12p.diff</pre><p>
+        </p><p>
+To use passwords that are less than 20 characters, enter:
+        </p><p>
+</p><pre class="screen">CFLAGS="-O2 -DLOOP_PASSWORD_MIN_LENGTH=8"; export CFLAGS</pre><p>
+        </p><p>
+Security is certainly your major concern. For this reason, please do not
+enable passwords shorter than 20 characters. Data privacy is not free,
+one has to 'pay' in form of long passwords.
+        </p><p>
+Compile losetup and install it as root:
+        </p><p>
+</p><pre class="screen">./configure &amp;&amp; make lib mount
+mv -f /sbin/losetup /sbin/losetup~
+rm -f /usr/share/man/man8/losetup.8*
+cd mount
+gzip losetup.8
+cp losetup /sbin
+cp losetup.8.gz /usr/share/man/man8/
+chattr +i /sbin/losetup</pre><p>
+        </p></div></div><div class="navfooter"><hr><table width="100%" summary="Navigation footer"><tr><td width="40%" align="left"><a accesskey="p" href="index.html">Prev</a> </td><td width="20%" align="center"> </td><td width="40%" align="right"> <a accesskey="n" href="ar01s02.html">Next</a></td></tr><tr><td width="40%" align="left" valign="top">Encrypted Root Filesystem HOWTO </td><td width="20%" align="center"><a accesskey="h" href="index.html">Home</a></td><td width="40%" align="right" valign="top"> 2. Creating the encrypted root filesystem</td></tr></table></div></body></html>

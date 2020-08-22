@@ -1,0 +1,282 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1"><title>1. LVM 2 FAQ</title><link rel="stylesheet" type="text/css" href="style.css"><meta name="generator" content="DocBook XSL Stylesheets V1.79.1"><link rel="home" href="index.html" title="LVM HOWTO"><link rel="up" href="ch04.html" title="Chapter 4. Frequently Asked Questions"><link rel="prev" href="ch04.html" title="Chapter 4. Frequently Asked Questions"><link rel="next" href="ch04s02.html" title="2. LVM 1 FAQ"></head><body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF"><div class="navheader"><table width="100%" summary="Navigation header"><tr><th colspan="3" align="center">1. LVM 2 FAQ</th></tr><tr><td width="20%" align="left"><a accesskey="p" href="ch04.html">Prev</a> </td><th width="60%" align="center">Chapter 4. Frequently Asked Questions</th><td width="20%" align="right"> <a accesskey="n" href="ch04s02.html">Next</a></td></tr></table><hr></div><div class="sect1"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="lvm2faq"></a>1. LVM 2 FAQ</h2></div></div></div><div class="qandaset"><a name="idm277"></a><dl><dt>1.1. <a href="ch04s01.html#idm278">
+              I have LVM 1 installed and running on my system.  How do
+              I start using LVM 2?
+            </a></dt><dt>1.2. <a href="ch04s01.html#idm297">
+              Do I need a special lvm2 kernel module?
+            </a></dt><dt>1.3. <a href="ch04s01.html#idm302">
+              I get errors about
+              /dev/mapper/control when I try to
+              use the LVM 2 tools.  What's going on?
+            </a></dt><dt>1.4. <a href="ch04s01.html#idm325">
+              Which commands and types of logical volumes are
+              currently supported in LVM 2?
+            </a></dt><dt>1.5. <a href="ch04s01.html#idm337">
+              Does LVM 2 use a different format from LVM 1 for it's
+              ondisk representation of Volume Groups and Logical
+              Volumes?
+            </a></dt><dt>1.6. <a href="ch04s01.html#idm342">
+              Does LVM 2 support VGs and LVs created with LVM 1?
+            </a></dt><dt>1.7. <a href="ch04s01.html#idm347">
+              Can I upgrade my LVM 1 based VGs and LVs to LVM 2 native
+              format?
+            </a></dt><dt>1.8. <a href="ch04s01.html#idm352">
+              I've upgraded to LVM 2, but the tools keep failing with out
+              of memory errors.  What gives?
+            </a></dt><dt>1.9. <a href="ch04s01.html#idm358">
+              I have my root partition on an LV in LVM 1.  How do I
+              upgrade to LVM 2?  And what happened to lvmcreate_initrd?
+            </a></dt><dt>1.10. <a href="ch04s01.html#idm382">
+              How resilient is LVM to a sudden renumbering of
+              physical hard disks?
+            </a></dt><dt>1.11. <a href="ch04s01.html#idm390">
+              I'm trying to fill my vg, and vgdisplay/vgs says that I
+              have 1.87 GB free, but when I do an lvcreate vg -L1.87G
+              it says "insufficient free extends".  What's going on?
+            </a></dt><dt>1.12. <a href="ch04s01.html#idm400">
+              How are snapshots in LVM2 different from LVM1?
+            </a></dt><dt>1.13. <a href="ch04s01.html#idm406">
+	      What is the maximum size of a single LV?
+	    </a></dt></dl><table border="0" style="width: 100%;"><colgroup><col align="left" width="1%"><col></colgroup><tbody><tr class="question"><td align="left" valign="top"><a name="idm278"></a><a name="idm279"></a><p><b>1.1.</b></p></td><td align="left" valign="top"><p>
+              I have LVM 1 installed and running on my system.  How do
+              I start using LVM 2?
+            </p></td></tr><tr class="answer"><td align="left" valign="top"></td><td align="left" valign="top"><p>
+              Here's the Quick Start instructions :)
+              </p><div class="orderedlist"><ol class="orderedlist" type="1"><li class="listitem"><p>
+                    Start by removing any snapshot LVs on the system.
+                    These are not handled by LVM 2 and will prevent the
+                    origin from being activated when LVM 2 comes up.
+                  </p></li><li class="listitem"><p>
+                    Make sure you have some way of booting the system
+                    other than from your standard boot partition.  Have
+                    the LVM 1 tools, standard system tools (mount) and
+                    an LVM 1 compatible kernel on it in case you need to
+                    get back and fix some things.
+                  </p></li><li class="listitem"><p>
+                    Grab the LVM 2 tools source and the device mapper
+                    source and compile them.  You need to install the
+                    device mapper library using <span class="quote">&#8220;<span class="quote">make
+                      install</span>&#8221;</span> before compiling the LVM 2 tools.
+                    Also copy the dm/scripts/devmap_mknod.sh script into
+                    /sbin. I recommend only installing the 'lvm' binary
+                    for now so you have access to the LVM 1 tools if you
+                    need them.  If you have access to packages for LVM 2
+                    and device-mapper, you can install those instead,
+                    but beware of them overwriting your LVM 1 tool set.
+                  </p></li><li class="listitem"><p>
+                    Get a device mapper compatible kernel, either built
+                    in or as a kernel module.
+                  </p></li><li class="listitem"><p>
+                    Figure out where LVM 1 was activated in your startup
+                    scripts.  Make sure the device-mapper module is
+                    loaded by that point (if you are using device mapper
+                    as a module) and add '/sbin/devmap_mknod.sh; lvm
+                    vgscan; lvm vgchange -ay' afterward.
+                  </p></li><li class="listitem"><p>
+                    Install the kernel with device mapper support in it.
+                    Reboot.  If all goes well, you should be running with
+                    lvm2.
+                  </p></li></ol></div><p>  
+            </p></td></tr><tr class="question"><td align="left" valign="top"><a name="idm297"></a><a name="idm298"></a><p><b>1.2.</b></p></td><td align="left" valign="top"><p>
+              Do I need a special lvm2 kernel module?
+            </p></td></tr><tr class="answer"><td align="left" valign="top"></td><td align="left" valign="top"><p>
+              No.  You need device-mapper.  The lvm2 tools use
+              device-mapper to interface with the kernel and do all
+              their device mapping (hence the name device-mapper).  As
+              long as you have device-mapper, you should be able to
+              use LVM2.
+            </p></td></tr><tr class="question"><td align="left" valign="top"><a name="idm302"></a><a name="idm303"></a><p><b>1.3.</b></p></td><td align="left" valign="top"><p>
+              I get errors about
+              <code class="filename">/dev/mapper/control</code> when I try to
+              use the LVM 2 tools.  What's going on?
+            </p></td></tr><tr class="answer"><td align="left" valign="top"></td><td align="left" valign="top"><p>
+              The primary cause of this is not having run the
+              <span class="quote">&#8220;<span class="quote">dmsetup mknodes</span>&#8221;</span> after rebooting into a dm
+              capable kernel.  This script generates the control node
+              for device mapper.
+            </p><p>
+              If you don't have the <span class="quote">&#8220;<span class="quote">dmsetup mknodes</span>&#8221;</span>,
+              don't despair! (Though you should probably upgrade to
+              the latest version of device-mapper.)  It's pretty easy
+              to create the <code class="filename">/dev/mapper/control</code>
+              file on your own:
+              </p><div class="orderedlist"><ol class="orderedlist" type="1"><li class="listitem"><p>
+                    Make sure you have the device-mapper module loaded
+                    (if you didn't build it into your kernel).
+                    </p></li><li class="listitem"><p>
+                    Run
+                    </p><pre class="screen"># cat /proc/misc | grep device-mapper | awk '{print $1}'</pre><p>
+                    and note the number
+                    printed.  (If you don't get any output, refer to
+                    step 1.)
+                  </p></li><li class="listitem"><p>
+                    Run </p><pre class="screen"># mkdir /dev/mapper</pre><p> - if you
+                    get an error saying
+                    <code class="filename">/dev/mapper</code> already exists,
+                    make sure it's a directory and move on.
+                  </p></li><li class="listitem"><p>
+                    Run 
+                    </p><pre class="screen"># mknod /dev/mapper/control c 10 $number</pre><p>
+                    where $number is the number printed in step 2.
+                  </p></li></ol></div><p>
+              You should be all set now!
+            </p></td></tr><tr class="question"><td align="left" valign="top"><a name="idm325"></a><a name="idm326"></a><p><b>1.4.</b></p></td><td align="left" valign="top"><p>
+              Which commands and types of logical volumes are
+              currently supported in LVM 2?
+            </p></td></tr><tr class="answer"><td align="left" valign="top"></td><td align="left" valign="top"><p>
+              If you are using the stable 2.4 device mapper patch from
+              the lvm2 tarball, all the major functionality you'd
+              expect using lvm1 is supported with the lvm2 tools.
+              (You still need to remove snapshots before upgrading
+              from lvm1 to lvm2)
+            </p><p>
+              If you are using the version of device mapper in the 2.6
+              kernel.org kernel series the following commands and LV
+              types are not supported:
+              </p><div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem"><p> pvmove </p></li><li class="listitem"><p> snapshots </p></li></ul></div><p>
+              The beginnings of support for these features are in the
+              <a class="ulink" href="http://people.sistina.com/~thornber/dm/" target="_top">
+              unstable device mapper patches</a> maintained by Joe
+              Thornber.
+            </p></td></tr><tr class="question"><td align="left" valign="top"><a name="idm337"></a><a name="idm338"></a><p><b>1.5.</b></p></td><td align="left" valign="top"><p>
+              Does LVM 2 use a different format from LVM 1 for it's
+              ondisk representation of Volume Groups and Logical
+              Volumes?
+            </p></td></tr><tr class="answer"><td align="left" valign="top"></td><td align="left" valign="top"><p>
+              Yes. LVM 2 uses lvm 2 format metadata.  This format is much
+              more flexible than the LVM 1 format metadata, removing
+              or reducing most of the limitations LVM 1 had.
+            </p></td></tr><tr class="question"><td align="left" valign="top"><a name="idm342"></a><a name="idm343"></a><p><b>1.6.</b></p></td><td align="left" valign="top"><p>
+              Does LVM 2 support VGs and LVs created with LVM 1?
+            </p></td></tr><tr class="answer"><td align="left" valign="top"></td><td align="left" valign="top"><p>
+              Yes.  LVM 2 will activate and operate on VG and LVs created
+              with LVM 1.  The exception to this is snapshots created with
+              LVM 1 - these should be removed before upgrading.  Snapshots
+              that remain after upgrading will have to be removed before
+              their origins can be activated by LVM 2.
+            </p></td></tr><tr class="question"><td align="left" valign="top"><a name="idm347"></a><a name="idm348"></a><p><b>1.7.</b></p></td><td align="left" valign="top"><p>
+              Can I upgrade my LVM 1 based VGs and LVs to LVM 2 native
+              format?
+            </p></td></tr><tr class="answer"><td align="left" valign="top"></td><td align="left" valign="top"><p> 
+              Yes. Use vgconvert to convert your VG and all LVs contained
+              within it to the new lvm 2 format metadata. Be warned that it's
+              not always possible to revert back to lvm 1 format metadata.
+            </p></td></tr><tr class="question"><td align="left" valign="top"><a name="idm352"></a><a name="idm353"></a><p><b>1.8.</b></p></td><td align="left" valign="top"><p>
+              I've upgraded to LVM 2, but the tools keep failing with out
+              of memory errors.  What gives?
+            </p></td></tr><tr class="answer"><td align="left" valign="top"></td><td align="left" valign="top"><p>
+              One possible cause of this is that some versions of LVM
+              1 (The user that reported this bug originally was using
+              Mandrake 9.2, but it is not necessarily limited to that
+              distribution) did not put a UUID into the PV and VG
+              structures as they were supposed to.  The most current
+              versions of the LVM 2 tools automatically fill UUIDs in
+              for the structures if they see they are missing, so you
+              should grab a more current version and your problem
+              should be solved.  If not, post to the <a class="link" href="apcs01.html" title="1. Mail lists">linux-lvm mailing list</a>
+            </p></td></tr><tr class="question"><td align="left" valign="top"><a name="idm358"></a><a name="idm359"></a><p><b>1.9.</b></p></td><td align="left" valign="top"><p>
+              I have my root partition on an LV in LVM 1.  How do I
+              upgrade to LVM 2?  And what happened to lvmcreate_initrd?
+            </p></td></tr><tr class="answer"><td align="left" valign="top"></td><td align="left" valign="top"><p>
+              Upgrading to LVM 2 is a bit trickier with root on LVM,
+              but it's not impossible.  You need to queue up a kernel
+              with device-mapper support and install the lvm2 tools
+              (you might want to make a backup of the lvm 1 tools, or
+              find a rescue disk with the lvm tools built in, in case
+              you need them before you're done).  Then find a mkinitrd
+              script that has support for your distro and lvm 2.
+            </p><p>
+              Currently, this is the list of mkinitrd scripts that I
+              know support lvm2, sorted by distro:
+              </p><div class="variablelist"><p class="title"><b>mkinitrd scripts with lvm 2 support</b></p><dl class="variablelist"><dt><span class="term">fedora</span></dt><dd><p>
+                      The latest fedora core 2 <a class="ulink" href="http://distro.ibiblio.org/pub/linux/distributions/fedora/linux/core/development/i386/Fedora/RPMS/mkinitrd-3.5.21-1.i386.rpm" target="_top">mkinitrd</a>
+                      handles lvm2, but it relies on a statically
+                      built lvm binary from the latest lvm 2 tarball.
+                    </p><p>
+                      Redhat 9 users may be able to use this as well
+                    </p></dd><dt><span class="term">Debian</span></dt><dd><p>
+                      There is an unofficial version <a class="ulink" href="http://www.poochiereds.net/svn/lvm2/" target="_top">here</a>
+                    </p></dd><dt><span class="term">Generic</span></dt><dd><p>
+                      There is a version in the lvm2 source tree under
+                      <code class="filename">scripts/lvm2_createinitrd/</code>.
+                      See the documentation in that directory for more
+                      details.
+                    </p></dd></dl></div><p>
+            </p></td></tr><tr class="question"><td align="left" valign="top"><a name="idm382"></a><a name="idm383"></a><p><b>1.10.</b></p></td><td align="left" valign="top"><p>
+              How resilient is LVM to a sudden renumbering of
+              physical hard disks?
+            </p></td></tr><tr class="answer"><td align="left" valign="top"></td><td align="left" valign="top"><p>
+              It's fine - LVM identifies PVs by UUID, not by device
+              name.
+            </p><p>
+              Each disk (PV) is labeled with a UUID, which uniquely
+              identifies it to the system.  'vgscan' identifies this
+              after a new disk is added that changes your drive
+              numbering.  Most distros run vgscan in the lvm startup
+              scripts to cope with this on reboot after a hardware
+              addition.  If you're doing a hot-add, you'll have to run
+              this by hand I think.  On the other hand, if your vg is
+              activated and being used, the renumbering should not
+              affect it at all.  It's only the activation that needs
+              the identifier, and the worst case scenario is that the
+              activation will fail without a vgscan with a complaint
+              about a missing PV.
+            </p><div class="note" style="margin-left: 0.5in; margin-right: 0.5in;"><h3 class="title">Note</h3><p>
+                The failure or removal of a drive that LVM is
+                currently using will cause problems with current use
+                and future activations of the VG that was using it.
+              </p></div></td></tr><tr class="question"><td align="left" valign="top"><a name="idm390"></a><a name="idm391"></a><p><b>1.11.</b></p></td><td align="left" valign="top"><p>
+              I'm trying to fill my vg, and vgdisplay/vgs says that I
+              have 1.87 GB free, but when I do an lvcreate vg -L1.87G
+              it says "insufficient free extends".  What's going on?
+            </p></td></tr><tr class="answer"><td align="left" valign="top"></td><td align="left" valign="top"><p>
+              The 1.87 GB figure is rounded to 2 decimal places, so
+              it's probably 1.866 GB or something.  This is a
+              human-readable output to give you a general idea of how
+              big the VG is.  If you want to specify an exact size,
+              you must use extents instead of some multiple of bytes.
+            </p><p>
+              In the case of vgdisplay, use the Free PE count instead
+              of the human readable capacity.
+              </p><pre class="screen">
+              Free  PE / Size          478 / 1.87 GB
+                                       ^^^
+              </pre><p>
+              So, this would indicate that you should do run
+              </p><pre class="screen">
+# lvcreate vg -l478 </pre><p> Note that instead of an upper-case 'L',
+              we used a lower-case 'l' to tell lvm to use extents
+              instead of bytes.
+            </p><p>
+              In the case of vgs, you need to instruct it to tell you how many extents are available:
+              </p><pre class="screen">
+# vgs -o +vg_free_count,vg_extent_count
+              </pre><p>
+              This tell vgs to add the free extents and the total
+              number of extents to the end of the vgs listing.  Use
+              the free extent number the same way you would in the
+              above vgdisplay case.
+            </p></td></tr><tr class="question"><td align="left" valign="top"><a name="idm400"></a><a name="idm401"></a><p><b>1.12.</b></p></td><td align="left" valign="top"><p>
+              How are snapshots in LVM2 different from LVM1?
+            </p></td></tr><tr class="answer"><td align="left" valign="top"></td><td align="left" valign="top"><p>
+              In LVM2 snapshots are read/write by default, whereas in
+              LVM1, snapshots were only read-only.  See <a class="xref" href="ch03s08.html" title="8. Snapshots">Section 8, &#8220;Snapshots&#8221;</a> for more details
+            </p></td></tr><tr class="question"><td align="left" valign="top"><a name="idm406"></a><a name="idm407"></a><p><b>1.13.</b></p></td><td align="left" valign="top"><p>
+	      What is the maximum size of a single LV?
+	    </p></td></tr><tr class="answer"><td align="left" valign="top"></td><td align="left" valign="top"><p>
+	      The answer to this question depends upon the CPU
+	      architecture of your computer and the kernel you are a
+	      running:
+	      </p><div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem"><p>
+		    For 2.4 based kernels, the maximum LV size is 2TB.
+		    For some older kernels, however, the limit was 1TB
+		    due to signedness problems in the block layer.
+		    Red Hat Enterprise Linux 3 Update 5 has fixes to
+		    allow the full 2TB LVs.  Consult your distribution
+		    for more information in this regard.
+		  </p></li><li class="listitem"><p>
+		    For 32-bit CPUs on 2.6 kernels, the maximum LV size is 16TB.
+		  </p></li><li class="listitem"><p>
+		    For 64-bit CPUs on 2.6 kernels, the maximum LV
+		    size is 8EB. (Yes, that is a very large number.)
+		  </p></li></ul></div><p>
+	    </p></td></tr></tbody></table></div></div><div class="navfooter"><hr><table width="100%" summary="Navigation footer"><tr><td width="40%" align="left"><a accesskey="p" href="ch04.html">Prev</a> </td><td width="20%" align="center"><a accesskey="u" href="ch04.html">Up</a></td><td width="40%" align="right"> <a accesskey="n" href="ch04s02.html">Next</a></td></tr><tr><td width="40%" align="left" valign="top">Chapter 4. Frequently Asked Questions </td><td width="20%" align="center"><a accesskey="h" href="index.html">Home</a></td><td width="40%" align="right" valign="top"> 2. LVM 1 FAQ</td></tr></table></div></body></html>

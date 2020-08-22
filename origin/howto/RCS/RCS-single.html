@@ -1,0 +1,225 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 3.2 Final//EN">
+<HTML>
+<HEAD>
+ <META NAME="GENERATOR" CONTENT="LinuxDoc-Tools 0.9.72">
+ <TITLE> The RCS MINI-HOWTO</TITLE>
+</HEAD>
+<BODY>
+<H1> The RCS MINI-HOWTO</H1>
+
+<H2>Robert Kiesling</H2>v1.4, 14 August 1997
+<HR>
+<EM>This document covers basic installation and usage of RCS, the GNU
+Revision Control System, under Linux.  It also covers the installation
+of the <CODE>diff(1)</CODE> and <CODE>diff3(1)</CODE> utilities, which are
+necessary for RCS to operate.  This document may be reproduced freely,
+in whole or in part, provided that any usage of this document conforms
+to the general copyright notice of the HOWTO series of the Linux
+Documentation Project.  See the file COPYRIGHT for details.  Send all
+complaints, suggestions, errata, and any miscellany to 
+<A HREF="mailto:kiesling@terracom.net">kiesling@terracom.net</A>, so
+I can keep this document as complete and up to date as possible.</EM>
+<HR>
+<H2><A NAME="s1">1. Overview of RCS.</A></H2>
+
+<P>RCS, the revision control system, is a suite of programs that tracks
+changes in text files and controls shared access to files in work
+group situations.  It is generally used to maintain source code
+modules.  It lends itself to tracking revisions of document files as
+well.</P>
+<P>RCS was written by Walter F. Tichy and Paul Eggert.  The latest
+version which has been ported to Linux is RCS Version 5.7.  There is
+also a semi-official, threaded version available.  Much of the
+information in this HOWTO is taken from the RCS man pages.</P>
+<P>RCS includes the <CODE>rcs(1)</CODE> program, which controls RCS archive
+file attributes, <CODE>ci(1)</CODE> and <CODE>co(1)</CODE>, which check files
+in and out of RCS archives, <CODE>ident(1)</CODE>, which searches RCS
+archives by keyword identifiers, <CODE>rcsclean(1)</CODE>, a program to
+clean up files that are not being worked on or haven't changed,
+<CODE>rcsdiff(1)</CODE>, which runs <CODE>diff(1)</CODE> to compare the
+revisions, <CODE>rcsmerge(1),</CODE> which merges two RCS branches into a
+single working file, and <CODE>rlog(1),</CODE> which prints RCS log
+messages.</P>
+<P>Files archived by RCS may be text of any format, or binary if the
+<CODE>diff</CODE> program used to generate change files handles 8-bit
+data.  Files may optionally include identification strings to aid in
+tracking by <CODE>ident(1)</CODE>.  RCS uses the utilities
+<CODE>diff(1)</CODE> and <CODE>diff3(3)</CODE> to generate the change files
+between revisions.  A RCS archive consists of the initial revision of
+a file, which is version 1.1, and a series of change files, one for
+each revision.  Each time a file is checked out of an archive with
+<CODE>co(1)</CODE>, edited, and checked back into the archive with
+<CODE>ci(1)</CODE>, the version number is increased, for example, to 1.2,
+1.3, 1.4, and so on for successive revisions.</P>
+<P>The archives themselves commonly reside in a <CODE>./RCS</CODE>
+subdirectory, although RCS has other options for archive storage.</P>
+<P>For an overview of RCS, see the <CODE>rcsintro(1)</CODE> manual page.</P>
+
+
+<H2><A NAME="s2">2. System requirements.</A></H2>
+
+<P>RCS needs <CODE>diff(1)</CODE> and <CODE>diff3(3)</CODE> to generate the
+context diff files between revisions.  The diff utilities suite needs
+to be installed on your system, and when you install RCS, the software
+will check for its presence.</P>
+<P>Precompiled diffutils binaries are available at:
+<PRE>
+ftp://sunsite.unc.edu/pub/Linux/utils/text/diffutils-2.6.bin.ELF.tar.gz
+</PRE>
+
+and its mirror sites.  If you need to compile <CODE>diff(1)</CODE>, et
+al., from source, it is located at:
+<PRE>
+ftp://prep.ai.mit.edu/pub/gnu/diffutils-2.7.tar.gz
+</PRE>
+
+and its mirror sites.</P>
+<P>You will also need to have the ELF libraries installed on your system
+if you want to install pre-built binaries.  See the ELF-HOWTO for
+further details.</P>
+
+
+<H2><A NAME="s3">3. Compiling RCS from Source.</A></H2>
+
+<P>Get the source distribution of RCS Version 5.7.  It is available at
+<PRE>
+ftp://sunsite.unc.edu/pub/Linux/devel/vc/rcs-5.7.src.tar.gz
+</PRE>
+
+and its mirrors. After you have unpacked the archive into your source
+tree, you need to configure RCS for your system.  This is done via the
+<CODE>configure</CODE> script in the source directory, which you need to
+execute first.  This will generate a <CODE>Makefile</CODE> and the
+appropriate <CODE>conf.sh</CODE> for your system.  You can then type
+<PRE>
+make install
+</PRE>
+
+which will build the binaries.  At some point you may need to
+<CODE>su</CODE> to root so the binaries can be installed in the
+correct directories.</P>
+
+
+<H2><A NAME="s4">4. Creating and maintaining archives.</A></H2>
+
+<P>The program <CODE>rcs(1)</CODE> does the work or creating archives and
+modifying their attributes.  A summary of <CODE>rcs(1)</CODE> options may
+be found in the <CODE>rcs(1)</CODE> manual page.</P>
+<P>The easiest way to create an archive is first to <CODE>mkdir RCS</CODE> in
+the current directory, then initialize the archive with the
+<PRE>
+rcs -i name_of_work_file
+</PRE>
+
+command.  This creates and archive with the name <CODE>./RCS/name_of_work_file,v</CODE> and requests a text message
+describing the archive, but it does not deposit any revisions in the
+archive.  You can turn on or off strict archive locking with the
+commands
+<PRE>
+rcs -L name_of_work_file
+</PRE>
+
+and
+<PRE>
+rcs -U name_of_work_file
+</PRE>
+
+respectively.  There are other options for controlling access to the
+archive, setting its format, and setting revision numbers, which are
+covered in the <CODE>rcs(1)</CODE> manual page.</P>
+
+
+<H2><A NAME="s5">5. <CODE>ci(1)</CODE> and <CODE>co(1)</CODE>.</A></H2>
+
+<P><CODE>ci(1)</CODE> and <CODE>co(1)</CODE> are the commands used to check
+files in and out of their RCS archives.  The <CODE>ci(1)</CODE> command
+may also be used to a check a file both in and out of an archive.  In
+their simplest forms, <CODE>ci(1)</CODE> and <CODE>co(1)</CODE> take only the
+name of the working file.
+<PRE>
+ci name_of_work_file
+</PRE>
+
+and
+<PRE>
+co name_of_work_file
+</PRE>
+
+The command form
+<PRE>
+ci -l name_of_work_file
+</PRE>
+
+checks in the file with locking enabled, and 
+<PRE>
+co -l name_of_work_file
+</PRE>
+
+<EM>is performed automatically.</EM> That is, <CODE>ci -l</CODE> checks
+the file out again with locking enabled.
+<PRE>
+ci -u name_of_work_file
+</PRE>
+
+checks the file into the archive, and checks it out again with
+locking disabled.  In all cases, the user is prompted for a log
+message.  </P>
+<P><CODE>ci(1)</CODE> will also create a RCS archive if one does not exist
+already.  </P>
+<P>If you don't specify a revision, <CODE>ci(1)</CODE> increments the
+version number of the last revision locked in the archive, and appends
+the revised working file to it.  If you specify a revision on an
+existing branch, it must be higher than the existing revision numbers.
+<CODE>ci(1)</CODE> will also create a new branch if you specify the
+revision of a branch which does not exist.  See the <CODE>ci(1)</CODE>
+and <CODE>co(1)</CODE> man pages for details.</P>
+<P><CODE>ci(1)</CODE> and <CODE>co(1)</CODE> have various options for interactive
+and non-interactive use.  Again, see the <CODE>ci(1)</CODE> and
+<CODE>co(1)</CODE> man pages for details.</P>
+
+<H2><A NAME="s6">6. Revision histories.</A></H2>
+
+<P>The <CODE>rlog(1)</CODE> program provides information about the archive
+file and the logs of each revision stored in it.  A command like
+<PRE>
+rlog work_file_name 
+</PRE>
+ 
+will print the version history of the file, each revision's creation
+date and <CODE>userids</CODE> of author and the person who locked the
+file.  You can specify archive attributes and revision parameters to
+view.</P>
+
+
+<H2><A NAME="s7">7. Including RCS data in working files.</A></H2>
+
+<P><CODE>co(1)</CODE> maintains a list of keywords of the RCS database which
+are expanded when the working file is checked out.  The keyword
+<CODE>$Id$</CODE> in a document will expand to a string which
+contains the file name, revision number, the date checked out, the
+author, the revision status, and the locker, if any.  Including the
+keyword <CODE>$Log$</CODE> will expand to the document's
+revision history log.</P>
+<P>These and other keywords may be used as search criteria of the RCS
+archive.  See the <CODE>ident(1)</CODE> man page for further details.</P>
+
+<H2><A NAME="s8">8. RCS and <CODE>emacs(1)</CODE> Version Control.</A></H2>
+
+<P>The Version Control facility of <CODE>emacs(1)</CODE> works as a front end
+to RCS.  This information applies specifically to Version 19.34 of GNU
+Emacs, which is provided with the major Linux distributions.  When
+editing a file with <CODE>emacs(1)</CODE> which is registered with RCS,
+the command <CODE>vc-toggle-read-only</CODE> (bound to <CODE>C-x C-q</CODE> by
+default) will check a file in to the emacs's Version Control, and then
+into RCS.  Emacs will open a buffer where you can type a log message
+to be included in the RCS log.  When you are finished typing a log
+entry, type <CODE>C-c C-c</CODE> to terminate your input and proceed with
+the check-in process.</P>
+<P>If you have selected strict locking for the file with RCS, you must
+re-lock the file for editing by <CODE>emacs(1)</CODE>.  You can check the
+file out for emacs's Version Control with the command <CODE>%</CODE> in
+buffer-menu mode.</P>
+<P>For more information, see the GNU Emacs Manual and the Emacs info pages.</P>
+
+</BODY>
+</HTML>

@@ -1,0 +1,74 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1"><title>1. Finding the real devices</title><link rel="stylesheet" type="text/css" href="style.css"><meta name="generator" content="DocBook XSL Stylesheets V1.79.1"><link rel="home" href="index.html" title="XFree Local Multi-User HOWTO"><link rel="up" href="ch05.html" title="Chapter 5. More on configuring input devices"><link rel="prev" href="ch05.html" title="Chapter 5. More on configuring input devices"><link rel="next" href="ch05s02.html" title="2. Using hotplug with input.agent and input.rc"></head><body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF"><div class="navheader"><table width="100%" summary="Navigation header"><tr><th colspan="3" align="center">1. Finding the real devices</th></tr><tr><td width="20%" align="left"><a accesskey="p" href="ch05.html">Prev</a> </td><th width="60%" align="center">Chapter 5. More on configuring input devices</th><td width="20%" align="right"> <a accesskey="n" href="ch05s02.html">Next</a></td></tr></table><hr></div><div class="sect1"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="tweak_input_devs-realDev"></a>1. Finding the real devices</h2></div></div></div><p>We will need this information later on, to be able to assign a given keyboard/mouse to a given X-server/Display.</p><p>To find the PHYS ID's (the addresses) or the name(quite oft it differs from the one labeled on the device) of your input devices you have to read the file <code class="filename">/proc/bus/input/devices</code>.</p><p>Here is what I have:</p><pre class="screen">[svetljo@svetljo How-To]# cat /proc/bus/input/devices 
+I: Bus=0011 Vendor=0002 Product=0002 Version=0034
+N: Name="PS2++ Logitech Wheel Mouse"
+P: Phys=isa0060/serio1/input0
+H: Handlers=mouse0 ts0 
+B: EV=7 
+B: KEY=f0000 0 0 0 0 0 0 0 0 
+B: REL=103 
+
+I: Bus=0011 Vendor=0001 Product=0002 Version=ab02
+N: Name="AT Set 2 keyboard"
+P: Phys=isa0060/serio0/input0
+H: Handlers=kbd 
+B: EV=120003 
+B: KEY=4 2000000 8061f9 fbc9d621 efdfffdf ffefffff ffffffff fffffffe 
+B: LED=7 
+
+I: Bus=0003 Vendor=046d Product=c303 Version=0700
+N: Name="Logitech    USB Keyboard"
+P: Phys=usb-00:10.1-1.1/input0
+H: Handlers=kbd 
+B: EV=120003 
+B: KEY=10000 7f ffe00000 7ff ffbeffdf ffffffff ffffffff fffffffe 
+B: LED=7 
+
+I: Bus=0003 Vendor=046d Product=c303 Version=0700
+N: Name="Logitech    USB Keyboard"
+P: Phys=usb-00:10.1-1.1/input1
+H: Handlers=kbd 
+B: EV=100003 
+B: KEY=1078 1800d100 1e0000 0 0 0 
+
+I: Bus=0003 Vendor=05fe Product=0011 Version=0000
+N: Name="Cypress Sem. PS2/USB Browser Combo Mouse"
+P: Phys=usb-00:10.1-1.2/input0
+H: Handlers=mouse1 ts1 
+B: EV=7 
+B: KEY=1f0000 0 0 0 0 0 0 0 0 
+B: REL=103 </pre><div class="note" style="margin-left: 0.5in; margin-right: 0.5in;"><h3 class="title">Note</h3><div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem"><p><code class="filename">/proc/bus/input/devices</code> will provide the needed information for all devices except USB multimedia/office keyboards.</p></li><li class="listitem"><p>For such USB multimedia/office keyboards you will have to gather additional information, for example with the help of <span class="command"><strong>lsusb</strong></span>.</p></li><li class="listitem"><p>Under Ruby-2.6 for usb devices it will look like "usb-0000:00:10.x" not "usb-00:10.x"  <span class="command"><strong></strong></span></p></li></ul></div></div><div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem"><p>First we have to find the address of the USB keyboard:</p><pre class="screen">[root@svetljo How-To]# lsusb
+Bus 004 Device 001: ID 0000:0000  
+Bus 003 Device 001: ID 0000:0000  
+Bus 003 Device 002: ID 0409:55ab NEC Corp. Hub [iMac kbd]
+Bus 003 Device 003: ID 046d:c303 Logitech, Inc. 
+Bus 003 Device 004: ID 05fe:0011 Chic Technology Corp. Browser Mouse
+Bus 002 Device 001: ID 0000:0000  
+Bus 001 Device 001: ID 0000:0000  </pre><p>Here, my USB Logitech keyboard is Device 003 on Bus 003.</p></li><li class="listitem"><p>Now we run <span class="command"><strong> lsusb</strong></span>  with arguments  <em class="parameter"><code> -v -s [your USB keyboard device id in form Bus:Device]</code></em>, in my case, <span class="command"><strong>lsusb -v -s 003:003</strong></span>.</p><pre class="screen">........
+    Interface Descriptor:
+      bLength                 9
+      bDescriptorType         4
+      bInterfaceNumber        0
+      bAlternateSetting       0
+      bNumEndpoints           1
+      bInterfaceClass         3 Human Interface Devices
+      bInterfaceSubClass      1 Boot Interface Subclass
+      bInterfaceProtocol      1 Keyboard
+      iInterface              0 
+........
+
+    Interface Descriptor:
+      bLength                 9
+      bDescriptorType         4
+      bInterfaceNumber        1
+      bAlternateSetting       0
+      bNumEndpoints           1
+      bInterfaceClass         3 Human Interface Devices
+      bInterfaceSubClass      0 No Subclass
+      bInterfaceProtocol      0 None
+      iInterface              0 
+........
+</pre></li></ul></div><p>So my USB keyboard has two interfaces (see bInterfaceNumber); the first one is the real keyboard (bInterfaceProtocol 1 Keyboard), the second (bInterfaceProtocol 0 None) - the additional keys. Hence the real USB keyboard is:</p><pre class="programlisting">.....
+N: Name="Logitech    USB Keyboard"
+P: Phys=usb-00:10.1-1.1/input0
+H: Handlers=kbd 
+.....</pre><p>The <span class="quote">&#8220;<span class="quote">P: Phys=</span>&#8221;</span> field (the physical descriptor/address) consorts of:</p><div class="orderedlist"><ol class="orderedlist" type="1"><li class="listitem"><p>Bus type: <span class="quote">&#8220;<span class="quote">usb</span>&#8221;</span></p></li><li class="listitem"><p>PCI function of the USB controller: <span class="quote">&#8220;<span class="quote">00:10.1 </span>&#8221;</span> ( for Ruby-2.6 "0000:00:10.1")</p></li><li class="listitem"><p>USB device id: <span class="quote">&#8220;<span class="quote">1.1</span>&#8221;</span></p></li><li class="listitem"><p>The string: <span class="quote">&#8220;<span class="quote">/input</span>&#8221;</span></p></li><li class="listitem"><p>Interface number: <span class="quote">&#8220;<span class="quote">0</span>&#8221;</span></p></li></ol></div></div><div class="navfooter"><hr><table width="100%" summary="Navigation footer"><tr><td width="40%" align="left"><a accesskey="p" href="ch05.html">Prev</a> </td><td width="20%" align="center"><a accesskey="u" href="ch05.html">Up</a></td><td width="40%" align="right"> <a accesskey="n" href="ch05s02.html">Next</a></td></tr><tr><td width="40%" align="left" valign="top">Chapter 5. More on configuring input devices </td><td width="20%" align="center"><a accesskey="h" href="index.html">Home</a></td><td width="40%" align="right" valign="top"> 2. Using hotplug with <code class="filename">input.agent</code> and <code class="filename">input.rc</code></td></tr></table></div></body></html>

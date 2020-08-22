@@ -1,0 +1,54 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1"><title>4. Final steps</title><link rel="stylesheet" type="text/css" href="style.css"><meta name="generator" content="DocBook XSL Stylesheets V1.79.1"><link rel="home" href="index.html" title="Encrypted Root Filesystem HOWTO"><link rel="up" href="index.html" title="Encrypted Root Filesystem HOWTO"><link rel="prev" href="ar01s03.html" title="3. Setting up the boot device"><link rel="next" href="ar01s05.html" title="5. About this HOWTO"></head><body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF"><div class="navheader"><table width="100%" summary="Navigation header"><tr><th colspan="3" align="center">4. Final steps</th></tr><tr><td width="20%" align="left"><a accesskey="p" href="ar01s03.html">Prev</a> </td><th width="60%" align="center"> </th><td width="20%" align="right"> <a accesskey="n" href="ar01s05.html">Next</a></td></tr></table><hr></div><div class="sect1"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="final-steps"></a>4. Final steps</h2></div></div></div><p>
+Still inside chroot, modify /etc/fstab so that it contains:
+    </p><p>
+</p><pre class="screen">/dev/loop0      /               ext3    defaults       0       1</pre><p>
+    </p><p>
+Delete /etc/mtab and exit from chroot. Finally, run "umount -d /mnt/efs"
+and reboot. If something goes wrong, you can still boot your unencrypted
+partition by entering "Linux root=/dev/hda3" at the LILO: prompt.
+    </p><p>
+If everything went well, you can now re-partition your disk and encrypt
+hda3 as well as hda4. In the following scripts, we assume that hda3 will
+hold the swap device and hda4 will contain /home; you should initialize
+both partitions first:
+    </p><p>
+</p><pre class="screen">shred -n 1 -v /dev/hda3
+shred -n 1 -v /dev/hda4
+losetup -e aes256 -S xxxxxx /dev/loop1 /dev/hda3
+losetup -e aes256 -S xxxxxx /dev/loop2 /dev/hda4
+mkswap /dev/loop1
+mke2fs -j /dev/loop2</pre><p>
+    </p><p>
+Then create a script in the system startup directory and update fstab:
+    </p><p>
+</p><pre class="screen">cat &gt; /etc/init.d/loop &lt;&lt; "EOF"
+#!/bin/sh
+
+if [ "`/usr/bin/md5sum /dev/hda1`" != \
+     "5671cebdb3bed87c3b3c345f0101d016  /dev/hda1" ]
+then
+    echo -n "WARNING! hda1 integrity verification FAILED - press enter."
+    read
+fi
+
+echo "1st password chosen above" | \
+    /sbin/losetup -p 0 -e aes256 -S xxxxxx /dev/loop1 /dev/hda3
+
+echo "2nd password chosen above" | \
+    /sbin/losetup -p 0 -e aes256 -S xxxxxx /dev/loop2 /dev/hda4
+
+/sbin/swapon /dev/loop1
+
+for i in `seq 0 63`
+do
+    echo -n -e "\33[10;10]\33[11;10]" &gt; /dev/tty$i
+done
+
+EOF
+
+chmod 700 /etc/init.d/loop
+ln -s ../init.d/loop /etc/rcS.d/S00loop
+vi /etc/fstab
+...
+/dev/loop2      /home           ext3    defaults       0       2</pre><p>
+    </p></div><div class="navfooter"><hr><table width="100%" summary="Navigation footer"><tr><td width="40%" align="left"><a accesskey="p" href="ar01s03.html">Prev</a> </td><td width="20%" align="center"> </td><td width="40%" align="right"> <a accesskey="n" href="ar01s05.html">Next</a></td></tr><tr><td width="40%" align="left" valign="top">3. Setting up the boot device </td><td width="20%" align="center"><a accesskey="h" href="index.html">Home</a></td><td width="40%" align="right" valign="top"> 5. About this HOWTO</td></tr></table></div></body></html>

@@ -1,0 +1,467 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1"><title>1. Test Constructs</title><link rel="stylesheet" type="text/css" href="style.css"><meta name="generator" content="DocBook XSL Stylesheets V1.79.1"><link rel="home" href="index.html" title="Advanced Bash-Scripting Guide"><link rel="up" href="ch07.html" title="Chapter 7. Tests"><link rel="prev" href="ch07.html" title="Chapter 7. Tests"><link rel="next" href="ch07s02.html" title="2. File test operators"></head><body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF"><div class="navheader"><table width="100%" summary="Navigation header"><tr><th colspan="3" align="center">1. Test Constructs</th></tr><tr><td width="20%" align="left"><a accesskey="p" href="ch07.html">Prev</a> </td><th width="60%" align="center">Chapter 7. Tests</th><td width="20%" align="right"> <a accesskey="n" href="ch07s02.html">Next</a></td></tr></table><hr></div><div class="sect1"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="testconstructs"></a>1. Test Constructs</h2></div></div></div><p><a name="testconstructs1"></a></p><div class="itemizedlist"><a name="testingref"></a><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem"><p>An <span class="command"><strong>if/then</strong></span> construct tests whether the
+	  <a class="link" href="ch06.html#exitstatusref">exit status</a> of a list
+	  of commands is <span class="returnvalue">0</span> (since 0 means
+	  <span class="quote">&#8220;<span class="quote">success</span>&#8221;</span> by UNIX convention), and if so, executes
+	  one or more commands.</p></li><li class="listitem"><p>There exists a dedicated command called <span class="command"><strong>
+	[</strong></span> (<a class="link" href="ch03.html#leftbracket">left bracket</a>
+	special character). It is a synonym for <span class="command"><strong>test</strong></span>,
+	and a <a class="link" href="ch15.html#builtinref">builtin</a> for efficiency
+	reasons. This command considers its arguments as comparison
+	expressions or file tests and returns an exit status corresponding
+	to the result of the comparison (0 for true, 1 for false).</p></li><li class="listitem"><p>With version 2.02, Bash introduced the <a class="link" href="ch07s01.html#dblbrackets">[[ ... ]]</a> <em class="firstterm">extended
+	  test command</em>, which performs comparisons
+	  in a manner more familiar to programmers from other
+	  languages. Note that <span class="command"><strong>[[</strong></span> is a <a class="link" href="ch15.html#keywordref">keyword</a>, not a command.</p><p>Bash sees <strong class="userinput"><code>[[ $a -lt $b ]]</code></strong> as a
+	  single element, which returns an exit status.</p></li><li class="listitem"><p><a name="dblparenstst"></a></p><p>The <a class="link" href="ch08s03.html" title="3. The Double-Parentheses Construct">(( ... ))</a> and <a class="link" href="ch15.html#letref">let ...</a> constructs return an
+          <a class="link" href="ch06.html#exitstatusref">exit status</a>,
+	  <span class="emphasis"><em>according to whether the arithmetic expressions they
+	  evaluate expand to a non-zero value</em></span>. These
+	  <a class="link" href="ch13.html#arithexpref">arithmetic-expansion</a>
+	  constructs may therefore be used to perform <a class="link" href="ch07s03.html#icomparison1">arithmetic comparisons</a>.</p><p>
+        </p><pre class="programlisting">(( 0 &amp;&amp; 1 ))                 # Logical AND
+echo $?     # 1     ***
+# And so ...
+let "num = (( 0 &amp;&amp; 1 ))"
+echo $num   # 0
+# But ...
+let "num = (( 0 &amp;&amp; 1 ))"
+echo $?     # 1     ***
+
+
+(( 200 || 11 ))              # Logical OR
+echo $?     # 0     ***
+# ...
+let "num = (( 200 || 11 ))"
+echo $num   # 1
+let "num = (( 200 || 11 ))"
+echo $?     # 0     ***
+
+
+(( 200 | 11 ))               # Bitwise OR
+echo $?                      # 0     ***
+# ...
+let "num = (( 200 | 11 ))"
+echo $num                    # 203
+let "num = (( 200 | 11 ))"
+echo $?                      # 0     ***
+
+# The "let" construct returns the same exit status
+#+ as the double-parentheses arithmetic expansion.</pre><p>	    
+	  </p><div class="caution" style="margin-left: 0.5in; margin-right: 0.5in;"><h3 class="title">Caution</h3><p><a name="arxs"></a>Again, note that the
+	  <em class="firstterm">exit status</em> of an arithmetic expression
+	  is <span class="emphasis"><em>not</em></span> an error value.
+	  </p><pre class="programlisting">var=-2 &amp;&amp; (( var+=2 ))
+echo $?                   # 1
+
+var=-2 &amp;&amp; (( var+=2 )) &amp;&amp; echo $var
+                          # Will not echo $var!</pre><p>
+          </p></div></li><li class="listitem"><p><a name="ifgrepref"></a></p><p>An <span class="command"><strong>if</strong></span> can test any command, not just
+	    conditions enclosed within brackets.</p><pre class="programlisting">if cmp a b &amp;&gt; /dev/null  # Suppress output.
+then echo "Files a and b are identical."
+else echo "Files a and b differ."
+fi
+
+# The very useful "if-grep" construct:
+# ----------------------------------- 
+if grep -q Bash file
+  then echo "File contains at least one occurrence of Bash."
+fi
+
+word=Linux
+letter_sequence=inu
+if echo "$word" | grep -q "$letter_sequence"
+# The "-q" option to grep suppresses output.
+then
+  echo "$letter_sequence found in $word"
+else
+  echo "$letter_sequence not found in $word"
+fi
+
+
+if COMMAND_WHOSE_EXIT_STATUS_IS_0_UNLESS_ERROR_OCCURRED
+  then echo "Command succeeded."
+  else echo "Command failed."
+fi</pre><p>
+          </p></li><li class="listitem"><p><span class="emphasis"><em>These last two examples
+	  courtesy of Stéphane Chazelas.</em></span></p></li></ul></div><div class="example"><a name="ex10"></a><p class="title"><b>Example 7.1. What is truth?</b></p><div class="example-contents"><pre class="programlisting">#!/bin/bash
+
+#  Tip:
+#  If you're unsure how a certain condition might evaluate,
+#+ test it in an if-test.
+
+echo
+
+echo "Testing \"0\""
+if [ 0 ]      # zero
+then
+  echo "0 is true."
+else          # Or else ...
+  echo "0 is false."
+fi            # 0 is true.
+
+echo
+
+echo "Testing \"1\""
+if [ 1 ]      # one
+then
+  echo "1 is true."
+else
+  echo "1 is false."
+fi            # 1 is true.
+
+echo
+
+echo "Testing \"-1\""
+if [ -1 ]     # minus one
+then
+  echo "-1 is true."
+else
+  echo "-1 is false."
+fi            # -1 is true.
+
+echo
+
+echo "Testing \"NULL\""
+if [ ]        # NULL (empty condition)
+then
+  echo "NULL is true."
+else
+  echo "NULL is false."
+fi            # NULL is false.
+
+echo
+
+echo "Testing \"xyz\""
+if [ xyz ]    # string
+then
+  echo "Random string is true."
+else
+  echo "Random string is false."
+fi            # Random string is true.
+
+echo
+
+echo "Testing \"\$xyz\""
+if [ $xyz ]   # Tests if $xyz is null, but...
+              # it's only an uninitialized variable.
+then
+  echo "Uninitialized variable is true."
+else
+  echo "Uninitialized variable is false."
+fi            # Uninitialized variable is false.
+
+echo
+
+echo "Testing \"-n \$xyz\""
+if [ -n "$xyz" ]            # More pedantically correct.
+then
+  echo "Uninitialized variable is true."
+else
+  echo "Uninitialized variable is false."
+fi            # Uninitialized variable is false.
+
+echo
+
+
+xyz=          # Initialized, but set to null value.
+
+echo "Testing \"-n \$xyz\""
+if [ -n "$xyz" ]
+then
+  echo "Null variable is true."
+else
+  echo "Null variable is false."
+fi            # Null variable is false.
+
+
+echo
+
+
+# When is "false" true?
+
+echo "Testing \"false\""
+if [ "false" ]              #  It seems that "false" is just a string ...
+then
+  echo "\"false\" is true." #+ and it tests true.
+else
+  echo "\"false\" is false."
+fi            # "false" is true.
+
+echo
+
+echo "Testing \"\$false\""  # Again, uninitialized variable.
+if [ "$false" ]
+then
+  echo "\"\$false\" is true."
+else
+  echo "\"\$false\" is false."
+fi            # "$false" is false.
+              # Now, we get the expected result.
+
+#  What would happen if we tested the uninitialized variable "$true"?
+
+echo
+
+exit 0
+</pre></div></div><br class="example-break"><p><b>Exercise. </b>Explain the behavior of <a class="xref" href="ch07s01.html#ex10" title="Example 7.1. What is truth?">Example 7.1, &#8220;What is truth?&#8221;</a>, above.</p><p><a name="elseref"></a></p><pre class="programlisting">if [ condition-true ]
+then
+   command 1
+   command 2
+   ...
+else  # Or else ...
+      # Adds default code block executing if original condition tests false.
+   command 3
+   command 4
+   ...
+fi</pre><p>
+      </p><div class="note" style="margin-left: 0.5in; margin-right: 0.5in;"><h3 class="title">Note</h3><p>When <em class="firstterm">if</em> and <em class="firstterm">then</em>
+	are on same line in a condition test, a semicolon must
+	terminate the <em class="firstterm">if</em> statement.  Both
+	<em class="firstterm">if</em> and <em class="firstterm">then</em>
+	are <a class="link" href="ch15.html#keywordref">keywords</a>.  Keywords (or
+	commands) begin statements, and before a new statement on the
+	same line begins, the old one must terminate.</p><pre class="programlisting">if [ -x "$filename" ]; then</pre></div><div class="variablelist"><a name="elifref"></a><p class="title"><b><a name="elifref1"></a>Else if and elif</b></p><dl class="variablelist"><dt><span class="term"><span class="token">elif</span></span></dt><dd><p><strong class="userinput"><code>elif</code></strong> is a contraction
+	      for <em class="firstterm">else if</em>. The effect is to nest an
+	      inner <span class="token">if/then</span> construct within an outer
+	      one.</p><pre class="programlisting">if [ condition1 ]
+then
+   command1
+   command2
+   command3
+elif [ condition2 ]
+# Same as else if
+then
+   command4
+   command5
+else
+   default-command
+fi</pre><p>
+	      </p></dd></dl></div><p>
+      <a class="indexterm" name="idm3120"></a>
+      <a class="indexterm" name="idm3122"></a>
+      <a class="indexterm" name="idm3125"></a>
+      <a class="indexterm" name="idm3127"></a>
+      <a class="indexterm" name="idm3130"></a>
+      <a class="indexterm" name="idm3132"></a>
+	<a name="ifref2"></a>
+	The <strong class="userinput"><code>if test condition-true</code></strong> construct is the
+	exact equivalent of <strong class="userinput"><code>if [ condition-true ]</code></strong>.
+	As it happens, the left bracket, <span class="command"><strong>[</strong></span> , is a
+	<em class="firstterm">token</em>
+
+	<a href="#ftn.idm3140" class="footnote" name="idm3140"><sup class="footnote">[33]</sup></a>
+
+	which invokes the <span class="command"><strong>test</strong></span> command.  The closing
+	right bracket, <span class="command"><strong>]</strong></span> , in an if/test should not
+	therefore be strictly necessary, however newer versions of Bash
+	require it.</p><p><a name="ttestref"></a></p><div class="note" style="margin-left: 0.5in; margin-right: 0.5in;"><h3 class="title">Note</h3><p>The <span class="command"><strong>test</strong></span> command is a Bash <a class="link" href="ch15.html#builtinref">builtin</a> which tests file
+	  types and compares strings. Therefore, in a Bash script,
+	  <span class="command"><strong>test</strong></span> does <span class="emphasis"><em>not</em></span> call
+	  the external <code class="filename">/usr/bin/test</code> binary,
+	  which is part of the <em class="firstterm">sh-utils</em>
+	  package. Likewise, <span class="command"><strong>[</strong></span> does not call
+	  <code class="filename">/usr/bin/[</code>, which is linked to
+	  <code class="filename">/usr/bin/test</code>.</p><p>
+	      </p><pre class="screen">
+<code class="prompt">bash$ </code><strong class="userinput"><code>type test</code></strong>
+<code class="computeroutput">test is a shell builtin</code>
+<code class="prompt">bash$ </code><strong class="userinput"><code>type '['</code></strong>
+<code class="computeroutput">[ is a shell builtin</code>
+<code class="prompt">bash$ </code><strong class="userinput"><code>type '[['</code></strong>
+<code class="computeroutput">[[ is a shell keyword</code>
+<code class="prompt">bash$ </code><strong class="userinput"><code>type ']]'</code></strong>
+<code class="computeroutput">]] is a shell keyword</code>
+<code class="prompt">bash$ </code><strong class="userinput"><code>type ']'</code></strong>
+<code class="computeroutput">bash: type: ]: not found</code>
+	      </pre><p>
+	    </p><p><a name="usrbintest"></a></p><p>If, for some reason, you wish to use
+	  <code class="filename">/usr/bin/test</code> in a Bash script,
+	  then specify it by full pathname.</p></div><div class="example"><a name="ex11"></a><p class="title"><b>Example 7.2. Equivalence of <em class="firstterm">test</em>,
+	  <code class="filename">/usr/bin/test</code>, <span class="token">[ ]</span>,
+	  and <code class="filename">/usr/bin/[</code></b></p><div class="example-contents"><pre class="programlisting">#!/bin/bash
+
+echo
+
+if test -z "$1"
+then
+  echo "No command-line arguments."
+else
+  echo "First command-line argument is $1."
+fi
+
+echo
+
+if /usr/bin/test -z "$1"      # Equivalent to "test" builtin.
+#  ^^^^^^^^^^^^^              # Specifying full pathname.
+then
+  echo "No command-line arguments."
+else
+  echo "First command-line argument is $1."
+fi
+
+echo
+
+if [ -z "$1" ]                # Functionally identical to above code blocks.
+#   if [ -z "$1"                should work, but...
+#+  Bash responds to a missing close-bracket with an error message.
+then
+  echo "No command-line arguments."
+else
+  echo "First command-line argument is $1."
+fi
+
+echo
+
+
+if /usr/bin/[ -z "$1" ]       # Again, functionally identical to above.
+# if /usr/bin/[ -z "$1"       # Works, but gives an error message.
+#                             # Note:
+#                               This has been fixed in Bash, version 3.x.
+then
+  echo "No command-line arguments."
+else
+  echo "First command-line argument is $1."
+fi
+
+echo
+
+exit 0
+</pre></div></div><br class="example-break"><a class="indexterm" name="idm3191"></a><a class="indexterm" name="idm3193"></a><a class="indexterm" name="idm3196"></a><a class="indexterm" name="idm3198"></a><a class="indexterm" name="idm3201"></a><a class="indexterm" name="idm3203"></a><div class="sidebar"><div class="titlepage"><div><div><p class="title"><b></b></p></div></div></div><p><a name="dblbrackets"></a>The <span class="token">[[  ]]</span> construct
+	is the more versatile Bash version of <span class="token">[	]</span>. This
+	is the <em class="firstterm">extended test command</em>, adopted from
+	<em class="firstterm">ksh88</em>.</p><p>*  *  *</p><p>No filename expansion or word splitting takes place
+	between <span class="token">[[</span> and <span class="token">]]</span>, but there is
+	parameter expansion and command substitution.
+
+	</p><pre class="programlisting">file=/etc/passwd
+
+if [[ -e $file ]]
+then
+  echo "Password file exists."
+fi</pre><p>
+      </p><p>Using the <span class="command"><strong>[[ ... ]]</strong></span> test construct,
+	rather than <span class="command"><strong>[ ... ]</strong></span> can prevent many
+	logic errors in scripts. For example, the <span class="token">&amp;&amp;</span>,
+	<span class="token">||</span>, <span class="token">&lt;</span>, and <span class="token">&gt;</span>
+	operators work within a <span class="token">[[  ]]</span> test, despite
+	giving an error within a <span class="token">[  ]</span> construct.</p><p><a name="dblbraev"></a></p><p><em class="firstterm">Arithmetic evaluation</em> of octal /
+        hexadecimal constants takes place automatically within a
+	<span class="token">[[ ... ]]</span> construct.
+	</p><pre class="programlisting"># [[ Octal and hexadecimal evaluation ]]
+# Thank you, Moritz Gronbach, for pointing this out.
+
+
+decimal=15
+octal=017   # = 15 (decimal)
+hex=0x0f    # = 15 (decimal)
+
+if [ "$decimal" -eq "$octal" ]
+then
+  echo "$decimal equals $octal"
+else
+  echo "$decimal is not equal to $octal"       # 15 is not equal to 017
+fi      # Doesn't evaluate within [ single brackets ]!
+
+
+if [[ "$decimal" -eq "$octal" ]]
+then
+  echo "$decimal equals $octal"                # 15 equals 017
+else
+  echo "$decimal is not equal to $octal"
+fi      # Evaluates within [[ double brackets ]]!
+
+if [[ "$decimal" -eq "$hex" ]]
+then
+  echo "$decimal equals $hex"                  # 15 equals 0x0f
+else
+  echo "$decimal is not equal to $hex"
+fi      # [[ $hexadecimal ]] also evaluates!</pre><p>
+      </p></div><div class="note" style="margin-left: 0.5in; margin-right: 0.5in;"><h3 class="title">Note</h3><p>Following an <span class="command"><strong>if</strong></span>, neither the
+        <span class="command"><strong>test</strong></span> command nor the test brackets ( [ ] or [[ ]] )
+	are strictly necessary.
+
+	</p><pre class="programlisting">dir=/home/bozo
+
+if cd "$dir" 2&gt;/dev/null; then   # "2&gt;/dev/null" hides error message.
+  echo "Now in $dir."
+else
+  echo "Can't change to $dir."
+fi</pre><p>
+
+        The "if COMMAND" construct returns the exit status of COMMAND.
+</p><p>Similarly, a condition within test brackets may stand alone
+	  without an <span class="command"><strong>if</strong></span>, when used in combination
+	  with a <a class="link" href="ch26.html#listconsref">list construct</a>.
+
+	  </p><pre class="programlisting">var1=20
+var2=22
+[ "$var1" -ne "$var2" ] &amp;&amp; echo "$var1 is not equal to $var2"
+
+home=/home/bozo
+[ -d "$home" ] || echo "$home directory does not exist."</pre></div><a class="indexterm" name="idm3242"></a><a class="indexterm" name="idm3244"></a><a class="indexterm" name="idm3247"></a><a class="indexterm" name="idm3249"></a><a class="indexterm" name="idm3252"></a><a class="indexterm" name="idm3254"></a><p><a name="dblprx"></a>The <a class="link" href="ch08s03.html" title="3. The Double-Parentheses Construct">(( ))
+	construct</a> expands and evaluates an arithmetic
+	expression. If the expression evaluates as zero, it returns
+	an <a class="link" href="ch06.html#exitstatusref">exit status</a> of
+	<span class="returnvalue">1</span>, or <span class="quote">&#8220;<span class="quote">false</span>&#8221;</span>. A non-zero
+	expression returns an exit status of <span class="returnvalue">0</span>,
+	or <span class="quote">&#8220;<span class="quote">true</span>&#8221;</span>. This is in marked contrast to using
+	the <span class="command"><strong>test</strong></span> and <span class="token">[ ]</span> constructs
+	previously discussed.</p><div class="example"><a name="arithtests"></a><p class="title"><b>Example 7.3. Arithmetic Tests using <span class="token">(( ))</span></b></p><div class="example-contents"><pre class="programlisting">#!/bin/bash
+# arith-tests.sh
+# Arithmetic tests.
+
+# The (( ... )) construct evaluates and tests numerical expressions.
+# Exit status opposite from [ ... ] construct!
+
+(( 0 ))
+echo "Exit status of \"(( 0 ))\" is $?."         # 1
+
+(( 1 ))
+echo "Exit status of \"(( 1 ))\" is $?."         # 0
+
+(( 5 &gt; 4 ))                                      # true
+echo "Exit status of \"(( 5 &gt; 4 ))\" is $?."     # 0
+
+(( 5 &gt; 9 ))                                      # false
+echo "Exit status of \"(( 5 &gt; 9 ))\" is $?."     # 1
+
+(( 5 == 5 ))                                     # true
+echo "Exit status of \"(( 5 == 5 ))\" is $?."    # 0
+# (( 5 = 5 ))  gives an error message.
+
+(( 5 - 5 ))                                      # 0
+echo "Exit status of \"(( 5 - 5 ))\" is $?."     # 1
+
+(( 5 / 4 ))                                      # Division o.k.
+echo "Exit status of \"(( 5 / 4 ))\" is $?."     # 0
+
+(( 1 / 2 ))                                      # Division result &lt; 1.
+echo "Exit status of \"(( 1 / 2 ))\" is $?."     # Rounded off to 0.
+                                                 # 1
+
+(( 1 / 0 )) 2&gt;/dev/null                          # Illegal division by 0.
+#           ^^^^^^^^^^^
+echo "Exit status of \"(( 1 / 0 ))\" is $?."     # 1
+
+# What effect does the "2&gt;/dev/null" have?
+# What would happen if it were removed?
+# Try removing it, then rerunning the script.
+
+# ======================================= #
+
+# (( ... )) also useful in an if-then test.
+
+var1=5
+var2=4
+
+if (( var1 &gt; var2 ))
+then #^      ^      Note: Not $var1, $var2. Why?
+  echo "$var1 is greater than $var2"
+fi     # 5 is greater than 4
+
+exit 0
+</pre></div></div><br class="example-break"><div class="footnotes"><br><hr style="width:100; text-align:left;margin-left: 0"><div id="ftn.idm3140" class="footnote"><p><a href="#idm3140" class="para"><sup class="para">[33] </sup></a><a name="tokenref"></a>A
+	<em class="firstterm">token</em> is a symbol or short
+	string with a special meaning attached to it (a <a class="link" href="ch18s01.html#metameaningref">meta-meaning</a>). In Bash,
+	certain tokens, such as <span class="command"><strong>[</strong></span> and <a class="link" href="ch03.html#dotref">. (dot-command)</a>, may expand to
+	<em class="firstterm">keywords</em> and commands.</p></div></div></div><div class="navfooter"><hr><table width="100%" summary="Navigation footer"><tr><td width="40%" align="left"><a accesskey="p" href="ch07.html">Prev</a> </td><td width="20%" align="center"><a accesskey="u" href="ch07.html">Up</a></td><td width="40%" align="right"> <a accesskey="n" href="ch07s02.html">Next</a></td></tr><tr><td width="40%" align="left" valign="top">Chapter 7. Tests </td><td width="20%" align="center"><a accesskey="h" href="index.html">Home</a></td><td width="40%" align="right" valign="top"> 2. File test operators</td></tr></table></div></body></html>

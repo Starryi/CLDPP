@@ -1,0 +1,494 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN""http://www.w3.org/TR/html4/loose.dtd">
+<HTML
+><HEAD
+><TITLE
+>IPIP Encapsulation</TITLE
+><META
+NAME="GENERATOR"
+CONTENT="Modular DocBook HTML Stylesheet Version 1.79"><LINK
+REL="HOME"
+TITLE="Linux Networking HOWTO"
+HREF="index.html"><LINK
+REL="UP"
+TITLE="IP Related Information"
+HREF="c1121.html"><LINK
+REL="PREVIOUS"
+TITLE="IP Firewall (for Linux-2.0)"
+HREF="x1247.html"><LINK
+REL="NEXT"
+TITLE="IP Masquerade"
+HREF="x1325.html"></HEAD
+><BODY
+CLASS="SECT1"
+BGCOLOR="#FFFFFF"
+TEXT="#000000"
+LINK="#0000FF"
+VLINK="#840084"
+ALINK="#0000FF"
+><DIV
+CLASS="NAVHEADER"
+><TABLE
+SUMMARY="Header navigation table"
+WIDTH="100%"
+BORDER="0"
+CELLPADDING="0"
+CELLSPACING="0"
+><TR
+><TH
+COLSPAN="3"
+ALIGN="center"
+><A
+HREF="http://www.linuxports.com/"
+TARGET="_top"
+>Linux Networking HOWTO</A
+></TH
+></TR
+><TR
+><TD
+WIDTH="10%"
+ALIGN="left"
+VALIGN="bottom"
+><A
+HREF="x1247.html"
+ACCESSKEY="P"
+>Prev</A
+></TD
+><TD
+WIDTH="80%"
+ALIGN="center"
+VALIGN="bottom"
+>Chapter 7. IP Related Information</TD
+><TD
+WIDTH="10%"
+ALIGN="right"
+VALIGN="bottom"
+><A
+HREF="x1325.html"
+ACCESSKEY="N"
+>Next</A
+></TD
+></TR
+></TABLE
+><HR
+ALIGN="LEFT"
+WIDTH="100%"></DIV
+><DIV
+CLASS="SECT1"
+><H1
+CLASS="SECT1"
+><A
+NAME="AEN1276"
+>7.6. IPIP Encapsulation</A
+></H1
+><P
+>Why would you want to encapsulate IP datagrams within IP datagrams? It must
+seem odd if you've never seen a working application.
+Two common places where it is used are in Mobile-IP and
+IP-Multicast. Amateur Radio is perhaps the most widely spread (and least known) useage.</P
+><P
+><EM
+>Kernel Compile Options</EM
+>:
+<TABLE
+BORDER="1"
+BGCOLOR="#E0E0E0"
+WIDTH="100%"
+><TR
+><TD
+><FONT
+COLOR="#000000"
+><PRE
+CLASS="SCREEN"
+>	Networking options  ---&#62;
+	    [*] TCP/IP networking
+	    [*] IP: forwarding/gatewaying
+	    ....
+	    &#60;*&#62; IP: tunneling</PRE
+></FONT
+></TD
+></TR
+></TABLE
+></P
+><P
+>IP tunnel devices are called `<TT
+CLASS="LITERAL"
+>tunl0</TT
+>', `<TT
+CLASS="LITERAL"
+>tunl1</TT
+>' etc.</P
+><P
+>"But why ?". Ok, ok. Conventional IP routing rules mandate that an IP network
+comprises a network address and a network mask. This produces a series of
+contiguous addresses that may all be routed via a single routing entry.
+This is very convenient. It means that you may use any particular
+IP address while you are connected to its piece of the network.
+In most instances this is ok. If you are a mobile netizen, however, then
+you may not be able to stay connected to the one place all the time. IP/IP
+encapsulation (IP tunneling) allows you to overcome this restriction by
+allowing datagrams destined for your IP address to be wrapped up and redirected
+to another IP address. If you know that you're going to be operating from another
+IP network, you can set up a machine on your home network
+to accept datagrams to your IP address. You can then redirect these datagrams to the address
+that you will be temporarily using.</P
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN1286"
+>7.6.1. A tunneled network configuration.</A
+></H2
+><P
+><TABLE
+BORDER="1"
+BGCOLOR="#E0E0E0"
+WIDTH="100%"
+><TR
+><TD
+><FONT
+COLOR="#000000"
+><PRE
+CLASS="SCREEN"
+> 192.168.1/24                          192.168.2/24
+     -                                     -
+     |      ppp0 =            ppp0 =       |
+     |  aaa.bbb.ccc.ddd  fff.ggg.hhh.iii   |
+     |                                     |
+     |   /-----\                 /-----\   |
+     |   |     |       //        |     |   |
+     |---|  A  |------//---------|  B  |---|
+     |   |     |     //          |     |   |
+     |   \-----/                 \-----/   |
+     |                                     |
+     -                                     -</PRE
+></FONT
+></TD
+></TR
+></TABLE
+></P
+><P
+>The diagram illustrates another possible reason to use IPIP encapsulation;
+virtual private networking. This example presupposes that you have two machines,
+each with a simple dial up Internet connection. Each host is allocated just
+a single IP address. Behind each of these machines are some private local area
+networks. These LANs are configured with reserved IP network addresses. Suppose that you want
+to allow any host on network A to connect to any host on network B (just as
+if they were properly connected to the Internet with a network route). IPIP
+encapsulation will allow you to do this configuration. Note: encapsulation does not solve
+the problem of how you get the hosts on networks A and B to talk to any
+other on the Internet. You will still need to use tricks like IP Masquerade.
+Encapsulation is normally performed by machines functioning as routers.</P
+><P
+>Linux router `<TT
+CLASS="LITERAL"
+>A</TT
+>' would be configured with a script like the following:</P
+><P
+><TABLE
+BORDER="1"
+BGCOLOR="#E0E0E0"
+WIDTH="100%"
+><TR
+><TD
+><FONT
+COLOR="#000000"
+><PRE
+CLASS="SCREEN"
+>	#!/bin/sh
+	PATH=/sbin:/usr/sbin
+	mask=255.255.255.0
+	remotegw=fff.ggg.hhh.iii
+	#
+	# Ethernet configuration
+	ifconfig eth0 192.168.1.1 netmask $mask up
+	route add -net 192.168.1.0 netmask $mask eth0
+	#
+	# ppp0 configuration (start ppp link, set default route)
+	pppd
+	route add default ppp0
+	#
+	# Tunnel device configuration
+	ifconfig tunl0 192.168.1.1 up
+	route add -net 192.168.2.0 netmask $mask gw $remotegw tunl0</PRE
+></FONT
+></TD
+></TR
+></TABLE
+></P
+><P
+>Linux router `<TT
+CLASS="LITERAL"
+>B</TT
+>' would be configured with a similar script:</P
+><P
+><TABLE
+BORDER="1"
+BGCOLOR="#E0E0E0"
+WIDTH="100%"
+><TR
+><TD
+><FONT
+COLOR="#000000"
+><PRE
+CLASS="SCREEN"
+>	#!/bin/sh
+	PATH=/sbin:/usr/sbin
+	mask=255.255.255.0
+	remotegw=aaa.bbb.ccc.ddd
+	#
+	# Ethernet configuration
+	ifconfig eth0 192.168.2.1 netmask $mask up
+	route add -net 192.168.2.0 netmask $mask eth0
+	#
+	# ppp0 configuration (start ppp link, set default route)
+	pppd
+	route add default ppp0
+	#
+	# Tunnel device configuration
+	ifconfig tunl0 192.168.2.1 up
+	route add -net 192.168.1.0 netmask $mask gw $remotegw tunl0</PRE
+></FONT
+></TD
+></TR
+></TABLE
+></P
+><P
+>The command:</P
+><P
+><TABLE
+BORDER="1"
+BGCOLOR="#E0E0E0"
+WIDTH="100%"
+><TR
+><TD
+><FONT
+COLOR="#000000"
+><PRE
+CLASS="SCREEN"
+>	route add -net 192.168.1.0 netmask $mask gw $remotegw tunl0</PRE
+></FONT
+></TD
+></TR
+></TABLE
+></P
+><P
+>reads: `Send any datagrams destined for <TT
+CLASS="LITERAL"
+>192.168.1.0/24</TT
+> inside an
+IPIP encap datagram with a destination address of <TT
+CLASS="LITERAL"
+>aaa.bbb.ccc.ddd</TT
+>'.</P
+><P
+>Note that the configurations are reciprocated at either end. The tunnel device
+uses the `<TT
+CLASS="LITERAL"
+>gw</TT
+>' in the route as the <EM
+>destination</EM
+> of the IP datagram
+(where it will place the datagram it has received to route). That machine
+must know how to decapsulate IPIP datagrams. In other words, it must also be
+configured with a tunnel device.</P
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN1308"
+>7.6.2. A tunneled host configuration.</A
+></H2
+><P
+>You do not have to be routing a whole network. You could, for example, route
+just a single IP address. In that instance you might configure the <TT
+CLASS="LITERAL"
+>tunl</TT
+>
+device on the `remote' machine with its home IP address. At the A end would have
+a host route (and Proxy Arp) rather than a network route via the tunnel
+device. Let's redraw and modify our configuration appropriately. Now we
+have just host `<TT
+CLASS="LITERAL"
+>B</TT
+>' which you want to act and behave as if it is both
+fully connected to the Internet, and also part of the remote network supported
+by host `<TT
+CLASS="LITERAL"
+>A</TT
+>':</P
+><P
+><TABLE
+BORDER="1"
+BGCOLOR="#E0E0E0"
+WIDTH="100%"
+><TR
+><TD
+><FONT
+COLOR="#000000"
+><PRE
+CLASS="SCREEN"
+> 192.168.1/24
+     -
+     |      ppp0 =                ppp0 =
+     |  aaa.bbb.ccc.ddd      fff.ggg.hhh.iii
+     |
+     |   /-----\                 /-----\
+     |   |     |       //        |     |
+     |---|  A  |------//---------|  B  |
+     |   |     |     //          |     |
+     |   \-----/                 \-----/
+     |                      also: 192.168.1.12
+     -</PRE
+></FONT
+></TD
+></TR
+></TABLE
+></P
+><P
+>Linux router `<TT
+CLASS="LITERAL"
+>A</TT
+>' would be configured with:</P
+><P
+><TABLE
+BORDER="1"
+BGCOLOR="#E0E0E0"
+WIDTH="100%"
+><TR
+><TD
+><FONT
+COLOR="#000000"
+><PRE
+CLASS="SCREEN"
+>	#!/bin/sh
+	PATH=/sbin:/usr/sbin
+	mask=255.255.255.0
+	remotegw=fff.ggg.hhh.iii
+	#
+	# Ethernet configuration
+	ifconfig eth0 192.168.1.1 netmask $mask up
+	route add -net 192.168.1.0 netmask $mask eth0
+	#
+	# ppp0 configuration (start ppp link, set default route)
+	pppd
+	route add default ppp0
+	#
+	# Tunnel device configuration
+	ifconfig tunl0 192.168.1.1 up
+	route add -host 192.168.1.12 gw $remotegw tunl0
+	#
+	# Proxy ARP for the remote host
+	arp -s 192.168.1.12 xx:xx:xx:xx:xx:xx pub</PRE
+></FONT
+></TD
+></TR
+></TABLE
+></P
+><P
+>Linux host `<TT
+CLASS="LITERAL"
+>B</TT
+>' would be configured with:</P
+><P
+><TABLE
+BORDER="1"
+BGCOLOR="#E0E0E0"
+WIDTH="100%"
+><TR
+><TD
+><FONT
+COLOR="#000000"
+><PRE
+CLASS="SCREEN"
+>	#!/bin/sh
+	PATH=/sbin:/usr/sbin
+	mask=255.255.255.0
+	remotegw=aaa.bbb.ccc.ddd
+	#
+	# ppp0 configuration (start ppp link, set default route)
+	pppd
+	route add default ppp0
+	#
+	# Tunnel device configuration
+	ifconfig tunl0 192.168.1.12 up
+	route add -net 192.168.1.0 netmask $mask gw $remotegwtunl0</PRE
+></FONT
+></TD
+></TR
+></TABLE
+></P
+><P
+>This sort of configuration is more typical of a Mobile-IP application: a single host
+wants to roam around the Internet and maintain a single usable
+IP address the whole time. You should refer to the Mobile-IP section for more
+information on how this is handled in practice.</P
+></DIV
+></DIV
+><DIV
+CLASS="NAVFOOTER"
+><HR
+ALIGN="LEFT"
+WIDTH="100%"><TABLE
+SUMMARY="Footer navigation table"
+WIDTH="100%"
+BORDER="0"
+CELLPADDING="0"
+CELLSPACING="0"
+><TR
+><TD
+WIDTH="33%"
+ALIGN="left"
+VALIGN="top"
+><A
+HREF="x1247.html"
+ACCESSKEY="P"
+>Prev</A
+></TD
+><TD
+WIDTH="34%"
+ALIGN="center"
+VALIGN="top"
+><A
+HREF="index.html"
+ACCESSKEY="H"
+>Home</A
+></TD
+><TD
+WIDTH="33%"
+ALIGN="right"
+VALIGN="top"
+><A
+HREF="x1325.html"
+ACCESSKEY="N"
+>Next</A
+></TD
+></TR
+><TR
+><TD
+WIDTH="33%"
+ALIGN="left"
+VALIGN="top"
+>IP Firewall (for Linux-2.0)</TD
+><TD
+WIDTH="34%"
+ALIGN="center"
+VALIGN="top"
+><A
+HREF="c1121.html"
+ACCESSKEY="U"
+>Up</A
+></TD
+><TD
+WIDTH="33%"
+ALIGN="right"
+VALIGN="top"
+>IP Masquerade</TD
+></TR
+></TABLE
+></DIV
+></BODY
+></HTML
+>

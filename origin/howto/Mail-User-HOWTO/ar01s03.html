@@ -1,0 +1,126 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1"><title>3. Advanced topics</title><link rel="stylesheet" type="text/css" href="style.css"><meta name="generator" content="DocBook XSL Stylesheets V1.79.1"><link rel="home" href="index.html" title="The Linux Mail User HOWTO"><link rel="up" href="index.html" title="The Linux Mail User HOWTO"><link rel="prev" href="ar01s02.html" title="2. Mail User Agents"><link rel="next" href="ar01s04.html" title="4. Other sources of information"></head><body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF"><div class="navheader"><table width="100%" summary="Navigation header"><tr><th colspan="3" align="center">3. Advanced topics</th></tr><tr><td width="20%" align="left"><a accesskey="p" href="ar01s02.html">Prev</a> </td><th width="60%" align="center"> </th><td width="20%" align="right"> <a accesskey="n" href="ar01s04.html">Next</a></td></tr></table><hr></div><div class="sect1"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="advanced"></a>3. Advanced topics</h2></div></div></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="aliases"></a>3.1. Aliases</h3></div></div></div><p>An `alias' is a way to set up a pseudo-address that simply directs
+mail to another (single) address.  There are two kinds of aliases:
+MUA aliases and MTA aliases.</p><p>An MUA alias is one you set up in your MUA as a kind of personal
+shorthand.  Other people will not be able to see or use this alias.
+For example, you could write:</p><pre class="programlisting">
+alias esr	Eric S. Raymond	&lt;esr@thyrsus.com&gt;
+</pre><p>in your mutt configuration file.  This would tell mutt that when it
+sees `esr' in an address line, it should behave as through you had
+typed `esr@thyrsus.com',  Or you can type `mutt esr' and the expanded
+address will be automatically filled in on the `to' line.</p><p>An MTA alias is one your MTA expands; it will be usable by
+everyone, both on your machine and remotely.  To create MTA aliases
+you must modify a system file, usually but not always
+<code class="filename">/etc/aliases</code> or
+<code class="filename">/etc/mail/aliases</code> (the location depends on your
+MTA).  It may be instructive for you to look at the aliases on
+your system; it should contain a number of standard aliases such as
+`postmaster'.</p><p>Your MTA may also allow the target of an alias to be a filename, which
+will be treated as a mailbox the mail is to be appended to (this is
+useful for archiving mail).  It may also allow the target of an alias
+to be a program, in which case mail to that alias will be passed to
+an instance of the program on its standard input.</p></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="forwarding"></a>3.2. Forwarding</h3></div></div></div><p>MTA aliases usually require administrator privileges to set up.  But
+it is desirable for mail users to be able to set up forwarding of
+their own mail without administrator intervention.</p><p>To support this, most MTAs follow sendmail's lead and look for a file
+called
+<code class="filename">.forward</code><a class="indexterm" name="idm136"></a>
+in your home directory.  The contents of this file is interpreted like the
+target of an alias which should receive all your mail; it should be a
+single address.  The most common use for this facility is to redirect your
+mail to an account on another machine.</p><p>To amplify: The existence of the .forward file, regardless of whats
+in it, tells the system to treat the contents of the file as an alias
+target for all your mail. If you create an empty .forward file, your mail
+disappears. Most people use this to forward their mail to another machine,
+so most often there is just one email address in the first line, and
+nothing else. The MTA will honor whatever is on the first line of your
+.forward file as the target of an alias. Everything else is ignored. If the
+target is misformatted, just like any other alias, then the mail
+disappears.</p></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="autoreply"></a>3.3. Auto-replying</h3></div></div></div><p>Another common use for the <code class="filename">.forward</code>
+facility is to pass your mail to a `vacation' program.  A vacation
+program reads incoming mail and automatically generates a canned reply
+to it; they are so called because the most common form of canned reply
+is to inform the sender that you are on vacation and will not be
+reachable until a given date.</p><p>There is no one standard vacation program that is in universal use.  
+There are two good reasons for this: one, that such a program is
+very easy to write as a shellscript or filter rule (see below); and
+two, that vacation programs interact badly with mailing lists.</p><p>You should temporarily unsubscribe from all mailing lists you are on
+before setting up auto-answering; otherwise, all members of the
+mailing lists mail find they are being flooded with canned messages
+by your vacation program.  This is considered very rude behavior
+and will guarantee you quite a frosty reception on your return.</p></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="lists"></a>3.4. Mailing lists</h3></div></div></div><p>A mailing list is a pseudo-address that sends mail to more than
+one user.</p><p>In its simplest form, mailing list is just an MTA alias with more than
+one recipient. Some small mailing lists are maintained this way.
+Sendmail assists by supporting a syntax in <code class="filename">/etc/aliases</code>
+that includes the contents of a given mailing list file in the target
+side of an alias.  It looks like this:</p><pre class="programlisting">
+admin-list:     ":include:/usr/home/admin/admin-list"
+</pre><p>with the advantage that the admin-list file can live in
+unprivileged-user space somewhere (root is only needed to set
+up the original inclusion). Some other MTAs have similar features.</p><p>These simple lists are commonly called `mail
+reflectors<a class="indexterm" name="idm153"></a>'.
+There are a couple of problems with mail reflectors.  One is that
+bounce messages from failed attempts to broadcast goes to all users.
+Another is that all subscriptions and unsubscriptions have to be done
+manually by the mailing list administrator.</p><p>A kind of software called a mailing list
+manager<a class="indexterm" name="idm156"></a>
+has evolved to address these problems and other related ones.  Its
+most important function is to permit mailing list users to subscribe
+and unscubscribe without going through the list maintainer.</p><p>A mailing-list manager keeps its own user-list information and
+hooks up to the MTA through a program alias in
+<code class="filename">/etc/aliases</code>.  For example, if the admin-list
+above were going through the mailing list manager called SmartList on
+a sendmail system, a portion of <code class="filename">/etc/aliases</code>
+might look like this:</p><pre class="programlisting">
+admin-list: "|/usr/home/smartlist/bin/flist admin-list"
+admin-list-request: "|/usr/home/smartlist/bin/flist admin-list-request"
+</pre><p>Note that this is a pair of aliases.  It is conventional for
+real mailing lists to have a request
+address<a class="indexterm" name="idm163"></a> to be
+used for user subscription and unsubscription requests.  It is
+considered rude and ignorant to send subscription/unsubscription
+requests to the main address of such a list -- don't do it.</p><p>The robot sitting behind the request address may offer other features
+besides just subscription/unsubscription.  It may respond to help
+requests, allow you to query who is on the list, or give you automated
+access to list archives.  It may also allow list administrators to
+restrict posting to known members, set the list to auto-subscribe
+nonmembers when they first post, or set various security policy
+options.  Mailing-list managers differ primarily in the design and
+range of these secondary features.</p><p>Unfortunately, the format for sending commands to mailing-list request
+robots is not standard.  Some expect commands in the subject line, 
+some ignore the subject line and expect commands in the message body.
+You need to pay attention to the response mail you get when you first
+subscribe; it's a good idea to save such mail to a subscriptions
+mailbox for later reference.</p><p>The most important mailing-list managers to know about are majordomo,
+listserv, listproc, and smartlist; majordomo is the most popular by a
+considerable margin.  Recently, <a class="ulink" href="http://www.gnu.org/software/mailman/mailman.html" target="_top">mailman</a>, a
+list manager with a rather nice Web-based signon/signoff/administration
+interface, has become very popular and may be in the pricess of obsolescing
+the older programs.  There is a rather comprehensive <a class="ulink" href="http://www.catalog.com/vivian/mailing-list-software.html" target="_top">list</a>
+of such packages on the Web.</p><p>For more about mailing list managers, consult the resources at
+the <a class="ulink" href="http://www.greatcircle.com/list-managers/" target="_top">List-Managers Mailing
+List</a>, including the FAQ (note: this list is
+<span class="emphasis"><em>not</em></span> appropriate for how-to questions).</p></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="filters"></a>3.5. Mail filters</h3></div></div></div><p>A mail filter<a class="indexterm" name="idm176"></a> is a program that sits between your local
+delivery agent and you, automatically dispatching or rejecting mail
+before you see it.</p><p>Mail filters have a number of uses.  The most important are spam
+filtering, dispatching to multiple mailboxes by topic or sender, and
+auto-answering mail.</p><p>Typically, you set up mail filtering by putting a program alias
+for the filter program in your .forward file, and writing a file of
+filtering rules.  The format and location of the filter rules file
+varies between filter programs.</p><p>There are good feature summaries of the three major mail filters
+(procmail, mailagent, and deliver) in <a class="ulink" href="http://www.faqs.org/faqs/mail/setup/unix/part3/index.html" target="_top">part
+3</a> of Chris Lewis's Email Software Survey.  The most popular of
+these is (despite its rather nasty rule syntax) procmail, which is
+universally present on Linux systems (and, indeed, is generally used
+as the system's local delivery agent).</p></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="spam"></a>3.6. Coping with spam</h3></div></div></div><p>Spam is sometimes known as `UCE' (Unsolicited Commercial Email)
+or `UBE' (Unsolicited Bulk Email).  As these names imply, it is an
+obnoxious form of advertising that stuffs your mailbox with form
+letters.  (The term `spam' comes from a Monty Python's Flying Circus
+skit in which a choir of Vikings endlessly repeats the chant "Spam
+spam spam spam...").</p><p>Most spam seems to consist of solicitations for pyramid schemes,
+ads for pornography, or (annoyingly) attempts to sell spam-sending
+programs.  A few individual spams (like MAKE MONEY FAST or the Craig
+Shergold postcard hoax) have been so persistent as to become
+legendary.  Spam tends to be both verbose and illiterate.  It's a
+waste of time and a huge waste of network bandwidth.</p><p>If you're being deluged with spam, get educated.  Browse the <a class="ulink" href="http://spam.abuse.net/" target="_top">Fight Spam on the Internet!</a> page.  The
+<a class="ulink" href="http://www.mindworkshop.com/alchemy/nospam.html" target="_top">Death To
+Spam!</a> page is particularly effective on methods for stopping or
+backtracking spam.</p></div></div><div class="navfooter"><hr><table width="100%" summary="Navigation footer"><tr><td width="40%" align="left"><a accesskey="p" href="ar01s02.html">Prev</a> </td><td width="20%" align="center"> </td><td width="40%" align="right"> <a accesskey="n" href="ar01s04.html">Next</a></td></tr><tr><td width="40%" align="left" valign="top">2. Mail User Agents </td><td width="20%" align="center"><a accesskey="h" href="index.html">Home</a></td><td width="40%" align="right" valign="top"> 4. Other sources of information</td></tr></table></div></body></html>

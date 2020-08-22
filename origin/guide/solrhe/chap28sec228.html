@@ -1,0 +1,80 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1"><title>2. Configure and Optimize</title><link rel="stylesheet" type="text/css" href="style.css"><meta name="generator" content="DocBook XSL Stylesheets V1.79.1"><meta name="keywords" content="RedHat, redhat, maddy, linus, linux, Linux, Securing, Optimising, security, secure, openna, gerhard"><link rel="home" href="index.html" title="Securing and Optimizing Linux"><link rel="up" href="netproxy-squid.html" title="Chapter 28. Software -Server/Proxy Network"><link rel="prev" href="chap28sec227.html" title="1. Linux Squid Proxy Server"><link rel="next" href="gnumaloc.html" title="3. Improve performance Using GNU malloc library"></head><body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF"><div class="navheader"><table width="100%" summary="Navigation header"><tr><th colspan="3" align="center">2. Configure and Optimize</th></tr><tr><td width="20%" align="left"><a accesskey="p" href="chap28sec227.html">Prev</a> </td><th width="60%" align="center">Chapter 28. Software -Server/Proxy Network</th><td width="20%" align="right"> <a accesskey="n" href="gnumaloc.html">Next</a></td></tr></table><hr></div><div class="section"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="idm17930"></a>2. Configure and Optimize</h2></div></div></div><p>
+               Squid Proxy Server can't run as super-user root, and for this reason we must create a special user with no shell for running Squid Proxy Server.
+               </p><pre class="screen">
+                 [root@deep] /# <span class="command"><strong>useradd</strong></span> -d /cache/ -r -s /dev/null squid &gt;/dev/null 2&gt;&amp;1
+                 [root@deep] /# <span class="command"><strong>mkdir</strong></span> /cache/
+                 [root@deep] /# <span class="command"><strong>chown</strong></span> -R squid.squid /cache/
+               </pre><p>
+               First of all, we add the user <code class="literal">squid</code> to the <code class="filename">/etc/passwd</code> file. Then, we create the <code class="filename">/cache</code> directory if this directory doesn't exist, <span class="emphasis"><em>we repeat only if 
+               it doesn't exist</em></span>. Finally, we change the owner of the directory <code class="filename">cache</code> to be the user <code class="literal">squid</code>.
+             </p><div class="tip" style="margin-left: 0.5in; margin-right: 0.5in;"><h3 class="title">
+<span class="inlinemediaobject"><img src="./images/Tip.gif" alt="Tip"></span>
+</h3><p>
+               Usually we don't need to perform the command, <span class="command"><strong>mkdir</strong></span> <code class="filename">/cache/</code>, because we have already created this directory when we partitioned our hard drive during the installation of Linux. If this 
+               partition doesn't exist, you must execute this command to create the directory.
+             </p></div><div class="procedure"><ol class="procedure" type="1"><li class="step"><p>
+                 Move into the new Squid directory and type the following commands on your terminal:
+               
+                 Edit the <code class="filename">Makefile.in</code> file, <span class="command"><strong>vi</strong></span> +18 <code class="filename">icons/Makefile.in</code> and change the line:
+                 </p><pre class="programlisting">
+                   DEFAULT_ICON_DIR  =  $(sysconfdir)/icons
+                 </pre><p>
+                 To read:
+                 </p><pre class="programlisting">
+                   DEFAULT_ICON_DIR  =  $(libexecdir)/icons
+                 </pre><p>
+               </p></li><li class="step"><p>
+                 We change the variable, <code class="envar">sysconfdir</code> to be <code class="envar">libexecdir</code>. With this modification, the <code class="filename">icons</code> directory of Squid will be located under the <code class="filename">/usr/lib/squid</code> directory.
+                </p><ol type="a" class="substeps"><li class="step"><p>
+                     Edit the <code class="filename">Makefile.in</code> file, <span class="command"><strong>vi</strong></span> +34 <code class="filename">src/Makefile.in</code> and change the lines:
+                     </p><pre class="programlisting">
+                       DEFAULT_CACHE_LOG  =  <code class="prompt">$</code>(localstatedir)/logs/cache.log
+                     </pre><p>
+                     To read:
+                     </p><pre class="programlisting">
+                       DEFAULT_CACHE_LOG  =  <code class="prompt">$</code>(localstatedir)/log/squid/cache.log
+                     </pre><p>
+                   </p></li><li class="step"><p>
+                   </p><pre class="programlisting">
+                     DEFAULT_ACCESS_LOG  =  <code class="prompt">$</code>(localstatedir)/logs/access.log
+                   </pre><p>
+                   To read:
+                   </p><pre class="programlisting">
+                     DEFAULT_ACCESS_LOG  =  <code class="prompt">$</code>(localstatedir)/log/squid/access.log
+                   </pre><p>
+                   </p></li><li class="step"><p>
+                   </p><pre class="programlisting">
+                     DEFAULT_STORE_LOG  =  <code class="prompt">$</code>(localstatedir)/logs/store.log
+                   </pre><p>
+                   To read:
+                   </p><pre class="programlisting">
+                     DEFAULT_STORE_LOG  =  <code class="prompt">$</code>(localstatedir)/log/squid/store.log
+                   </pre><p>
+                   </p></li><li class="step"><p>
+                   </p><pre class="programlisting">
+                     DEFAULT_PID_FILE  =  <code class="prompt">$</code>(localstatedir)/logs/squid.pid
+                   </pre><p>
+                   To read:
+                   </p><pre class="programlisting">
+                     DEFAULT_PID_FILE  =  <code class="prompt">$</code>(localstatedir)/run/squid.pid
+                   </pre><p>
+                   </p></li><li class="step"><p>
+                   </p><pre class="programlisting">
+                     DEFAULT_SWAP_DIR  =  <code class="prompt">$</code>(localstatedir)/cache
+                   </pre><p>
+                   To read:
+                   </p><pre class="programlisting">
+                     DEFAULT_SWAP_DIR  =  /cache
+                   </pre><p>
+                   </p></li><li class="step"><p>
+                   </p><pre class="programlisting">
+                     DEFAULT_ICON_DIR  =  <code class="prompt">$</code>(sysconfdir)/icons
+                   </pre><p>
+                   To read:
+                   </p><pre class="programlisting">
+                     DEFAULT_ICON_DIR  =  <code class="prompt">$</code>(libexecdir)/icons
+                   </pre><p>
+                   We change the default location of <code class="filename">cache.log,</code> <code class="filename">access.log,</code> and <code class="filename">store.log</code> files to be located under <code class="filename">/var/log/squid</code> directory. Then, we put the pid file of Squid under <code class="filename">/var/run</code> 
+                   directory, and finally, locate the <code class="filename">icons</code> directory of Squid under <code class="filename">/usr/lib/squid/icons</code> with the variable <code class="envar">libexecdir</code> above.
+
+                   </p></li></ol></li></ol></div></div><div class="navfooter"><hr><table width="100%" summary="Navigation footer"><tr><td width="40%" align="left"><a accesskey="p" href="chap28sec227.html">Prev</a> </td><td width="20%" align="center"><a accesskey="u" href="netproxy-squid.html">Up</a></td><td width="40%" align="right"> <a accesskey="n" href="gnumaloc.html">Next</a></td></tr><tr><td width="40%" align="left" valign="top">1. Linux Squid Proxy Server </td><td width="20%" align="center"><a accesskey="h" href="index.html">Home</a></td><td width="40%" align="right" valign="top"> 3. Improve performance Using GNU malloc library </td></tr></table></div></body></html>

@@ -1,0 +1,223 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1"><title>15.  Appendix A - Creating initrd.img file</title><link rel="stylesheet" type="text/css" href="style.css"><meta name="generator" content="DocBook XSL Stylesheets V1.79.1"><link rel="home" href="index.html" title="The Linux Kernel HOWTO"><link rel="up" href="index.html" title="The Linux Kernel HOWTO"><link rel="prev" href="ar01s14.html" title="14.  Other Formats of this Document"><link rel="next" href="ar01s16.html" title="16.  Appendix B - Sample lilo.conf"></head><body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF"><div class="navheader"><table width="100%" summary="Navigation header"><tr><th colspan="3" align="center">15. 
+      Appendix A - Creating initrd.img file 
+    </th></tr><tr><td width="20%" align="left"><a accesskey="p" href="ar01s14.html">Prev</a> </td><th width="60%" align="center"> </th><td width="20%" align="right"> <a accesskey="n" href="ar01s16.html">Next</a></td></tr></table><hr></div><div class="sect1"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="create_initrd"></a>15. 
+      Appendix A - Creating initrd.img file 
+    </h2></div></div></div><p>
+      The 
+      <span class="emphasis"><em>
+        initrd 
+      </em></span>
+      is the "initial ramdisk". It is enough files stored in a ramdisk to 
+      store needed drivers . You need the drivers so that the kernel can mount 
+      / and kick off init. The initrd is typically used for temporarily 
+      booting the hardware into a state, that the real kernel vmlinuz can than 
+      take over and continue the booting. For example - you can't read the 
+      kernel off the scsi hard disk until you have a scsi driver loaded in the 
+      kernel. (Solution: boot an initrd kernel that can read the real kernel 
+      and use initrd to fix scsi booting problems) 
+    </p><p>
+      You can avoid this file 'initrd.img' and eliminate the need of 
+      'initrd.img', if you build your scsi drivers right into the kernel, 
+      instead of into modules. (Many persons recommend this). 
+    </p><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="idm1073"></a>15.1. 
+        Using mkinitrd 
+      </h3></div></div></div><p>
+        The mkinitrd utility creates an initrd image in a single command. This 
+        is command is peculiar to RedHat. There may be equivalent command of 
+        mkinitrd in other distributions of Linux. This is very convenient 
+        utility. 
+      </p><p>
+        You can read the mkinitrd man page. 
+      </p><p>
+        </p><pre class="programlisting">
+	/sbin/mkinitrd --help   # Or simply type 'mkinitrd --help'
+	usage: mkinitrd [--version] [-v] [-f] [--preload &lt;module&gt;]
+	       [--omit-scsi-modules] [--omit-raid-modules] [--omit-lvm-modules]
+	       [--with=&lt;module&gt;] [--image-version] [--fstab=&lt;fstab&gt;] [--nocompress]
+	       [--builtin=&lt;module&gt;] [--nopivot] &lt;initrd-image&gt; &lt;kernel-version&gt;
+	       (example: mkinitrd /boot/initrd-2.2.5-15.img 2.2.5-15)
+	# Read the online manual page with .....
+	man mkinitrd
+	su - root
+	# The command below creates the initrd image file
+	mkinitrd  ./initrd-2.4.18-19.8.0custom.img   2.4.18-19.8.0custom
+	ls -l initrd-2.4.18-19.8.0custom.img
+	-rw-r--r--    1 root     root       127314 Mar 19 21:54 initrd-2.4.18-19.8.0custom.img
+	cp  ./initrd-2.4.18-19.8.0custom.img   /boot
+        </pre><p>
+      </p><p>
+        See the following sections for the manual method of creating an initrd 
+        image. 
+      </p></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="idm1080"></a>15.2. 
+        Kernel Docs 
+      </h3></div></div></div><p>
+        To create /boot/initrd.img see the documentation at 
+        /usr/src/linux/Documentation/initrd.txt and see also 
+        <a class="ulink" href="http://www.tldp.org/HOWTO/mini/Loopback-Root-FS-3.html#ss3.3" target="_top">
+          Loopback-Root-mini-HOWTO 
+        </a>
+        . 
+      </p></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="idm1084"></a>15.3. 
+        Linuxman Book 
+      </h3></div></div></div><p>
+        A cut from 
+        <a class="ulink" href="http://www.linuxman.com.cy/rute/node1.html" target="_top">
+          "http://www.linuxman.com.cy/rute/node1.html" 
+        </a>
+        chapter 31.7. 
+      </p><p>
+        SCSI Installation Complications and initrd 
+      </p><p>
+        Some of the following descriptions may be difficult to understand 
+        without knowledge of kernel modules explained in Chapter 42. You may 
+        want to come back to it later. 
+      </p><p>
+        Consider a system with zero IDE disks and one SCSI disk containing a 
+        LINUX installation. There are BIOS interrupts to read the SCSI disk, 
+        just as there were for the IDE, so LILO can happily access a kernel 
+        image somewhere inside the SCSI partition. However, the kernel is 
+        going to be lost without a kernel module [lsqb ]See Chapter 42. The 
+        kernel doesn't support every possible kind of hardware out there all 
+        by itself. It is actually divided into a main part (the kernel image 
+        discussed in this chapter) and hundreds of modules (loadable parts 
+        that reside in /lib/modules/) that support the many type of SCSI, 
+        network, sound etc., peripheral devices.] that understands the 
+        particular SCSI driver. So although the kernel can load and execute, 
+        it won't be able to mount its root file system without loading a SCSI 
+        module first. But the module itself resides in the root file system in 
+        /lib/modules/. This is a tricky situation to solve and is done in one 
+        of two ways: either (a) using a kernel with preenabled SCSI support or 
+        (b) using what is known as an initrd preliminary root file system 
+        image. 
+      </p><p>
+        The first method is what I recommend. It's a straightforward (though 
+        time-consuming) procedure to create a kernel with SCSI support for 
+        your SCSI card built-in (and not in a separate module). Built-in SCSI 
+        and network drivers will also autodetect cards most of the time, 
+        allowing immediate access to the device--they will work without being 
+        given any options [lsqb ]Discussed in Chapter 42.] and, most 
+        importantly, without your having to read up on how to configure them. 
+        This setup is known as compiled-in support for a hardware driver (as 
+        opposed to module support for the driver). The resulting kernel image 
+        will be larger by an amount equal to the size of module. Chapter 42 
+        discusses such kernel compiles. 
+      </p><p>
+        The second method is faster but trickier. LINUX supports what is known 
+        as an initrd image ( initial rAM disk image). This is a small, +1.5 
+        megabyte file system that is loaded by LILO and mounted by the kernel 
+        instead of the real file system. The kernel mounts this file system as 
+        a RAM disk, executes the file /linuxrc, and then only mounts the real 
+        file system. 
+      </p><p>
+        31.6 Creating an initrd Image 
+      </p><p>
+        Start by creating a small file system. Make a directory [nbsp ]/initrd 
+        and copy the following files into it. 
+      </p><p>
+        </p><pre class="programlisting">
+	drwxr-xr-x    7 root     root         1024 Sep 14 20:12 initrd/
+	drwxr-xr-x    2 root     root         1024 Sep 14 20:12 initrd/bin/
+	-rwxr-xr-x    1 root     root       436328 Sep 14 20:12 initrd/bin/insmod
+	-rwxr-xr-x    1 root     root       424680 Sep 14 20:12 initrd/bin/sash
+	drwxr-xr-x    2 root     root         1024 Sep 14 20:12 initrd/dev/
+	crw-r--r--    1 root     root       5,   1 Sep 14 20:12 initrd/dev/console
+	crw-r--r--    1 root     root       1,   3 Sep 14 20:12 initrd/dev/null
+	brw-r--r--    1 root     root       1,   1 Sep 14 20:12 initrd/dev/ram
+	crw-r--r--    1 root     root       4,   0 Sep 14 20:12 initrd/dev/systty
+	crw-r--r--    1 root     root       4,   1 Sep 14 20:12 initrd/dev/tty1
+	crw-r--r--    1 root     root       4,   1 Sep 14 20:12 initrd/dev/tty2
+	crw-r--r--    1 root     root       4,   1 Sep 14 20:12 initrd/dev/tty3
+	crw-r--r--    1 root     root       4,   1 Sep 14 20:12 initrd/dev/tty4
+	drwxr-xr-x    2 root     root         1024 Sep 14 20:12 initrd/etc/
+	drwxr-xr-x    2 root     root         1024 Sep 14 20:12 initrd/lib/
+	-rwxr-xr-x    1 root     root           76 Sep 14 20:12 initrd/linuxrc
+	drwxr-xr-x    2 root     root         1024 Sep 14 20:12 initrd/loopfs/
+        </pre><p>
+      </p><p>
+        On my system, the file initrd/bin/insmod is the statically linked 
+        [lsqb ]meaning it does not require shared libraries.] version copied 
+        from /sbin/insmod.static--a member of the modutils-2.3.13 package. 
+        initrd/bin/sash is a statically linked shell from the sash-3.4 
+        package. You can recompile insmod from source if you don't have a 
+        statically linked version. Alternatively, copy the needed DLLs from 
+        /lib/ to initrd/lib/. (You can get the list of required DLLs by 
+        running ldd /sbin/insmod. Don't forget to also copy symlinks and run 
+        strip -s {lib} to reduce the size of the DLLs.) 
+      </p><p>
+        Now copy into the initrd/lib/ directory the SCSI modules you require. 
+        For example, if we have an Adaptec AIC-7850 SCSI adapter, we would 
+        require the aic7xxx.o module from 
+        /lib/modules/{version}/scsi/aic7xxx.o. Then, place it in the 
+        initrd/lib/ directory. 
+      </p><p>
+        </p><pre class="programlisting">
+	-rw-r--r--    1 root     root       129448 Sep 27  1999 initrd/lib/aic7xxx.o
+        </pre><p>
+      </p><p>
+        The file initrd/linuxrc should contain a script to load all the 
+        modules needed for the kernel to access the SCSI partition. In this 
+        case, just the aic7xxx module [lsqb ] insmod can take options such as 
+        the IRQ and IO-port for the device. See Chapter 42.]: 
+      </p><p>
+        </p><pre class="programlisting">
+	#!/bin/sash
+	 
+	aliasall
+	 
+	echo "Loading aic7xxx module"
+	insmod /lib/aic7xxx.o 
+        </pre><p>
+      </p><p>
+        Now double-check all your permissions and then chroot to the file 
+        system for testing. 
+      </p><p>
+        </p><pre class="programlisting">
+	chroot ~/initrd /bin/sash
+	/linuxrc
+        </pre><p>
+      </p><p>
+        Now, create a file system image similar to that in Section 19.9: 
+        </p><pre class="programlisting">
+	dd if=/dev/zero of=~/file-inird count=2500 bs=1024
+	losetup /dev/loop0 ~/file-inird
+	mke2fs /dev/loop0
+	mkdir ~/mnt
+	mount /dev/loop0 ~/mnt
+	cp -a initrd/* ~/mnt/
+	umount ~/mnt
+	losetup -d /dev/loop0
+        </pre><p>
+      </p><p>
+        Finally, gzip the file system to an appropriately named file: 
+        </p><pre class="programlisting">
+	gzip -c ~/file-inird &gt; initrd-&lt;kernel-version&gt;
+        </pre><p>
+      </p><p>
+        31.7 Modifying lilo.conf for initrd 
+      </p><p>
+        Your lilo.conf file can be changed slightly to force use of an initrd 
+        file system. Simply add the initrd option. For example: 
+      </p><p>
+        </p><pre class="programlisting">
+	boot=/dev/sda
+	prompt
+	timeout = 50
+	compact
+	vga = extended
+	linear
+	image = /boot/vmlinuz-2.2.17
+	        initrd = /boot/initrd-2.2.17
+	        label = linux
+	        root = /dev/sda1
+	        read-only
+        </pre><p>
+      </p><p>
+        Notice the use of the linear option. This is a BIOS trick that you can 
+        read about in lilo(5). It is often necessary but can make SCSI disks 
+        nonportable to different BIOSs (meaning that you will have to rerun 
+        lilo if you move the disk to a different computer). 
+      </p></div></div><div class="navfooter"><hr><table width="100%" summary="Navigation footer"><tr><td width="40%" align="left"><a accesskey="p" href="ar01s14.html">Prev</a> </td><td width="20%" align="center"> </td><td width="40%" align="right"> <a accesskey="n" href="ar01s16.html">Next</a></td></tr><tr><td width="40%" align="left" valign="top">14. 
+      Other Formats of this Document 
+     </td><td width="20%" align="center"><a accesskey="h" href="index.html">Home</a></td><td width="40%" align="right" valign="top"> 16. 
+      Appendix B - Sample lilo.conf 
+    </td></tr></table></div></body></html>

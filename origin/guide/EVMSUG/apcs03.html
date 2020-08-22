@@ -1,0 +1,77 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1"><title>3. Region operations</title><link rel="stylesheet" type="text/css" href="style.css"><meta name="generator" content="DocBook XSL Stylesheets V1.79.1"><link rel="home" href="index.html" title="EVMS User Guide"><link rel="up" href="apc.html" title="Appendix C. The LVM plug-in"><link rel="prev" href="apcs02.html" title="2. Container operations"><link rel="next" href="apd.html" title="Appendix D. The LVM2 plug-in"></head><body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF"><div class="navheader"><table width="100%" summary="Navigation header"><tr><th colspan="3" align="center">3. Region operations</th></tr><tr><td width="20%" align="left"><a accesskey="p" href="apcs02.html">Prev</a> </td><th width="60%" align="center">Appendix C. The LVM plug-in</th><td width="20%" align="right"> <a accesskey="n" href="apd.html">Next</a></td></tr></table><hr></div><div class="sect1"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="idm4759"></a>3. Region operations</h2></div></div></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="idm4761"></a>3.1. Creating LVM regions</h3></div></div></div><p>You create LVM regions from the freespace in LVM containers.  If there is at least
+one extent of freespace in the container, you can create a new region.</p><p>The following options are available for creating LVM regions:</p><div class="variablelist"><dl class="variablelist"><dt><span class="term">name</span></dt><dd><p>The name of the new region.</p></dd><dt><span class="term">extents</span></dt><dd><p>The number of extents to allocate to the new region.  A new region must
+have at least one extent and no more than the total available free extents in the container,
+or 65534 (whichever is smaller).  If you use the <code class="filename">extents</code> option, the appropriate value
+for the size option is automatically calculated.  By default, a new region uses all
+available extents in the container.</p></dd><dt><span class="term">size</span></dt><dd><p>The size of the new region.  This size must be a multiple of the
+container's PE size.  If you use the <code class="filename">size</code> option, the appropriate value for the
+extents options is automatically calculated.  By default, a new region uses all
+available freespace in the container.</p></dd><dt><span class="term">stripes</span></dt><dd><p>If the container consumes two or more objects, and each object has
+unallocated extents, then the new region can be striped across multiple objects.
+This is similar to RAID-0 striping and achieves an increased amount of I/O
+throughput across multiple objects.  This option specifies how many objects the
+new region should be striped across.  By default, new regions are not striped, and
+this value is set to 1.</p></dd><dt><span class="term">stripe_size</span></dt><dd><p>The granularity of striping.  The default value is 16 KB.  Use this option
+only if the <code class="filename">stripes</code> option is greater than 1.</p></dd><dt><span class="term">contiguous</span></dt><dd><p>This option specifies that the new region must be allocated on a single
+object, and that the extents on that object must be physically contiguous.  By default,
+this is set to false, which allows regions to span objects.  This option cannot be used
+if the <code class="filename">stripes</code> option is greater than 1.</p></dd><dt><span class="term">pv_names</span></dt><dd><p>A list of names of the objects the new region should map to.  By default,
+this list is empty, which means all available objects will be used to allocate space
+to the new region.</p></dd></dl></div></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="idm4798"></a>3.2. Expanding LVM regions</h3></div></div></div><p>You can expand an existing LVM region if there are unused extents in the
+container.  If a region is striped, you can expand it only by using free space on
+the objects it is striped across.  If a region was created with the contiguous option,
+you can only expand it if there is physically contiguous space following the
+currently allocated space.</p><p>The following options are available for expanding LVM regions:</p><div class="variablelist"><dl class="variablelist"><dt><span class="term">add_extents</span></dt><dd><p>The number of extents to add to the region.  If you specify this
+option, the appropriate value for the add_size option is automatically
+calculated.  By default, the region will expand to use all free extents in the
+container.</p></dd><dt><span class="term">add_size</span></dt><dd><p>The amount of space to add to the region.  If you specify this option,
+the appropriate value for the add_extents option is automatically calculated.
+By default, the region will expand to use all freespace in the container.</p></dd><dt><span class="term">pv_names</span></dt><dd><p>A list of names of the objects to allocate the additional space from.
+By default,  this list is empty, which means all available objects will be used to
+allocate new space to the region.</p></dd></dl></div></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="idm4815"></a>3.3. Shrinking LVM regions</h3></div></div></div><p>You can shrink an existing LVM region by removing extents from the end of the
+region.  Regions must have at least one extent, so regions cannot be shrunk to zero.</p><p>The following options are available when shrinking LVM regions.  Because regions
+are always shrunk by removing space from the end of the region, a list of objects
+cannot be specified in this command.</p><div class="variablelist"><dl class="variablelist"><dt><span class="term">remove_extents</span></dt><dd><p>The number of extents to remove from the region.  If you specify this option,
+the appropriate value for the <code class="filename">remove_size</code> option is automatically calculated.  By
+default, one extent is removed from the region.</p></dd><dt><span class="term">remove_size</span></dt><dd><p>The amount of space to shrink the region by.  If you specify this option,
+the appropriate value for the <code class="filename">remove_extents</code> option is automatically calculated.</p></dd></dl></div></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="idm4830"></a>3.4. Deleting LVM regions</h3></div></div></div><p>You can delete an existing LVM region as long as it is not currently a 
+compatibility volume, an EVMS volume, or consumed by another EVMS plug-in.
+No options are available for deleting LVM regions.</p></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="idm4833"></a>3.5. Moving LVM regions</h3></div></div></div><p>The LVM plug-in lets you change the logical-to-physical mapping
+for an LVM region and move the necessary data in the process.
+This capability is most useful if a PV needs to be removed from a container.
+There are currently two LVM plug-in functions for moving regions: 
+<span class="command"><strong>move_pv</strong></span> and <span class="command"><strong>move_extent</strong></span>.</p><div class="sect3"><div class="titlepage"><div><div><h4 class="title"><a name="idm4838"></a>3.5.1. move_pv</h4></div></div></div><p>When a PV needs to be removed from a container, all PEs on that PV that are
+allocated to regions must be moved to other PVs.  The <span class="command"><strong>move_pv</strong></span> command lets you move PEs to other PVs. 
+<span class="command"><strong>move_pv</strong></span> is targeted at the LVM container and the desired PV is used as 
+the selected object.  The following options are available:</p><div class="variablelist"><dl class="variablelist"><dt><span class="term">target_pvs</span></dt><dd><p>By default, all remaining PVs in the container are used to find
+available extents to move the PEs.  You can specify a subset of the PVs with this option.</p></dd><dt><span class="term">maintain_stripes</span></dt><dd><p>When the target PV contains striped regions, there are three choices
+for handling moving extents that belong to those regions:</p><div class="variablelist"><dl class="variablelist"><dt><span class="term">no</span></dt><dd><p>Don't bother to maintain true striping.  This choice allows
+extents to be moved to PVs that the region already uses for other stripes.
+This means that the performance will not be as optimal as it is with true
+striping, but allows the most flexibility in performing the move operation.
+This choice is the default for the <span class="command"><strong>maintain_stripes</strong></span> option.</p></dd><dt><span class="term">loose</span></dt><dd><p>Ensure that moved extents do not end up on any PVs that the
+striped region already uses.  However, this does not ensure that all moved
+extents end up on the same PV.  For example, a region with three stripes may
+end up mapping to four or more PVs.</p></dd><dt><span class="term">strict</span></dt><dd><p>Ensure that all moved extents end up on the same PV, thus ensuring
+true striping with the same number of PVs that the striped region originally used.
+This is the most restricted choice, and may prevent the <span class="command"><strong>move_pv</strong></span> operation from
+proceeding (depending on the particular configuration of the container).</p></dd></dl></div><p>If the target PV has no striped regions, the <span class="command"><strong>maintain_stripes</strong></span> option is ignored.</p></dd></dl></div></div><div class="sect3"><div class="titlepage"><div><div><h4 class="title"><a name="idm4869"></a>3.5.2. move_extent</h4></div></div></div><p>In addition to moving all the extents from one PV, the LVM plug-in provides
+the ability to move single extents.
+This allows a fine-grain tuning of the allocation of extents.
+This command is targeted at the region owning the extent to move.  There are
+three required options for the <span class="command"><strong>move_extent</strong></span> command:</p><div class="variablelist"><dl class="variablelist"><dt><span class="term">le</span></dt><dd><p>The number of the logical extent to move.  LE numbers start at 0.</p></dd><dt><span class="term">pv</span></dt><dd><p>The target object to move the extent to.</p></dd><dt><span class="term">pe</span></dt><dd><p>The target physical extent on the target object.  PE numbers
+also start at 0.</p></dd></dl></div><p>To determine the source LE and target PE, it is often helpful to view the
+extended information about the region and container in question.
+The following are command-line options that can be used to gather this
+information:</p><p>To view the map of LEs in the region, enter this command:</p><pre class="programlisting">query:ei,&lt;region_name&gt;,Extents</pre><p>To view the list of PVs in the container, enter this command:</p><pre class="programlisting">query:ei,&lt;container_name&gt;,Current_PVs</pre><p>To view the current PE map for the desired target PV, enter this command:</p><pre class="programlisting">query:ei,&lt;container_name&gt;,PEMapPV#</pre><p># is the number of the target PV in the container.</p><p>This information is also easily obtainable in the GUI and Text-Mode UIs by
+using the "Display Details" item in the context-popup menus for the desired
+region and container.</p></div></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="renamereg"></a>3.6. Renaming LVM regions</h3></div></div></div><p>You can rename an existing LVM region.  In the EVMS GUI and text-mode UIs, this
+is done using the <span class="command"><strong>modify properties</strong></span> command, which is available through the "Actions"
+menu or the context-sensitive pop-up menus.  In the EVMS CLI, this is done using the
+<span class="command"><strong>set</strong></span> command.</p><p>If the renamed LVM region has a compatibility volume on it, then the name of that
+compatibility volume will also change.  In order for this to work correctly, that volume must
+be unmounted before the name is changed.  Also, be sure to update your
+<code class="filename">/etc/fstab</code> file if the volume is listed, or the volume won't be mounted properly the next
+time the system boots.</p><p>If the renamed LVM region has an EVMS volume or another storage object built on it,
+then the region's name change will be transparent to the upper layers.  In this case, the
+rename can be done while the volume is mounted.</p></div></div><div class="navfooter"><hr><table width="100%" summary="Navigation footer"><tr><td width="40%" align="left"><a accesskey="p" href="apcs02.html">Prev</a> </td><td width="20%" align="center"><a accesskey="u" href="apc.html">Up</a></td><td width="40%" align="right"> <a accesskey="n" href="apd.html">Next</a></td></tr><tr><td width="40%" align="left" valign="top">2. Container operations </td><td width="20%" align="center"><a accesskey="h" href="index.html">Home</a></td><td width="40%" align="right" valign="top"> Appendix D. The LVM2 plug-in</td></tr></table></div></body></html>

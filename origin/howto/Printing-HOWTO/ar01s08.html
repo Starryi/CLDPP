@@ -1,0 +1,272 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1"><title>8. How to set things up</title><link rel="stylesheet" type="text/css" href="style.css"><meta name="generator" content="DocBook XSL Stylesheets V1.79.1"><link rel="home" href="index.html" title="The Printing HOWTO"><link rel="up" href="index.html" title="The Printing HOWTO"><link rel="prev" href="ar01s07.html" title="7. How it all works"><link rel="next" href="ar01s09.html" title="9. Vendor Solutions"></head><body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF"><div class="navheader"><table width="100%" summary="Navigation header"><tr><th colspan="3" align="center">8. How to set things up</th></tr><tr><td width="20%" align="left"><a accesskey="p" href="ar01s07.html">Prev</a> </td><th width="60%" align="center"> </th><td width="20%" align="right"> <a accesskey="n" href="ar01s09.html">Next</a></td></tr></table><hr></div><div class="sect1"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="setup"></a>8. How to set things up</h2></div></div></div><p>For common configurations, you can probably ignore this section
+entirely - instead, you should jump straight to <a class="xref" href="ar01s09.html" title="9. Vendor Solutions">Section 9, &#8220;Vendor Solutions&#8221;</a> below, or better yet, your vendor's
+documentation.  Most GNU/Linux distributions supply one or more
+   "idiot-proof" tools to do everything described here for common
+printers.</p><p>If your vendor's tool doesn't work out for you, or you'd like the
+ability to interactively control printing options when you print,
+then you should use some other system. APS Filter
+is another good system; it configures LPD queues and filters very
+easily on most any sort of Unix system.</p><p>You can also use the printing system interfaces from the <a class="ulink" href="http://www.linuxprinting.org/" target="_top">linuxprinting.org website</a>
+to connect many free drivers into several spooling systems. Once
+this project is complete, these interfaces will offer the best
+functionality: all styles of free software drivers are supported,
+user-settable options are available, and most common spooling
+systems are supported. Currently the foomatic print system is used in most modern distributions anyway. However, your distro may include a slightly outdated version of foomatic.</p><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="cups-config-tutorial"></a>8.1. Configuring CUPS</h3></div></div></div><p>If you are using a client with CUPS and a CUPS server has already been configured, installing the printers on your client can not get much easier than this: do nothing. Through broadcasting, the client should find the CUPS server and automatically configure the printers that are installed on that print server. This is one of the features of CUPS that will be really appreciated on large networks.</p><p>Manually configuring printers with CUPS, also is a peace of cake. If you are new to CUPS and/or Unix printing, the way to go is probably the web interface. If you have to configure lots of printers, using the command-line will probably be faster.</p><p>The URL to access the CUPS web interface is http://hostname:631/admin by default. The port can be changed in cupsd.conf if necessary.</p><p>To add a printer from the command-line the general syntax is
+<span class="command"><strong>lpadmin -p printer -E -v device -m ppd</strong></span>
+Lpadmin with the -p option adds or modifies a printer. The printers are saved in the file
+The -x option deletes the named printer. Read the lpadmin man page for available options.
+</p><div class="example"><a name="idm1314"></a><p class="title"><b>Example 3. command-line examples</b></p><div class="example-contents"><pre class="screen">
+/usr/sbin/lpadmin -p testpr1 -E -v socket://192.168.1.9 -m deskjet.ppd
+/usr/sbin/lpadmin -p testpr2 -E -v parallel:/dev/lp0 -m laserjet.ppd
+/usr/sbin/lpadmin -x testpr1
+</pre></div></div><br class="example-break"><p>More information about configuring printers and options can be found in the <a class="ulink" href="http://www.cups.org/documentation.html" target="_top">CUPS documentation</a>. The Software Administrators Manual will teach you all you need to know about configuring printers with CUPS.</p></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="lpd-config-tutorial"></a>8.2. Configuring LPD</h3></div></div></div><a class="indexterm" name="idm1321"></a><a class="indexterm" name="idm1324"></a><p>Until recently most GNU/Linux distributions shipped with LPD. This section describes a very
+basic setup for LPD; further sections detail the creation of
+complex filters and network configuration.</p><div class="sect3"><div class="titlepage"><div><div><h4 class="title"><a name="basic-lpd-configuration"></a>8.2.1. Basic LPD configuration</h4></div></div></div><p>The minimal setup for lpd results in a system that can queue
+files and print them.  It will not pay any attention to whether or
+not your printer will understand them, and will probably not let
+you produce attractive output.  But we have to start somewhere.</p><p>To add a print queue to lpd, you must add an entry in<code class="filename">/etc/printcap</code>, and make the new spool
+directory under <code class="filename">/var/spool/lpd</code>.</p><p>An entry in <code class="filename">/etc/printcap</code> looks like:</p><pre class="programlisting">
+# LOCAL djet500
+lp|dj|deskjet:\
+        :sd=/var/spool/lpd/dj:\
+        :mx#0:\
+        :lp=/dev/lp0:\
+        :sh:
+</pre><p>
+This defines a spool called <span class="emphasis"><em>lp</em></span>,<span class="emphasis"><em>dj</em></span>, or <span class="emphasis"><em>deskjet</em></span>, spooled
+in the directory <code class="filename">/var/spool/lpd/dj</code>, with no
+per-job maximum size limit, which prints to the device<code class="filename">/dev/lp0</code>, and which does not have a banner
+page (with the name of the person who printed, etc) added to the
+front of the print job.</p><p>Go now and read the man page for <code class="filename"><em class="replaceable"><code><a class="ulink" href="http://www.linuxprinting.org/man/printcap.5.html" target="_top">printcap</a></code></em></code>.</p><p>The above looks very simple, but there a catch - unless I send in
+files a DeskJet 500 can understand, this DeskJet will print
+strange things.  For example, sending an ordinary Unix text file
+to a deskjet results in literally interpreted newlines, and gets
+me:</p><pre class="screen">
+This is line one.
+	This is line two.
+		This is line three.</pre><p>
+ad nauseam.  Printing a PostScript file to this spool would get a
+beautiful listing of the PostScript commands, printed out with
+this "staircase effect", but no useful output.</p><p><a name="lpd-filtering-example"></a>
+<a class="indexterm" name="idm1349"></a>
+<a class="indexterm" name="idm1352"></a>Clearly more is needed, and this is the purpose of filtering.
+The more observant of you who read the printcap man page might
+have noticed the spool attributes <code class="option">if</code> and<code class="option">of</code>.  Well, <code class="option">if</code>, or the
+input filter, is just what we need here.</p><p>If we write a small shell script called <span class="command"><strong>filter</strong></span>
+that adds carriage returns before newlines, the staircasing can
+be eliminated.  So we have to add in an <code class="option">if</code>
+line to our printcap entry above:</p><pre class="programlisting">
+lp|dj|deskjet:\
+        :sd=/var/spool/lpd/dj:\
+        :mx#0:\
+        :lp=/dev/lp0:\
+        :if=/var/spool/lpd/dj/filter:\
+        :sh:
+</pre><p>
+A simple filter script might be:</p><pre class="programlisting">
+#!perl
+# The above line should really have the whole path to perl
+# This script must be executable: chmod 755 filter
+while(&lt;STDIN&gt;){chomp $_; print "$_\r\n";};
+# You might also want to end with a form feed: print "\f";
+</pre><p>
+If we were to do the above, we'd have a spool to which we could
+print regular Unix text files and get meaningful results.  (Yes,
+there are four million better ways to write this filter, but few
+so illustrative.  You are encouraged to do this more
+efficiently.)</p><p>The only remaining problem is that printing plain text is really
+not too hot - surely it would be better to be able to print
+PostScript and other formatted or graphic types of output.  Well,
+yes, it would, and it's easy to do.  The method is simply an
+extension of the above linefeed-fixing filter.</p><p>Such a filter is called a <span class="emphasis"><em>magic</em></span> filter. Don't bother
+writing one yourself unless you print strange things - there are
+a good many written for you already, and most have easy-to-use
+interactive configuration tools.  You should simply select a
+suitable pre-written filter:</p><div class="variablelist"><a name="lpd-filters-available-now"></a><p class="title"><b><a class="indexterm" name="idm1369"></a><a class="indexterm" name="idm1372"></a></b></p><dl class="variablelist"><dt><a name="lpdomatic-filter-available"></a><span class="term">foomatic-rip<a class="indexterm" name="idm1377"></a><a class="indexterm" name="idm1380"></a><a class="indexterm" name="idm1383"></a><a class="indexterm" name="idm1385"></a><a class="indexterm" name="idm1388"></a></span></dt><dd><p><a class="ulink" href="http://www.linuxprinting.org/lpd-doc.html" target="_top">foomatic-rip</a> is a filter designed to use data from the 
+LinuxPrinting.org printer database.  It supports essentially
+all free software printer drivers, including regular
+Ghostscript drivers, Uniprint drivers, and the assorted
+filter programs floating around out there. foomatic-rip works with
+CUPS, LPRng, LPD, GNUlpr, PPR, PDQ, no spooler. </p></dd><dt><a name="apsfilter-available-now"></a><span class="term">APS Filter<a class="indexterm" name="idm1396"></a><a class="indexterm" name="idm1399"></a><a class="indexterm" name="idm1402"></a></span></dt><dd><p><a class="ulink" href="http://www.apsfilter.org/" target="_top">apsfilter</a> is a filter designed for use on a wide
+variety of Unices.  It supports essentially all
+Ghostscript drivers.  It, too, works with
+various strains of LPD, including stock BSD and
+LPRng.</p></dd><dt><a name="rhs-printfilters-available"></a><span class="term">RHS-Printfilters<a class="indexterm" name="idm1409"></a><a class="indexterm" name="idm1412"></a><a class="indexterm" name="idm1414"></a></span></dt><dd><p>RHS-Printfilters is a filter system constructed by Red Hat.
+It shipped beginning, I think, in version 4 of Red Hat Linux,
+as the backend to the easy-to-use <span class="command"><strong>printtool</strong></span> GUI printer configuration tool.
+</p><p>The rhs filter system is built on an ASCII database listing
+distributed with it.  This listing supports many Ghostscript
+and Uniprint drivers, but not filter-style drivers.  The
+filters constructed also do not support much in the way of
+user-controllable options at print time.</p><p>
+The <span class="command"><strong>printtool</strong></span> places a configuration file
+named <code class="filename">postscript.cfg</code> in the spool
+directory.  Inside this Bourne shell-style file, each setting
+is a variable.  In unusual cases, you can make useful changes
+directly to the config file which the printtool won't allow;
+typically this would be the specification of an unusual
+Ghostscript driver, or a PPD filename for the VA
+rhs-printfilters version.</p><p>
+VA Linux has made some enhancements to the rhs-printfilters
+system under contract from HP.  With the proper versions, it
+is possible to select options for Postscript printers
+under control of Adobe PPD files.  I cover this system in<a class="xref" href="ar01s08.html#lpd-for-postscript-printers" title="8.2.2. LPD for PostScript Printers">Section 8.2.2, &#8220;LPD for PostScript Printers&#8221;</a>.</p></dd></dl></div><p>There's one catch to such filters: older version of lpd don't run
+the <span class="emphasis"><em>if</em></span> filter for remote printers, while
+most newer ones do (although often with no arguments).  The
+version of LPD shipped with modern GNU/Linux and FreeBSD
+distributions does; most commercial Unices that still ship LPD
+have a version that does not.  See the section on network
+printing later in this document for more information on this.  If
+you only have locally-connected printers, then this won't affect
+you.</p></div><div class="sect3"><div class="titlepage"><div><div><h4 class="title"><a name="lpd-for-postscript-printers"></a>8.2.2. LPD for PostScript Printers</h4></div></div></div><a class="indexterm" name="idm1430"></a><a class="indexterm" name="idm1433"></a><a class="indexterm" name="idm1436"></a><a class="indexterm" name="idm1439"></a><a class="indexterm" name="idm1442"></a><p>While most versions of LPD don't gracefully handle PostScript
+     (never mind user options), VA Linux modified LPD and Red
+Hat's filtering software to support PostScript printers fairly
+well. Because the intention was to donate the code to the gnu project, they called it <a class="ulink" href="http://lpr.sourceforge.net/" target="_top">GNUlpr</a></p><div class="simplesect"><div class="titlepage"><div><div><h5 class="title"><a name="idm1447"></a>How it works</h5></div></div></div><p>VA's system uses Postscript Printer Definition, or PPD,
+files.  PPD files are provided by printer manufacturers and
+declare the available options on a printer, along with the
+Postscript code needed to activate them.  With the VA system,
+the normal LPD scheme works a little differently:</p><div class="orderedlist"><ol class="orderedlist" type="1"><li class="listitem"><p>The user can specify options with the <code class="option">-o</code>
+flag.  For example, you might specify <code class="option">-o
+MediaType:Transparency</code> if you were about to print on
+overhead film.  Alternatively, the front-end <a class="ulink" href="http://www.compumetric.com/linux.html" target="_top">GPR</a> can
+be used to specify options in a dialog box; you can see
+screenshots of GPR in <a class="xref" href="ar01s03.html#gpr-intro" title="GPR">the section called &#8220;GPR&#8221;</a>.</p></li><li class="listitem"><p>LPR passes the options to LPD as an extended attribute in the
+LPD control file.</p></li><li class="listitem"><p>A modified version of the rhs-printfilters package is given
+the extended options data in an environment variable, and
+uses ppdfilt to add these options to the print data.</p></li></ol></div></div><div class="simplesect"><div class="titlepage"><div><div><h5 class="title"><a name="idm1461"></a>Obtaining and Installing</h5></div></div></div><p>You can obtain RPM packages, or source tarballs, from the
+project's <a class="ulink" href="http://sourceforge.net/projects/lpr" target="_top">website
+on SourceForge</a>.  For installation details, consult the
+project's <a class="ulink" href="http://printing.sourceforge.net/gpr-libppd-uhowto.html" target="_top">installation
+micro-HOWTO</a>.   In essence, you need to uninstall the Red
+Hat version of printtool, lpd, and rhs-printfilters entirely,
+and then install the VA versions, plus ppdfilt, gpr, and a few
+other utilities.</p><p>You will also need PPD files for your Postscript printers.
+PPD files are usually fairly easy to find.  VA Linux and HP
+distribute PPD files for many Laserjet models.  Other vendors
+provide PPDs for their own printers, and Adobe distributes <a class="ulink" href="http://www.adobe.com/products/printerdrivers/winppd.html" target="_top">PPD files</a> for many printers.</p><p>At the moment, much of this is a bit difficult to install.  But
+future installation tools will build upon the printer
+configuration library <span class="command"><strong>libprinterconf</strong></span>, which
+enables both the autodetection and rhs-printfilter configuration
+of both networked and local printers.</p><div class="note" style="margin-left: 0.5in; margin-right: 0.5in;"><h3 class="title">Note</h3><p>It is possible to use GPR alone, without the modified LPD
+or even rhs-printfilters.  GPR can be compiled with
+all the logic needed to massage Postscript jobs directly.
+This may be an easier-to-install option suitable for
+people who never really need to print using lpr
+directly.</p></div></div><div class="simplesect"><div class="titlepage"><div><div><h5 class="title"><a name="idm1472"></a>Controlling Postscript Options</h5></div></div></div><p>Once you've setup VA's Postscript-capable LPD system (GNUlpr), you can
+control your printer's options in two ways:</p><div class="variablelist"><dl class="variablelist"><dt><span class="term">With the GUI</span></dt><dd><p>To use GPR, you first make sure that you've specified the
+proper PPD file.  Then the printer's options will be
+available on the `Advanced' panel.  Basic <span class="command"><strong>ppdfilt</strong></span> options will be available on the
+	  `Common' panel.</p></dd><dt><span class="term">With the command line</span></dt><dd><p>This <span class="command"><strong>lpr</strong></span> supports the <code class="option">-o</code>
+option.  You may specify any option/value pair from your
+printer's PPD file with <code class="option">-o</code>.  For example,
+consider this PPD file option clause:</p><pre class="programlisting">
+*OpenUI *PrintQuality/Print Quality: PickOne
+*DefaultPrintQuality: None
+*OrderDependency: 150 AnySetup *PrintQuality
+*PrintQuality None/Printer Setting: ""
+*PrintQuality Quick/QuickPrint:  "&lt;&lt; /DeviceRenderingInfo ...
+*PrintQuality Normal/Normal: "&lt;&lt; /DeviceRenderingInfo &lt;&lt; /...
+*PrintQuality Pres/Presentation: "&lt;&lt; /DeviceRenderingInfo ...
+*PrintQuality Image/1200 Image Quality: "&lt;&lt; /DeviceRenderi...
+*CloseUI: *PrintQuality
+</pre><p>
+For the option <code class="option">PrintQuality</code>, the possible
+values are <code class="option">Quick</code>, <code class="option">Normal</code>,<code class="option">Pres</code>, or <code class="option">Image</code>.  You might
+give a command like:</p><pre class="screen"><code class="prompt">%</code> <span class="command"><strong>lpr</strong></span> <code class="option">-o PrintQuality:Image</code> <code class="option">file.ps</code></pre><p>
+There are a number of options common to all printers which
+will work in addition to the ones from your PPD.  These
+include:</p><div class="variablelist"><dl class="variablelist"><dt><span class="term"><code class="option">page-ranges</code></span></dt><dd><p>You can specify a range of pages to print.  For example,<code class="option">page-ranges:2-3</code>.</p></dd><dt><span class="term"><code class="option">page-set</code></span></dt><dd><p>You can print only odd or even pages.  For example,<code class="option">page-set:odd</code>.</p></dd><dt><span class="term"><code class="option">number-up</code></span></dt><dd><p>You can print multiple pages on each piece of paper.
+For example, <code class="option">number-up:2</code>.</p></dd></dl></div><p>
+
+Other options are detailed in the <span class="command"><strong>ppdfilt</strong></span>
+man page.</p></dd></dl></div></div></div><div class="sect3"><div class="titlepage"><div><div><h4 class="title"><a name="lpd-permissions"></a>8.2.3. File Permissions</h4></div></div></div><a class="indexterm" name="idm1522"></a><p>By popular demand, I include below a listing of the permissions
+on interesting files on my system.  There are a number of better
+ways to do this, ideally using only SGID binaries and not making
+everything SUID root, but this is how my system came out of the
+box, and it works for me.  (Quite frankly, if your vendor can't
+even ship a working lpd you're in for a rough ride).</p><pre class="screen">
+-r-sr-sr-x   1 root     lp    /usr/bin/lpr*
+-r-sr-sr-x   1 root     lp    /usr/bin/lprm*
+-rwxr--r--   1 root     root  /usr/sbin/lpd*
+-r-xr-sr-x   1 root     lp    /usr/sbin/lpc*
+drwxrwxr-x   4 root     lp    /var/spool/lpd/
+drwxr-xr-x   2 root     lp    /var/spool/lpd/lp/</pre><p>Lpd must currently be run as root so that it can bind to the
+low-numbered lp service port.  It should probably become UID
+lp.lp or something after binding, but I don't think it does.
+This is simply one more reason to avoid the stock BSD LPD.</p></div></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="large-installations"></a>8.3. Large Installations</h3></div></div></div><a class="indexterm" name="idm1530"></a><a class="indexterm" name="idm1533"></a><p>Large installations, by which I mean networks including more than
+two printers or hosts, have special needs.  Below are some tips.</p><p>CUPS has some nice features that make a good choice for a large network. Printer classes, access control and automatic client configuration to name a few.</p><p>If you use LPD, for really large environments, merely distributing printcap/filter
+information becomes a difficult problem; the <a class="ulink" href="http://ceps.sourceforge.net/" target="_top">Cisco Enterprise Print
+System</a> addresses this and is probably either a good starting
+point or a nearly complete solution, depending on your needs.
+Medium to large environments can be well supported by native LPRng
+features.
+</p><div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem"><p>Each printer should have a single point of control, where an
+administrator can pause, reorder, or redirect the queue.  To
+implement this, have everyone printing to a local server,
+which will then queue jobs and direct them to the proper
+printer.  For large campuses or distributed networks, have one
+server per building or other suitable network subset.</p></li><li class="listitem"><p>Use CUPS or LPRng, at least on servers; the BSD LPD is too buggy for
+       "real" use. But don't take my word for it&#8212;you should test a number of
+spoolers and see which suits you best.</p></li><li class="listitem"><p>Client systems should not have unique printing configurations. CUPS provides automatic client configuration of printers on the same subnet. You can even configure CUPS (BrowsePoll) to poll servers on other subnets for available printers. These features limit the amount of configuration that needs to take place at the client.
+To implement a uniform printing configuration with LPRng, use LPRng's extended printcap syntax so
+that you have one printcap to use everywhere.  CEPS provides
+for this by building atop a lightweight distributed database
+instead of traditional printcap files.</p></li><li class="listitem"><p>Print queues should not be named for make or model; name print
+queues for something sensible like location (floor2_nw)
+or capability (color_transparency).  Three years from
+now, when a printer breaks, you will be able to replace it
+with a different make or model without causing confusion.</p></li><li class="listitem"><p>Operate a web page which shows detailed information on each
+printer, including location, capabilities, etc.  Consider
+having it show the queue and include a button to remove jobs
+from the queue.  Complex networked environments are
+unmanageable for users without proper documentation.</p></li><li class="listitem"><p>On Windows and Apple systems, use either the platform-specific
+drivers <span class="emphasis"><em>everywhere</em></span> (Samba supports the
+Windows automagical driver-download mechanism) or, better, use
+generic Postscript drivers <span class="emphasis"><em>everywhere</em></span>.  Do
+not mix and match; primitive word processors often produce
+different output when the installed printer driver changes;
+users cannot deal with output that varies depending on the
+particular client/printer pair.</p></li><li class="listitem"><p>If at all possible, buy a large-volume printer for
+large-volume printing.  If on a budget, use LPRng's multiple
+printers/one queue facility or CUPS printer classes and assign a babysitter; printers
+are complex mechanical devices that will often jam and run out
+of paper in such configurations.</p></li><li class="listitem"><a name="network-print-servers-in-large"></a><a class="indexterm" name="idm1558"></a><p>Do not feel that printers must be plugged into workstations;
+Ethernet "print servers" now cost under $100.  The ability to
+locate printers anywhere you can network is a big improvement
+over forced location near a host; locate printers in sensible,
+central locations.</p></li><li class="listitem"><a class="indexterm" name="idm1563"></a><p>Use any SNMP trap or other monitoring/alert facility available
+to you - someone should be tasked with running around and
+fixing printers with no ink or paper.  Npadmin (see <a class="xref" href="ar01s11.html#npadmin" title="11.10.1.  npadmin">Section 11.10.1, &#8220;
+<span class="command"><strong>npadmin</strong></span>
+&#8221;</a>) can be used to do some management
+operations with SNMP printers.</p></li></ul></div><p>
+</p></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="accounting"></a>8.4. Accounting</h3></div></div></div><a class="indexterm" name="idm1570"></a><a class="indexterm" name="idm1572"></a><p>Regular LPD provides very little to help you with accounting.  You
+can specify the name of an accounting file in the <code class="option">af</code> printcap attribute, but this is merely passed
+as an argument to your <code class="option">if</code> filter.  It's up to you
+to make your <code class="option">if</code> filter write entries to the
+accounting file, and up to you to process the accounting file
+later (the traditional format is mainly useful for line printers,
+and is nontrivial to parse in Perl, so there's no reason to
+preserve it).  Also, if you're using <span class="command"><strong>foomatic-rip</strong></span> program as your filter, you'll need
+to make changes, since it depends on being given a configuration
+file as the ``accounting'' file name.</p><p>CUPS provides page accounting by passing jobs through the pstops filter. This filter expects Postscript input. If you use print "raw" jobs, this is always counted as 1 page. This means that accounting will not work, if you print from Windows client with the native printer driver.</p><p><a name="gs-accounting"></a>
+<a class="indexterm" name="idm1582"></a>Ghostscript provides a PageCount operator that you can use to
+count the number of pages in each job; basically you just tack a
+few lines of postscript onto the end of the job to write an
+accounting file entry; for the best example of this see the file<code class="filename">unix-lpr.sh</code> in the Ghostscript source
+distribution.</p><p>Note that the <span class="command"><strong>unix-lpr</strong></span> implementation of
+accounting writes to a file from the Ghostscript interpreter, and
+is thus incompatible with the recommended -dSAFER option.  A
+better solution might be to query the printer with a PJL command
+after each job, or to write a postscript snippet that prints the
+pagecount on stdout, where it can be captured without having to
+write to a file.</p><p><a name="lprng-accounting"></a>
+<a class="indexterm" name="idm1589"></a>The LPRng print spooler includes an HP-specific sample
+implementation of accounting; I assume that it queries the
+printer with PJL.  This technique should work for most PJL,
+Postscript, or SNMP printers with which you have two-way
+communications.</p><a class="indexterm" name="idm1592"></a><p>If you have a networked printer that supports SNMP, you can use
+the npadmin program to query a pagecount after each job.  This
+should work properly for all print jobs.  See <a class="xref" href="ar01s11.html#npadmin" title="11.10.1.  npadmin">Section 11.10.1, &#8220;
+<span class="command"><strong>npadmin</strong></span>
+&#8221;</a> for more information on npadmin.</p></div></div><div class="navfooter"><hr><table width="100%" summary="Navigation footer"><tr><td width="40%" align="left"><a accesskey="p" href="ar01s07.html">Prev</a> </td><td width="20%" align="center"> </td><td width="40%" align="right"> <a accesskey="n" href="ar01s09.html">Next</a></td></tr><tr><td width="40%" align="left" valign="top">7. How it all works </td><td width="20%" align="center"><a accesskey="h" href="index.html">Home</a></td><td width="40%" align="right" valign="top"> 9. Vendor Solutions</td></tr></table></div></body></html>

@@ -1,0 +1,88 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1"><title>4. Server: Configure Networking</title><link rel="stylesheet" type="text/css" href="style.css"><meta name="generator" content="DocBook XSL Stylesheets V1.79.1"><link rel="home" href="index.html" title="VPN HOWTO"><link rel="up" href="ch05.html" title="Chapter 5. Implementation"><link rel="prev" href="ch05s03.html" title="3. Server: Build the kernel"><link rel="next" href="ch05s05.html" title="5. Server: Configure pppd"></head><body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF"><div class="navheader"><table width="100%" summary="Navigation header"><tr><th colspan="3" align="center">4. Server: Configure Networking</th></tr><tr><td width="20%" align="left"><a accesskey="p" href="ch05s03.html">Prev</a> </td><th width="60%" align="center">Chapter 5. Implementation</th><td width="20%" align="right"> <a accesskey="n" href="ch05s05.html">Next</a></td></tr></table><hr></div><div class="sect1"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="idm425"></a>4. Server: Configure Networking</h2></div></div></div><p>
+If you are building a server that has only one network card, I suggest
+that you think about buying another, and rewiring your network.  The
+best way to keep your network private is to keep it on it's own wires. 
+So if you do have two network cards, you'll need to know how to
+configure both of them.  We'll use eth0 for the external interface, and eth1 for
+the internal interface.
+</p><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="idm428"></a>4.1. Configuring the interfaces</h3></div></div></div><p>
+We first should configure the external interface of the server.  You
+should already know how to do this, and probably already have it done. 
+If you don't, then do so now.  If you don't know how, go back and read
+the <a class="ulink" href="/HOWTO/NET3-4-HOWTO.html" target="_top">Networking HOWTO</a>
+</p><p>
+Now we bring up the internal interface.  According to the numbers that
+we've chosen, the internal interface of the server is 192.168.40.254.
+so we have to configure that interface.
+</p><p>
+For 2.0 kernels, use the following:
+</p><pre class="screen">
+# /sbin/ifconfig eth1 192.168.40.254 netmask 255.255.255.0 broadcast 192.168.40.255
+# /sbin/route add -net 192.168.40.0 netmask 255.255.255.0 dev eth1
+</pre><p>
+For 2.2 kernels, use the following:
+</p><pre class="screen">
+# /sbin/ifconfig eth1 192.168.40.254 netmask 255.255.255.0 broadcast 192.168.40.255
+</pre><p>
+That gets our basic interfaces up.  You can now talk to machines on
+both local networks that are attached to the server.
+</p></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="idm438"></a>4.2. Setting routes</h3></div></div></div><p>
+We can now talk to machines on our local nets, but we can't get to the rest
+of our internal network.  That requires a few more lines of code.  In order
+to reach the other machines on other subnets, we need have a route that tells
+traffic to go to the Cisco router. Here's that line:
+</p><pre class="screen">
+# /sbin/route add -net 192.168.0.0 gw 192.168.254.254 netmask 255.255.0.0 dev eth1
+</pre><p>
+That line tells the kernel that any traffic destined for the 192.168.0.0 network
+should go out eth1, and that it should be handed off to the Cisco.  Traffic for
+our local net still gets where it is supposed to because the routing tables
+are ordered by the size of the netmask.  If we were to have other internal nets
+in our network, we would have a line like the above for each net.
+</p></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="idm443"></a>4.3. Making filter rules</h3></div></div></div><p>
+Now that we can reach every machine that we could need to, we need to write
+the firewall filtering rules that allow or deny access through the VPN server.
+</p><p>
+To set the rules with <span class="command"><strong>ipfwadm</strong></span>, run it like so:
+</p><pre class="screen">
+# /sbin/ipfwadm -F -f
+# /sbin/ipfwadm -F -p deny
+# /sbin/ipfwadm -F -a accept -S 192.168.40.0/24 -D 192.168.0.0/16
+# /sbin/ipfwadm -F -a accept -b -S 192.168.10.0/24 -D 192.168.0.0/16
+# /sbin/ipfwadm -F -a accept -b -S 192.168.11.0/24 -D 192.168.0.0/16
+</pre><p>
+To set the rules with <span class="command"><strong>ipchains</strong></span>, run it like so:
+</p><pre class="screen">
+# /sbin/ipchains -F forward
+# /sbin/ipchains -P forward DENY
+# /sbin/ipchains -A forward -j ACCEPT -s 192.168.40.0/24 -d 192.168.0.0/16
+# /sbin/ipchains -A forward -j ACCEPT -b -s 192.168.10.0/24 -d 192.168.0.0/16
+# /sbin/ipchains -A forward -j ACCEPT -b -s 192.168.11.0/24 -d 192.168.0.0/16
+</pre><p>
+This tells the kernel to deny all traffic except for the traffic that is coming
+from the 192.168.40.0/24 network and destined for the 192.168.0.0/16 network. It
+also tells the kernel that traffic going between the 192.168.10.0/24 and
+192.168.0.0/16 nets is allowed, and the same for the 192.168.11.0 net.  These
+last two are bidirectional rules, this is important for getting the routing
+to work going both ways.
+</p></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="idm453"></a>4.4. Routing</h3></div></div></div><p>
+For home users, everything will work fine to here.  However
+for the remote offices, we need to do some routing.  First of all, we
+need to tell the main router, or Cisco, that the remote offices are
+behind the VPN server.  So specify routes on the Cisco that tell
+it to send traffic destined for the remote offices to the VPN server.
+Now that is taken care of, we must tell the VPN server what to do
+with the traffic destined for the remote offices.  To do this, we run the
+<span class="command"><strong>route</strong></span> command on the server.  The only problem is that in order
+for the <span class="command"><strong>route</strong></span> command to work, the link must be up, and if
+it goes down, the route will be lost.  The solution is to add the routes
+when the clients connects, or more simply, to run the route command frequently
+as it's not a problem to run it more than is necessary.  So, create a script
+and add it to your crontab to be run every few minutes,  in the script, put the
+following:
+</p><pre class="screen">
+/sbin/route add -net 192.168.11.0 gw 192.168.10.253 netmask 255.255.255.0
+/sbin/route add -net 192.168.10.0 gw 192.168.11.253 netmask 255.255.255.0
+</pre></div></div><div class="navfooter"><hr><table width="100%" summary="Navigation footer"><tr><td width="40%" align="left"><a accesskey="p" href="ch05s03.html">Prev</a> </td><td width="20%" align="center"><a accesskey="u" href="ch05.html">Up</a></td><td width="40%" align="right"> <a accesskey="n" href="ch05s05.html">Next</a></td></tr><tr><td width="40%" align="left" valign="top">3. Server: Build the kernel
+			 </td><td width="20%" align="center"><a accesskey="h" href="index.html">Home</a></td><td width="40%" align="right" valign="top"> 5. Server: Configure <span class="command"><strong>pppd</strong></span>
+			</td></tr></table></div></body></html>

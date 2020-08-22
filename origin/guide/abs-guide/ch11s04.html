@@ -1,0 +1,394 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1"><title>4. Testing and Branching</title><link rel="stylesheet" type="text/css" href="style.css"><meta name="generator" content="DocBook XSL Stylesheets V1.79.1"><link rel="home" href="index.html" title="Advanced Bash-Scripting Guide"><link rel="up" href="ch11.html" title="Chapter 11. Loops and Branches"><link rel="prev" href="ch11s03.html" title="3. Loop Control"><link rel="next" href="ch12.html" title="Chapter 12. Command Substitution"></head><body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF"><div class="navheader"><table width="100%" summary="Navigation header"><tr><th colspan="3" align="center">4. Testing and Branching</th></tr><tr><td width="20%" align="left"><a accesskey="p" href="ch11s03.html">Prev</a> </td><th width="60%" align="center">Chapter 11. Loops and Branches</th><td width="20%" align="right"> <a accesskey="n" href="ch12.html">Next</a></td></tr></table><hr></div><div class="sect1"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="testbranch"></a>4. Testing and Branching</h2></div></div></div><p>The <span class="command"><strong>case</strong></span> and <span class="command"><strong>select</strong></span>
+	  constructs are technically not loops, since they do not iterate the
+	  execution of a code block. Like loops, however, they direct
+	  program flow according to conditions at the top or bottom of
+	  the block.</p><div class="variablelist"><a name="caseesac"></a><p class="title"><b><a name="caseesac1"></a>Controlling program flow in a code
+	    block</b></p><dl class="variablelist"><dt><span class="term"><span class="command"><strong>case (in) / esac</strong></span></span></dt><dd><a class="indexterm" name="idm7038"></a><a class="indexterm" name="idm7040"></a><a class="indexterm" name="idm7042"></a><a class="indexterm" name="idm7044"></a><a class="indexterm" name="idm7046"></a><a class="indexterm" name="idm7048"></a><p>The <span class="command"><strong>case</strong></span> construct is the shell
+	      scripting analog to <em class="replaceable"><code>switch</code></em>
+	      in <span class="command"><strong>C/C++</strong></span>.
+	      It permits branching to one of a number of code blocks,
+	      depending on condition tests. It serves as a kind of
+	      shorthand for multiple <span class="token">if/then/else</span>
+	      statements and is an appropriate tool for creating
+	      menus.</p><div class="cmdsynopsis"><p><code class="command">case</code>   "$<em class="replaceable"><code>variable</code></em>"   in <br><br>   "$<em class="replaceable"><code>condition1</code></em>" ) <br>   <em class="replaceable"><code>command</code></em>... <br>   ;; <br><br>   "$<em class="replaceable"><code>condition2</code></em>" ) <br>   <em class="replaceable"><code>command</code></em>... <br>   ;; <br><br><br><code class="command">esac</code> </p></div><div class="note" style="margin-left: 0.5in; margin-right: 0.5in;"><h3 class="title">Note</h3><p>
+	      </p><div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem"><p>Quoting the variables is not mandatory,
+		since word splitting does not take place.</p></li><li class="listitem"><p><a name="caseparen"></a>Each test line
+                    ends with a right paren <span class="command"><strong>)</strong></span>.
+
+  <a href="#ftn.idm7091" class="footnote" name="idm7091"><sup class="footnote">[54]</sup></a>
+			  </p></li><li class="listitem"><p>Each condition block ends
+		with a <span class="emphasis"><em>double</em></span> semicolon
+		<span class="token">;;</span>.</p></li><li class="listitem"><p>If a condition tests
+                <em class="firstterm">true</em>, then the associated
+		commands execute and the <span class="command"><strong>case</strong></span>
+		block terminates.</p></li><li class="listitem"><p>The entire <span class="command"><strong>case</strong></span>
+		block ends with an <span class="command"><strong>esac</strong></span>
+		(<em class="wordasword">case</em> spelled backwards).</p></li></ul></div><p>
+	    </p></div><div class="example"><a name="ex29"></a><p class="title"><b>Example 11.25. Using <em class="firstterm">case</em></b></p><div class="example-contents"><pre class="programlisting">#!/bin/bash
+# Testing ranges of characters.
+
+echo; echo "Hit a key, then hit return."
+read Keypress
+
+case "$Keypress" in
+  [[:lower:]]   ) echo "Lowercase letter";;
+  [[:upper:]]   ) echo "Uppercase letter";;
+  [0-9]         ) echo "Digit";;
+  *             ) echo "Punctuation, whitespace, or other";;
+esac      #  Allows ranges of characters in [square brackets],
+          #+ or POSIX ranges in [[double square brackets.
+
+#  In the first version of this example,
+#+ the tests for lowercase and uppercase characters were
+#+ [a-z] and [A-Z].
+#  This no longer works in certain locales and/or Linux distros.
+#  POSIX is more portable.
+#  Thanks to Frank Wang for pointing this out.
+
+#  Exercise:
+#  --------
+#  As the script stands, it accepts a single keystroke, then terminates.
+#  Change the script so it accepts repeated input,
+#+ reports on each keystroke, and terminates only when "X" is hit.
+#  Hint: enclose everything in a "while" loop.
+
+exit 0
+</pre></div></div><br class="example-break"><div class="example"><a name="ex30"></a><p class="title"><b>Example 11.26. Creating menus using <em class="firstterm">case</em></b></p><div class="example-contents"><pre class="programlisting">#!/bin/bash
+
+# Crude address database
+
+clear # Clear the screen.
+
+echo "          Contact List"
+echo "          ------- ----"
+echo "Choose one of the following persons:" 
+echo
+echo "[E]vans, Roland"
+echo "[J]ones, Mildred"
+echo "[S]mith, Julie"
+echo "[Z]ane, Morris"
+echo
+
+read person
+
+case "$person" in
+# Note variable is quoted.
+
+  "E" | "e" )
+  # Accept upper or lowercase input.
+  echo
+  echo "Roland Evans"
+  echo "4321 Flash Dr."
+  echo "Hardscrabble, CO 80753"
+  echo "(303) 734-9874"
+  echo "(303) 734-9892 fax"
+  echo "revans@zzy.net"
+  echo "Business partner &amp; old friend"
+  ;;
+# Note double semicolon to terminate each option.
+
+  "J" | "j" )
+  echo
+  echo "Mildred Jones"
+  echo "249 E. 7th St., Apt. 19"
+  echo "New York, NY 10009"
+  echo "(212) 533-2814"
+  echo "(212) 533-9972 fax"
+  echo "milliej@loisaida.com"
+  echo "Ex-girlfriend"
+  echo "Birthday: Feb. 11"
+  ;;
+
+# Add info for Smith &amp; Zane later.
+
+          * )
+   # Default option.	  
+   # Empty input (hitting RETURN) fits here, too.
+   echo
+   echo "Not yet in database."
+  ;;
+
+esac
+
+echo
+
+#  Exercise:
+#  --------
+#  Change the script so it accepts multiple inputs,
+#+ instead of terminating after displaying just one address.
+
+exit 0
+</pre></div></div><br class="example-break"><p><a name="casecl"></a></p><p>An exceptionally clever use of <span class="command"><strong>case</strong></span>
+	      involves testing for command-line parameters.
+	      </p><pre class="programlisting">#! /bin/bash
+
+case "$1" in
+  "") echo "Usage: ${0##*/} &lt;filename&gt;"; exit $E_PARAM;;
+                      # No command-line parameters,
+                      # or first parameter empty.
+# Note that ${0##*/} is ${var##pattern} param substitution.
+                      # Net result is $0.
+
+  -*) FILENAME=./$1;;   #  If filename passed as argument ($1)
+                      #+ starts with a dash,
+                      #+ replace it with ./$1
+                      #+ so further commands don't interpret it
+                      #+ as an option.
+
+  * ) FILENAME=$1;;     # Otherwise, $1.
+esac</pre><p>Here is a more straightforward example of
+	      command-line parameter handling:
+	      </p><pre class="programlisting">#! /bin/bash
+
+
+while [ $# -gt 0 ]; do    # Until you run out of parameters . . .
+  case "$1" in
+    -d|--debug)
+              # "-d" or "--debug" parameter?
+              DEBUG=1
+              ;;
+    -c|--conf)
+              CONFFILE="$2"
+              shift
+              if [ ! -f $CONFFILE ]; then
+                echo "Error: Supplied file doesn't exist!"
+                exit $E_CONFFILE     # File not found error.
+              fi
+              ;;
+  esac
+  shift       # Check next set of parameters.
+done
+
+#  From Stefano Falsetto's "Log2Rot" script,
+#+ part of his "rottlog" package.
+#  Used with permission.</pre><div class="example"><a name="casecmd"></a><p class="title"><b>Example 11.27. Using <em class="firstterm">command substitution</em>
+	      to generate the <em class="firstterm">case</em> variable</b></p><div class="example-contents"><pre class="programlisting">#!/bin/bash
+# case-cmd.sh: Using command substitution to generate a "case" variable.
+
+case $( arch ) in   # $( arch ) returns machine architecture.
+                    # Equivalent to 'uname -m' ...
+  i386 ) echo "80386-based machine";;
+  i486 ) echo "80486-based machine";;
+  i586 ) echo "Pentium-based machine";;
+  i686 ) echo "Pentium2+-based machine";;
+  *    ) echo "Other type of machine";;
+esac
+
+exit 0
+</pre></div></div><br class="example-break"><p><a name="csglob"></a></p><p>A <span class="command"><strong>case</strong></span> construct can filter strings for
+	      <a class="link" href="ch18s02.html" title="2. Globbing">globbing</a> patterns.</p><div class="example"><a name="matchstring"></a><p class="title"><b>Example 11.28. Simple string matching</b></p><div class="example-contents"><pre class="programlisting">#!/bin/bash
+# match-string.sh: Simple string matching
+#                  using a 'case' construct.
+
+match_string ()
+{ # Exact string match.
+  MATCH=0
+  E_NOMATCH=90
+  PARAMS=2     # Function requires 2 arguments.
+  E_BAD_PARAMS=91
+
+  [ $# -eq $PARAMS ] || return $E_BAD_PARAMS
+
+  case "$1" in
+  "$2") return $MATCH;;
+  *   ) return $E_NOMATCH;;
+  esac
+
+}  
+
+
+a=one
+b=two
+c=three
+d=two
+
+
+match_string $a     # wrong number of parameters
+echo $?             # 91
+
+match_string $a $b  # no match
+echo $?             # 90
+
+match_string $b $d  # match
+echo $?             # 0
+
+
+exit 0		    
+</pre></div></div><br class="example-break"><div class="example"><a name="isalpha"></a><p class="title"><b>Example 11.29. Checking for alphabetic input</b></p><div class="example-contents"><pre class="programlisting">#!/bin/bash
+# isalpha.sh: Using a "case" structure to filter a string.
+
+SUCCESS=0
+FAILURE=1   #  Was FAILURE=-1,
+            #+ but Bash no longer allows negative return value.
+
+isalpha ()  # Tests whether *first character* of input string is alphabetic.
+{
+if [ -z "$1" ]                # No argument passed?
+then
+  return $FAILURE
+fi
+
+case "$1" in
+  [a-zA-Z]*) return $SUCCESS;;  # Begins with a letter?
+  *        ) return $FAILURE;;
+esac
+}             # Compare this with "isalpha ()" function in C.
+
+
+isalpha2 ()   # Tests whether *entire string* is alphabetic.
+{
+  [ $# -eq 1 ] || return $FAILURE
+
+  case $1 in
+  *[!a-zA-Z]*|"") return $FAILURE;;
+               *) return $SUCCESS;;
+  esac
+}
+
+isdigit ()    # Tests whether *entire string* is numerical.
+{             # In other words, tests for integer variable.
+  [ $# -eq 1 ] || return $FAILURE
+
+  case $1 in
+    *[!0-9]*|"") return $FAILURE;;
+              *) return $SUCCESS;;
+  esac
+}
+
+
+
+check_var ()  # Front-end to isalpha ().
+{
+if isalpha "$@"
+then
+  echo "\"$*\" begins with an alpha character."
+  if isalpha2 "$@"
+  then        # No point in testing if first char is non-alpha.
+    echo "\"$*\" contains only alpha characters."
+  else
+    echo "\"$*\" contains at least one non-alpha character."
+  fi  
+else
+  echo "\"$*\" begins with a non-alpha character."
+              # Also "non-alpha" if no argument passed.
+fi
+
+echo
+
+}
+
+digit_check ()  # Front-end to isdigit ().
+{
+if isdigit "$@"
+then
+  echo "\"$*\" contains only digits [0 - 9]."
+else
+  echo "\"$*\" has at least one non-digit character."
+fi
+
+echo
+
+}
+
+a=23skidoo
+b=H3llo
+c=-What?
+d=What?
+e=$(echo $b)   # Command substitution.
+f=AbcDef
+g=27234
+h=27a34
+i=27.34
+
+check_var $a
+check_var $b
+check_var $c
+check_var $d
+check_var $e
+check_var $f
+check_var     # No argument passed, so what happens?
+#
+digit_check $g
+digit_check $h
+digit_check $i
+
+
+exit 0        # Script improved by S.C.
+
+# Exercise:
+# --------
+#  Write an 'isfloat ()' function that tests for floating point numbers.
+#  Hint: The function duplicates 'isdigit ()',
+#+ but adds a test for a mandatory decimal point.
+</pre></div></div><br class="example-break"></dd><dt><span class="term"><a name="selectref"></a><span class="command"><strong>select</strong></span></span></dt><dd><a class="indexterm" name="idm7146"></a><a class="indexterm" name="idm7148"></a><p>The <span class="command"><strong>select</strong></span> construct, adopted from the Korn
+	      Shell, is yet another tool for building menus.</p><div class="cmdsynopsis"><p><code class="command">select</code>   <em class="replaceable"><code>variable</code></em>  [in <em class="replaceable"><code>list</code></em>]<br>  do <br>   <em class="replaceable"><code>command</code></em>... <br>   break <br>  done </p></div><p>This prompts the user to enter one of the choices presented in the
+	      variable list.  Note that <span class="command"><strong>select</strong></span> uses the
+	      <code class="varname">$PS3</code> prompt (<code class="prompt">#? </code>) by default, 
+		but this may be changed.</p><div class="example"><a name="ex31"></a><p class="title"><b>Example 11.30. Creating menus using <em class="firstterm">select</em></b></p><div class="example-contents"><pre class="programlisting">#!/bin/bash
+
+PS3='Choose your favorite vegetable: ' # Sets the prompt string.
+                                       # Otherwise it defaults to #? .
+
+echo
+
+select vegetable in "beans" "carrots" "potatoes" "onions" "rutabagas"
+do
+  echo
+  echo "Your favorite veggie is $vegetable."
+  echo "Yuck!"
+  echo
+  break  # What happens if there is no 'break' here?
+done
+
+exit
+
+# Exercise:
+# --------
+#  Fix this script to accept user input not specified in
+#+ the "select" statement.
+#  For example, if the user inputs "peas,"
+#+ the script would respond "Sorry. That is not on the menu."
+</pre></div></div><br class="example-break"><p><a name="inlistomit"></a></p><p>If <strong class="userinput"><code>in <em class="replaceable"><code>list</code></em></code></strong> is
+	      omitted, then <span class="command"><strong>select</strong></span> uses the list of command
+	      line arguments (<code class="varname">$@</code>) passed to the script or
+	      the function containing the <span class="command"><strong>select</strong></span>
+	      construct.</p><p>Compare this to the behavior of a 
+	      </p><div class="cmdsynopsis"><p><code class="command">for</code>   <em class="replaceable"><code>variable</code></em>  [in <em class="replaceable"><code>list</code></em>]</p></div><p>
+	      construct with the 
+	      <strong class="userinput"><code>in <em class="replaceable"><code>list</code></em></code></strong>
+	      omitted.</p><div class="example"><a name="ex32"></a><p class="title"><b>Example 11.31. Creating menus using <em class="firstterm">select</em>
+	      in a function</b></p><div class="example-contents"><pre class="programlisting">#!/bin/bash
+
+PS3='Choose your favorite vegetable: '
+
+echo
+
+choice_of()
+{
+select vegetable
+# [in list] omitted, so 'select' uses arguments passed to function.
+do
+  echo
+  echo "Your favorite veggie is $vegetable."
+  echo "Yuck!"
+  echo
+  break
+done
+}
+
+choice_of beans rice carrots radishes rutabaga spinach
+#         $1    $2   $3      $4       $5       $6
+#         passed to choice_of() function
+
+exit 0
+</pre></div></div><br class="example-break"><p>See also <a class="xref" href="ch37s01.html#resistor" title="Example 37.3. Simple database application, using indirect variable referencing">Example 37.3, &#8220;Simple database application, using indirect variable
+	  referencing&#8221;</a>.</p></dd></dl></div><div class="footnotes"><br><hr style="width:100; text-align:left;margin-left: 0"><div id="ftn.idm7091" class="footnote"><p><a href="#idm7091" class="para"><sup class="para">[54] </sup></a>Pattern-match lines may also <span class="emphasis"><em>start</em></span>
+    with a <span class="command"><strong>(</strong></span> left paren to give the layout
+    a more structured appearance.</p><pre class="programlisting">case $( arch ) in   # $( arch ) returns machine architecture.
+  ( i386 ) echo "80386-based machine";;
+# ^      ^
+  ( i486 ) echo "80486-based machine";;
+  ( i586 ) echo "Pentium-based machine";;
+  ( i686 ) echo "Pentium2+-based machine";;
+  (    * ) echo "Other type of machine";;
+esac</pre></div></div></div><div class="navfooter"><hr><table width="100%" summary="Navigation footer"><tr><td width="40%" align="left"><a accesskey="p" href="ch11s03.html">Prev</a> </td><td width="20%" align="center"><a accesskey="u" href="ch11.html">Up</a></td><td width="40%" align="right"> <a accesskey="n" href="ch12.html">Next</a></td></tr><tr><td width="40%" align="left" valign="top">3. Loop Control </td><td width="20%" align="center"><a accesskey="h" href="index.html">Home</a></td><td width="40%" align="right" valign="top"> Chapter 12. Command Substitution</td></tr></table></div></body></html>

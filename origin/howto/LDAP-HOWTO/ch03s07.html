@@ -1,0 +1,47 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1"><title>7. Access Control Examples</title><link rel="stylesheet" type="text/css" href="style.css"><meta name="generator" content="DocBook XSL Stylesheets V1.79.1"><link rel="home" href="index.html" title="LDAP Linux HOWTO"><link rel="up" href="ch03.html" title="Chapter 3. Configuring the LDAP Server"><link rel="prev" href="ch03s06.html" title="6. LDBM Database Directives"><link rel="next" href="ch03s08.html" title="8. Configuration File Example"></head><body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF"><div class="navheader"><table width="100%" summary="Navigation header"><tr><th colspan="3" align="center">7. Access Control Examples</th></tr><tr><td width="20%" align="left"><a accesskey="p" href="ch03s06.html">Prev</a> </td><th width="60%" align="center">Chapter 3. Configuring the LDAP Server</th><td width="20%" align="right"> <a accesskey="n" href="ch03s08.html">Next</a></td></tr></table><hr></div><div class="section"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="AccessControl"></a>7. Access Control Examples</h2></div></div></div><p>The access control facility provided by the <span class="emphasis"><em>access</em></span> directive is 
+quite powerful. This section shows some examples of it's use. First, some simple examples: </p><pre class="screen">access to * by * read </pre><p>This access directive grants read access to everyone.</p><p>The following example shows the use of a regular expression to select the 
+entries by DN in two access directives where ordering is significant. </p><pre class="screen">access to dn=".*, o=U of M, c=US" 
+by * search 
+access to dn=".*, c=US" 
+by * read </pre><p>Read access is granted to entries under the c=US subtree, except for those 
+entries under the "o=U of M, c=US" subtree, to which search access is granted. No access 
+is granted to c=US as neither access directive matches this DN.If the order of these
+access directives was reversed, the U-M-specific directive would never be matched, since 
+all U-M entries are also c=US entries. </p><p>Another way to implement the same access controls is:</p><pre class="screen">access to dn.children="dc=example,dc=com"
+	by * search
+	access to dn.children="dc=com"
+	by * read
+</pre><p>Read access is granted to entries under the dc=com subtree, except for those entries 
+under the dc=example,dc=com subtree, to which search access is granted. No access is granted 
+to dc=com as neither access directive matches this DN. If the order of these access directives 
+was reversed, the trailing directive would never be reached, since all entries under 
+dc=example,dc=com are also under dc=com entries.</p><p><span class="command"><strong>Note:</strong></span> Also note that if no access to directive or no "by &lt;who&gt;" clause matches, 
+<span class="command"><strong>access is denied</strong></span>. That is, every <span class="emphasis"><em>access to</em></span> directive ends with an implicit <span class="emphasis"><em>by * none </em></span>clause 
+and every access list ends with an implicit <span class="emphasis"><em>access to * by * none</em></span> directive.</p><p>The next example again shows the importance of ordering, both of the access 
+directives and the "by &lt;who&gt;" clauses. It also shows the use of an attribute selector
+ to grant access to a specific attribute and various &lt;who&gt; selectors. </p><pre class="screen">access to dn.subtree="dc=example,dc=com" attr=homePhone
+	by self write
+	by dn.children=dc=example,dc=com" search
+	by peername=IP:10\..+ read
+access to dn.subtree="dc=example,dc=com"
+	by self write
+	by dn.children="dc=example,dc=com" search
+	by anonymous auth
+</pre><p>This example applies to entries in the "dc=example,dc=com" subtree. To all 
+attributes except homePhone, an entry can write to itself, entries under 
+example.com entries can search by them, anybody else has no access (implicit by * none) 
+excepting for authentication/authorization (which is always done anonymously). The 
+homePhone attribute is writable by the entry, searchable by entries under example.com, 
+readable by clients connecting from network 10, and otherwise not readable 
+(implicit by * none). All other access is denied by the implicit access to * by * none.</p><p>Sometimes it is useful to permit a particular DN to add or remove itself from 
+an attribute. For example, if you would like to create a group and allow people
+ to add and remove only their own DN from the member attribute, you could accomplish 
+ it with an access directive like this: </p><pre class="screen">access to attr=member,entry 
+	by dnattr=member selfwrite 
+</pre><p>The dnattr &lt;who&gt; selector says that the access applies to entries listed
+in the member attribute. The selfwrite access selector says that such members 
+can only add or delete their own DN from the attribute, not other values. The 
+addition of the entry attribute is required because access to the entry is 
+required to access any of the entry's attributes. </p><p>There's plenty of information about Access Control on the OpenLDAP
+Administrator's Guide. Take a look at: <a class="ulink" href="http://www.openldap.org/doc/admin22/slapdconfig.html#Access%20Control" target="_top">Access Control</a>
+for more information about this subject.</p></div><div class="navfooter"><hr><table width="100%" summary="Navigation footer"><tr><td width="40%" align="left"><a accesskey="p" href="ch03s06.html">Prev</a> </td><td width="20%" align="center"><a accesskey="u" href="ch03.html">Up</a></td><td width="40%" align="right"> <a accesskey="n" href="ch03s08.html">Next</a></td></tr><tr><td width="40%" align="left" valign="top">6. LDBM Database Directives </td><td width="20%" align="center"><a accesskey="h" href="index.html">Home</a></td><td width="40%" align="right" valign="top"> 8. Configuration File Example</td></tr></table></div></body></html>

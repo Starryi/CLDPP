@@ -1,0 +1,404 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1"><title>5. linux/arch/i386/boot/compressed/head.S</title><link rel="stylesheet" type="text/css" href="style.css"><meta name="generator" content="DocBook XSL Stylesheets V1.79.1"><link rel="home" href="index.html" title="Linux i386 Boot Code HOWTO"><link rel="up" href="index.html" title="Linux i386 Boot Code HOWTO"><link rel="prev" href="ar01s04.html" title="4. linux/arch/i386/boot/setup.S"><link rel="next" href="ar01s06.html" title="6. linux/arch/i386/kernel/head.S"></head><body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF"><div class="navheader"><table width="100%" summary="Navigation header"><tr><th colspan="3" align="center">5. linux/arch/i386/boot/compressed/head.S</th></tr><tr><td width="20%" align="left"><a accesskey="p" href="ar01s04.html">Prev</a> </td><th width="60%" align="center"> </th><td width="20%" align="right"> <a accesskey="n" href="ar01s06.html">Next</a></td></tr></table><hr></div><div class="sect1"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="compressed_head"></a>5. linux/arch/i386/boot/compressed/head.S</h2></div></div></div><p>
+   We are in <span class="emphasis"><em>bvmlinux</em></span> now!
+   With the help of <span class="emphasis"><em>misc.c:decompress_kernel()</em></span>,
+   we are going to decompress <span class="emphasis"><em>piggy.o</em></span>
+   to get the resident kernel image <code class="filename">linux/vmlinux</code>.
+  </p><p>
+   This file is of pure 32-bit startup code.
+   Unlike previous two files, it has no ".code16" statement in the source file.
+   Refer to
+<a class="ulink" href="http://www.gnu.org/software/binutils/manual/gas-2.9.1/html_chapter/as_16.html#SEC205" target="_top">
+   Using as: Writing 16-bit Code</a> for details.
+  </p><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="decompress_kernel"></a>5.1. Decompress Kernel</h3></div></div></div><p>
+     The segment base addresses in segment descriptors (which correspond to
+     segment selector __KERNEL_CS and __KERNEL_DS) are equal to 0;
+     therefore, the logical address offset (in segment:offset format) will
+     be equal to its linear address if either of these segment selectors
+     is used.
+     For <span class="emphasis"><em>zImage</em></span>, CS:EIP is at logical address 10:1000
+     (linear address 0x1000) now;
+     for <span class="emphasis"><em>bzImage</em></span>, 10:100000 (linear address 0x100000).
+    </p><p>
+     As paging is not enabled, linear address is identical to physical address.
+     Check IA-32 Manual (Vol.1. Ch.3.3. Memory Organization, and
+     Vol.3. Ch.3. Protected-Mode Memory Management) and
+     <a class="ulink" href="http://www.xml.com/ldd/chapter/book/ch13.html#t1" target="_top">
+     Linux Device Drivers: Memory Management in Linux</a> for address issue.
+    </p><p>
+     It comes from <code class="filename">setup.S</code> that BX=0 and
+     ESI=INITSEG&lt;&lt;4.
+    </p><p>
+</p><pre class="programlisting">.text
+///////////////////////////////////////////////////////////////////////////////
+startup_32()
+{
+        cld;
+        cli;
+        DS = ES = FS = GS = __KERNEL_DS;
+        SS:ESP = *stack_start;  // end of user_stack[], defined in misc.c
+        // all segment registers are reloaded after protected mode is enabled
+
+        // check that A20 really IS enabled
+        EAX = 0;
+        do {
+1:              DS:[0] = ++EAX;
+        } while (DS:[0x100000]==EAX);
+
+        EFLAGS = 0;
+        clear BSS;                              // from _edata to _end
+
+        struct moveparams mp;                   // subl $16,%esp
+        if (!decompress_kernel(&amp;mp, ESI)) {     // return value in AX
+                restore ESI from stack;
+                EBX = 0;
+                goto __KERNEL_CS:100000;
+                // see linux/arch/i386/kernel/head.S:startup_32
+        }
+
+        /*
+         * We come here, if we were loaded high.
+         * We need to move the move-in-place routine down to 0x1000
+         * and then start it with the buffer addresses in registers,
+         * which we got from the stack.
+         */
+3:      move move_rountine_start..move_routine_end to 0x1000;
+        // move_routine_start &amp; move_routine_end are defined below
+
+        // prepare move_routine_start() parameters
+        EBX = real mode pointer;        // ESI value passed from setup.S
+        ESI = mp.low_buffer_start;
+        ECX = mp.lcount;
+        EDX = mp.high_buffer_star;
+        EAX = mp.hcount;
+        EDI = 0x100000;
+        cli;                    // make sure we don't get interrupted
+        goto __KERNEL_CS:1000;  // move_routine_start();
+}
+
+/* Routine (template) for moving the decompressed kernel in place,
+ * if we were high loaded. This _must_ PIC-code ! */
+///////////////////////////////////////////////////////////////////////////////
+move_routine_start()
+{
+        move mp.low_buffer_start to 0x100000, mp.lcount bytes,
+          in two steps: (lcount &gt;&gt; 2) words + (lcount &amp; 3) bytes;
+        move/append mp.high_buffer_start, ((mp.hcount + 3) &gt;&gt; 2) words
+        // 1 word == 4 bytes, as I mean 32-bit code/data.
+
+        ESI = EBX;              // real mode pointer, as that from setup.S
+        EBX = 0;
+        goto __KERNEL_CS:100000;
+        // see linux/arch/i386/kernel/head.S:startup_32()
+move_routine_end:
+}</pre><p>
+     For the meaning of "je 1b" and "jnz 3f", refer to
+<a class="ulink" href="http://www.gnu.org/software/binutils/manual/gas-2.9.1/html_chapter/as_5.html#SEC48" target="_top">
+     Using as: Local Symbol Names</a>.
+    </p><p>
+     Didn't find <span class="emphasis"><em>_edata</em></span> and
+     <span class="emphasis"><em>_end</em></span> definitions?
+     No problem, they are defined in the "internal linker script".
+     Without -T (--script=) option specified, <span class="command"><strong>ld</strong></span> uses
+     this builtin script to link <span class="emphasis"><em>compressed/bvmlinux</em></span>.
+     Use "<span class="command"><strong>ld --verbose</strong></span>" to display this script, or check
+     Appendix B. <a class="xref" href="ar01s10.html" title="B. Internal Linker Script">Internal Linker Script</a>.
+    </p><p>
+     Refer to
+<a class="ulink" href="http://www.gnu.org/software/binutils/manual/ld-2.9.1/html_chapter/ld_2.html#SEC3" target="_top">
+     Using LD, the GNU linker: Command Line Options</a> for
+     -T (--script=), -L (--library-path=) and --verbose
+     option description.
+     "<span class="command"><strong>man ld</strong></span>" and "<span class="command"><strong>info ld</strong></span>" may help too.
+    </p><p>
+     <span class="emphasis"><em>piggy.o</em></span> has been unzipped and control is passed to
+     __KERNEL_CS:100000, i.e.
+     <span class="emphasis"><em>linux/arch/i386/kernel/head.S:startup_32()</em></span>.
+     See <a class="xref" href="ar01s06.html" title="6. linux/arch/i386/kernel/head.S">Section 6, &#8220;linux/arch/i386/kernel/head.S&#8221;</a>.
+    </p><p>
+</p><pre class="programlisting">#define LOW_BUFFER_START      0x2000
+#define LOW_BUFFER_MAX       0x90000
+#define HEAP_SIZE             0x3000
+///////////////////////////////////////////////////////////////////////////////
+asmlinkage int decompress_kernel(struct moveparams *mv, void *rmode)
+|-- setup real_mode(=rmode), vidmem, vidport, lines and cols;
+|-- if (is_zImage) setup_normal_output_buffer() {
+|       output_data      = 0x100000;
+|       free_mem_end_ptr = real_mode;
+|   } else (is_bzImage) setup_output_buffer_if_we_run_high(mv) {
+|       output_data      = LOW_BUFFER_START;
+|       low_buffer_end   = MIN(real_mode, LOW_BUFFER_MAX) &amp; ~0xfff;
+|       low_buffer_size  = low_buffer_end - LOW_BUFFER_START;
+|       free_mem_end_ptr = &amp;end + HEAP_SIZE;
+|       // get mv-&gt;low_buffer_start and mv-&gt;high_buffer_start
+|       mv-&gt;low_buffer_start = LOW_BUFFER_START;
+|       /* To make this program work, we must have
+|        *   high_buffer_start &gt; &amp;end+HEAP_SIZE;
+|        * As we will move low_buffer from LOW_BUFFER_START to 0x100000
+|        *   (max low_buffer_size bytes) finally, we should have
+|        *   high_buffer_start &gt; 0x100000+low_buffer_size; */
+|       mv-&gt;high_buffer_start = high_buffer_start
+|           = MAX(&amp;end+HEAP_SIZE, 0x100000+low_buffer_size);
+|       mv-&gt;hcount =  0 if (0x100000+low_buffer_size &gt;  &amp;end+HEAP_SIZE);
+|                  = -1 if (0x100000+low_buffer_size &lt;= &amp;end+HEAP_SIZE);
+|       /* mv-&gt;hcount==0 : we need not move high_buffer later,
+|        *   as it is already at 0x100000+low_buffer_size.
+|        * Used by close_output_buffer_if_we_run_high() below. */
+|   }
+|-- makecrc();          // create crc_32_tab[]
+|   puts("Uncompressing Linux... ");
+|-- gunzip();
+|   puts("Ok, booting the kernel.\n");
+|-- if (is_bzImage) close_output_buffer_if_we_run_high(mv) {
+|       // get mv-&gt;lcount and mv-&gt;hcount
+|       if (bytes_out &gt; low_buffer_size) {
+|           mv-&gt;lcount = low_buffer_size;
+|           if (mv-&gt;hcount)
+|               mv-&gt;hcount = bytes_out - low_buffer_size;
+|       } else {
+|           mv-&gt;lcount = bytes_out;
+|           mv-&gt;hcount = 0;
+|       }
+|   }
+`-- return is_bzImage;  // return value in AX</pre><p>
+     <span class="emphasis"><em>end</em></span> is defined in the "internal linker script" too.
+    </p><p>
+     <span class="emphasis"><em>decompress_kernel()</em></span> has an "asmlinkage" modifer.
+     In <code class="filename">linux/include/linux/linkage.h</code>:
+</p><pre class="programlisting">#ifdef __cplusplus
+#define CPP_ASMLINKAGE extern "C"
+#else
+#define CPP_ASMLINKAGE
+#endif
+
+#if defined __i386__
+#define asmlinkage CPP_ASMLINKAGE __attribute__((regparm(0)))
+#elif defined __ia64__
+#define asmlinkage CPP_ASMLINKAGE __attribute__((syscall_linkage))
+#else
+#define asmlinkage CPP_ASMLINKAGE
+#endif</pre><p>
+     Macro "asmlinkage" will force the compiler to
+     pass all function arguments on the stack, in case
+     some optimization method may try to change this convention.
+     Check
+<a class="ulink" href="http://gcc.gnu.org/onlinedocs/gcc-3.3.2/gcc/Function-Attributes.html#Function%20Attributes" target="_top">Using the GNU Compiler Collection (GCC): Declaring Attributes of Functions</a> (regparm) and
+<a class="ulink" href="http://kernelnewbies.org/faq/index.php3#asmlinkage" target="_top">Kernelnewbies FAQ: What is asmlinkage</a> for more details.
+    </p></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="gunzip"></a>5.2. gunzip()</h3></div></div></div><p>
+     <span class="emphasis"><em>decompress_kernel()</em></span> calls
+     <span class="emphasis"><em>gunzip() -&gt; inflate()</em></span>, which are defined in
+     <code class="filename">linux/lib/inflate.c</code>,
+     to decompress resident kernel image to
+     low buffer (pointed by <span class="emphasis"><em>output_data</em></span>) and
+     high buffer (pointed by <span class="emphasis"><em>high_buffer_start</em></span>, for
+     <span class="emphasis"><em>bzImage</em></span> only).
+    </p><p>
+     The gzip file format is specified in
+     <a class="ulink" href="http://www.ietf.org/rfc/rfc1952.txt" target="_top">RFC 1952</a>.
+     </p><div class="table"><a name="idm857"></a><p class="title"><b>Table 6. gzip file format</b></p><div class="table-contents"><table class="table" summary="gzip file format" border="1"><colgroup><col><col><col><col></colgroup><thead><tr><th>Component</th><th>Meaning</th><th>Byte</th><th>Comment</th></tr></thead><tbody><tr><td>ID1</td><td>IDentification 1</td><td>1</td><td>31 (0x1f, \037)</td></tr><tr><td>ID2</td><td>IDentification 2</td><td>1</td><td>139 (0x8b, \213)
+               <a href="#ftn.ftn-gzip-id2" class="footnote" name="ftn-gzip-id2"><sup class="footnote">[a]</sup></a>
+             </td></tr><tr><td>CM</td><td>Compression Method</td><td>1</td><td>8 - denotes the "deflate" compression method</td></tr><tr><td>FLG</td><td>FLaGs</td><td>1</td><td>0 for most cases</td></tr><tr><td>MTIME</td><td>Modification TIME</td><td>4</td><td>modification time of the original file</td></tr><tr><td>XFL</td><td>eXtra FLags</td><td>1</td><td>2 - compressor used maximum compression, slowest algorithm
+               <a href="#ftn.ftn-gzip-xfl" class="footnote" name="ftn-gzip-xfl"><sup class="footnote">[b]</sup></a>
+             </td></tr><tr><td>OS</td><td>Operating System</td><td>1</td><td>3 - Unix</td></tr><tr><td>extra fields</td><td>-</td><td>-</td><td>variable length, field indicated by FLG
+               <a href="#ftn.ftn-gzip-extra-fields" class="footnote" name="ftn-gzip-extra-fields"><sup class="footnote">[c]</sup></a>
+             </td></tr><tr><td>compressed blocks</td><td>-</td><td>-</td><td>variable length</td></tr><tr><td>CRC32</td><td>-</td><td>4</td><td>CRC value of the uncompressed data</td></tr><tr><td>ISIZE</td><td>Input SIZE</td><td>4</td><td>the size of the uncompressed input data modulo 2^32</td></tr></tbody><tbody class="footnotes"><tr><td colspan="4"><div id="ftn.ftn-gzip-id2" class="footnote"><p><a href="#ftn-gzip-id2" class="para"><sup class="para">[a] </sup></a>
+                 ID2 value can be 158 (0x9e, \236) for gzip 0.5;
+               </p></div><div id="ftn.ftn-gzip-xfl" class="footnote"><p><a href="#ftn-gzip-xfl" class="para"><sup class="para">[b] </sup></a>
+                 XFL value 4 - compressor used fastest algorithm;
+               </p></div><div id="ftn.ftn-gzip-extra-fields" class="footnote"><p><a href="#ftn-gzip-extra-fields" class="para"><sup class="para">[c] </sup></a>
+                 FLG bit 0, FTEXT, does not indicate any "extra field".
+               </p></div></td></tr></tbody></table></div></div><p><br class="table-break">
+    </p><p>
+     We can use this file format knowledge to find out
+     the beginning of gzipped <code class="filename">linux/vmlinux</code>.
+</p><pre class="screen"><span class="command"><strong>[root@localhost boot]# hexdump -C /boot/vmlinuz-2.4.20-28.9 | grep '1f 8b 08 00'</strong></span>
+00004c50  1f 8b 08 00 01 f6 e1 3f  02 03 ec 5d 7d 74 14 55  |.......?...]}t.U|
+<span class="command"><strong>[root@localhost boot]# hexdump -C /boot/vmlinuz-2.4.20-28.9 -s 0x4c40 -n 64</strong></span>
+00004c40  00 80 0b 00 00 fc 21 00  68 00 00 00 1e 01 11 00  |......!.h.......|
+00004c50  1f 8b 08 00 01 f6 e1 3f  02 03 ec 5d 7d 74 14 55  |.......?...]}t.U|
+00004c60  96 7f d5 a9 d0 1d 4d ac  56 93 35 ac 01 3a 9c 6a  |......M.V.5..:.j|
+00004c70  4d 46 5c d3 7b f8 48 36  c9 6c 84 f0 25 88 20 9f  |MF\.{.H6.l..%. .|
+00004c80
+<span class="command"><strong>[root@localhost boot]# hexdump -C /boot/vmlinuz-2.4.20-28.9 | tail -n 4</strong></span>
+00114d40  bd 77 66 da ce 6f 3d d6  33 5c 14 a2 9f 7e fa e9  |.wf..o=.3\...~..|
+00114d50  a7 9f 7e fa ff 57 3f 00  00 00 00 00 d8 bc ab ea  |..~..W?.........|
+00114d60  44 5d 76 d1 fd 03 33 58  c2 f0 00 51 27 00        |D]v...3X...Q'.|
+00114d6e</pre><p>
+     We can see that the gzipped file begins at 0x4c50 in the above example.
+     The four bytes before "1f 8b 08 00" is <span class="emphasis"><em>input_len</em></span>
+     (0x0011011e, in little endian), and 0x4c50+0x0011011e=0x114d6e equals to
+     the size of <span class="emphasis"><em>bzImage</em></span>
+     (<code class="filename">/boot/vmlinuz-2.4.20-28.9</code>).
+    </p><p>
+</p><pre class="programlisting">static uch *inbuf;           /* input buffer */
+static unsigned insize = 0;  /* valid bytes in inbuf */
+static unsigned inptr = 0;   /* index of next byte to be processed in inbuf */
+///////////////////////////////////////////////////////////////////////////////
+static int gunzip(void)
+{
+        Check input buffer for {ID1, ID2, CM}, must be
+                {0x1f, 0x8b, 0x08} (normal case), or
+                {0x1f, 0x9e, 0x08} (for gzip 0.5);
+        Check FLG (flag byte), must not set bit 1, 5, 6 and 7;
+        Ignore {MTIME, XFL, OS};
+        Handle optional structures, which correspond to FLG bit 2, 3 and 4;
+        inflate();              // handle compressed blocks
+        Validate {CRC32, ISIZE};
+}</pre><p>
+     When <span class="emphasis"><em>get_byte()</em></span>, defined in
+     <code class="filename">linux/arch/i386/boot/compressed/misc.c</code>,
+     is called for the first time,
+     it calls <span class="emphasis"><em>fill_inbuf()</em></span> to setup input buffer
+     <span class="emphasis"><em>inbuf=input_data</em></span> and
+     <span class="emphasis"><em>insize=input_len</em></span>.
+     Symbol <span class="emphasis"><em>input_data</em></span> and
+     <span class="emphasis"><em>input_len</em></span> are defined in
+     <span class="emphasis"><em>piggy.o</em></span> linker script.
+     See <a class="xref" href="ar01s02.html#i386_boot_compressed_makefile" title="2.5. linux/arch/i386/boot/compressed/Makefile">Section 2.5, &#8220;linux/arch/i386/boot/compressed/Makefile&#8221;</a>.
+    </p></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="inflate"></a>5.3. inflate()</h3></div></div></div><p>
+</p><pre class="programlisting">// some important definitions in misc.c
+#define WSIZE 0x8000            /* Window size must be at least 32k,
+                                 * and a power of two */
+static uch window[WSIZE];       /* Sliding window buffer */
+static unsigned outcnt = 0;     /* bytes in output buffer */
+
+// linux/lib/inflate.c
+#define wp outcnt
+#define flush_output(w) (wp=(w),flush_window())
+STATIC unsigned long bb;        /* bit buffer */
+STATIC unsigned bk;             /* bits in bit buffer */
+STATIC unsigned hufts;          /* track memory usage */
+static long free_mem_ptr = (long)&amp;end;
+///////////////////////////////////////////////////////////////////////////////
+STATIC int inflate()
+{
+        int e;                  /* last block flag */
+        int r;                  /* result code */
+        unsigned h;             /* maximum struct huft's malloc'ed */
+        void *ptr;
+
+        wp = bb = bk = 0;
+
+        // inflate compressed blocks one by one
+        do {
+                hufts = 0;
+                gzip_mark() { ptr = free_mem_ptr; };
+                if ((r = inflate_block(&amp;e)) != 0) {
+                        gzip_release() { free_mem_ptr = ptr; };
+                        return r;
+                }
+                gzip_release() { free_mem_ptr = ptr; };
+                if (hufts &gt; h)
+                h = hufts;
+        } while (!e);
+
+        /* Undo too much lookahead. The next read will be byte aligned so we
+         * can discard unused bits in the last meaningful byte. */
+        while (bk &gt;= 8) {
+                bk -= 8;
+                inptr--;
+        }
+
+        /* write the output window window[0..outcnt-1] to output_data,
+         * update output_ptr/output_data, crc and bytes_out accordingly, and
+         * reset outcnt to 0. */
+        flush_output(wp);
+
+        /* return success */
+        return 0;
+}</pre><p>
+     <span class="emphasis"><em>free_mem_ptr</em></span> is used in
+     <span class="emphasis"><em>misc.c:malloc()</em></span> for dynamic memory allocation.
+     Before inflating each compressed block, <span class="emphasis"><em>gzip_mark()</em></span>
+     saves the value of <span class="emphasis"><em>free_mem_ptr</em></span>;
+     After inflation, <span class="emphasis"><em>gzip_release()</em></span> will
+     restore this value.
+     This is how it "<span class="emphasis"><em>free()</em></span>" the memory allocated in
+     <span class="emphasis"><em>inflate_block()</em></span>.
+    </p><p>
+     <a class="ulink" href="http://www.gzip.org" target="_top">Gzip</a> uses
+     Lempel-Ziv coding (LZ77) to compress files.
+     The compressed data format is specified in
+     <a class="ulink" href="http://www.ietf.org/rfc/rfc1951.txt" target="_top">RFC 1951</a>.
+     <span class="emphasis"><em>inflate_block()</em></span> will inflate compressed blocks,
+     which can be treated as a bit sequence.
+    </p><p>
+     The data structure of each compressed block is outlined below:
+</p><pre class="programlisting">BFINAL (1 bit)
+    0  - not the last block
+    1  - the last block
+BTYPE  (2 bits)
+    00 - no compression
+        remaining bits until the byte boundary;
+        LEN      (2 bytes);
+        NLEN     (2 bytes, the one's complement of LEN);
+        data     (LEN bytes);
+    01 - compressed with fixed Huffman codes
+        {
+        literal  (7-9 bits, represent code 0..287, excluding 256);
+                     // See RFC 1951, table in Paragraph 3.2.6.
+        length   (0-5 bits if literal &gt; 256, represent length 3..258);
+                     // See RFC 1951, 1st alphabet table in Paragraph 3.2.5.
+        data     (of literal bytes if literal &lt; 256);
+        distance (5 plus 0-13 extra bits if literal == 257..285, represent
+                         distance 1..32768);
+                     /* See RFC 1951, 2nd alphabet table in Paragraph 3.2.5,
+                      *   but statement in Paragraph 3.2.6. */
+                     /* Move backward "distance" bytes in the output stream,
+                      * and copy "length" bytes */
+        }*           // can be of multiple instances
+        literal  (7 bits, all 0, literal == 256, means end of block);
+    10 - compressed with dynamic Huffman codes
+        HLIT     (5 bits, # of Literal/Length codes - 257, 257-286);
+        HDIST    (5 bits, # of Distance codes - 1,         1-32);
+        HCLEN    (4 bits, # of Code Length codes - 4,      4 - 19);
+        Code Length sequence    ((HCLEN+4)*3 bits)
+        /* The following two alphabet tables will be decoded using
+         *   the Huffman decoding table which is generated from
+         *   the preceeding Code Length sequence. */
+        Literal/Length alphabet (HLIT+257 codes)
+        Distance alphabet       (HDIST+1 codes)
+        // Decoding tables will be built from these alphpabet tables.
+        /* The following is similar to that of fixed Huffman codes portion,
+         *   except that they use different decoding tables. */
+        {
+        literal/length
+                 (variable length, depending on Literal/Length alphabet);
+        data     (of literal bytes if literal &lt; 256);
+        distance (variable length if literal == 257..285, depending on
+                         Distance alphabet);
+        }*           // can be of multiple instances
+        literal  (literal value 256, which means end of block);
+    11 - reserved (error)</pre><p>
+     Note that data elements are packed into bytes starting from
+     Least-Significant Bit (LSB) to Most-Significant Bit (MSB), while
+     Huffman codes are packed starting with MSB.
+     Also note that <span class="emphasis"><em>literal</em></span> value 286-287 and
+     <span class="emphasis"><em>distance</em></span> codes 30-31 will never actually occur.
+    </p><p>
+     With the above data structure in mind and RFC 1951 by hand,
+     it is not too hard to understand <span class="emphasis"><em>inflate_block()</em></span>.
+     Refer to related paragraphs in RFC 1951 for Huffman coding and
+     alphabet table generation.
+    </p><p>
+     For more details, refer to <code class="filename">linux/lib/inflate.c</code>,
+     gzip source code (many in-line comments) and related reference materials.
+    </p></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="chead_ref"></a>5.4. Reference</h3></div></div></div><p>
+    </p><div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem"><p>
+         <a class="ulink" href="http://www.gnu.org/software/binutils/manual/gas-2.9.1/" target="_top">
+         Using as</a>
+        </p></li><li class="listitem"><p>
+         <a class="ulink" href="http://www.gnu.org/software/binutils/manual/ld-2.9.1/" target="_top">
+         Using LD, the GNU linker</a>
+        </p></li><li class="listitem"><p><a class="ulink" href="http://developer.intel.com/design/pentium4/manuals/" target="_top">
+        IA-32 Intel Architecture Software Developer's Manual</a></p></li><li class="listitem"><p><a class="ulink" href="http://www.gzip.org" target="_top">
+        The gzip home page</a></p></li><li class="listitem"><p><a class="ulink" href="http://freshmeat.net/projects/gzip" target="_top">
+        gzip (freshmeat.net)</a></p></li><li class="listitem"><p>
+         <a class="ulink" href="http://www.ietf.org/rfc/rfc1951.txt" target="_top">
+         RFC 1951: DEFLATE Compressed Data Format Specification version 1.3
+         </a>
+        </p></li><li class="listitem"><p>
+         <a class="ulink" href="http://www.ietf.org/rfc/rfc1952.txt" target="_top">
+         RFC 1952: GZIP file format specification version 4.3
+         </a>
+        </p></li></ul></div><p>
+    </p></div></div><div class="navfooter"><hr><table width="100%" summary="Navigation footer"><tr><td width="40%" align="left"><a accesskey="p" href="ar01s04.html">Prev</a> </td><td width="20%" align="center"> </td><td width="40%" align="right"> <a accesskey="n" href="ar01s06.html">Next</a></td></tr><tr><td width="40%" align="left" valign="top">4. linux/arch/i386/boot/setup.S </td><td width="20%" align="center"><a accesskey="h" href="index.html">Home</a></td><td width="40%" align="right" valign="top"> 6. linux/arch/i386/kernel/head.S</td></tr></table></div></body></html>

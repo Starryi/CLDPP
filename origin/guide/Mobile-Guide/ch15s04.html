@@ -1,0 +1,246 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1"><title>4. Data Transport Between Different Machines (Synchronization)</title><link rel="stylesheet" type="text/css" href="style.css"><meta name="generator" content="DocBook XSL Stylesheets V1.79.1"><meta name="keywords" content="laptop, notebook, pda, handheld, computer, mobile, mobile phone, cell phone, portable player, linux, unix"><link rel="home" href="index.html" title="Linux on the Road"><link rel="up" href="ch15.html" title="Chapter 15. Different Environments"><link rel="prev" href="ch15s03.html" title="3. E-Mail"><link rel="next" href="ch15s05.html" title="5. Backup"></head><body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF"><div class="navheader"><table width="100%" summary="Navigation header"><tr><th colspan="3" align="center">4. Data Transport Between Different Machines (Synchronization)</th></tr><tr><td width="20%" align="left"><a accesskey="p" href="ch15s03.html">Prev</a> </td><th width="60%" align="center">Chapter 15. Different Environments</th><td width="20%" align="right"> <a accesskey="n" href="ch15s05.html">Next</a></td></tr></table><hr></div><div class="sect1"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="mobile-guide-p5c1s3-data-transport"></a>4. Data Transport Between Different Machines (Synchronization)</h2></div></div></div><p>
+   I don't have experience with this topic yet. So just a survey about
+   some means of data transport and maintaining data consistency between
+   different machines.
+</p><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="idm4198"></a>4.1. Useful Hardware</h3></div></div></div><p>
+
+</p><div class="orderedlist"><ol class="orderedlist" type="1"><li class="listitem"><p>
+   external harddisks
+</p></li><li class="listitem"><p>
+   ZIP drive
+</p></li></ol></div><p>
+
+</p><p>
+   Wade Hampton wrote: "You may use MS-DOS formatted ZIP and floppy discs
+   for data transfer. You may be able to also use LS120. If you have SCSI,
+   you could use JAZ, MO or possibly DVD-RAM (any SCSI disc that you
+   could write to). I have the internal ZIP for my Toshiba 700CT. It
+   works great (I use <span class="command"><strong>automount</strong></span> to mount it). I use
+   VFAT on the ZIP disks so I can move them to Windows boxes, Linux
+   boxes, NT, give them to coworkers, etc. One problem, I must SHUTDOWN
+   to swap the internal CD with the ZIP."
+</p></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="idm4208"></a>4.2. Useful Software</h3></div></div></div><div class="sect3"><div class="titlepage"><div><div><h4 class="title"><a name="idm4210"></a>4.2.1. Version Management Software</h4></div></div></div><p>
+   Although it is certainly not their main aim, version management software
+   like CVS (Concurrent Version System) are a perfect tool when you work on
+   several machines and you have trouble keeping them in sync (something
+   which is often called <span class="quote">&#8220;<span class="quote">disconnected filesystems</span>&#8221;</span> in the
+   computer science literature).  Unlike programs like
+   <span class="command"><strong>rsync</strong></span>, which are asymmetric (one side is the master
+   and its files override those of the slave), CVS accept that you make
+   changes on several machines, and try afterwards to merge them.
+   Asymmetric tools are good only when you can respect a strict discipline,
+   when you switch from one machine to another. On the contrary, tools like
+   CVS are more forgetful.
+</p><p>
+   To synchronize two or more machines (typically a desktop and a laptop),
+   just choose a CVS repository somewhere on the network. It can be on one
+   of the machines you want to synchronize or on a third host. Anyway, this
+   machine should be easily reachable via the network and have good disks.
+</p><p>
+   Then, <span class="command"><strong>cvs co</strong></span> the module you want to work on, edit it,
+   and <span class="command"><strong>cvs commit</strong></span> when you reached a synch point and are
+   connected. If you made changes on both hosts, CVS will try to merge them
+   (it typically succeeds automatically) or give in and ask you to resolve
+   it by hand.
+</p><p>
+   The typical limits of this solution: CVS does not deal well with binary
+   files, so this solution is more for users of vi or emacs than for GIMP
+   fans. CVS has trouble with some <acronym class="acronym">UNIX</acronym> goodies like
+   symbolic links.
+</p><p>
+   For more information on CVS, see the 
+   <a class="ulink" href="http://www.loria.fr/~molli/cvs-index.html" target="_top">Web page</a>
+   . The CVS documentation is excellent (in info format).
+</p></div><div class="sect3"><div class="titlepage"><div><div><h4 class="title"><a name="idm4223"></a>4.2.2. CODA Filesystem</h4></div></div></div><p>
+   The <a class="ulink" href="http://www.coda.cs.cmu.edu/" target="_top">CODA</a> File
+   System is a descendant of the Andrew File System. Like AFS, Coda
+   offers location-transparent access to a shared
+   <acronym class="acronym">UNIX</acronym> file name-space that is mapped on to a
+   collection of dedicated file servers. But Coda represents a
+   substantial improvement over AFS because it offers considerably
+   higher availability in the face of server and network failures. The
+   improvement in availability is achieved using the complementary
+   techniques of server replication and disconnected operation.
+   Disconnected operation proven especially valuable in supporting
+   portable computers .
+</p></div><div class="sect3"><div class="titlepage"><div><div><h4 class="title"><a name="idm4228"></a>4.2.3. unison</h4></div></div></div><p>
+   <a class="ulink" href="http://www.cis.upenn.edu/~bcpierce/unison/" target="_top">unison</a>
+   is a file-synchronization tool for Unix and
+   Windows. It allows two replicas of a collection of files and directories
+   to be stored on different hosts (or different disks on the same host),
+   modified separately, and then brought up to date by propagating the
+   changes in each replica to the other.
+   Unison was written by researchers with an eye for well-defined
+   replication semantics: they were very fussy about safety, and made
+   sure to handle gracefully things like premature termination etc.
+   Unison is symmetric/bidirectional (unlike rsync), works fine with
+   binaries (unlike cvs), and is a user-level program (unlike most
+   distributed filesystems).  It also makes a reasonable attempt to
+   synchronize transparently between Unix/Linux and Windows filesystems,
+   which is no small feat.  Drawbacks: it does not do version control,
+   and does not handle synchronization among more than 2 file trees.
+   <span class="command"><strong>unison</strong></span> shares a number
+   of features with tools such as configuration management packages
+   (<span class="command"><strong>CVS</strong></span>, 
+   <span class="command"><strong>PRCS</strong></span>, 
+   etc.) distributed filesystems (
+   <a class="ulink" href="http://www.coda.cs.cmu.edu/" target="_top">CODA</a>
+   , etc.)
+   <span class="emphasis"><em>uni-directional</em></span> mirroring utilities
+   (<span class="command"><strong>rsync</strong></span>, etc.) and other
+   synchronizers (
+   Intellisync, 
+   Reconcile, etc). 
+   However, there are a
+   number of points where it differs: 
+</p><p>
+
+</p><div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem"><p>
+   <span class="command"><strong>unison</strong></span> runs on both MicroSoft-Windows (95, 98, NT, and 2k) and
+   Unix (Solaris, Linux, etc.) systems (
+   for ARM based Linux PDAs see the 
+   <a class="ulink" href="http://tuxmobil.org/feed.html" target="_top">TuxMobil IPK feed</a>
+   . Moreover,
+   <span class="command"><strong>unison</strong></span> works <span class="emphasis"><em>across</em></span> platforms,
+   allowing you to synchronize a Microsoft-Windows laptop with a Unix server, for
+   example.
+</p></li><li class="listitem"><p>
+   Unlike a distributed filesystem, <span class="command"><strong>unison</strong></span> is a
+   user-level program: there is no need to hack (or own!) the kernel,
+   or to have superuser privileges on either host.
+</p></li><li class="listitem"><p>
+   Unlike simple mirroring or backup utilities,
+   <span class="command"><strong>unison</strong></span> can deal with updates to both replicas of
+   a distributed directory structure. Updates that do not conflict are
+   propagated automatically. Conflicting updates are detected and
+   displayed.
+</p></li><li class="listitem"><p>
+   <span class="command"><strong>unison</strong></span> works between any pair of machines
+   connected to the internet, communicating over either a direct
+   socket link or tunneling over an <span class="command"><strong>rsh</strong></span> or an
+   encrypted <span class="command"><strong>ssh</strong></span> connection. It is careful with
+   network bandwidth, and runs well over slow links such as PPP
+   connections.
+</p></li><li class="listitem"><p>
+   <span class="command"><strong>unison</strong></span> has a clear and precise specification.  
+</p></li><li class="listitem"><p>
+   <span class="command"><strong>unison</strong></span> is resilient to failure. It is
+   careful to leave the replicas and its own private structures in
+   a sensible state at all times, even in case of abnormal
+   termination or communication failures.
+</p></li><li class="listitem"><p>
+   <span class="command"><strong>unison</strong></span> is free; full source code 
+   is available under the GNU Public License.
+</p></li></ul></div><p>
+
+</p></div><div class="sect3"><div class="titlepage"><div><div><h4 class="title"><a name="idm4266"></a>4.2.4. OpenSync, MultiSync</h4></div></div></div><p>
+   <a class="ulink" href="http://www.opensync.org/" target="_top">OpenSync</a> is the successor of
+   KitchenSync and MultiSync.  OpenSync is a synchronization framework that is platform and distribution
+   independent. It consists of a powerful sync-engine and several plugins that
+   can be used to connect to devices.
+   OpenSync is very flexible and capable of synchronizing any type of data,
+   including contacts, calendar, tasks, notes and files. 
+</p><p>
+   <a class="ulink" href="http://multisync.sourceforge.net" target="_top">MultiSync</a>
+   is a free modular program to synchronize
+   calendars, address books, and other PIM data between programs on your
+   computer and other computers, mobile devices, PDAs or cell phones.
+   Currently MultiSync has plugins for Ximian Evolution calendars and
+   IrMC Mobile Client calendars (supported by the Sony/Ericsson T68i) via
+   Bluetooth, IrDA, or a cable connection.
+</p></div><div class="sect3"><div class="titlepage"><div><div><h4 class="title"><a name="idm4272"></a>4.2.5. Funambol</h4></div></div></div><p>
+   <a class="ulink" href="http://www.funambol.com/opensource/" target="_top">Funambol</a>
+   is an open source mobile application server software that provides push
+   email, address book and calendar (PIM) data synchronization, application
+   provisioning, and device management for wireless devices and PCs, leveraging
+   standard protocols. For users, this means BlackBerry-like capabilities on
+   commodity handsets.
+   
+   Funambol is also a software development platform for mobile applications. It
+   provides client and server side Java APIs, and facilitates the development,
+   deployment and management of any mobile project. Funambol is the de facto
+   standard implementation of the Open Mobile Alliance Data Synchronization and
+   Device Management protocols (OMA DS and DM, formerly known as SyncML).
+   Funambol is replaces the former sync4J tools.
+</p></div><div class="sect3"><div class="titlepage"><div><div><h4 class="title"><a name="idm4276"></a>4.2.6. Tsync</h4></div></div></div><p>
+   <a class="ulink" href="http://sourceforge.net/projects/tsyncd/" target="_top">Tsync (Transparent) Synchronization</a>
+   is a user-level daemon that provides transparent synchronization amongst a set of 
+   computers. Tsync uses a peer-to-peer architecture for scalability, efficiency, and robustness.
+</p></div><div class="sect3"><div class="titlepage"><div><div><h4 class="title"><a name="idm4280"></a>4.2.7. InterMezzo</h4></div></div></div><p>
+   <a class="ulink" href="http://inter-mezzo.org/" target="_top">InterMezzo</a>
+   is a new distributed file system with a focus on
+   high availability.  InterMezzo is an Open Source
+   project, currently on Linux (2.2 and 2.3).  A
+   primary target of development is to provide
+   support for flexible replication of directories,
+   with disconnected operation and a persistent
+   cache.  For example, we want to make it easy to
+   manage copies of home directories on multiple
+   computers, and solve the laptop/desktop
+   synchronization problems. On a larger scale we aim
+   to provide replication of large file repositories,
+   for example to support high availability for
+   servers.  InterMezzo was deeply inspired
+   by the Coda File System, but totally
+   re-designed and re-engineered.
+</p></div><div class="sect3"><div class="titlepage"><div><div><h4 class="title"><a name="idm4284"></a>4.2.8. WWWsync</h4></div></div></div><p>
+   <a class="ulink" href="http://www.alfie.demon.co.uk/wwwsync/" target="_top">WWWsync/</a>
+   is a program written in Perl that will update your web pages by
+   ftp from your local pages. This was originally written for updating
+   Demon home-pages, but will work with other providers which provide
+   direct FTP access to your web pages. I didn't check this for laptop
+   purposes yet.
+</p></div><div class="sect3"><div class="titlepage"><div><div><h4 class="title"><a name="idm4288"></a>4.2.9. rsync</h4></div></div></div><p>
+   <span class="command"><strong>rsync</strong></span> is a program that allows files to be copied to
+   and from remote machines in much the same way as <span class="command"><strong>rcp</strong></span>.
+   It has many more options than <span class="command"><strong>rcp</strong></span>, and uses the
+   <span class="emphasis"><em>rsync remote-update protocol</em></span> to greatly speedup
+   file transfers when the destination file already exists. The
+   <span class="emphasis"><em>rsync remote-update protocol</em></span> allows
+   <span class="command"><strong>rsync</strong></span> to transfer just the differences between two
+   sets of files across the network link.
+</p></div><div class="sect3"><div class="titlepage"><div><div><h4 class="title"><a name="idm4297"></a>4.2.10. Xfiles - file tree synchronization and cross-validation</h4></div></div></div><p>
+   Xfiles is an interactive utility for comparing and merging one file tree
+   with another over a network. It supports freeform work on several
+   machines (no need to keep track of what files are changed on which
+   machine). Xfiles can also be used as a cross-validating disk &lt;-&gt;
+   disk backup strategy (portions of a disk may go bad at any time, with no
+   simple indication of which files were affected. Cross-validate against a
+   second disk before backup to make sure you aren't backing up bad data).
+</p><p>
+   A client/server program (GUI on the client) traverses a file tree and
+   reports any files that are missing on the server machine, missing on the
+   client machine, or different. For each such file, the file size/sizes and
+   modification date(s) are shown, and a comparison (using
+   <acronym class="acronym">UNIX</acronym> diff) can be obtained. For files that are missing
+   from one tree, <span class="emphasis"><em>similarly named</em></span> files in that tree
+   are reported. Inconsistent files can then be copied in either direction
+   or deleted on either machine. The file trees do not need to be accessible
+   via nfs. Files checksums are computed in parallel, so largely similar
+   trees can be compared over a slow network link. The client and server
+   processes can also be run on the same machine. File selection and
+   interaction with a revision control system such as RCS can be handled by
+   scripting using jpython. Requirements Java1.1 or later and JFC/Swing1.1
+   are needed. 
+   <a class="ulink" href="http://www.idiom.com/~zilla" target="_top">Xfiles</a>.
+</p></div><div class="sect3"><div class="titlepage"><div><div><h4 class="title"><a name="idm4304"></a>4.2.11. sitecopy</h4></div></div></div><p>
+   Sitecopy is for copying locally stored websites to remote web servers.
+   The program will upload files to the server which have changed locally,
+   and delete files from the server which have been removed locally, to
+   keep the remote site synchronized with the local site, with a single
+   command. The aim is to remove the hassle of uploading and deleting
+   individual files using an FTP client. 
+   <a class="ulink" href="http://www.lyra.org/sitecopy" target="_top">sitecopy</a>.
+</p></div></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="idm4308"></a>4.3. DataConversion: AddressBooks, BookMarks, Todo-Lists, LDAP, Webpages</h3></div></div></div><p>
+   Transfering user data from one mobile device to another one, often requires
+   some tools to extract the data from the source device before importing them
+   into the target device, for example if you want to change your favorite
+   mobile phone. Or if you want to use the addressbook from your mobile with
+   your PDA, too.
+   Here are some tools for
+   <a class="ulink" href="http://dataconv.org/apps_bookmarks.html" target="_top">bookmark conversion</a>,
+   <a class="ulink" href="http://dataconv.org/apps_addresses.html" target="_top">addressbook migration</a>,
+   <a class="ulink" href="http://dataconv.org/apps_vcard.html" target="_top">vCard extraction</a>,
+   <a class="ulink" href="http://dataconv.org/apps_ldap.html" target="_top">LDAP merging</a> and
+   <a class="ulink" href="http://dataconv.org/apps_pda.html" target="_top">data conversion for PDAs and HandHeld PCs</a>.
+</p></div></div><div class="navfooter"><hr><table width="100%" summary="Navigation footer"><tr><td width="40%" align="left"><a accesskey="p" href="ch15s03.html">Prev</a> </td><td width="20%" align="center"><a accesskey="u" href="ch15.html">Up</a></td><td width="40%" align="right"> <a accesskey="n" href="ch15s05.html">Next</a></td></tr><tr><td width="40%" align="left" valign="top">3. E-Mail </td><td width="20%" align="center"><a accesskey="h" href="index.html">Home</a></td><td width="40%" align="right" valign="top"> 5. Backup</td></tr></table></div></body></html>

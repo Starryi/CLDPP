@@ -1,0 +1,120 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1"><title>2. Overview of Routing and Packet Filter Interactions</title><link rel="stylesheet" type="text/css" href="style.css"><meta name="generator" content="DocBook XSL Stylesheets V1.79.1"><meta name="keywords" content="linux, ip, iproute2, ifconfig, firewall, ARP, NAT, route, routing, route selection, routing selection, network administration"><link rel="home" href="index.html" title="Guide to IP Layer Network Administration with Linux"><link rel="up" href="ch10.html" title="Chapter 10. Advanced IP Routing"><link rel="prev" href="ch10s01.html" title="1. Introduction to Policy Routing"><link rel="next" href="ch10s03.html" title="3. Using the Routing Policy Database and Multiple Routing Tables"></head><body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF"><div class="navheader"><table width="100%" summary="Navigation header"><tr><th colspan="3" align="center">2. Overview of Routing and Packet Filter Interactions</th></tr><tr><td width="20%" align="left"><a accesskey="p" href="ch10s01.html">Prev</a> </td><th width="60%" align="center">Chapter 10. Advanced IP Routing</th><td width="20%" align="right"> <a accesskey="n" href="ch10s03.html">Next</a></td></tr></table><hr></div><div class="section"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="adv-overview"></a>2. Overview of Routing and Packet Filter Interactions</h2></div></div></div><p>
+      One of the most difficult aspects of working with the advanced routing
+      features of linux is gaining an understanding the sequence of events
+      as a packet traverses the kernel space.  It is, in fact, the key
+      knowledge needed to grasp the potential of advanced routing scenarios
+      and to troubleshoot successfully when things don't go as planned.
+    </p><p>
+      If you are reading this for the first time, stop now and go visit and
+      study 
+      <a class="ulink" href="http://docum.org/stef.coene/qos/kptd/" target="_top">the kernel
+      packet traveling diagram</a> and
+      <a class="ulink" href="http://open-source.arkoon.net/kernel/kernel_net.png" target="_top">the
+      kernel packet handling diagram</a> now.  These represent two
+      different efforts to describe the order in which different
+      networking subsystems inside the linux kernel have an opportunity to
+      inspect, manipulate and redirect a packet.  Understanding this
+      sequence of events is key to harnessing the power of linux networking.
+    </p><p>
+      Now, let's examine some of the different commands you can use to
+      manipulate packets at each of these stages.  The list below describes
+      the sequence of events for a packet bound for a non-local destination.
+    </p><a name="adv-overview-kptd-forwarded"></a><div class="itemizedlist"><p class="title"><b>Packet Traversal; Non-Local Destination</b></p><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem"><p>
+          All of the PREROUTING netfilter hooks are called here.  This
+          means that we get our first opportunity to inspect and drop a
+          packet, we can perform DNAT on the packet to make sure that the
+          destination IP is rewritten before we make a routing decision
+          (at which time the destination address becomes very important).
+          We can also set ToS or an fwmark on the packet at this time.  If
+          we want to use an IMQ device for ingress control, we can put our
+          hooks here.
+        </p></li><li class="listitem"><p>
+          If we are using ipchains, the input chain is traversed.
+        </p></li><li class="listitem"><p>
+          Any traffic control on the real device on which the packet arrived
+          is now performed.
+        </p></li><li class="listitem"><p>
+          The input routing stage is traversed by any packet entering the
+          local machine.  Here we concern ourselves only with packets which
+          are routed through this machine to another destination
+          Additionally, iproute2 NAT occurs here
+          <a href="#ftn.idm3231" class="footnote" name="idm3231"><sup class="footnote">[36]</sup></a>.
+        </p></li><li class="listitem"><p>
+          The packet enters the FORWARD netfilter hooks.  Here, the packet
+          can be mangled with ToS or fwmark.  After the mangle chain is
+          passed, the filter chain will be traversed.  For kernel 2.4-based
+          routing devices this will be the location for packet filtering
+          rules.  If we are using ipchains, the forward chain would be
+          traversed here instead of the netfilter FORWARD hooks.
+        </p></li><li class="listitem"><p>
+          The output chain in an ipchains installation would be traversed
+          here.
+        </p></li><li class="listitem"><p>
+          The POSTROUTING netfilter hooks are traversed.  These include
+          packet mangling, NAT and IMQ for egress.
+        </p></li><li class="listitem"><p>
+          Finally, the packet is transmitted via the outbound device per
+          traffic control configuration on that outbound device.
+        </p></li></ul></div><p>
+      The above describes the sequence of events for packets passing through
+      the linux routing device.  Let's look at a similar descriptions of the
+      paths that packets bound for local destinations take through the
+      kernel.
+    </p><a name="adv-overview-kptd-local-dest"></a><div class="itemizedlist"><p class="title"><b>Packet Traversal; Local Destination</b></p><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem"><p>
+          All of the PREROUTING netfilter hooks are called here.  This
+          means that we get our first opportunity to inspect and drop a
+          packet, we can perform DNAT on the packet to make sure that the
+          destination IP is rewritten before we make a routing decision
+          (at which time the destination address becomes very important).
+          We can also set ToS or an fwmark on the packet at this time.  If
+          we want to use an IMQ device for ingress control, we can put our
+          hooks here.
+        </p></li><li class="listitem"><p>
+          If we are using ipchains, the input chain is traversed.
+        </p></li><li class="listitem"><p>
+          Any traffic control on the real device on which the packet arrived
+          is now performed.
+        </p></li><li class="listitem"><p>
+          The input routing stage is traversed by any packet entering the
+          local machine.  Here we concern ourselves with packets bound for
+          local destinations only.
+        </p></li><li class="listitem"><p>
+          The INPUT netfilter hooks are traversed.  Commonly this is
+          filtering for inbound connections, but can include packet
+          mangling.
+        </p></li><li class="listitem"><p>
+          The local destination process receives the connection.  If there
+          is no open socket, an error is generated.
+        </p></li></ul></div><p>
+      Naturally, packets need to go out from the machine as well, so let's
+      look at the path for outbound packets which were locally generated.
+    </p><a name="adv-overview-kptd-local-gen"></a><div class="itemizedlist"><p class="title"><b>Packet Traversal; Locally Generated</b></p><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem"><p>
+          The process with the open socket sends data.
+        </p></li><li class="listitem"><p>
+          The routing decision is made.  This is frequently called output
+          routing because it is only for packets leaving the system.  This
+          routing code is (sometimes?) responsible for selecting the source
+          IP of the outbound packet.
+        </p></li><li class="listitem"><p>
+          The netfilter OUTPUT hooks are traversed.  The basic filter, nat,
+          and mangle hooks are available.  This is where SNAT can take
+          place.
+        </p></li><li class="listitem"><p>
+          The output chain in an ipchains installation would be traversed
+          here.
+        </p></li><li class="listitem"><p>
+          The POSTROUTING netfilter hooks are traversed.  These include
+          packet mangling, NAT and IMQ for egress.
+        </p></li><li class="listitem"><p>
+          Finally, the packet is transmitted via the outbound device per
+          traffic control configuration on that outbound device.
+        </p></li></ul></div><p>
+    </p><p>
+    </p><p>
+    </p><p>
+    </p><p>
+    </p><div class="footnotes"><br><hr style="width:100; text-align:left;margin-left: 0"><div id="ftn.idm3231" class="footnote"><p><a href="#idm3231" class="para"><sup class="para">[36] </sup></a>
+              Leonardo calls this "dumb NAT" because the NAT performed by
+              <span class="command"><strong>iproute2</strong></span> at the routing stage is stateless.
+            </p></div></div></div><div class="navfooter"><hr><table width="100%" summary="Navigation footer"><tr><td width="40%" align="left"><a accesskey="p" href="ch10s01.html">Prev</a> </td><td width="20%" align="center"><a accesskey="u" href="ch10.html">Up</a></td><td width="40%" align="right"> <a accesskey="n" href="ch10s03.html">Next</a></td></tr><tr><td width="40%" align="left" valign="top">1. Introduction to Policy Routing </td><td width="20%" align="center"><a accesskey="h" href="index.html">Home</a></td><td width="40%" align="right" valign="top"> 3. Using the Routing Policy Database and Multiple Routing
+      Tables</td></tr></table></div></body></html>

@@ -1,0 +1,96 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1"><title>2. Design</title><link rel="stylesheet" type="text/css" href="style.css"><meta name="generator" content="DocBook XSL Stylesheets V1.79.1"><link rel="home" href="index.html" title="Pocket Linux Guide"><link rel="up" href="apa.html" title="Appendix A. Hosting Applications"><link rel="prev" href="apas01.html" title="1. Analysis"><link rel="next" href="apas03.html" title="3. Construction"></head><body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF"><div class="navheader"><table width="100%" summary="Navigation header"><tr><th colspan="3" align="center">2. Design</th></tr><tr><td width="20%" align="left"><a accesskey="p" href="apas01.html">Prev</a> </td><th width="60%" align="center">Appendix A. Hosting Applications</th><td width="20%" align="right"> <a accesskey="n" href="apas03.html">Next</a></td></tr></table><hr></div><div class="sect1"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="idm1841"></a>2. Design</h2></div></div></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="idm1843"></a>2.1. Support for audio hardware</h3></div></div></div><p>There is a vast proliferation of audio hardware on the market and
+      each sound card has its own particular configuration. For details on how
+      to set up a particular sound card we can turn to the Sound-HOWTO
+      available from <a class="ulink" href="http://www.tldp.org" target="_top">The Linux Documentation
+      Project</a>. In a broader sense, however, we can treat a sound card
+      like any other piece of new hardware. To add new hardware to a GNU/Linux
+      system we will need configure the kernel to recognize it and configure
+      <code class="filename">/dev</code> files on the root disk to access it.</p><div class="sect3"><div class="titlepage"><div><div><h4 class="title"><a name="idm1848"></a>2.1.1. Kernel support for audio</h4></div></div></div><p>In order to support sound cards, a new kernel will have to be
+        built. It is very important that audio hardware support be configured
+        as built-in, because Pocket Linux is not set up to handle kernel
+        modules.</p></div><div class="sect3"><div class="titlepage"><div><div><h4 class="title"><a name="idm1851"></a>2.1.2. Root disk support for audio</h4></div></div></div><p>Searching <code class="filename">devices.txt</code> for the keyword
+        "sound" will list quite a few possible audio devices, but usually only
+        <code class="filename">/dev/dsp</code> and <code class="filename">/dev/mixer</code> are
+        required to get sound from a PC. These two files control the digital
+        audio output and mixer controls, respectively.</p></div></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="idm1857"></a>2.2. Creating space for the program</h3></div></div></div><p>Probably the easiest way to create more space for the mp3blaster
+      program is to mount an additional storage device. There are several
+      choices for mount points. So far <code class="filename">/usr</code>,
+      <code class="filename">/home</code> and <code class="filename">/opt</code> are all empty
+      directories and any one of them could be used to mount a floppy, CD-ROM
+      or additional compressed ramdisk image. The <code class="filename">/usr</code>
+      directory is a logical choice for a place to put an application, but
+      what about the choice of media? Mp3blaster and its required libraries
+      are too big to fit on a 1.44M floppy and burning a CD-ROM seems like a
+      lot of work for one little program. So given these constraints, the best
+      choice would be to put the program on a compressed floppy.</p><div class="sect3"><div class="titlepage"><div><div><h4 class="title"><a name="idm1864"></a>2.2.1. Mounting additional compressed floppies</h4></div></div></div><p>Mounting CDs and uncompressed diskettes is easy, but what about
+        loading compressed images from floppy into ramdisk? It will have to be
+        done manually, because automatic mounting of compressed floppies only
+        works for the root diskette. And using <span class="command"><strong>mount
+        /dev/fd0</strong></span> will not work because there is no filesystem on the
+        diskette, there are only the contents of a gzip file. The actual
+        filesystem is contained inside the gzip file. So how can we mount the
+        filesystem buried beneath the gzip file? This puzzle can be solved by
+        examining at the steps used to create the familiar compressed root
+        disk floppy.</p><div class="orderedlist"><ol class="orderedlist" type="1"><li class="listitem"><p>A ramdisk is created, mounted and filled with files.</p></li><li class="listitem"><p>The ramdisk device is unmounted.</p></li><li class="listitem"><p>The contents of the ramdisk are dumped to an image file
+            using <span class="command"><strong>dd</strong></span>.</p></li><li class="listitem"><p>The image file is compressed with
+            <span class="command"><strong>gzip</strong></span>.</p></li><li class="listitem"><p>The compressed image file is written to floppy with
+            <span class="command"><strong>dd</strong></span>.</p></li></ol></div><p>If that is how the compressed image makes its way from ramdisk
+        to compressed floppy, then going from compressed floppy to ramdisk
+        should be as simple as running through the steps in reverse.</p><div class="orderedlist"><ol class="orderedlist" type="1"><li class="listitem"><p>The compressed image file is read from floppy with
+            <span class="command"><strong>dd</strong></span>.</p></li><li class="listitem"><p>The image file is uncompressed with
+            <span class="command"><strong>gunzip</strong></span>.</p></li><li class="listitem"><p>The contents of the image file are dumped into ramdisk using
+            <span class="command"><strong>dd</strong></span>.</p></li><li class="listitem"><p>The ramdisk device is mounted.</p></li><li class="listitem"><p>The files are available.</p></li></ol></div><p>We can cut out the intermediate image file by using a pipe to
+        combine <span class="command"><strong>dd</strong></span> and <span class="command"><strong>gunzip</strong></span> like this:
+        <span class="command"><strong>dd if=/dev/fd0 | gunzip -cq &gt; /dev/ram1</strong></span>. Now the
+        compressed floppy goes straight into ramdisk, decompressing on the
+        fly.</p></div><div class="sect3"><div class="titlepage"><div><div><h4 class="title"><a name="idm1901"></a>2.2.2. Root disk support for additional ramdisks</h4></div></div></div><p>We already have kernel support for ramdisks, because we are
+        using a compressed root disk, but we will need to create more ramdisks
+        in <code class="filename">/dev</code>. Typically the kernel supports eight
+        ramdisks on <code class="filename">/dev/ram0</code> through
+        <code class="filename">/dev/ram7</code> with <code class="filename">ram0</code> being
+        used for the rootdisk. The <code class="filename">devices.txt</code> file
+        included in the Linux source code documentation will be helpful for
+        matching devices to their major and minor numbers.</p></div></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="idm1909"></a>2.3. Accessing audio files</h3></div></div></div><p>The sample mp3 file that we will be using in our example is small
+      enough to fit on an uncompressed floppy disk so that there is no need to
+      burn a CD. However, serious music lovers may want to have the capability
+      to mount a custom CD-ROM full of tunes and that option will require
+      support for additional hardware.</p><div class="sect3"><div class="titlepage"><div><div><h4 class="title"><a name="idm1912"></a>2.3.1. CD-ROM hardware support</h4></div></div></div><p>Most modern CD-ROM drives will use IDE devices like
+        <code class="filename">/dev/hdc</code> or <code class="filename">/dev/hdd</code>. To
+        support these CD-ROM drives we will have to configure IDE support in
+        the kernel and create the appropriate device files on the root
+        disk.</p></div><div class="sect3"><div class="titlepage"><div><div><h4 class="title"><a name="idm1917"></a>2.3.2. CD-ROM filesystem support</h4></div></div></div><p>CD-ROMs have different filesystems than hard disks and floppies.
+        Most CD burning applications use a filesystem called ISO-9660 and have
+        the capability to support Joliet or Rockridge extensions. We will have
+        to include support for these filesystems in the kernel in order to
+        mount CD-ROMs.</p></div></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="idm1920"></a>2.4. Other required files</h3></div></div></div><p>We will want to have all of mp3blaster's required libraries and
+      other supporting files available as part of the compressed
+      <code class="filename">/usr</code> image so that mp3blaster can run correctly.
+      The familiar <span class="command"><strong>ldd</strong></span> command can be used to determine
+      which libraries mp3blaster requires. Any additional libraries can be
+      placed in <code class="filename">/usr/lib</code>. Even though some of the
+      libraries may appear in <code class="filename">/lib</code> on the development
+      system, they can still go in <code class="filename">/usr/lib</code> on the Pocket
+      Linux system. The dynamic linker, <code class="filename">ld-linux.so</code>, is
+      smart enough to look in both places when loading libraries.</p><p>Because mp3blaster uses the curses (or ncurses) screen control
+      library there is one additional file we need. The curses library needs
+      to know the characteristics of the terminal it is controlling and it
+      gets that information from the terminfo database. The terminfo database
+      consists of all the files under the
+      <code class="filename">/usr/share/terminfo</code> directory and is very large
+      compared to our available disk space. But, since Pocket Linux only
+      supports the PC console, we only have one terminal type to worry about
+      and therefore need only one file. The piece of the terminfo database we
+      need is the file <code class="filename">/usr/share/terminfo/l/linux</code>,
+      because we are using a "Linux" terminal. For more information about the
+      subject of curses, see John Strang's book entitled "Programming with
+      Curses" available from <a class="ulink" href="http://www.oreilly.com" target="_top">O'Reilly
+      publishing</a>.</p></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="idm1933"></a>2.5. Summary of tasks</h3></div></div></div><p>Between sound cards, ramdisks, CD-ROMs and terminfo there is quite
+      a bit to keep track of. So let's take a moment to organize and summarize
+      the tasks necessary to make the pocket jukebox a reality.</p><div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem"><p>Create a new kernel disk that includes built-in support for
+          audio hardware, IDE devices and CD-ROM filesystems.</p></li><li class="listitem"><p>Create the appropriate <code class="filename">/dev</code> files on the
+          root disk to support audio hardware, additional ramdisks and IDE
+          CD-ROMs.</p></li><li class="listitem"><p>Install the <span class="command"><strong>gunzip</strong></span> utility to enable
+          decompression of the usr image.</p></li><li class="listitem"><p>Create a startup script to load a compressed image from floppy
+          into a ramdisk and mount the ramdisk on
+          <code class="filename">/usr</code>.</p></li><li class="listitem"><p>Create a compressed floppy that holds the mp3blaster program,
+          its required libraries and terminfo files.</p></li></ul></div></div></div><div class="navfooter"><hr><table width="100%" summary="Navigation footer"><tr><td width="40%" align="left"><a accesskey="p" href="apas01.html">Prev</a> </td><td width="20%" align="center"><a accesskey="u" href="apa.html">Up</a></td><td width="40%" align="right"> <a accesskey="n" href="apas03.html">Next</a></td></tr><tr><td width="40%" align="left" valign="top">1. Analysis </td><td width="20%" align="center"><a accesskey="h" href="index.html">Home</a></td><td width="40%" align="right" valign="top"> 3. Construction</td></tr></table></div></body></html>

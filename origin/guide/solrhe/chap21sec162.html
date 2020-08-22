@@ -1,0 +1,71 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1"><title>1. Linux DNS and BIND Server</title><link rel="stylesheet" type="text/css" href="style.css"><meta name="generator" content="DocBook XSL Stylesheets V1.79.1"><meta name="keywords" content="RedHat, redhat, maddy, linus, linux, Linux, Securing, Optimising, security, secure, openna, gerhard"><link rel="home" href="index.html" title="Securing and Optimizing Linux"><link rel="up" href="soft-netwrkng.html" title="Chapter 21. Software -Networking"><link rel="prev" href="soft-netwrkng.html" title="Chapter 21. Software -Networking"><link rel="next" href="chap21sec163.html" title="2. Configure"></head><body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF"><div class="navheader"><table width="100%" summary="Navigation header"><tr><th colspan="3" align="center">1. Linux <acronym class="acronym">DNS</acronym> and <acronym class="acronym">BIND</acronym> Server</th></tr><tr><td width="20%" align="left"><a accesskey="p" href="soft-netwrkng.html">Prev</a> </td><th width="60%" align="center">Chapter 21. Software -Networking</th><td width="20%" align="right"> <a accesskey="n" href="chap21sec163.html">Next</a></td></tr></table><hr></div><div class="section"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="pr6ch7sc1dbs"></a>1. Linux <acronym class="acronym">DNS</acronym> and <acronym class="acronym">BIND</acronym> Server</h2></div></div></div><div class="highlights"><p>
+          
+          Setting up a caching server for client local machines will reduce the load on the site's primary server. A caching only name server will find the answer to name queries and remember the answer the next time we 
+          need it. This will shorten the waiting time the next time significantly. For security reasons, it is very important that <acronym class="acronym">DNS</acronym> doesn't exist between hosts on the corporate network and external hosts; it is far 
+          safer to simply use <acronym class="acronym">IP</acronym> addresses to connect to external machines from the corporate network and vice-versa.
+          </p></div><p>
+          In our configuration and installation we'll run <acronym class="acronym">BIND</acronym>/<acronym class="acronym">DNS</acronym> as non root-user and in a chrooted environment. We also provide you three different configurations; 
+          </p><div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem"><p>
+          one for a simple caching name server only <em class="wordasword">client</em> 
+          </p></li><li class="listitem"><p>
+          one for a slave <em class="wordasword">secondary server</em> 
+          </p></li><li class="listitem"><p>
+          one for a master name server <em class="wordasword">primary server</em>.
+          </p></li></ul></div><p>
+          </p><p>
+          The simple <code class="literal">caching</code> name server configuration will be used for your servers that don't act as a <span class="token">master</span> or <span class="token">slave</span> name server, and the <span class="token">slave</span> and <span class="token">master</span> configurations 
+          will be used for your servers that act as a <span class="token">master</span> name server and <span class="token">slave</span> name server. Usually one of your servers acts as <span class="token">master</span>, another one acts as <span class="token">slave</span> and the rest act as simple <code class="literal">caching</code> client 
+          name server.
+          </p><p>
+          This is a graphical representation of the <acronym class="acronym">DNS</acronym> configuration we use in this book. We try to show you different settings 
+          </p><div class="mediaobject"><img src="./images/DNS-Schema.gif" alt="DNS caching name server"></div><p>
+          </p><div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem"><p>
+          Caching Only <acronym class="acronym">DNS</acronym>
+          </p></li><li class="listitem"><p>
+          Master <acronym class="acronym">DNS</acronym>
+          </p></li><li class="listitem"><p>
+          Slave <acronym class="acronym">DNS</acronym>
+          </p></li></ul></div><p>
+          on different servers. A lot of possibilities exist, and depend on your needs, and network architecture.
+          </p><p>
+          These installation instructions assume
+          </p><div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem"><p>
+          Commands are Unix-compatible.
+          </p></li><li class="listitem"><p>
+          The source path is <code class="filename">/var/tmp</code>. <span class="emphasis"><em>other paths are possible</em></span>.
+          </p></li><li class="listitem"><p>
+          Installations were tested on Red Hat Linux 6.1 and 6.2.
+          </p></li><li class="listitem"><p>
+          All steps in the installation will happen in super-user account root.
+          </p></li><li class="listitem"><p>
+          ISC <acronym class="acronym">BIND</acronym> version number is 8.2.2-patchlevel5
+          </p></li></ul></div><p>
+          </p><p>
+          These are the Package(s) required:
+          </p><table border="0" summary="Simple list" class="simplelist"><tr><td>
+          ISC <acronym class="acronym">BIND</acronym> Homepage:<a class="link" href="appendixa.html#prtinxfp18" title="Linux DNS and BIND Server">http://www.isc.org/</a> 
+          </td></tr><tr><td>
+          ISC <acronym class="acronym">BIND</acronym> FTP Site: <a class="link" href="appendixa.html#prtinxfp18" title="Linux DNS and BIND Server"><code class="literal">204.152.184.27</code></a>
+          </td></tr></table><p>
+          You must be sure to download: <code class="filename">bind-contrib.tar.gz, bind-doc.tar.gz, bind-src.tar.gz</code>
+          </p><p>
+          Before you decompress Tarballs and install, it is a good idea to make a list of files on the system before you install <acronym class="acronym">BIND</acronym>, and one afterwards, and then compare them using diff to find out what file it placed where. Simply 
+          run <span class="command"><strong>find</strong></span> <strong class="userinput"><code>/* &gt; DNS1</code></strong> before and <span class="command"><strong>find</strong></span> <strong class="userinput"><code>/* &gt; DNS2</code></strong> after you install the software, and use <span class="command"><strong>diff</strong></span> <strong class="userinput"><code>DNS1 DNS2 &gt; DNS-Installed</code></strong> to 
+          get a list of what changed.
+          </p><p>
+          Compile and Decompress the tarball (tar.gz).
+          </p><pre class="screen">
+          [root@deep] /# <span class="command"><strong>mkdir</strong></span> /var/tmp/bind
+          [root@deep] /# <span class="command"><strong>cp</strong></span> bind-contrib.tar.gz /var/tmp/bind/
+          [root@deep] /# <span class="command"><strong>cp</strong></span> bind-doc.tar.gz /var/tmp/bind/
+          [root@deep] /# <span class="command"><strong>cp</strong></span> bind-src.tar.gz /var/tmp/bind/
+          </pre><p>
+          We create a directory named bind to handle the tar archives and copy them to this new directory.
+          </p><p>
+          Move into the new bind directory <span class="command"><strong>cd</strong></span> <code class="filename">/var/tmp/bind</code> and decompress the tar files:
+          </p><pre class="screen">
+          [root@deep ]/bind# <span class="command"><strong>tar</strong></span> xzpf bind-contrib.tar.gz
+          [root@deep ]/bind# <span class="command"><strong>tar</strong></span> xzpf bind-doc.tar.gz
+          [root@deep ]/bind# <span class="command"><strong>tar</strong></span> xzpf bind-src.tar.gz
+          </pre><p>
+          </p></div><div class="navfooter"><hr><table width="100%" summary="Navigation footer"><tr><td width="40%" align="left"><a accesskey="p" href="soft-netwrkng.html">Prev</a> </td><td width="20%" align="center"><a accesskey="u" href="soft-netwrkng.html">Up</a></td><td width="40%" align="right"> <a accesskey="n" href="chap21sec163.html">Next</a></td></tr><tr><td width="40%" align="left" valign="top">Chapter 21. Software -Networking </td><td width="20%" align="center"><a accesskey="h" href="index.html">Home</a></td><td width="40%" align="right" valign="top"> 2. Configure</td></tr></table></div></body></html>

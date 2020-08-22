@@ -1,0 +1,111 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1"><title>21.  Physical hard copies of all-important logs</title><link rel="stylesheet" type="text/css" href="style.css"><meta name="generator" content="DocBook XSL Stylesheets V1.79.1"><meta name="keywords" content="RedHat, redhat, maddy, linus, linux, Linux, Securing, Optimising, security, secure, openna, gerhard"><link rel="home" href="index.html" title="Securing and Optimizing Linux"><link rel="up" href="gen-syssecured.html" title="Chapter 5. General System Security"><link rel="prev" href="chap5sec49.html" title="20. Disable Ctrl-Alt-Delete keyboard shutdown command"><link rel="next" href="chap5sec51.html" title="22. Tighten scripts under /etc/rc.d/"></head><body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF"><div class="navheader"><table width="100%" summary="Navigation header"><tr><th colspan="3" align="center">21. 
+            Physical hard copies of all-important logs
+              </th></tr><tr><td width="20%" align="left"><a accesskey="p" href="chap5sec49.html">Prev</a> </td><th width="60%" align="center">Chapter 5. General System Security</th><td width="20%" align="right"> <a accesskey="n" href="chap5sec51.html">Next</a></td></tr></table><hr></div><div class="section"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="idm3848"></a>21. 
+            Physical hard copies of all-important logs
+              </h2></div></div></div><p>
+            One of the most important security considerations is the integrity of the different log files under the <code class="filename">/var/log</code> directory on your server. If despite each of the 
+            security functions put in place on our server a cracker can gain access to it, our last defense is the log file system, so it is very important to consider a method of being sure of the integrity of our log files.
+            </p><p>
+            If you have a printer installed on your server, or on a machine on your network, a good idea would be to have actual physical hard copies of all-important logs. This can be easily accomplished by using a continuous 
+            feed printer and having the syslog program sending all logs you seem important out to <code class="filename">/dev/lp0</code> the printer device. Cracker can change the files, programs, etc on your server, but can do nothing when 
+            you have a printer that prints a real paper copy of all of your important logs.
+            </p><div class="example"><a name="idm3854"></a><p class="title"><b>Example 5.3. Print log reports </b></p><div class="example-contents"><p>
+            For logging of all telnet, mail, boot messages and ssh connections from your server to the printer attached to this server, you would want to add the following line to the "/etc/syslog.conf" file:
+            Edit the syslog.conf file vi <code class="filename">/etc/syslog.conf</code> and add at the end of this file the following line:
+            </p><pre class="screen">
+            authpriv.*;mail.*;local7.*;auth.*;daemon.info /dev/lp0
+            </pre><p>
+            Now restart your syslog daemon for the change to take effect:
+            </p><pre class="screen">
+            [root@deep] /# /etc/rc.d/init.d/syslog <span class="command"><strong>restart</strong></span>
+            </pre><p>
+            </p><p>
+            For logging of all telnet, mail, boot messages and ssh connections from your server to the printer attached to a remote server in your local network, then you would want to add the following line 
+            to <code class="filename">/etc/syslog.conf</code> file on the remote server.
+            If you don't have a printer in your network, you can also copy all the log files to another machine; simply omit the first step below of adding <code class="filename">/dev/lp0</code> to your <code class="filename">syslog.conf</code> file 
+            on remote and go directly to the <code class="literal">-r</code> option step on remote. Using the feature of copying all the log files to another machine will give you the possibility to control all syslog messages on one 
+            host and will tear down administration needs.
+            Edit the <code class="filename">syslog.conf</code> file vi <code class="filename">/etc/syslog.conf</code> on the remote server for example: <code class="literal">mail.openna.com</code> and add at the end of this file the following line:
+            </p><pre class="screen">
+            authpriv.*;mail.*;local7.*;auth.*;daemon.info <code class="filename">/dev/lp0</code>
+            </pre><p>
+            Since the default configuration of the syslog daemon is to not receive any messages from the network, we must enable on the remote server the facility to receive messages from the network. To enable the facility 
+            to receive messages from the network on the remote server, add the following option <code class="literal">-r</code> to your syslog daemon script file <span class="emphasis"><em>only on the remote host</em></span>:
+            Edit the syslog daemon <span class="command"><strong>vi</strong></span> +24 <code class="filename">/etc/rc.d/init.d/syslog</code> and change:
+            </p><pre class="programlisting">
+            
+            <span class="command"><strong>daemon</strong></span> syslogd -m 0
+            
+            </pre><p>
+            To read:
+            </p><pre class="programlisting">
+            <span class="command"><strong>daemon</strong></span> syslogd -r -m 0
+            </pre><p>
+            
+            Now restart your syslog daemon on the remote host for the change to take effect:
+            </p><pre class="screen">
+            [root@mail /]# /etc/rc.d/init.d/syslog <span class="command"><strong>restart</strong></span>
+            </pre><p>
+            </p></div></div><br class="example-break"><p>
+            Now, if we have a firewall on the remote server you are supposed to have one), we must add or verify the existence 
+            of the following lines:
+            </p><pre class="programlisting">
+            ipchains -A input  -i $EXTERNAL_INTERFACE -p udp \ <a name="exin1"></a><span><img src="images/callouts/1.png" alt="1" border="0"></span>
+            -s $SYSLOG_CLIENT \     <a name="ipd1"></a><span><img src="images/callouts/2.png" alt="2" border="0"></span>
+            -d $IPADDR 514 -j ACCEPT <a name="syse1"></a><span><img src="images/callouts/3.png" alt="3" border="0"></span>
+             </pre><p>
+                          </p><div class="calloutlist"><table border="0" summary="Callout list"><tr><td width="5%" valign="top" align="left"><p><a href="#exin1"><span><img src="images/callouts/1.png" alt="1" border="0"></span></a> </p></td><td valign="top" align="left"><p>
+            Where EXTERNAL_INTERFACE="eth0" in the firewall file.
+            </p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#ipd1"><span><img src="images/callouts/2.png" alt="2" border="0"></span></a> </p></td><td valign="top" align="left"><p>
+            Where IPADDR="208.164.186.2" in the firewall file.
+            </p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#syse1"><span><img src="images/callouts/3.png" alt="3" border="0"></span></a> </p></td><td valign="top" align="left"><p>
+            Where SYSLOG_CLIENT="208.164.168.0/24" in the firewall file.
+            </p></td></tr></table></div><p>
+              
+              </p><p>
+            Now restart your firewall on the remote host for the change to take effect:
+            </p><pre class="screen">
+            [root@mail /]# /etc/rc.d/init.d/firewall <span class="command"><strong>restart</strong></span>
+            </pre><p>
+            This firewall rule will allow incoming UDP packet on port 514 (syslog port) on the remote server that come from our internal client to 
+            be accepted. For more information on Firewall see Chapter 7 <code class="filename">Networking firewall</code>.
+            </p><p>
+            Finally, edit the syslog.conf file <code class="filename">vi /etc/syslog.conf</code> on the local server, and add at the end of this file the following line:
+            </p><pre class="programlisting">
+            authpriv.*;mail.*;local7.*;auth.*;daemon.info @mail
+             </pre><p>
+            Where mail is the hostname of the remote server. Now if anyone ever hacks your box and menaces to erase vital system logs, you still 
+            have a hard copy of everything. It should then be fairly simple to trace where they came from and deal with it accordingly.
+            Now restart your syslog daemon for the change to take effect:
+            </p><pre class="screen">
+            [root@deep] /# /etc/rc.d/init.d/syslog <span class="command"><strong>restart</strong></span>
+            </pre><p>
+            Same as on the remote host, we must add or verify the existence of the following lines in our firewall script file on the local host:
+            </p><pre class="programlisting">
+            ipchains -A output -i $EXTERNAL_INTERFACE -p udp \ <a name="exin2"></a><span><img src="images/callouts/1.png" alt="1" border="0"></span>
+            -s $IPADDR 514 \   <a name="ipd2"></a><span><img src="images/callouts/2.png" alt="2" border="0"></span>
+            -d $SYSLOG_SERVER 514 -j ACCEPT  <a name="syse2"></a><span><img src="images/callouts/3.png" alt="3" border="0"></span>
+            </pre><p>
+            
+              </p><div class="calloutlist"><table border="0" summary="Callout list"><tr><td width="5%" valign="top" align="left"><p><a href="#exin2"><span><img src="images/callouts/1.png" alt="1" border="0"></span></a> </p></td><td valign="top" align="left"><p>
+            Where EXTERNAL_INTERFACE="eth0" in the firewall file.
+            </p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#ipd2"><span><img src="images/callouts/2.png" alt="2" border="0"></span></a> </p></td><td valign="top" align="left"><p>
+            Where IPADDR="208.164.186.1" in the firewall file.
+             </p></td></tr><tr><td width="5%" valign="top" align="left"><p><a href="#syse2"><span><img src="images/callouts/3.png" alt="3" border="0"></span></a> </p></td><td valign="top" align="left"><p>
+            Where SYSLOG_SERVER="mail.openna.com" in the firewall file.
+            </p></td></tr></table></div><p>
+              
+              </p><p>
+            Now restart your firewall for the change to take effect:
+            </p><pre class="screen">
+            [root@deep] /# /etc/rc.d/init.d/firewall <span class="command"><strong>restart</strong></span>
+            </pre><p>
+            This firewall rule will allow outgoing UDP packet on port 514 syslog port on the local server destined to the remote syslog server to be accepted. For more information on 
+            Firewall see chapter 7 Networking firewall.
+            </p><div class="important" style="margin-left: 0.5in; margin-right: 0.5in;"><h3 class="title">
+<span class="inlinemediaobject"><img src="./images/Important.gif" alt="Important"></span>
+</h3><p>
+            Never use your Gateway Server as a host to control all syslog messages; this is a very bad idea. More options and strategies exist with the sysklogd program, see 
+            the man pages about <span class="citerefentry"><span class="refentrytitle">sysklogd</span>(8)</span>, <span class="citerefentry"><span class="refentrytitle">syslog</span>(2)</span>, 
+            and <span class="citerefentry"><span class="refentrytitle">syslog.conf</span>(5)</span> for more information.
+             </p></div></div><div class="navfooter"><hr><table width="100%" summary="Navigation footer"><tr><td width="40%" align="left"><a accesskey="p" href="chap5sec49.html">Prev</a> </td><td width="20%" align="center"><a accesskey="u" href="gen-syssecured.html">Up</a></td><td width="40%" align="right"> <a accesskey="n" href="chap5sec51.html">Next</a></td></tr><tr><td width="40%" align="left" valign="top">20. Disable <span class="keycap"><strong>Ctrl-Alt-Delete</strong></span> keyboard shutdown command </td><td width="20%" align="center"><a accesskey="h" href="index.html">Home</a></td><td width="40%" align="right" valign="top"> 22. Tighten scripts under <code class="filename">/etc/rc.d/</code></td></tr></table></div></body></html>

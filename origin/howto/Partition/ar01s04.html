@@ -1,0 +1,193 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1"><title>4. Partitioning requirements</title><link rel="stylesheet" type="text/css" href="style.css"><meta name="generator" content="DocBook XSL Stylesheets V1.79.1"><link rel="home" href="index.html" title="Linux Partition HOWTO"><link rel="up" href="index.html" title="Linux Partition HOWTO"><link rel="prev" href="ar01s03.html" title="3. Partition Types"><link rel="next" href="ar01s05.html" title="5. Partitioning with fdisk"></head><body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF"><div class="navheader"><table width="100%" summary="Navigation header"><tr><th colspan="3" align="center">4. Partitioning requirements</th></tr><tr><td width="20%" align="left"><a accesskey="p" href="ar01s03.html">Prev</a> </td><th width="60%" align="center"> </th><td width="20%" align="right"> <a accesskey="n" href="ar01s05.html">Next</a></td></tr></table><hr></div><div class="sect1"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="requirements"></a>4. Partitioning requirements</h2></div></div></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="number"></a>4.1. What Partitions do I need?</h3></div></div></div><p>
+For the Boot Drive:
+If you want to boot your operating system from the drive you are about
+to partition, you will need:
+</p><div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem"><p>A primary partition</p></li><li class="listitem"><p>One or more swap partitions</p></li><li class="listitem"><p>Zero or more primary/logical partitions</p></li></ul></div><p>
+For any other drive:
+</p><div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem"><p>One or more primary/logical partitions</p></li><li class="listitem"><p>Zero or more swap partitions</p></li></ul></div><p>
+</p></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="idm467"></a>4.2. Discussion:</h3></div></div></div><div class="variablelist"><dl class="variablelist"><dt><a name="boot"></a><span class="term">Boot Partition:</span></dt><dd><p>
+	Your boot partition ought to be a primary partition, not a logical
+	partition. This will ease recovery in case of disaster, but it is
+	not technically necessary. It must be of type
+	<code class="literal">0x83</code> "Linux native". If you are using a version
+	of <a class="ulink" href="http://tldp.org/HOWTO/LILO.html" target="_top"><span class="command"><strong>lilo</strong></span></a> before 21-3 (ie, from the 1990s), your boot partition must be
+	contained within the first 1024 cylinders of the drive. (Typically,
+	the boot partition need only contain the kernel image.)
+</p><p>
+	If you have more than one boot partition (from other OSs, for
+	example,) keep them all in the first 1024 cylinders
+	(<span class="emphasis"><em>All</em></span> DOS partitions must be within the first
+	1024).  If you are using a modern version of lilo, or a means other
+	than lilo to load your kernel (for example, a boot disk or the
+	<span class="command"><strong>LOADLIN.EXE</strong></span> MS-DOS based Linux loader), the
+	partition can be anywhere. See the <a class="ulink" href="http://www.tldp.org/HOWTO/Large-Disk-HOWTO.html" target="_top">Large-disk</a> 
+	HOWTO for details.
+</p></dd><dt><a name="swap-definition"></a><span class="term">Swap Partition:</span></dt><dd><p>
+Unless you swap to files (see <a class="xref" href="ar01s09.html#swapfiles" title="9.2. Swap Files">Section 9.2, &#8220;Swap Files&#8221;</a>) you will
+need a dedicated swap partition. It must be of type
+<code class="literal">0x82</code> "Linux swap". It may be positioned anywhere on
+the disk (but see <a class="xref" href="ar01s04.html#SwapPlacement" title="4.4.3. Where should I put my swap space?">Section 4.4.3, &#8220;Where should I put my swap space?&#8221;</a>). Either a primary or
+logical partition can be used for swap. More than one swap partition can
+exist on a drive. 8 total (across drives) are permitted. See notes on
+swap size below (<a class="xref" href="ar01s04.html#SwapSize" title="4.4. Swap Partitions">Section 4.4, &#8220;Swap Partitions&#8221;</a>).
+</p></dd><dt><a name="logical-definition"></a><span class="term">Logical Partition:</span></dt><dd><p>
+A single primary partition must be used as a container (extended
+partition) for the logical partitions. The extended partition can go
+anywhere on the disk. The logical partitions must be contiguous, but
+needn't fill the extended partition.
+</p></dd></dl></div></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="idm493"></a>4.3. File Systems</h3></div></div></div><div class="sect3"><div class="titlepage"><div><div><h4 class="title"><a name="filesystems"></a>4.3.1. Which file systems need their own partitions?</h4></div></div></div><p>
+Everything in your linux file system can go in the same (single)
+partition. However, there are circumstances when you may want to
+restrict the growth of certain file systems. For example, if your mail
+spool was in the same partition as your root fs and it filled the
+remaining space in the partition, your computer would basically
+hang.
+</p><div class="variablelist"><dl class="variablelist"><dt><span class="term"><code class="filename">/var</code></span></dt><dd><p>This fs contains spool directories such as those for mail and 
+	  printing. In addition, it contains the error log
+	  directory. If your machine is a server and develops a
+	  chronic error, those msgs can fill the partition. Server
+	  computers ought to have /var in a different partition than
+	  /.
+      </p></dd><dt><span class="term"><code class="filename">/usr</code></span></dt><dd><p>This is where most executable binaries go. In addition, the
+	  kernel source tree goes here, and much documentation. 
+     </p></dd><dt><span class="term"><code class="filename">/tmp</code></span></dt><dd><p>Some programs write temporary data files here. Usually, they
+	  are quite small. However, if you run computationally
+	  intensive jobs, like science or engineering applications,
+	  hundreds of megabytes could be required for brief periods of 
+	  time. In this case, keep /tmp in a different partition than
+	  /.
+     </p></dd><dt><span class="term"><code class="filename">/home</code></span></dt><dd><p>This is where users home directories go. If you do not impose 
+	  quotas on your users, this ought to be in its own partition.
+     </p></dd><dt><span class="term"><code class="filename">/boot</code></span></dt><dd><p>This is where your kernel images go. See discussion above
+          for placement on old systems.
+     </p></dd></dl></div></div><div class="sect3"><div class="titlepage"><div><div><h4 class="title"><a name="backups"></a>4.3.2. File lifetimes and backup cycles as partitioning criteria</h4></div></div></div><p>With ext2, partitioning decisions should be governed by backup
+considerations and to avoid external fragmentation <a class="xref" href="ar01s10.html#fragmentation" title="10.4. Some facts about file systems and fragmentation">Section 10.4, &#8220;Some facts about file systems and fragmentation&#8221;</a>
+from different file lifetimes.
+</p><p>Files have lifetimes. After a file has been created, it will
+remain some time on the system and then be removed. File
+lifetime varies greatly throughout the system and is partly
+dependent on the pathname of the file. For example, files in
+<code class="filename">/bin</code>, <code class="filename">/sbin</code>, <code class="filename">/usr/sbin</code>, <code class="filename">/usr/bin</code> and similar directories are
+likely to have a very long lifetime: many months and above.
+Files in <code class="filename">/home</code> are likely to have a medium lifetime: several
+weeks or so. File in <code class="filename">/var</code> are usually short lived: Almost no
+file in <code class="filename">/var/spool/news</code> will remain longer than a few days,
+files in <code class="filename">/var/spool/lpd</code> measure their lifetime in minutes or
+less.
+</p><p>
+	For backup it is useful if the amount of daily backup is smaller
+	than the capacity of a single backup medium. A daily backup can be a
+	complete backup or an incremental backup.
+</p><p>
+	You can decide to keep your partition sizes small enough that they
+	fit completely onto one backup medium (choose daily full backups).
+	In any case a partition should be small enough that its daily delta
+	(all modified files) fits onto one backup medium (choose incremental
+	backup and expect to change backup media for the weekly/monthly full
+	dump - no unattended operation possible).
+</p><p>
+	Your backup strategy depends on that decision.
+</p><p>
+	When planning and buying disk space, remember to set aside a
+	sufficient amount of money for backup! Unbackuped data is worthless!
+	Data reproduction costs are much higher than backup costs for
+	virtually everyone!
+</p><p>
+	For performance it is useful to keep files of different lifetimes on
+	different partitions. This way the short lived files on the news
+	partition may be fragmented very heavily. This has no impact on the
+	performance of the <code class="filename">/</code> or
+	<code class="filename">/home</code> partition.
+</p></div></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="SwapSize"></a>4.4. Swap Partitions</h3></div></div></div><div class="sect3"><div class="titlepage"><div><div><h4 class="title"><a name="idm546"></a>4.4.1. How large should my swap space be?</h4></div></div></div><p>
+Conventional wisdom creates swap space equal to the amount of RAM. </p><p>
+	But keep in mind that this is just a rule of thumb. It is easily
+	possible to create scenarios where programs have extremely large or
+	extremely small working sets (see <a class="xref" href="ar01s03.html#swap-partitions" title="3.5. Swap Partitions">Section 3.5, &#8220;Swap Partitions&#8221;</a>). 
+	For example, a simulation program with
+	a large data set that is accessed in a very random fashion would
+	have almost no noticeable locality of reference in its data segment,
+	so its working set would be quite large.
+</p><p>
+	On the other hand, a graphics program with many simultaneously
+	opened JPEGs, all but one iconified, would have a very large data
+	segment. But image transformations are all done on one single image,
+	most of the memory occupied by the program is not accessed. The same
+	is true for an editor with many editor windows where only one window
+	is being modified at a time. These programs have - if they are
+	designed properly - a very high locality of reference and large
+	parts of them can be kept swapped out without too severe performance
+	impact. A user who never quits programs once launched would
+	want a lot of swap space for the same reason.
+</p><p>
+	Servers typically are configured with more swap space than their
+	desktop counterparts. Even though a given amount of swap is
+	sufficient for its operations, the server might come under transient
+	heavy loads which cause it to page out at a high rate. Some
+	administrators prefer this to the server crashing altogether. In
+	these cases, swap might be several times the size of ram.
+</p></div><div class="sect3"><div class="titlepage"><div><div><h4 class="title"><a name="max_swap_size"></a>4.4.2. How large <span class="emphasis"><em>can</em></span> my swap space be?</h4></div></div></div><p>
+		Currently, the maximum size of a swap partition is
+		architecture-dependent. For i386, m68k, ARM and PowerPC, it is
+		"officially" 2Gb. It is 128Gb on alpha, 1Gb on sparc, and 3Tb on
+		sparc64. An opteron on the 2.6 kernel can write to a 16 Tb swap
+		partition. For linux kernels 2.1 and earlier, the limit is
+		128Mb. The partition may be larger than 128 MB, but excess space
+		is never used. If you want more than 128 MB of swap for a 2.1
+		and earlier kernel, you have to create multiple swap partitions
+		(8 max). After 2.4, 32 swap areas are "officially" possible. See
+		setting up swap for details.
+</p><p><span class="emphasis"><em>footnote:</em></span> 
+	"official" max swap size: With kernel 2.4, the limit is 64 swap spaces at a
+	maximum of 64Gb each, although this is not reflected in the man page
+	for <span class="command"><strong>mkswap</strong></span>. With the 64 bit opteron on the 2.6 kernel, 128 swap
+	areas are permitted, each a whopping 16 Tb! (thanks to Peter Chubb
+	for the calculation)
+</p></div><div class="sect3"><div class="titlepage"><div><div><h4 class="title"><a name="SwapPlacement"></a>4.4.3. Where should I put my swap space?</h4></div></div></div><p>
+The short answer is anywhere is fine. However, if you are
+interested in extracting as much speed as possible, there are
+two basic strategies (other than buying more RAM).
+</p><p>
+</p><div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem"><p>Split the swap space across multiple drives, or at least on the
+			    drive you write to least.
+           </p></li><li class="listitem"><p>Put each swap partition on the outer tracks.
+           </p></li></ul></div><p>
+</p><p> 
+	Here are the considerations:
+</p><div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem"><p>
+		If you have a disk with many heads and one with less heads and
+		both are identical in other parameters, the disk with many heads
+		will be faster. Reading data from different heads is fast, since
+		it is purely electronic. Reading data from different tracks is
+		slow, since it involves physically moving the head.
+	</p><p>
+		It follows then that writing swap on a separate drive will be
+		faster than moving the head back and forth on a single drive.
+	</p></li><li class="listitem"><p><span class="emphasis"><em>Placement</em></span>: 
+		Older disks have the same number of sectors on all tracks. With
+		these disks it will be fastest to put your swap in the middle of
+		the disks, assuming that your disk head will move from a random
+		track towards the swap area.
+	</p></li><li class="listitem"><p> 
+		Newer disks use ZBR (zone bit recording). They have more sectors
+		on the outer tracks. With a constant number of rpms, this yields
+		a far greater performance on the outer tracks than on the inner
+		ones. Put your swap on the fast tracks. (In general,
+		low-numbered cylinders are associated low partition numbers.
+		However, see Kristian's more recent <a class="ulink" href="http://lissot.net/partition/mapping.html" target="_top">comments</a>
+		on this issue. -Tony)
+	</p></li><li class="listitem"><p> <span class="emphasis"><em>Usage</em></span>: 
+		Of course your disk head will not move randomly. If you have swap
+		space in the middle of a disk between a constantly busy home
+		partition and an almost unused archive partition, you would be
+		better of if your swap were near the home partition for
+		even shorter head movements. You would be even better off, if you
+		had your swap on another otherwise unused disk, though.
+	</p></li><li class="listitem"><p> <span class="emphasis"><em>Striping</em></span>: 
+		Speed can be increased by writing to multiple swap areas
+		simultaneously. Swap spaces with the same priority will be
+		written to like a RAID. See <a class="xref" href="ar01s09.html#multiple_swap_areas" title="9.3. Multiple Swap Areas">Section 9.3, &#8220;Multiple Swap Areas&#8221;</a>.
+</p></li></ul></div><p><span class="emphasis"><em>Summary:</em></span> 
+	Put your swap on a fast disk with many heads that is not busy doing
+	other things. If you have multiple disks: Split swap and scatter it
+	over all your disks or even different controllers.
+</p></div></div></div><div class="navfooter"><hr><table width="100%" summary="Navigation footer"><tr><td width="40%" align="left"><a accesskey="p" href="ar01s03.html">Prev</a> </td><td width="20%" align="center"> </td><td width="40%" align="right"> <a accesskey="n" href="ar01s05.html">Next</a></td></tr><tr><td width="40%" align="left" valign="top">3. Partition Types </td><td width="20%" align="center"><a accesskey="h" href="index.html">Home</a></td><td width="40%" align="right" valign="top"> 5. Partitioning with fdisk</td></tr></table></div></body></html>

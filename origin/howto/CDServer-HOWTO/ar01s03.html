@@ -1,0 +1,169 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1"><title>3. Adding Support for More Loop Devices</title><link rel="stylesheet" type="text/css" href="style.css"><meta name="generator" content="DocBook XSL Stylesheets V1.79.1"><link rel="home" href="index.html" title="CDServer-HOWTO"><link rel="up" href="index.html" title="CDServer-HOWTO"><link rel="prev" href="ar01s02.html" title="2. Procedure"><link rel="next" href="ar01s04.html" title="4. More Information"></head><body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF"><div class="navheader"><table width="100%" summary="Navigation header"><tr><th colspan="3" align="center">3. Adding Support for More Loop Devices </th></tr><tr><td width="20%" align="left"><a accesskey="p" href="ar01s02.html">Prev</a> </td><th width="60%" align="center"> </th><td width="20%" align="right"> <a accesskey="n" href="ar01s04.html">Next</a></td></tr></table><hr></div><div class="sect1"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="addloops"></a>3. Adding Support for More Loop Devices </h2></div></div></div><a class="indexterm" name="idm413"></a><p>
+	Newer Linux kernels (2.4) allow you to add more loop devices easily by
+	editing <code class="filename">/etc/modules.conf</code> or through the use of a boot parameter.
+</p><p>
+	Older kernels (2.2 ?) only had
+	support for 8 loop devices compiled into the kernel.  In short, you were
+	only able to share 8 CD's on a network with this default value.
+	In order to support more than that default, you needed to modify the kernel source
+	and recompile a new kernel.
+</p><p>
+Use the following methods to determine which version of the kernel you are running.
+</p><p>
+</p><pre class="screen">
+<code class="prompt">bash#</code> <span class="command"><strong>uname -a</strong></span>
+</pre><p>
+</p><p>
+or
+</p><p>
+</p><pre class="screen">
+<code class="prompt">bash#</code> <span class="command"><strong>cat /proc/version</strong></span>
+</pre><p>
+</p><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="loopmodule"></a>3.1. Adding the Loop Module Option</h3></div></div></div><p>
+	Current kernels allow you to set the number of loop devices supported
+	without recompiling the kernel.  One of these methods is to add an options
+	line to <code class="filename">/etc/modules.conf</code>. 
+	This method will only work if your loop support
+	has been configured as a loadable kernel module (which is how most major
+	Linux distributions come preconfigured now).
+</p><p>
+	Edit <code class="filename">/etc/modules.conf</code> and add the following line.
+</p><p>
+</p><pre class="screen">
+options loop max_loop=64
+</pre><p>
+</p><p>
+	After making the above change, simply reboot.  Or you can try to use
+	<span class="command"><strong>rmmod</strong></span> and <span class="command"><strong>insmod</strong></span> to make the change 
+	on the fly - but this will not work
+	if you currently have any loop devices mounted (you'll get an error saying 
+	loop: Device or resource busy).
+</p><div class="variablelist"><dl class="variablelist"><dt><span class="term">Note</span></dt><dd><p>
+	If you do not have an <code class="filename">/etc/modules.conf</code> file, your module configuration
+	file may be called <code class="filename">/etc/conf.modules</code> (this name is now deprecated).
+</p></dd></dl></div><p>
+	Continue with <a class="xref" href="ar01s03.html#loopdev" title="3.4. Creating the Loop Devices in /dev">Section 3.4, &#8220;Creating the Loop Devices in /dev&#8221;</a>.
+</p><p>
+<span class="emphasis"><em>
+	Thanks to Paul A. Sand for pointing out the /etc/modules.conf option.
+</em></span>
+</p></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="bootprompt"></a>3.2. Appending to the Boot Prompt</h3></div></div></div><p>
+	If your loop support has been compiled directly into the kernel (in other words,
+	it is not loaded as a module), you can append the number of loop devices you would
+	like to support at the linux boot prompt.
+</p><p>
+</p><pre class="screen">
+<code class="prompt">boot:</code>  <span class="command"><strong>linux <em class="parameter"><code>max_loop=<em class="replaceable"><code>64</code></em></code></em></strong></span>
+</pre><p>
+</p><p>
+	Or, if you are using <span class="application"><acronym class="acronym">LILO</acronym></span>, 
+	you can edit your linux boot 
+	stanza in <code class="filename">/etc/lilo.conf</code> and add/modify
+	the <em class="parameter"><code>append=</code></em> line.  Here is an example stanza showing 
+	<em class="parameter"><code>append=</code></em> (<span class="emphasis"><em>note: only add or modify the append line,
+	don't change your whole stanza to look like this one or your system
+	may not boot</em></span>).  For more information about LILO, consult the
+<a class="ulink" href="http://www.linuxdoc.org/HOWTO/mini/LILO.html" target="_top">LILO mini-HOWTO</a> at
+<code class="systemitem">http://www.linuxdoc.org/HOWTO/mini/LILO.html</code>.
+</p><p>
+</p><pre class="screen">
+image=/boot/vmlinuz
+        label=linux
+        root=/dev/hdb5
+        initrd=/boot/initrd.img
+
+	append=<em class="replaceable"><code>" max_loop=64"</code></em>
+
+        vga=788
+        read-only
+</pre><p>
+</p><p>
+	After changing <code class="filename">/etc/lilo.conf</code>, you need to run 
+	the <span class="command"><strong>lilo</strong></span> command for your changes to take effect.
+</p><pre class="screen">
+<code class="prompt">bash#</code> <span class="command"><strong>lilo</strong></span>
+
+<code class="computeroutput">
+Added linux *
+Added linux-nonfb
+Added failsafe
+Added windows
+Added floppy
+</code>
+</pre><p>
+	Next restart your system.  After your system restarts, you can check your boot command line by typing the following:
+</p><p>
+</p><pre class="screen">
+<code class="prompt">bash#</code> <span class="command"><strong>cat /proc/cmdline</strong></span>
+</pre><p>
+</p><div class="variablelist"><dl class="variablelist"><dt><span class="term">Note</span></dt><dd><p>
+	I am not sure if the loop module (compiled as a module) reads 
+	<code class="filename">/proc/cmdline</code> when
+	the module is loaded, and therefore may not need an options line 
+	<code class="filename">/etc/modules.conf</code>. 
+	It's possible that it can (and if it doesn't, it should). 
+	To summarize:  I have not tested this.
+</p></dd></dl></div><p>
+	Continue with <a class="xref" href="ar01s03.html#loopdev" title="3.4. Creating the Loop Devices in /dev">Section 3.4, &#8220;Creating the Loop Devices in /dev&#8221;</a>.
+</p><p>
+<span class="emphasis"><em>
+	Thanks to Tony Melia for the boot prompt info.
+</em></span>
+</p></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="editkernel"></a>3.3. Tweaking the Kernel</h3></div></div></div><p>
+	If you have an older kernel (v. 2.2) or if you are completely comfortable
+	recompiling the kernel, you can increase the number of loop devices supported by
+	editing the <code class="filename">/usr/src/linux/drivers/block/loop.c</code> file.
+</p><div class="variablelist"><dl class="variablelist"><dt><span class="term">Note</span></dt><dd><p>
+If you find that the kernel sources are not installed on your machine, 
+you'll need to consult your Linux Distribution's documentation on 
+how to install them (the Kernel Sources come with all distributions - 
+it's part of the <acronym class="acronym">GNU</acronym> <acronym class="acronym">GPL</acronym> licensing).
+</p></dd></dl></div><p>
+Change the number in the following line to however many loop devices
+you'll need.
+</p><p>
+</p><pre class="screen">
+#define MAX_LOOP <em class="replaceable"><code>16</code></em>
+</pre><p>
+</p><p>
+Compile the new kernel or module as the case may be.  If you need some
+help getting started with this, read <code class="filename">/usr/src/linux/README</code> or consult
+<a class="ulink" href="http://www.linuxdoc.org/HOWTO/Kernel-HOWTO.html" target="_top">
+The Linux Kernel HOWTO</a>.
+</p><p>
+	Continue with <a class="xref" href="ar01s03.html#loopdev" title="3.4. Creating the Loop Devices in /dev">Section 3.4, &#8220;Creating the Loop Devices in /dev&#8221;</a>.
+</p></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="loopdev"></a>3.4. Creating the Loop Devices in /dev</h3></div></div></div><a class="indexterm" name="idm516"></a><p>
+	You should check how many <code class="filename">/dev</code> entries you have for loop devices.
+</p><p>
+</p><pre class="screen">
+<code class="prompt">bash#</code> <span class="command"><strong>ls -l /dev/loop*</strong></span>
+</pre><p>
+</p><p>
+	The <span class="command"><strong>mknod</strong></span> command creates the devices in the 
+	<code class="filename">/dev</code> directory.  The loop devices have a major
+	number of <span class="quote">&#8220;<span class="quote">7</span>&#8221;</span>, and the minor numbers begin at <span class="quote">&#8220;<span class="quote">0</span>&#8221;</span>. 
+	If your <em class="parameter"><code>MAX_LOOP</code></em> was defined as <span class="quote">&#8220;<span class="quote">8</span>&#8221;</span> in 
+	<code class="filename">/usr/src/linux/drivers/block/loop.c</code>, you should have 
+	<code class="filename">/dev/loop0</code> through 
+	<code class="filename">/dev/loop7</code>. 
+	To create the <code class="filename">/dev/loop8</code> device, 
+	use the following command (subsitute the appropriate number you need for 
+	both the <span class="quote">&#8220;<span class="quote">8's</span>&#8221;</span> in the example below).
+</p><p>
+</p><pre class="screen">
+<code class="prompt">bash#</code> <span class="command"><strong>mknod -m660 /dev/loop<em class="replaceable"><code>8</code></em> b 7 <em class="replaceable"><code>8</code></em></strong></span>
+</pre><p>
+</p><p>
+	Check Owner/Group &amp; Permissions on the new file (using <span class="command"><strong>ls -l</strong></span>). 
+	You can change the owner and group with the following command:
+</p><p>
+</p><pre class="screen">
+<code class="prompt">bash#</code> <span class="command"><strong>chown root.disk /dev/loop8</strong></span>
+</pre><p>
+</p><p>
+You can change the permissions using the following command:
+</p><p>
+</p><pre class="screen">
+<code class="prompt">bash#</code> <span class="command"><strong>chmod 666 /dev/loop8</strong></span>
+</pre><p>
+</p></div></div><div class="navfooter"><hr><table width="100%" summary="Navigation footer"><tr><td width="40%" align="left"><a accesskey="p" href="ar01s02.html">Prev</a> </td><td width="20%" align="center"> </td><td width="40%" align="right"> <a accesskey="n" href="ar01s04.html">Next</a></td></tr><tr><td width="40%" align="left" valign="top">2. Procedure </td><td width="20%" align="center"><a accesskey="h" href="index.html">Home</a></td><td width="40%" align="right" valign="top"> 4. More Information</td></tr></table></div></body></html>

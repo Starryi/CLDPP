@@ -1,0 +1,132 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1"><title>2. Customising the login screen</title><link rel="stylesheet" type="text/css" href="style.css"><meta name="generator" content="DocBook XSL Stylesheets V1.79.1"><link rel="home" href="index.html" title="XFree Local Multi-User HOWTO"><link rel="up" href="ch07.html" title="Chapter 7. Tweaking it"><link rel="prev" href="ch07s01.html" title="1. Using independent sound cards"><link rel="next" href="ch07s03.html" title="3. 1st X server configuration file"></head><body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF"><div class="navheader"><table width="100%" summary="Navigation header"><tr><th colspan="3" align="center">2. Customising the login screen</th></tr><tr><td width="20%" align="left"><a accesskey="p" href="ch07s01.html">Prev</a> </td><th width="60%" align="center">Chapter 7. Tweaking it</th><td width="20%" align="right"> <a accesskey="n" href="ch07s03.html">Next</a></td></tr></table><hr></div><div class="sect1"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="automation_login_screen"></a>2. Customising the login screen</h2></div></div></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="idm1221"></a>2.1. Using xdm</h3></div></div></div><p>Copy <code class="filename">/etc/X11/xdm/Xsetup_0</code> to <code class="filename">/etc/X11/xdm/Xsetup_1</code>. For additional X servers, create the file(s) <code class="filename">/etc/X11/xdm/Xsetup_[n]</code>, where n is the number of the X server starting from 0.</p><div class="orderedlist"><ol class="orderedlist" type="1"><li class="listitem"><p>Modify the line containing the background image, to adjust the path to your image for the 2nd X server:</p><pre class="programlisting">
+....
+if [ -r /usr/share/mdk/backgrounds/default.png -a -x /usr/bin/qiv ]; then
+    /usr/bin/qiv -z /usr/share/mdk/backgrounds/default.png
+else
+    /usr/X11R6/bin/xsetroot -solid "#21449C"
+fi
+....
+            </pre><p>Modified:</p><pre class="programlisting">
+....
+if [ -r /usr/share/mdk/backgrounds/flower.jpg -a -x /usr/bin/qiv ]; then
+    /usr/bin/qiv -z /usr/share/mdk/backgrounds/flower.jpg
+else
+    /usr/X11R6/bin/xsetroot -solid "#21449C"
+fi
+....
+            </pre><p>You can also specify a different background color, with:</p><pre class="programlisting">
+....
+#if [ -r /usr/share/mdk/backgrounds/flower.jpg -a -x /usr/bin/qiv ]; then
+#    /usr/bin/qiv -z /usr/share/mdk/backgrounds/flower.jpg
+#else
+    /usr/X11R6/bin/xsetroot -solid "[your color]"
+#fi
+....
+            </pre></li><li class="listitem"><p>Comment out the lines which may affect the primary X server, from:</p><pre class="programlisting">
+....
+if [ -x /etc/X11/xinit.d/numlock ]; then
+    /etc/X11/xinit.d/numlock &amp;
+fi
+....
+            </pre><p>to </p><pre class="programlisting">
+....
+#if [ -x /etc/X11/xinit.d/numlock ]; then
+#    /etc/X11/xinit.d/numlock &amp;
+#fi
+....
+            </pre></li><li class="listitem"><p>Inform xdm about the existence of Xsetup_1 by modifying <code class="filename">/etc/X11/xdm/xdm-config</code>:</p><pre class="programlisting">
+......
+! The following three resources set up display :0 as the console.
+DisplayManager._0.setup:        /etc/X11/xdm/Xsetup_0
+DisplayManager._0.startup:      /etc/X11/xdm/GiveConsole
+DisplayManager._0.reset:        /etc/X11/xdm/TakeConsole
+DisplayManager._0.startAttempts: 1
+!
+......
+            </pre><p>Modified:</p><pre class="programlisting">
+......
+! The following three resources set up display :0 as the console.
+DisplayManager._1.setup:        /etc/X11/xdm/Xsetup_1
+DisplayManager._0.setup:        /etc/X11/xdm/Xsetup_0
+DisplayManager._0.startup:      /etc/X11/xdm/GiveConsole
+DisplayManager._0.reset:        /etc/X11/xdm/TakeConsole
+DisplayManager._0.startAttempts: 1
+!
+......
+            </pre></li><li class="listitem"><p>Repeat the procedure for each additional X server.</p></li><li class="listitem"><p>Check here for additional customising options: <a class="ulink" href="http://www.linuxjournal.com/article.php?sid=3325" target="_top">Linux-Journal Issue 68: Linux Apprentice: Customising the XDM Login Screen</a>.</p></li></ol></div></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="idm1251"></a>2.2. Using kdm</h3></div></div></div><p></p><div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem"><p>I'm not really sure.  This area requires feedback. </p><p>Modify <code class="filename">/usr/share/config/kdm/kdmrc</code>, from:</p><pre class="programlisting">
+......
+[X-:0-Core]
+Authorize=true
+AutoLogin1st=true
+AutoLoginEnable=false
+Reset=/etc/X11/xdm/TakeConsole
+Setup=/etc/X11/xdm/Xsetup_0
+Startup=/etc/X11/xdm/GiveConsole
+
+[X-:1-Core]
+Authorize=true
+......
+            </pre><p>to </p><pre class="programlisting">
+......
+[X-:0-Core]
+Authorize=true
+AutoLogin1st=true
+AutoLoginEnable=false
+Reset=/etc/X11/xdm/TakeConsole
+Setup=/etc/X11/xdm/Xsetup_0
+Startup=/etc/X11/xdm/GiveConsole
+
+[X-:1-Core]
+Authorize=true
+#AutoLogin1st=true
+#AutoLoginEnable=false
+#Reset=/etc/X11/xdm/TakeConsole
+Setup=/etc/X11/xdm/Xsetup_1
+#Startup=/etc/X11/xdm/GiveConsole
+
+#[X-:1-Core]
+#Authorize=true
+......
+            </pre></li><li class="listitem"><p>Check for additional customising options at the KDE Help Center.</p></li></ul></div></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="idm1264"></a>2.3. Using gdm</h3></div></div></div><p>This requires <code class="filename">gdmlogin</code> to be used instead of  <code class="filename">gdmgreater</code>, because using different themes for different displays is not yet implemented in gdm. In case you want to use gdm themes you'll have the same theme on all displays.</p><div class="orderedlist"><ol class="orderedlist" type="1"><li class="listitem"><p>Switch to gdmlogin by making this changes in   <code class="filename">/etc/X11/gdm/gdm.conf</code></p><p>From:</p><pre class="programlisting">.....
+# Greeter for local (non-xdmcp) logins.  Change gdmlogin to gdmgreeter to
+# get the new graphical greeter.
+Greeter=/usr/bin/gdmgreeter
+.....
+</pre><p>to </p><pre class="programlisting">.....
+# Greeter for local (non-xdmcp) logins.  Change gdmlogin to gdmgreeter to
+# get the new graphical greeter.
+Greeter=/usr/bin/gdmlogin
+.....</pre></li><li class="listitem"><p>Copy the file <code class="filename">/etc/X11/gdm/Init/Default</code> to <code class="filename">/etc/X11/gdm/Init/:0</code>, and <code class="filename">/etc/X11/gdm/Init/:1</code></p></li><li class="listitem"><p>Add these lines to use the background that kdm uses (you can use another image file as well, just change the full path to it):</p><pre class="programlisting">
+if [ -r /usr/share/mdk/backgrounds/default.png -a -x /usr/bin/qiv ]; then
+    /usr/bin/qiv -z /usr/share/mdk/backgrounds/default.png
+else
+    /usr/X11R6/bin/xsetroot -solid "#21449C"
+fi
+            </pre><p>You can also specify a different background color, with:</p><pre class="programlisting">/usr/X11R6/bin/xsetroot -solid "[your color]"</pre><p>Modified:</p><p><code class="filename">/etc/X11/gdm/Init/:0 </code></p><pre class="programlisting">
+#!/bin/sh
+
+if [ -r /usr/share/mdk/backgrounds/default.png -a -x /usr/bin/qiv ]; then
+    /usr/bin/qiv -z /usr/share/mdk/backgrounds/default.png
+else
+    /usr/X11R6/bin/xsetroot -solid "#21449C"
+fi
+if [ -x /etc/X11/xinit/fixkeyboard ]; then
+    /etc/X11/xinit/fixkeyboard
+fi
+
+exit 0
+            </pre><p><code class="filename">/etc/X11/gdm/Init/:1 </code></p><pre class="programlisting">
+#!/bin/sh
+
+if [ -r /usr/share/mdk/backgrounds/flower.jpg -a -x /usr/bin/qiv ]; then
+    /usr/bin/qiv -z /usr/share/mdk/backgrounds/flower.jpg
+else
+    /usr/X11R6/bin/xsetroot -solid "#21449C"
+fi
+
+if [ -x /etc/X11/xinit/fixkeyboard ]; then
+    /etc/X11/xinit/fixkeyboard
+fi
+
+exit 0
+            </pre></li><li class="listitem"><p>Repeat the procedure for each additional X server, using file(s) <code class="filename">/etc/X11/gdm/Init/:[n]</code>, where n is the number of the display.</p></li><li class="listitem"><p>Check here for additional customising options: <a class="ulink" href="http://www.ibiblio.org/oswg/oswg-nightly/oswg/en_US.ISO_8859-1/articles/gdm-reference/gdm-reference/" target="_top">Gnome Display Manager Reference Manual</a>.</p></li></ol></div></div></div><div class="navfooter"><hr><table width="100%" summary="Navigation footer"><tr><td width="40%" align="left"><a accesskey="p" href="ch07s01.html">Prev</a> </td><td width="20%" align="center"><a accesskey="u" href="ch07.html">Up</a></td><td width="40%" align="right"> <a accesskey="n" href="ch07s03.html">Next</a></td></tr><tr><td width="40%" align="left" valign="top">1. Using independent sound cards  </td><td width="20%" align="center"><a accesskey="h" href="index.html">Home</a></td><td width="40%" align="right" valign="top"> 3. 1st X server configuration file</td></tr></table></div></body></html>

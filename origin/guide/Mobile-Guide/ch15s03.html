@@ -1,0 +1,380 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1"><title>3. E-Mail</title><link rel="stylesheet" type="text/css" href="style.css"><meta name="generator" content="DocBook XSL Stylesheets V1.79.1"><meta name="keywords" content="laptop, notebook, pda, handheld, computer, mobile, mobile phone, cell phone, portable player, linux, unix"><link rel="home" href="index.html" title="Linux on the Road"><link rel="up" href="ch15.html" title="Chapter 15. Different Environments"><link rel="prev" href="ch15s02.html" title="2. Configuration Tools"><link rel="next" href="ch15s04.html" title="4. Data Transport Between Different Machines (Synchronization)"></head><body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF"><div class="navheader"><table width="100%" summary="Navigation header"><tr><th colspan="3" align="center">3. E-Mail</th></tr><tr><td width="20%" align="left"><a accesskey="p" href="ch15s02.html">Prev</a> </td><th width="60%" align="center">Chapter 15. Different Environments</th><td width="20%" align="right"> <a accesskey="n" href="ch15s04.html">Next</a></td></tr></table><hr></div><div class="sect1"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="mobile-guide-p5c1s3-e-mail"></a>3. E-Mail</h2></div></div></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="idm4067"></a>3.1. Introduction</h3></div></div></div><p>
+   A short introduction about how to setup email on a laptop used at home
+   (dial-up) and work (ethernet) by Peter Englmaier &lt;ppe_AT_pa.uky.edu&gt;:
+</p><div class="sect3"><div class="titlepage"><div><div><h4 class="title"><a name="idm4070"></a>3.1.1. Features</h4></div></div></div><p>
+   As a laptop user, I have special demands for my email setup. The setup
+   described below, enables me to:
+</p><p>
+
+</p><div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem"><p>
+   Read my email from <span class="emphasis"><em>home</em></span> using a POP email server,
+   which is supplied by my university, but could also be setup on a
+   <span class="emphasis"><em>work</em></span> place computer.
+</p></li><li class="listitem"><p>
+   Write email from home with the <span class="emphasis"><em>right</em></span> return address
+   in the email (which does not mention my computer name).
+</p></li><li class="listitem"><p>
+   Read/write my email while working on a workstation without access to my
+   laptop or the POP email server (as a backup).
+</p></li><li class="listitem"><p>
+   Read my email while working on my laptop connected to the ethernet of
+   our institut.
+</p></li><li class="listitem"><p>
+   Direct email while connected via ethernet (faster than the fetchmail
+   method).
+</p></li><li class="listitem"><p>
+   Indirect email (over pop mail server) while not connected to the
+   ethernet at work (either at home via modem or somewhere else via
+   ethernet).
+</p></li><li class="listitem"><p>
+   Use any emailer, e.g. <span class="command"><strong>elm</strong></span> or the simple
+   <span class="command"><strong>mail</strong></span> command.
+</p></li><li class="listitem"><p>
+   Sort incoming email, delete spam, split email-collections (digests)
+   into seperate emails
+</p></li></ul></div><p>
+
+</p><p>
+   The configuration is based on <span class="command"><strong>sendmail</strong></span>,
+   <span class="command"><strong>fetchmail</strong></span>, and a <span class="emphasis"><em>remote pop
+   account</em></span> for email.
+</p></div><div class="sect3"><div class="titlepage"><div><div><h4 class="title"><a name="idm4100"></a>3.1.2. Configuration of sendmail</h4></div></div></div><p>
+   This is the most complicated part. Having installed the
+   <span class="command"><strong>sendmail-cf</strong></span> package, I created a file named
+   <code class="filename">/usr/lib/sendmail-cf/laptop.mc</code>:
+</p><p>
+
+</p><pre class="programlisting">
+divert(-1)
+include(`../m4/cf.m4')
+define(`confDEF_USER_ID',''8:12'')
+define(`confBIND_OPTS',`-DNSRCH -DEFNAMES')
+
+# here you define your domain
+define(`confDOMAIN_NAME',''pa.uky.edu'')
+OSTYPE(`linux')
+undefine(`UUCP_RELAY')
+undefine(`BITNET_RELAY')
+
+# there we send outgoing email
+define(`SMART_HOST',`server1.pa.uky.edu') 
+
+# there we send mail to users my laptop does not know
+define(`LUSER_RELAY',`server1.pa.uky.edu') 
+
+# again the domain, we want to be seen as
+MASQUERADE_AS(pa.uky.edu)
+FEATURE(allmasquerade)
+FEATURE(nouucp)
+FEATURE(nodns)
+FEATURE(nocanonify)
+FEATURE(redirect)
+FEATURE(always_add_domain)
+FEATURE(use_cw_file)
+FEATURE(local_procmail)
+MAILER(procmail)
+MAILER(smtp)
+HACK(check_mail3,`hash -a@JUNK /etc/mail/deny')
+HACK(use_ip,`/etc/mail/ip_allow')
+HACK(use_names,`/etc/mail/name_allow')
+HACK(use_relayto,`/etc/mail/relay_allow')
+HACK(check_rcpt4)
+HACK(check_relay3)
+</pre><p>
+
+</p><p>
+   This looks more complicated as it is. All it does is, that it redirectes
+   outbound mail to server1 (SMART_HOST) and also mail for local users
+   which are not known (LUSER_RELAY). That way, I can write email to my
+   colleques without using their full email address. More important: the
+   From line in my email points back to my MASQUARADE_AS domain and not
+   directly to my laptop. If this where not the case, email returned with
+   the <span class="emphasis"><em>reply</em></span> button might not reach me. You must
+   restart <span class="command"><strong>sendmail</strong></span> for changes to take effect. Note:
+   this configuration is for Redhat 5.2 systems. You may have to change
+   some details.
+</p><p>
+   Now, all what is needed is to generate the <code class="filename">/etc/sendmail.cf
+   </code>file <span class="command"><strong>m4 laptop.mc &gt;/etc/sendmail.cf</strong></span> and
+   to add all possible domain names my laptop should respond to in
+   <code class="filename">/etc/sendmail.cw</code>:
+</p><p>
+
+</p><pre class="programlisting">
+# sendmail.cw - include all aliases for your machine here.
+laptop
+laptop.pa.uky.edu
+128.17.18.30
+guest1
+guest1.somewhere.org
+</pre><p>
+
+</p><p>
+   It is important to have all aliases in this file, otherwise
+   <span class="command"><strong>sendmail</strong></span> will not accept the mail (and will reply
+   <span class="emphasis"><em>we don't relay</em></span> to the sender). Finally, you must
+   now test the setup by sending email, replying to mail for all possible
+   configurations. Any missconfiguration can result in loss of email.
+</p></div><div class="sect3"><div class="titlepage"><div><div><h4 class="title"><a name="idm4119"></a>3.1.3. Configuration for fetchmail on Laptop</h4></div></div></div><p>
+   One method to get the email into your machine is through
+   <span class="command"><strong>fetchmail</strong></span>. Fetchmail periodically checks for new
+   email at one or more remote mail servers. I use the following fetchmail
+   configuration file (in my user home directory):
+   <code class="filename">fetchmailrc</code>
+</p><p>
+
+</p><pre class="programlisting">
+set postmaster "myusername"
+set daemon 900
+poll pop.uky.edu with proto POP3
+user "mypopusername" there with password "mypoppassword" is mylaptopusername here
+</pre><p>
+
+</p><p>
+   Fetchmail will just get the email and send it to
+   <span class="command"><strong>sendmail</strong></span> which will it deliver into your
+   <code class="filename">/var/spool/mail/$USER</code> file.
+</p></div><div class="sect3"><div class="titlepage"><div><div><h4 class="title"><a name="idm4129"></a>3.1.4. Forward E-Mail to the Laptop</h4></div></div></div><p>
+   On my work station I have the following <code class="filename">.forward</code>
+   file:
+</p><p>
+
+</p><pre class="programlisting">
+me@pop.acount.edu,me@server1
+</pre><p>
+
+</p><p>
+   Here server1 is the machine where I keep my mailbox. All email is send
+   to the pop account to be picked up later by my laptop (using
+   <span class="command"><strong>fetchmail</strong></span>). However, when my laptop is connected via
+   ethernet, I want my email to go directly to the laptop, instead of pop:
+</p><p>
+
+</p><pre class="programlisting">
+me@laptop,me@server1
+</pre><p>
+
+</p><p>
+   In both cases, a backup of my email is send to server1 (where I also can
+   read it, in case I cannot get my laptop). I keep/store all email on the
+   laptop. 
+</p><p>
+   Switching is done by three script files and a crontab file (on the
+   workstation):
+</p><p>
+   <code class="filename">forward_pop</code>
+</p><p>
+
+</p><pre class="programlisting">
+#!/bin/sh
+echo "me@pop.acount.edu,me@server1" &gt; ${HOME}/.forward
+</pre><p>
+
+</p><p>
+   <code class="filename">forward_laptop</code>
+</p><p>
+
+</p><pre class="programlisting">
+#!/bin/sh
+echo "ppe@laptop,ppe@server1" &gt; ${HOME}/.forward
+crontab ${HOME}/mycrontab
+${HOME}/utl/check_laptop
+</pre><p>
+
+</p><p>
+   <code class="filename">check_laptop</code>
+</p><p>
+
+</p><pre class="programlisting">
+#!/bin/sh
+if /usr/sbin/ping -c 1 laptop  &gt;/dev/null 2&gt;&amp;1 ; then
+   :
+else
+   # redirect mail to pop
+   ${HOME}/utl/forward_pop
+   sleep 10
+if /usr/sbin/ping -c 1 laptop  &gt;/dev/null 2&gt;&amp;1 ; then
+      # back to normal
+      ${HOME}/utl/forward_laptop
+else
+# deactivate crontab check
+/bin/crontab -l | grep -v check_laptop &gt;${HOME}/tmp/mycrontab.tmp
+      /bin/crontab ${HOME}/tmp/mycrontab.tmp
+      rm -f ${HOME}/tmp/mycrontab.tmp
+fi
+fi
+</pre><p>
+
+</p><p>
+   <code class="filename">mycrontab</code>
+</p><p>
+
+</p><pre class="programlisting">
+# mycrontab
+0,10,20,30,40,50 * * * * ${HOME}/utl/check_laptop
+</pre><p>
+
+</p><p>
+   Each time I connect the laptop to the ethernet, I have to run
+   <span class="command"><strong>forward_laptop</strong></span>, and each time I disconnect I run
+   forward_pop. In case I forget to run <span class="command"><strong>forward_pop</strong></span>, the
+   crontab job runs it for me less then 10 minutes later. To do all that
+   automatically, I change the network script files on my laptop as
+   follows:
+</p><p>
+   <code class="filename">/sbin/ifdown</code> (this script runs, whenever a network
+   device is stopped, new stuff between BEGIN and END)
+</p><p>
+
+</p><pre class="programlisting">
+...
+fi
+# BEGIN new stuff
+# turn off forwarding email
+mail ppe &lt;&lt;EOF
+turning off forwarding email
+device = ${DEVICE}
+hostname = `hostname`
+EOF
+if [ "${DEVICE}" = "eth0" -a "`hostname`"
+= "laptop" ]; then
+su -lc "ssh -l myusername server1
+utl/forward_pop" myusername &gt;&amp; /dev/null
+fi
+# END new stuff
+
+ifconfig ${DEVICE} down
+exec /etc/sysconfig/network-scripts/ifdown-post $CONFIG
+</pre><p>
+
+</p><p>
+   Note, that the script checks for the value of hostname. In case, I am
+   connected to a foreign ethernet, my hostname and ip-address will be
+   something else, e.g. guest1.
+</p><p>
+   <code class="filename">/etc/sysconfig/network-scripts/ifup-post</code> (this
+   script is run, whenever a network device is started)
+</p><p>
+
+</p><pre class="programlisting">
+# Notify programs that have requested notification
+do_netreport
+# BEGIN new stuff
+# check for email -- I'm using fetchmail for this
+if [ "${DEVICE}" = "eth0" -o "${DEVICE}"
+= "ppp0" ]; then
+su -lc fetchmail myusername &gt;&amp; /dev/null &amp;
+fi
+# set clock if connected to ethernet, redirect email
+if [ "${DEVICE}" = "eth0" -a "`hostname`" = "zaphod" ]; then
+( rdate -s server1 ; hwclock --systohc --utc ) &gt;&amp; /dev/null &amp;
+# forward email
+su -lc "ssh -l myusername gradj utl/forward_laptop" myusername &gt;&amp; /dev/null &amp;
+fi
+# END new stuff
+
+exit 0
+</pre><p>
+
+</p></div><div class="sect3"><div class="titlepage"><div><div><h4 class="title"><a name="idm4169"></a>3.1.5. Processing Incoming E-Mail with procmail</h4></div></div></div><p>
+   This step is completely optional. The above described sendmail
+   configuration calls <span class="command"><strong>procmail</strong></span> for each received email,
+   but you could have called <span class="command"><strong>procmail</strong></span> using the
+   <span class="command"><strong>.forward</strong></span> file (see the procmail man page). Procmail
+   is a handy tool to block spam and to sort incoming email. 
+</p><p>
+   You need to setup a <span class="command"><strong>.procmailrc</strong></span> file to use
+   <span class="command"><strong>procmail</strong></span>. See the man page for procmail, procmailrc,
+   and procmailex (examples). My setup demonstrates, how to ignore certain
+   email messages and split email-collections (digest) into pieces:
+</p><p>
+
+</p><pre class="programlisting">
+# -- mail filtering -- procmail is called by sendmail --
+PATH=/bin:/usr/bin
+MAILDIR=$HOME/Mail
+LOGFILE=$MAILDIR/from
+# keep in mind:
+# use ":0:" when writing to a file
+# use ":0"  when writing to a device, e.g. /dev/null, or send email
+
+# - make a backup of *all* incoming mail, but ignore mail tagged below -
+:0 c:
+*! ^Sissa-Repro
+backup
+
+# - keep only last 50 messages
+:0 ic
+| cd backup &amp;&amp; rm -f dummy `ls -t msg.* | sed -e 1,50d`
+
+# - delete email coming through the 'postdocs' email list, when
+# it is not of any interest
+:0
+* ^From.*postdocs
+* ^From.*Ernst Richter /dev/null :0
+* ^From.*postdocs
+* ^Subject.*card charge
+/dev/null
+# Split mailing list from the sissa preprint server into individual emails
+# - this is quite complicated :(   I can flip through the list much
+#   faster and ignore preprints which have uninteresting titles. Instead of
+#   having to browse through the whole list, my mailer will just present a
+#   list of papers.
+# 1. split it in individual messages
+:0
+* ^From no-reply@xxx.lanl.gov
+| formail +1 -de -A "Sissa-Repro: true" -s procmail
+# 2. reformat messages a bit
+# 2.1. extract 'Title:' from email-Body and add to email-header
+as 'Subject:'
+:0 b
+* ^Sissa-Repro
+*! ^Subject
+TITLE=| formail -xTitle:
+:0 a
+|formail -A "Subject: $TITLE " -s procmail
+
+# 2.2. store in my incoming sissa-email folder. Here, we could
+#      also reject (and thereafter delete) uninteresting 'Subjects'
+#      we could also mark more interesting subjects as urgend or send a copy
+#      to regular mail box.
+:0:
+* ^Sissa-Repro
+* ^Subject
+*! ^replaced with
+sissa
+</pre><p>
+
+</p><p>
+   By the way, there is a <span class="command"><strong>tk</strong></span> GUI tool to configure
+   <span class="command"><strong>procmail</strong></span> (I think it is called
+   <span class="command"><strong>dotfiles</strong></span>).
+</p></div></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="idm4184"></a>3.2. Email with UUCP</h3></div></div></div><p>
+   Another possible solution for Email is to use UUCP. This software was
+   made for disconnected machines, and is by far the easiest solution if
+   you have several users on your laptop (we are talking about
+   <acronym class="acronym">UNIX</acronym>, remember?), each with his/her own account.
+</p><p>
+   Unlike what most people think, UUCP does not need a serial
+   connection: it works fine over TCP/IP, so your UUCP partner can be
+   any machine on the Internet, if it is reachable from your network
+   attachment point. Here is the UUCP <code class="filename">sys</code> for a
+   typical laptop:
+
+</p><pre class="programlisting">
+system mylaptop
+time any
+chat "" \d\d\r\c ogin: \d\L word: \P
+address uucp.mypartner.org
+port TCP
+</pre><p>
+
+</p></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="idm4191"></a>3.3. MailSync</h3></div></div></div><p>
+   <a class="ulink" href="http://mailsync.sourceforge.net/" target="_top">Mailsync</a>
+   is a way of synchronizing a collection of mailboxes. The
+   algorithm is a 3-way diff. Two mailboxes are simultaneously compared to
+   a record of the state of both mailboxes at last sync. New messages and
+   message deletions are propagated between the two mailboxes.  Mailsync
+   can synchronize local mailbox files in many formats and remote
+   mailboxes over IMAP, POP, and IMAPS.  
+</p></div></div><div class="navfooter"><hr><table width="100%" summary="Navigation footer"><tr><td width="40%" align="left"><a accesskey="p" href="ch15s02.html">Prev</a> </td><td width="20%" align="center"><a accesskey="u" href="ch15.html">Up</a></td><td width="40%" align="right"> <a accesskey="n" href="ch15s04.html">Next</a></td></tr><tr><td width="40%" align="left" valign="top">2. Configuration Tools </td><td width="20%" align="center"><a accesskey="h" href="index.html">Home</a></td><td width="40%" align="right" valign="top"> 4. Data Transport Between Different Machines (Synchronization)</td></tr></table></div></body></html>

@@ -1,0 +1,244 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1"><title>Linux Migration to Promise RAID Card HOWTO</title><link rel="stylesheet" type="text/css" href="style.css"><meta name="generator" content="DocBook XSL Stylesheets V1.79.1"><meta name="description" content="This document aims to outline the steps of how to migrate an existing (Red Hat) Linux install onto a Promise TX2 Card for the purposes of RAID-1 Mirroring. Although I am concentrating on Red Hat, the same principles may be applied to any other distribution."></head><body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF"><div class="article"><div class="titlepage"><div><div><h2 class="title"><a name="Linux-Promise-RAID1-HOWTO"></a>Linux Migration to Promise RAID Card HOWTO</h2></div><div><div class="author"><h3 class="author"><span class="firstname">Benjamin</span> <span class="surname">Simkin</span></h3><div class="affiliation"><div class="address"><p><code class="email">&lt;<a class="email" href="mailto:bensimkin%20(at)%20union.org.za">bensimkin (at) union.org.za</a>&gt;</code></p></div></div></div></div><div><p class="pubdate">2002-12-16</p></div><div><div class="revhistory"><table style="border-style:solid; width:100%;" summary="Revision History"><tr><th align="left" valign="top" colspan="3"><b>Revision History</b></th></tr><tr><td align="left">Revision 1.5</td><td align="left">2003-03-25</td><td align="left">bs</td></tr><tr><td align="left" colspan="3"></td></tr><tr><td align="left">Revision 1.4</td><td align="left">2002-12-16</td><td align="left">bs</td></tr><tr><td align="left" colspan="3">Changed URL for Promise website</td></tr><tr><td align="left">Revision 1.3</td><td align="left">2002-09-04</td><td align="left">bs</td></tr><tr><td align="left" colspan="3">Added Troubleshooting section</td></tr><tr><td align="left">Revision 1.1</td><td align="left">2002-08-05</td><td align="left">bs</td></tr><tr><td align="left" colspan="3"></td></tr></table></div></div><div><div class="abstract"><p class="title"><b>Abstract</b></p><p>
+This document aims to outline the steps of how to migrate an existing
+(Red Hat) Linux install onto a Promise TX2 Card for the purposes of
+RAID-1 Mirroring. Although I am concentrating on Red Hat, the same
+principles may be applied to any other distribution.
+        </p></div></div></div><hr></div><div class="toc"><p><b>Table of Contents</b></p><dl class="toc"><dt><span class="sect1"><a href="#intro">1. Introduction</a></span></dt><dd><dl><dt><span class="sect2"><a href="#idm37">1.1. What?</a></span></dt><dt><span class="sect2"><a href="#idm40">1.2. Why?</a></span></dt><dt><span class="sect2"><a href="#idm43">1.3. How?</a></span></dt><dt><span class="sect2"><a href="#copyright">1.4. Copyright and License</a></span></dt><dt><span class="sect2"><a href="#disclaimer">1.5. Disclaimer</a></span></dt><dt><span class="sect2"><a href="#contact">1.6. Contact the Author</a></span></dt></dl></dd><dt><span class="sect1"><a href="#modinstall">2. Module Installation</a></span></dt><dd><dl><dt><span class="sect2"><a href="#idm62">2.1. What?</a></span></dt><dt><span class="sect2"><a href="#idm68">2.2. How?</a></span></dt></dl></dd><dt><span class="sect1"><a href="#LinuxConf">3. Linux Configuration</a></span></dt><dd><dl><dt><span class="sect2"><a href="#idm114">3.1. What?</a></span></dt><dt><span class="sect2"><a href="#idm117">3.2. How?</a></span></dt></dl></dd><dt><span class="sect1"><a href="#arrayConf">4. Array Configuration</a></span></dt><dd><dl><dt><span class="sect2"><a href="#idm133">4.1. Building the Array</a></span></dt><dt><span class="sect2"><a href="#idm137">4.2. Changing Configuration Files</a></span></dt></dl></dd><dt><span class="sect1"><a href="#idm168">5. Monitoring the Array</a></span></dt><dt><span class="sect1"><a href="#idm175">6. Troubleshooting</a></span></dt></dl></div><div class="sect1"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="intro"></a>1. Introduction</h2></div></div></div><p>
+This document contains two main sections, the module setup, and the
+migration. Neither of these are documented anywhere on the net.
+  </p><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="idm37"></a>1.1. What?</h3></div></div></div><p>
+The Promise Fasttrak is a PCI Ultra 100 RAID Card. It can be
+used as a RAID card, or as standard IDE interfaces. This
+documentation DOES NOT address the issues of the 'ataraid' module,
+but addresses the issues of setting up the card with the propriety
+module 'ft', as supplied by 'Promise Technologies'.
+    </p></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="idm40"></a>1.2. Why?</h3></div></div></div><p>
+The documentation that comes with the module contains erroneous
+instructions that if followed, cause the card to not work properly.
+Also, upon looking over the internet for such documentation, I found
+a lack.
+    </p></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="idm43"></a>1.3. How?</h3></div></div></div><p>
+Using the Promise Technology module. The module that Promise
+Technologies provide works well, but the documentation they provide is
+somewhat lacking.
+    </p></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="copyright"></a>1.4. Copyright and License</h3></div></div></div><p>
+     This document, <span class="emphasis"><em>Linux Migration to Promise RAID 
+     Card-HOWTO</em></span>,
+     is copyrighted (c) 2002 by <span class="emphasis"><em>Benjamin Simkin</em></span>.
+     Permission is granted to copy, distribute and/or modify this
+     document under the terms of the GNU Free Documentation
+     License, Version 1.1 or any later version published
+     by the Free Software Foundation; with no Invariant Sections,
+     with no Front-Cover Texts, and with no Back-Cover Texts.
+     A copy of the license is available at
+     <a class="ulink" href="http://www.gnu.org/copyleft/fdl.html" target="_top">
+     http://www.gnu.org/copyleft/fdl.html</a>.
+    </p></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="disclaimer"></a>1.5. Disclaimer</h3></div></div></div><p>
+     No liability for the contents of this document can be accepted.
+     Use the concepts, examples and information at your own risk.
+     There may be errors and inaccuracies, that could be damaging to
+     your system.  Proceed with caution, and although this is highly
+     unlikely, the author does not take any responsibility.
+    </p><p>
+     All copyrights are held by their by their respective owners,
+     unless specifically noted otherwise.  Use of a term in this
+     document should not be regarded as affecting the validity of any
+     trademark or service mark.  Naming of particular products or
+     brands should not be seen as endorsements.
+    </p></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="contact"></a>1.6. Contact the Author</h3></div></div></div><p>
+You may email me (<code class="email">&lt;<a class="email" href="mailto:bensimkin%20(at)%20union.org.za">bensimkin (at) union.org.za</a>&gt;</code>) with
+improvements and suggestions etc.  Please include
+in the subject line:  "Promise RAID HOWTO".
+  </p></div></div><div class="sect1"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="modinstall"></a>2. Module Installation</h2></div></div></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="idm62"></a>2.1. What?</h3></div></div></div><p>
+You will need an existing Red Hat Linux Install, and you will need to
+obtain the correct driver from the 
+<a class="ulink" href="http://www.promise.com/support/download/download_eng.asp" target="_top">Promise website</a>.
+    </p><p>
+Choose your card type, and then choose <span class="emphasis"><em>FastTrak Family Red
+Hat Linux Driver Uniprocessor</em></span>.
+    </p></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="idm68"></a>2.2. How?</h3></div></div></div><p>
+Put the RAID Card into the computer, but leave the hard drive(s) on the motherboard. Boot up into Linux. Login as root. 
+You should have the tar file from the Promise site, if not, see "What?" section above. 
+   </p><div class="sect3"><div class="titlepage"><div><div><h4 class="title"><a name="idm71"></a>2.2.1. Extracting the module</h4></div></div></div><p></p><div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem"><p>
+    Put the tar file into <code class="filename">/tmp</code>.
+  </p></li><li class="listitem"><p>Issue this command: 
+    <span class="command"><strong>tar vxf ftrhup_120b9.tar</strong></span>
+  </p></li><li class="listitem"><p>Now we have access to the <code class="filename">modules.cgz</code>
+    file. Issue the following: </p><pre class="screen">
+      # gzip -dc modules.cgz &gt; modules.cpio
+      # cpio -idumv &lt; modules.cpio
+    </pre><p>
+      A few directories will be created, so move to the correct
+      directory, depending on your kernel version. You can get your
+      kernel version, by issuing: <span class="command"><strong>uname -r</strong></span>
+    </p></li><li class="listitem"><p>
+    You will see the <code class="filename">ft.o</code> file. Copy this file to the 
+    <code class="filename">/lib/modules/kernel-version/kernel/drivers/scsi</code>
+    directory. 
+  </p></li></ul></div></div><div class="sect3"><div class="titlepage"><div><div><h4 class="title"><a name="idm91"></a>2.2.2. Creating the Initial RAM Disk</h4></div></div></div><p>
+The Fasttrak module, ft, needs scsi_mod. To use the card as a RAID
+Card, you will also need sd_mod.
+</p><p>
+To boot off the card, we will need to create a ramdisk, with the
+required modules, so that linux can see the hard drive(s).
+</p><pre class="screen"># /sbin/mkinitrd --preload scsi_mod --preload sd_mod --with ft initrd-kernel-version.img kernel-version</pre><p>
+If your kernel version is <span class="strong"><strong>2.4.2-2</strong></span>, 
+you would issue the command:
+</p><pre class="screen"># /sbin/mkinitrd --preload scsi_mod --preload sd_mod --with ft initrd-2.4.2-2.img 2.4.2-2</pre><p>
+Now move the newly created ramdisk image to <code class="filename">/boot</code>. 
+Its time to edit <code class="filename">lilo.conf</code>.
+</p><p>
+Before we edit <code class="filename">lilo.conf</code>, its best to make a
+floppy boot disk with the ft module included.
+</p></div><div class="sect3"><div class="titlepage"><div><div><h4 class="title"><a name="idm104"></a>2.2.3. Creating the Boot Disk</h4></div></div></div><p>
+This is very important, as something may go terribly wrong. If LILO
+stops working, then we just put the disk in and fix the problem. You
+will need the mkbootdisk program.
+</p><pre class="screen"># /sbin/mkbootdisk --device /dev/df0 --mkinitrdargs '--preload scsi_mid --preload sd_mod --with ft' kernel-version</pre><p>
+If your kernel version is <span class="strong"><strong>2.4.2-2</strong></span>, 
+then issue the following
+</p><pre class="screen"># /sbin/mkbootdisk --device /dev/df0 --mkinitrdargs '--preload scsi_mid --preload sd_mod --with ft' 2.4.2-2</pre></div></div></div><div class="sect1"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="LinuxConf"></a>3. Linux Configuration</h2></div></div></div><p></p><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="idm114"></a>3.1. What?</h3></div></div></div><p>
+Instead of editing our current working system, we merely create an entry for 
+our new system. So if something stuffs up, we just reboot and we're fine.     
+</p></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="idm117"></a>3.2. How?</h3></div></div></div><p>
+Example <code class="filename">lilo.conf</code> file:
+</p><pre class="screen">
+boot=/dev/hda
+map=/boot/map
+install=/boot/boot.b
+prompt
+timeout=50
+message=/boot/message
+linear
+default=linux
+
+image=/boot/vmlinuz-2.4.2-2
+        label=linux
+        read-only
+        root=/dev/hda5
+</pre><p>
+Just copy, and edit the kernel part, as follows:
+</p><pre class="screen">
+image=/boot/vmlinuz-2.4.2-2
+        label=LinuxFromRAID
+        initrd=/boot/initrd-2.4.2-2.img
+        read-only
+        root=/dev/sda5
+</pre><p>
+Note, how we setup the ramdisk, and we setup the root value. Don't
+set it as default yet.
+Now run lilo, in verbose mode.
+</p><pre class="screen"># lilo -v -v</pre><p>
+If you don't see any errors, we're fine, so halt the system.
+</p><p>
+Put only <span class="strong"><strong>ONE</strong></span> hard drive on the
+Card, the hard drive with the existing Linux system. 
+</p><p>
+Boot up, and go into the card bios. Delete the array of the current set.
+</p></div></div><div class="sect1"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="arrayConf"></a>4. Array Configuration</h2></div></div></div><p></p><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="idm133"></a>4.1. Building the Array</h3></div></div></div><p>
+Add the second hard drive to the card, and turn on your computer.
+
+Go into the card bios, and create a mirror array, selecting the appropriate source disk. Make sure you <span class="emphasis"><em>Create and Build</em></span> the array.
+
+After that is done, follow the instructions of the next section.
+
+</p></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="idm137"></a>4.2. Changing Configuration Files</h3></div></div></div><p>
+Choose "LinuxFromRaid" Option at LILO.
+</p><p>
+It should boot up without any errors.  It will, however
+complain about swap. Ignore that, as we will fix it in a moment.
+</p><p>
+You may receive an error about incorrect module version, or a kernel mismatch. Please see the 
+"troubleshooting" section about this.
+</p><p>
+After we have booted up on the new system, we must edit a few files:
+</p><p>
+</p><div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem"><p><code class="filename">/etc/lilo.conf</code></p></li><li class="listitem"><p><code class="filename">/etc/fstab</code></p></li></ul></div><p>
+</p><div class="sect3"><div class="titlepage"><div><div><h4 class="title"><a name="idm151"></a>4.2.1. <code class="filename">/etc/lilo.conf</code></h4></div></div></div><p>
+The parts in italics have been edited. (See the original
+<code class="filename">lilo.conf</code> file as stated earlier on in this
+HOWTO)
+</p><pre class="screen">
+boot=/dev/<span class="emphasis"><em>sda</em></span>
+map=/boot/map
+install=/boot/boot.b
+prompt
+timeout=50
+message=/boot/message
+linear
+default=<span class="emphasis"><em>LinuxFromRAID</em></span>
+
+image=/boot/vmlinuz-2.4.2-2
+        label=linux
+        read-only
+        root=/dev/hda5
+
+image=/boot/vmlinuz-2.4.2-2
+        label=LinuxFromRAID
+        initrd=/boot/initrd-2.4.2-2.img
+        read-only
+        root=/dev/sda5
+</pre><p>
+Now, save the file, and run lilo to write the boot record.
+</p></div><div class="sect3"><div class="titlepage"><div><div><h4 class="title"><a name="idm160"></a>4.2.2. <code class="filename">/etc/fstab</code></h4></div></div></div><p>
+For every entry that pointed to the old location, you must now change
+it to the scsi device, but use the same partition. For example:
+</p><pre class="screen">
+/dev/hda2               swap                    swap    defaults        0 0
+</pre><p>
+If you saw this in your fstab, you would need to 
+change <code class="filename">/dev/hda2</code> to 
+<code class="filename">/dev/sda2</code>
+
+Now reboot your system. That's it.
+
+After the reboot, its best to check the status of the RAID.
+</p></div></div></div><div class="sect1"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="idm168"></a>5. Monitoring the Array</h2></div></div></div><p>
+You can get detailed information by looking at the 
+directory <code class="filename">/proc/scsi/fasttrak/</code>
+</p><p></p><p>
+In that directory, you will see the file which corresponds to your array.
+
+</p><pre class="screen">
+# cat /proc/scsi/fasttrak/0
+Promise FastTrak Series Linux Driver Version 1.2.0.14
+Adapter1 - FASTTRAK100 TX2
+Array    - Array[1] : 1X2 Mirror (OK)
+Drive    -
+  1 : IC       Primary  /Master  41174MB BASE(0xb400) BM(0xc400) IRQ(11) UDMA5
+  3 : IC       Secondary/Master  41174MB BASE(0xbc00) BM(0xc408) IRQ(11) UDMA5
+</pre><p>
+
+That is all.
+</p></div><div class="sect1"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="idm175"></a>6. Troubleshooting</h2></div></div></div><p>
+You may get a kernel mismatch error message. This means that you don't have the correct version module for use with your kernel.
+If you cannot get the correct module version for use with your kernel, choose the closest one, and follow these steps;
+</p><p>
+This may not work in some instances, so remember to have your boot disk handy.
+</p><p>
+</p><pre class="screen">
+# cd /boot
+# cat initrd-2.4.2-2.img |gunzip &gt; /tmp/myimage
+# mkdir /mnt/tmp
+# mount /tmp/myimage /mnt/tmp -t ext2 -o loop=/dev/loop3
+# cd /mnt/tmp
+# vi linuxrc
+</pre><p>
+</p><p>
+Now modify 'insmod ft' to 'insmod -f ft'. 
+</p><p>
+This will force the sytem to load the module.
+Save the file, and exit from vi (or emacs :))
+</p><p>
+</p><pre class="screen">
+# umount /mnt/tmp
+# gzip /tmp/myimage 
+# cp myimage.gz /boot/initrd-2.4.2-2.img
+</pre><p>
+</p><p>
+You will obviously have to use the correct filename for your initrd file. 
+I am using 2.4.2-2 as example.
+</p><p>
+Now, reboot, and all should be well.
+
+</p></div></div></body></html>

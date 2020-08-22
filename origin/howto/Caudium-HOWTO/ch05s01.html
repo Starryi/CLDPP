@@ -1,0 +1,111 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1"><title>1. How to run Caudium as a non-privileged user; How to secure Caudium</title><link rel="stylesheet" type="text/css" href="style.css"><meta name="generator" content="DocBook XSL Stylesheets V1.79.1"><link rel="home" href="index.html" title="Caudium HOWTO"><link rel="up" href="ch05.html" title="Chapter 5. Customizing your server"><link rel="prev" href="ch05.html" title="Chapter 5. Customizing your server"><link rel="next" href="ch05s02.html" title="2. How to benchmark a web server"></head><body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF"><div class="navheader"><table width="100%" summary="Navigation header"><tr><th colspan="3" align="center">1. How to run Caudium as a non-privileged user; How to secure Caudium</th></tr><tr><td width="20%" align="left"><a accesskey="p" href="ch05.html">Prev</a> </td><th width="60%" align="center">Chapter 5. Customizing your server</th><td width="20%" align="right"> <a accesskey="n" href="ch05s02.html">Next</a></td></tr></table><hr></div><div class="sect1"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="secure"></a>1. How to run Caudium as a non-privileged user; How to secure Caudium</h2></div></div></div><p>
+      Web servers are usually publicly accessible and represent your company, group
+      or entity so there are chances you want to strengthen the security of this
+      service.
+    </p><p>
+      As I already mentioned Caudium has a good security for public access behind
+      mostly written in a script language. However Caudium runs as root by
+      default. In the case a non-authorized user gains access to Caudium's
+      process, he might gain root privileges. Consequently,a lot of web servers run
+      as another user with minimal privileges. Doing this may require some
+      work, as you will have to change the owner of all the files Caudium needs
+      access to, so I give step-by-step instructions how to change those
+      permissions:
+   </p><div class="orderedlist"><ol class="orderedlist" type="1"><li class="listitem"><p>
+	 Find a good user name. This user name should be a normal user with the least privileges. Lots of distributions already have a special account for this.  Common names include <span class="quote">&#8220;<span class="quote">www</span>&#8221;</span>, <span class="quote">&#8220;<span class="quote">www-data</span>&#8221;</span>, <span class="quote">&#8220;<span class="quote">httpd</span>&#8221;</span>, <span class="quote">&#8220;<span class="quote">nobody</span>&#8221;</span> (Caudium on Debian GNU/Linux runs as www-data:www-data by default). We don't recommend <span class="quote">&#8220;<span class="quote">nobody</span>&#8221;</span> though; to quote Theo de Raadt: </p><div class="blockquote"><blockquote class="blockquote"><p>The user <span class="quote">&#8220;<span class="quote">nobody</span>&#8221;</span> has historically been doing too much.  If you could break into the user <span class="quote">&#8220;<span class="quote">nobody</span>&#8221;</span>, you could cause great damage.</p></blockquote></div><p> 
+       </p></li><li class="listitem"><p>
+	 Change the owner of the files which Caudium needs to write to. These include:
+       </p><div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem"><p>
+	     Caudium internal log file (default.*).
+	   </p></li><li class="listitem"><p>
+	      Per virtual server log file.
+	   </p></li><li class="listitem"><p>
+	     All caches.
+	   </p></li><li class="listitem"><p>
+	     The configurations files (they are written by the <abbr class="abbrev">CIF.</abbr>).
+	   </p></li></ul></div><p>
+	 On a Caudium source install the following command should do the job:
+       </p><pre class="programlisting"><code class="computeroutput">
+# chown -R  www-data.www-data logs/ var/ 
+argument_cache/ bgcache/ configurations/ server/*.pem server
+       </code></pre><p>
+	 Here is the result:
+       </p><pre class="programlisting"><code class="computeroutput">
+$ ls -l 
+total 32
+drwxr-sr-x    6 www-data www-data     4096 Feb 13 23:17 argument_cache
+drwxr-sr-x    2 www-data www-data     4096 Feb 19 09:27 bgcache
+drwxr-sr-x    2 www-data www-data     4096 Mar  4 22:28 configurations
+drwxr-sr-x    4 root     staff        4096 Feb 13 23:16 local
+drwxr-sr-x    7 www-data www-data     4096 Mar  3 11:50 logs
+drwxr-sr-x    2 root     staff        4096 Feb 13 23:16 readme
+drwxr-sr-x   19 www-data www-data     4096 Feb 19 20:13 server
+drwxr-sr-x    2 www-data www-data     4096 Mar  3 19:28 var
+
+$ id www-data
+uid=33(www-data) gid=33(www-data) groups=33(www-data)
+       </code></pre><p>
+	 If users are allowed to log on the server, you might also change the 
+	 permissions of the logs directory.
+       </p><p>
+	 If you have a Caudium specific distribution for your system (such as Debian GNU/Linux) check manually.
+       </p></li><li class="listitem"><p>
+	 Don't forget to change the permissions of any script/directory you made
+	 and for which Caudium needs to write to in your public filesystem.
+       </p></li><li class="listitem"><p>
+	 Log into the <abbr class="abbrev">CIF.</abbr>, go in the main <code class="option">Global variables</code> tab, then in 
+	 <code class="option">Change uid and gid</code> type the uid:gid data you choose. We typed <strong class="userinput"><code>33:33</code></strong> 
+         in our example. You can also type a login name and group name: <strong class="userinput"><code>www-data:www-data</code></strong>. 
+	 You can also enable the <code class="option">Change uid and gid permanently</code> option but be sure to read the documentation first.</p></li></ol></div><p>
+     I will now speak about general security measures you can take if you are
+     very strict about security.
+   </p><div class="orderedlist"><ol class="orderedlist" type="1"><li class="listitem"><p>
+	 Don't allow users to execute scripts that are part of the server.
+       </p><p>
+	 As Caudium is a single process server, it is possible to stop it, restart 
+	 it, access it, etc. with a user script. This include pike scripts, pike tag, 
+	 and PHP modules for Caudium.
+       </p><p>
+	 If you do want to let your users run scripts, you can always use 
+	 CGI, or better uniscript (in this case it will be transparent to the user), in 
+	 order to run a script in a separate process using the fork(2) system call.
+	 This will decrease the performance of Caudium but the security has a price, 
+	 and it is up to you to decide how much you want to pay.
+
+       </p><div class="note" style="margin-left: 0.5in; margin-right: 0.5in;"><h3 class="title">Note</h3><p>Uniscript is a CGI-like wrapper. It will execute programs
+       as if they were CGI scripts but unlike CGI, it does not require you
+       to put these programs under a specific directory like /cgi-bin/. For
+       example each user can have his or her CGI script in his or her directory.
+       Moreover Caudium can execute them with the uid of the owner.
+       </p></div></li><li class="listitem"><p>
+	 Don't use anything you don't need. Remove any modules you don't need in your virtual server.
+       </p></li><li class="listitem"><p>
+	 Physically restrict access to the <abbr class="abbrev">CIF.</abbr>.  Don't access it from the Internet if 
+	 possible. Few people know this, but it is now possible to see SSL 
+	 connections in clear text with a man-in-the-middle attack.
+	 The <span class="application">dsniff</span> software contains all the tools and explanation for this.
+       </p></li><li class="listitem"><p>
+	 Turn off these options:
+       </p><div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem"><p>
+	     <code class="option">Global Variables</code> -&gt; <code class="option">show_internals</code>.
+	   </p></li><li class="listitem"><p>
+	     <code class="option">Global Variables</code> -&gt; <code class="option">Version numbers</code> -&gt; <code class="option">Show Caudium Version Number</code>.
+	   </p></li><li class="listitem"><p>
+	     <code class="option">Global Variables</code> -&gt; <code class="option">Version numbers</code> -&gt; <code class="option">Show Pike Version Number</code>.
+	   </p></li></ul></div><p>
+	 Turn off any debug options specific to a module. These
+	 options are for developers, and they don't have security in
+	 mind when they debug output. 
+         </p><div class="blockquote"><table border="0" class="blockquote" style="width: 100%; cellspacing: 0; cellpadding: 0;" summary="Block quote"><tr><td width="10%" valign="top"> </td><td width="80%" valign="top"><p>
+               Actually, this is security through obscurity and doesn't 
+               increase the security of the server.
+              </p></td><td width="10%" valign="top"> </td></tr><tr><td width="10%" valign="top"> </td><td colspan="2" align="right" valign="top">--<span class="attribution">Grendel</span></td></tr></table></div><p>
+
+       </p></li><li class="listitem"><p>
+	 Output Caudium's log files to a separate partition. <code class="filename">/var</code> is a good choice for 
+	 that purpose.
+       </p></li><li class="listitem"><p>
+	 Check the Caudium web site for patches.
+       </p></li><li class="listitem"><p>
+	 If your job relies on your web server security, check the Caudium source.
+       </p></li></ol></div></div><div class="navfooter"><hr><table width="100%" summary="Navigation footer"><tr><td width="40%" align="left"><a accesskey="p" href="ch05.html">Prev</a> </td><td width="20%" align="center"><a accesskey="u" href="ch05.html">Up</a></td><td width="40%" align="right"> <a accesskey="n" href="ch05s02.html">Next</a></td></tr><tr><td width="40%" align="left" valign="top">Chapter 5. Customizing your server </td><td width="20%" align="center"><a accesskey="h" href="index.html">Home</a></td><td width="40%" align="right" valign="top"> 2. How to benchmark a web server</td></tr></table></div></body></html>

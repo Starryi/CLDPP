@@ -1,0 +1,140 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1"><title>4. Your first module</title><link rel="stylesheet" type="text/css" href="style.css"><meta name="generator" content="DocBook XSL Stylesheets V1.79.1"><link rel="home" href="index.html" title="Caudium HOWTO"><link rel="up" href="ch06.html" title="Chapter 6. Developing with Caudium"><link rel="prev" href="ch06s03.html" title="3. Your first Pike script"><link rel="next" href="ch06s05.html" title="5. How to use a backtrace"></head><body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF"><div class="navheader"><table width="100%" summary="Navigation header"><tr><th colspan="3" align="center">4. Your first module</th></tr><tr><td width="20%" align="left"><a accesskey="p" href="ch06s03.html">Prev</a> </td><th width="60%" align="center">Chapter 6. Developing with Caudium</th><td width="20%" align="right"> <a accesskey="n" href="ch06s05.html">Next</a></td></tr></table><hr></div><div class="sect1"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="firstmodule"></a>4. Your first module</h2></div></div></div><p>
+      With a custom module you can do all sorts of things:
+    </p><div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem"><p>
+	  You can create a professional quality administration center very easily.
+	</p></li><li class="listitem"><p>
+	  You don't need any more <span class="quote">&#8220;<span class="quote">&amp;</span>&#8221;</span> symbols in the URL.
+	</p></li><li class="listitem"><p>
+	  You can also use <code class="option">per user variables</code>, also known as <code class="option">session variables</code>.
+	</p></li><li class="listitem"><p>
+	  You'll get better performance since the module is part of the server.
+	</p></li><li class="listitem"><p>
+	  You can separate big projects into different modules, and do calls
+	  between different modules. This way, your project is not a big complex
+	  of messy code, but a set of simple, easy to extend code modules. 
+	</p></li><li class="listitem"><p>
+	  You can separate data from code by using tags and containers. This also
+	  allows you to delegate the appearance to your webmaster, and lets you focus
+	  on the important code. 
+	</p></li><li class="listitem"><p>
+	  You can easily share your code with the Caudium community. If your code
+	  is good and useful, it can become part of the Caudium distribution. This way
+	  more people will test it, you will have more feedback, and some people may
+	  help you with your project, and may even maintain it. 
+	</p></li></ul></div><p>
+      There are different types of modules, for example:
+    </p><div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem"><p>
+	  Location:
+	</p><p>
+	  This is the most common module, your code is called when
+	  the user hits the URL you specify in the mount point.
+	</p></li><li class="listitem"><p>
+	  Parser:
+	</p><p>
+	  Your code is called when Caudium parse a file containing 
+	  the tags and/or containers you define.
+	</p></li><li class="listitem"><p>
+	  Authentication:
+	</p><p>
+	  Used to authenticate users with, for example, LDAP,
+	  shadow, or SQL.
+	</p></li><li class="listitem"><p>
+	  Directory:
+	</p><p>
+	  For indexing files in a directory.
+	</p></li><li class="listitem"><p>
+	  First module:
+	</p><p>
+	  Module that is called just after the authentication
+	  module, thus letting you handle the whole request before normal processing.
+	</p></li></ul></div><p>
+      There are other module types.  For a complete reference see the Roxen 1.3
+      Programmer's Guide at 
+      <a class="ulink" href="http://caudium.info/" target="_top">http://caudium.info/</a>.
+    </p><p>
+      For an example on how to write a container, see <code class="filename">fnord.pike</code> in
+      <code class="filename">/Caudium/sources</code>. Because the location module is a must, here is another
+      example:
+    </p><div class="example"><a name="idm988"></a><p class="title"><b>Example 6.6. A sample module.</b></p><div class="example-contents"><pre class="programlisting">
+// It is intended to show a simple example of a location module.
+
+// This module output the result of the who(1) command. It is not meant to
+// be really useful since it would be better to do a &lt;who /&gt; tag thus
+// having data in the HTML files and code here
+
+// This variable is shown in the configuration interface as the
+// version of the module.
+string CVS_version = "$Id";
+
+// Tell Caudium that this module is 'thread safe', that is, there is no
+// request-specific data in global variables.
+int thread_safe=1;
+
+#include &lt;module.h&gt;
+inherit "module";
+// for the http_string_answer API
+inherit "caudiumlib"; 
+ 
+// Documentation:
+ 
+constant module_type = MODULE_LOCATION;
+constant module_name = "Who";
+constant module_doc  = "Send the result of the who(1) command ";
+constant module_unique = 1;
+
+// The constructor of this module.
+// This function is called each time you/Caudium load the module
+void create()
+{
+  defvar("location", "/who", "Mount point", TYPE_LOCATION, 
+  "The mount point of this module"); 
+  /* each string have to be on a single
+   line, don't do: "The mount point of
+   this module".
+   You can however do "The mount point of "
+   "this module";
+   */
+  defvar("path2who", "/usr/bin/who", 
+  "Path to the who command", TYPE_FILE);
+  defvar("options2who", "-a", 
+  "Options given to who", TYPE_STRING);
+  defvar("codebeforewho", "&lt;html&gt;&lt;body&gt;&lt;p&gt;", 
+  "The code to output before who", TYPE_STRING);
+  defvar("codeafterwho", "&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;", "The code to output after who",
+  TYPE_STRING);
+}
+
+// This function is called when a user access mount point
+// path is the path to the URL he used
+// id contains Caudium global variables such as browser name,...
+mixed find_file(string path, object id)
+{
+  // get the contents of the CIF. variables path2who and options2who 
+  // and put a single space between it.
+  string command = QUERY(path2who)+" "+QUERY(options2who);
+  // this will write the result of command to the debug log file
+  // very useful for debug
+  write(sprintf("command=%s\n", command));
+  string result = Process.popen(command);
+  // replacing \n by \n&lt;br /&gt; for better output
+  result = replace(result, "\n","\n&lt;br /&gt;");
+  return http_string_answer(QUERY(codebeforewho)+result+QUERY(codeafterwho));
+}
+      </pre></div></div><br class="example-break"><p>
+      Put this code in <code class="filename">../local/modules/who.pike</code> relative to 
+      <code class="filename">/usr/local/caudium/server</code> 
+      in our example. Log into the <abbr class="abbrev">CIF.</abbr>, if it is not
+      the case and go into the main <code class="option">Action</code> tab -&gt; <code class="option">Cache</code> -&gt; 
+      <code class="option">Flush caches</code>. Check the <code class="option">Module cache</code> check the box and press
+      <code class="option">Next</code>, then <code class="option">OK</code>.
+    </p><p>
+      Come back to the main <code class="option">Virtual servers</code> tab and choose one of your
+      servers. Do <code class="option">Add module</code> and select the <code class="option">who</code> module. If you don't have the
+      who module, check your events log.
+    </p><p>
+      You don't need to compile to have a working module. You
+      don't even need to restart the web server. When you develop a module and
+      change the code every 30 seconds, you just have to push the <code class="option">Reload</code> button
+      to get the changes. It takes about one second and if there was a
+      compilation error the old copy remains for users.
+    </p></div><div class="navfooter"><hr><table width="100%" summary="Navigation footer"><tr><td width="40%" align="left"><a accesskey="p" href="ch06s03.html">Prev</a> </td><td width="20%" align="center"><a accesskey="u" href="ch06.html">Up</a></td><td width="40%" align="right"> <a accesskey="n" href="ch06s05.html">Next</a></td></tr><tr><td width="40%" align="left" valign="top">3. Your first Pike script </td><td width="20%" align="center"><a accesskey="h" href="index.html">Home</a></td><td width="40%" align="right" valign="top"> 5. How to use a backtrace</td></tr></table></div></body></html>

@@ -1,0 +1,612 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1"><title>3. Running X</title><link rel="stylesheet" type="text/css" href="style.css"><meta name="generator" content="DocBook XSL Stylesheets V1.79.1"><meta name="keywords" content="X, X11, XFree, XFree86, X Window, GUI, windows, desktop, display, display manager, xdm"><link rel="home" href="index.html" title="The X Window User HOWTO"><link rel="up" href="index.html" title="The X Window User HOWTO"><link rel="prev" href="ar01s02.html" title="2. XFree86"><link rel="next" href="ar01s04.html" title="4. More X Configuration"></head><body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF"><div class="navheader"><table width="100%" summary="Navigation header"><tr><th colspan="3" align="center">3. Running X</th></tr><tr><td width="20%" align="left"><a accesskey="p" href="ar01s02.html">Prev</a> </td><th width="60%" align="center"> </th><td width="20%" align="right"> <a accesskey="n" href="ar01s04.html">Next</a></td></tr></table><hr></div><div class="sect1"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="runningx"></a>3. Running X</h2></div></div></div><p>
+ Starting an <span class="application">X</span> session is typically done in one of
+ two ways: the <span class="application">X</span> session is started via a display
+ manager (like <span class="command"><strong>xdm</strong></span>), and the user logs in at a GUI screen.
+ Or, the user starts <span class="application">X</span> manually after logging in to
+ a text console. The latter is typically done with the
+ <span class="command"><strong>startx</strong></span> command, which is a simple shell script wrapper
+ for <span class="command"><strong>xinit</strong></span>. <span class="application">X</span> runs with root
+ privileges in either case, since it needs raw access to hardware devices.
+
+</p><p>
+ Typically, which method is used, is determined by the system 
+ <span class="quote">&#8220;<span class="quote">runlevel</span>&#8221;</span>. The default runlevel to launch at boot is
+ generally set in <code class="filename">/etc/inittab</code> on Linux: 
+
+</p><p>
+ </p><pre class="screen">
+
+ # Run xdm in runlevel 5
+ x:5:respawn:/etc/X11/xdm -nodaemon
+
+ </pre><p>
+</p><p>
+ That would start <span class="command"><strong>xdm</strong></span>, and thus
+ <span class="application">X</span>, at runlevel 5. It will <span class="quote">&#8220;<span class="quote">respawn</span>&#8221;</span>,
+ if it dies or is stopped for any reason. You can also use the
+ <span class="quote">&#8220;<span class="quote"><span class="command"><strong>init</strong></span></span>&#8221;</span> command to change runlevels without
+ rebooting (see man page).
+
+</p><p>
+ Let's look briefly at both approaches, and then some additional configuration 
+ to set up the user's working environment.
+
+</p><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="idm357"></a>3.1. startx</h3></div></div></div><p>
+ <span class="command"><strong>startx</strong></span> will start <span class="application">X</span> by first
+ invoking <span class="command"><strong>xinit</strong></span>. By itself, this would put you at a blank,
+ fuzzy looking, bare-bones desktop with no Window Manager loaded.
+ <span class="command"><strong>xinit</strong></span> basically takes two sets of command line
+ arguments: client specifications (programs to run, etc), and server
+ specifications (X server options), separated by <span class="quote">&#8220;<span class="quote">--</span>&#8221;</span>. If no
+ client program is specified on the command line, <span class="command"><strong>xinit</strong></span>
+ will look for a <code class="filename">.xinitrc</code> file in the user's home
+ directory, to run as a shell script. If found, this then would in turn run
+ whatever user specified commands to set up the environment, or launch
+ programs that the file contained. If this file does not exist,
+ <span class="command"><strong>xinit</strong></span> will use the following initial command:
+
+</p><p>
+ </p><pre class="screen">
+ 
+ xterm -geometry +1+1 -n login -display :0
+ 
+ </pre><p>
+</p><p>
+ If no <code class="filename">.xserverrc</code> is found in the user's home directory, 
+ <span class="application">X</span> itself will be started with the following command:
+
+</p><p>
+ </p><pre class="screen">
+
+ X :0
+
+ </pre><p>
+</p><p>
+ As you see, this is not overly helpful as it just launches one
+ <span class="application">xterm</span>. The <span class="command"><strong>startx</strong></span>
+ shell wrapper provides additional functionality and flexibility to 
+ <span class="command"><strong>xinit</strong></span>. <span class="command"><strong>startx</strong></span> will invoke 
+ <span class="command"><strong>xinit</strong></span> for us, and provide some simple configuration
+ options as well. You can also issue commands such as the following, for
+ instance:
+ 
+</p><p>
+ </p><pre class="screen">
+ 
+ startx -- -dpi 100 -depth 16   #force X to 100 dots per inch
+                                #and colordepth of 16 (X v4 syntax)
+ 
+ </pre><p>
+</p><p>
+ Anything after the double dashes are passed as arguments directly to the X
+ server via <span class="command"><strong>xinit</strong></span>. In this example, you can force
+ <span class="application">X</span> to the resolution of your preference, and still
+ have it use the configuration files we will cover later in this document. See
+ the Xserver man page for more command line options.
+
+</p><p>
+ Instead of issuing the same command line every time, it is easier to use the
+ configuration files to store this type of information for us.
+
+</p><p>
+ If you take a look at the <span class="command"><strong>startx</strong></span> script
+ (<code class="filename">/usr/X11R6/bin/startx</code> on my system), you see it uses
+ two default configuration files to help set up the
+ <span class="application">X</span> environment: <code class="filename">xinitrc</code> and
+ <code class="filename">xserverrc</code>. It looks first in
+ <code class="filename">/etc/X11/xinit/</code>, for the system wide files. It then
+ checks the user's home directory for similar files, which will take
+ precedence if found. Note that the latter are Unix style <span class="quote">&#8220;<span class="quote">dot</span>&#8221;</span> files
+ (e.g. <code class="filename">~/.xinitrc</code>), and are executable shell scripts.
+
+</p><p>
+ You normally would not want to edit the system wide files, but you can freely
+ copy these to your home directory as a starting point, or just start from
+ scratch. As you can tell by the names, one helps set up the X server, and one
+ sets up <span class="command"><strong>xinit</strong></span> by executing commands, preparing the
+ environment and possibly starting client programs like
+ <span class="command"><strong>xterm</strong></span> or a Window Manager (yes, it's a client too).
+
+</p><div class="sect3"><div class="titlepage"><div><div><h4 class="title"><a name="idm399"></a>3.1.1. xserverrc</h4></div></div></div><p>
+ As with all XFree86 configuration files, this is a plain text file, and is
+ usually a simple, one line statement to start the X server. It can include
+ any valid command line options supported by your <span class="application">X</span>
+ installation. If you always start <span class="application">X</span> with your own
+ options, this should be easier than typing the options each time. One
+ possible <code class="filename">~/.xserverrc</code>:
+
+</p><p>
+ </p><pre class="screen">
+
+ exec X :0 -dpi 100 -nolisten tcp
+
+ </pre><p>
+</p><p>
+ This will start <span class="application">X</span> on display :0, the first
+ <span class="quote">&#8220;<span class="quote">display</span>&#8221;</span>, at a dots-per-inch resolution of 100, and disables
+ TCP connections. See the Xserver man page for other valid options. This is
+ just an example.
+
+</p></div><div class="sect3"><div class="titlepage"><div><div><h4 class="title"><a name="idm410"></a>3.1.2. xinitrc</h4></div></div></div><p>
+ <code class="filename">xinitrc</code> is used to set up a suitable
+ <span class="application">X</span> environment, and to launch other programs, a.k.a
+ <span class="quote">&#8220;<span class="quote">clients</span>&#8221;</span> that we may want available as soon as
+ <span class="application">X</span> is started. You likely have a system wide
+ <code class="filename">xinitrc</code> to start a predefined set off programs. To
+ customize this, create your own in your home directory. Name it
+ <code class="filename">.xinitrc</code>, make sure it is an executable script, and
+ <span class="command"><strong>chmod +x</strong></span>. An example (slightly modified from the original
+ on my system):
+
+</p><p>
+ </p><pre class="screen">
+
+#!/bin/sh
+# $XConsortium: xinitrc.cpp,v 1.4 91/08/22 11:41:34 rws Exp $
+
+userresources=$HOME/.Xresources
+usermodmap=$HOME/.Xmodmap
+
+# merge in defaults and keymaps
+if [ -f $userresources ]; then
+    xrdb -merge $userresources
+fi
+
+if [ -f $usermodmap ]; then
+    xmodmap $usermodmap
+fi
+
+if [ -z "$BROWSER" ] ; then
+	# we need to find a browser on this system
+	BROWSER=`which netscape`
+	if [ -z "$BROWSER" ] || [ ! -e "$BROWSER" ] ; then
+	# not found yet
+		BROWSER=
+	fi
+fi
+if [ -z "$BROWSER" ] ; then
+	# we need to find a browser on this system
+	BROWSER=`which lynx`
+	if [ -z "$BROWSER" ] || [ ! -e "$BROWSER" ] ; then
+	# not found yet
+		BROWSER=
+	else
+		BROWSER="xterm -font 9x15 -e lynx"
+	fi
+fi
+
+export BROWSER
+
+# start some nice programs
+if [ -f $HOME/.Xclients ]; then
+    exec $HOME/.Xclients
+else
+    xclock -geometry 50x50-1+1 &amp;
+    xterm -geometry 80x50+494+51 &amp;
+    if [ -f /usr/X11R6/bin/fvwm ]; then
+        exec fvwm
+    else
+        exec twm
+    fi
+fi
+
+#eof
+
+ </pre><p>
+</p><p>
+ Briefly, what this script does, is set up our working environment, with
+ <span class="command"><strong>xmodmap</strong></span> (keyboard) and <span class="command"><strong>xrdb</strong></span>
+ (application resource settings). More on these below.  Then the shell variable
+ <code class="literal">$BROWSER</code> is set for a GUI environment (Netscape in this
+ example) so that any applications that might expect this, have a reasonable
+ choice available. Then the presence of the file <code class="filename">Xclients</code>
+ is checked, both as a system wide file and in the user's home directory. In
+ this particular example, this is where any client applications are to be
+ started, including a Window Manager (see below). These could just have as
+ easily been started here if we had wanted to. If an
+ <code class="filename">Xclients</code> file can't be found, then a Window Manager is
+ started for us. Either <span class="command"><strong>fvwm</strong></span>, if available, or XFree86's
+ minimalist <span class="command"><strong>twm</strong></span> if not. If for some reason, neither of
+ these can be started, the script would exit, and <span class="application">X</span>
+ would fail to start.
+
+</p></div><div class="sect3"><div class="titlepage"><div><div><h4 class="title"><a name="idm431"></a>3.1.3. Xclients</h4></div></div></div><p>
+ Everything up to this point has followed pretty much a standard and
+ predictable sequence of events. To summarize, we have invoked
+ <span class="command"><strong>startx</strong></span>, which in turn invoked <span class="command"><strong>xinit</strong></span>, 
+ which has parsed <code class="filename">xinitrc</code> for initial settings. Most
+ Linuxes should follow this same sequence, though the various values and
+ settings may differ.
+
+</p><p>
+ We now are at the last link in the chain where the user normally would 
+ specify his or her preferences, including the Window Manager and/or 
+ desktop environment to be used. The system will provide sane, though possibly
+ uninteresting, defaults if the user has not done so. Presumably, this is why
+ you are here ;-)
+
+</p><p>
+ The Window Manager, or desktop environment, is typically the last application
+ started. If you want other programs (like <span class="command"><strong>xterm</strong></span>) started,
+ they should be started before the Window Manager and
+ <span class="quote">&#8220;<span class="quote">backgrounded</span>&#8221;</span> with an <span class="quote">&#8220;<span class="quote">&amp;</span>&#8221;</span>. This can all be
+ done in the user's <code class="filename">~/.xinitrc</code>. Or as in the above
+ example, the actual applications are started from yet another script. Let's
+ look at one short, hypothetical such script, <code class="filename">.Xclients</code>:
+
+</p><p>
+ </p><pre class="screen">
+ 
+#!/bin/bash
+# ~/.Xclients, start my programs.
+
+xset s off s noblank
+xset m 30/10 4
+xset r rate 200 40
+
+xscreensaver &amp; 
+rxvt -geometry 80x50-50+150 &amp;
+
+echo Starting Window Manager...
+
+if [ -x /usr/X11R6/bin/wmaker ]; then
+  echo `date`: Trying /usr/X11R6/bin/wmaker... |tee -a ~/.wm-errors 2&gt;&amp;1
+  exec /usr/X11R6/bin/wmaker &gt;&gt; ~/.wm-errors 2&gt;&amp;1
+fi 
+
+echo `date`: Failed, trying fvwm... |tee -a ~/.wm-errors 2&gt;&amp;1
+
+# let's try regular fvwm (AnotherLevel doesn't work with fvwm1).
+if [ -n "$(type -path fvwm)" ]; then
+  # if this works, we stop here
+  exec fvwm &gt;&gt; ~/.wm-errors 2&gt;&amp;1
+fi
+
+echo `date`: Failed, trying twm... |tee -a ~/.wm-errors 2&gt;&amp;1
+
+# wow, fvwm isn't here either ... 
+# use twm as a last resort.
+exec twm &gt;&gt; ~/.wm-errors 2&gt;&amp;1
+
+# Dead in the water here, X will exit as well, sigh...
+echo `date`: Unable to start a Window Manager ... |tee -a ~/.wm-errors 2&gt;&amp;1
+
+# eof
+
+ </pre><p>
+</p><p>
+ This really isn't so different than what <code class="filename">xinitrc</code> was
+ doing at all. We added a few wrinkles, including starting a screen saver, a
+ different terminal emulator that this user prefers (<span class="command"><strong>rxvt</strong></span>),
+ with even more setting up of the environment (monitor, mouse and keyboard) using
+ <span class="command"><strong>xset</strong></span> this time, and a different Window Manager than was
+ available with the system defaults. This is in the user's home directory, so
+ it will not be overwritten during upgrades too.
+
+</p><p>
+ Actually, <span class="application">X</span> has already started at this point, and
+ we are just putting the finishing touches on the configuration. Notice the
+ Window Managers are not <span class="quote">&#8220;<span class="quote">backgrounded</span>&#8221;</span> with <span class="quote">&#8220;<span class="quote">&amp;</span>&#8221;</span>
+ here. This is important! Something has to run in the foreground, or
+ <span class="application">X</span> will exit. We didn't start a desktop environment
+ in this example, like <span class="application">KDE</span> or
+ <span class="application">GNOME</span>, but if we did, this final application
+ would have to be <span class="command"><strong>gnome-session</strong></span> or
+ <span class="command"><strong>startkde</strong></span> instead. Since we are rolling our own here, if we
+ wanted to change Window Managers, all we have to do is edit this file, and
+ restart <span class="application">X</span>. Vendor supplied configurations may be
+ more complex than this, but the same principles apply.
+
+</p><p>
+ As an afterword, do not think that any initial client applications
+ <span class="emphasis"><em>must</em></span> be started as we've done here. This is how it has
+ been traditionally done, and some may prefer this approach. Most window
+ managers have their own built-in ways to start initial programs, as do 
+ <span class="application">KDE</span> and <span class="application">GNOME</span>. See 
+ the respective documentation.
+
+</p></div></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="idm464"></a>3.2. Display Managers</h3></div></div></div><p>
+ The other, more common, approach is the <span class="quote">&#8220;<span class="quote">GUI log-in</span>&#8221;</span>, where
+ <span class="application">X</span> is running before log-in. This is done with the
+ help of a <span class="quote">&#8220;<span class="quote">display manager</span>&#8221;</span>, of which there are various
+ implementations. XFree86 includes <span class="command"><strong>xdm</strong></span> (X Display Manager)
+ for this purpose, though your distribution may use one of the others such as
+ <span class="command"><strong>gdm</strong></span> (<span class="application">GNOME</span>) or <span class="command"><strong>kdm</strong></span>
+ (<span class="application">KDE</span>).
+
+</p><p>
+ Display managers really do much more than enable GUI style log-ins. They 
+ are also used to manage local as well as remote <span class="quote">&#8220;<span class="quote">displays</span>&#8221;</span> on a
+ network. We shall not get into details on this here, but it is nicely covered in
+ the <em class="citetitle">Remote X Apps Mini HOWTO</em> and the <em class="citetitle">XDMCP
+ HOWTO</em> (see the <a class="link" href="ar01s10.html#links" title="10.2. Links and other References">links section</a>). For
+ our purposes here, they provide similar services to <span class="command"><strong>getty</strong></span>
+ and <span class="command"><strong>login</strong></span>, which allow users to log into a system and
+ start their default shell, but in a GUI environment. 
+
+</p><p>
+ Here is an example of a more advanced usage of what else a display manager
+ might be used for, from Diego Zamboni:
+
+</p><div class="blockquote"><blockquote class="blockquote"><p>
+ I have two X sessions running with different resolutions. I switch between
+ them depending on whether my laptop is connected to an external monitor or
+ using its own LCD display.
+
+</p><p>
+ Here's my <code class="filename">/usr/lib/X11/xdm/Xservers</code> file that initiates 
+ both displays:
+</p><p>
+ </p><pre class="screen">
+
+ :1 local /usr/X11R6/bin/X :1 -layout 1024x768
+ :0 local /usr/X11R6/bin/X :0 -layout 1600x1200
+
+ </pre><p>
+</p><p>
+ Then I have <span class="quote">&#8220;<span class="quote">1024x768</span>&#8221;</span> and <span class="quote">&#8220;<span class="quote">1600x1200</span>&#8221;</span> defined as
+ <span class="quote">&#8220;<span class="quote">server layouts</span>&#8221;</span> in my
+ <code class="filename">/etc/X11/XF86Config-4</code>, as follows:
+
+</p><p>
+ </p><pre class="screen">
+
+ Section "ServerLayout"
+         Identifier     "1600x1200"
+         Screen         "Screen0" 0 0
+         InputDevice    "Mouse0" "CorePointer"
+         InputDevice    "Keyboard0" "CoreKeyboard"
+ EndSection
+ 
+ Section "ServerLayout"
+         Identifier     "1024x768"
+         Screen         "Screen1" 0 0
+         InputDevice    "Mouse0" "CorePointer"
+         InputDevice    "Keyboard0" "CoreKeyboard"
+ EndSection
+ 
+ ## snip ...
+ 
+ Section "Screen"
+         Identifier   "Screen0"
+         Device       "S3 Savage/MX"
+         Monitor      "Monitor0"
+         DefaultDepth 16
+         
+         Subsection "Display"
+                 Depth  16
+                 Modes  "1600x1200" "1280x1024" "1024x768"
+         EndSubsection
+ EndSection
+ 
+ Section "Screen"
+         Identifier   "Screen1"
+         Device       "S3 Savage/MX"
+         Monitor      "Monitor0"
+         DefaultDepth 16
+
+         Subsection "Display"
+                 Depth  16
+                 Modes  "1024x768" "800x600"
+         EndSubsection
+ EndSection
+
+ </pre><p>
+</p></blockquote></div><p>
+ Note the use of <span class="quote">&#8220;<span class="quote">Identifiers</span>&#8221;</span> here. Diego is starting two
+ separate <span class="quote">&#8220;<span class="quote">displays</span>&#8221;</span> here. Then he can choose which one he 
+ wants when he logs in.
+
+</p><p>
+ Most display managers are derived from XFree86's venerable
+ <span class="command"><strong>xdm</strong></span>, and add their own enhancements. Let's look at the
+ most popular ones briefly. 
+
+</p><div class="sect3"><div class="titlepage"><div><div><h4 class="title"><a name="idm501"></a>3.2.1. xdm</h4></div></div></div><p>
+ <span class="command"><strong>xdm</strong></span> can be configured with configuration files located in
+ <code class="filename">/etc/X11/xdm/</code>,
+ <code class="filename">/usr/X11R6/lib/X11/xdm</code>, or similar locations depending
+ on your system. These are system wide files. The file
+ <code class="filename">xdm-config</code> is the main configuration file, and mostly
+ describes where to find secondary configuration files:
+
+</p><p>
+ </p><pre class="screen">
+
+ ! $XConsortium: xdm-conf.cpp /main/3 1996/01/15 15:17:26 gildea $
+ DisplayManager.errorLogFile:	/var/log/xdm-errors
+ DisplayManager.servers:		/etc/X11/xdm/Xservers
+ DisplayManager.accessFile:	/etc/X11/xdm/Xaccess
+ ! All displays should use authorization, but we cannot be sure
+ ! X terminals will be configured that way, so by default
+ ! use authorization only for local displays :0, :1, etc.
+ DisplayManager._0.authorize:	true
+ DisplayManager._1.authorize:	true
+ ! The following three resources set up display :0 as the console.
+ DisplayManager._0.setup:	/etc/X11/xdm/Xsetup_0
+ DisplayManager._0.startup:	/etc/X11/xdm/GiveConsole
+ DisplayManager._0.reset:	/etc/X11/xdm/TakeConsole
+ !
+ DisplayManager*resources:	/etc/X11/xdm/Xresources
+ DisplayManager*session:		/etc/X11/xdm/Xsession
+ !
+ ! SECURITY: do not listen for XDMCP or Chooser requests
+ ! Comment out this line if you want to manage X terminals with xdm
+ DisplayManager.requestPort:	0
+
+ </pre><p>
+</p><p>
+ The <span class="quote">&#8220;<span class="quote">!</span>&#8221;</span> denotes comments. The command that starts the X server
+ is in <code class="filename">/etc/X11/xdm/Xservers</code> in this particular example
+ as defined by <span class="quote">&#8220;<span class="quote">DisplayManager.servers</span>&#8221;</span>, and is the equivalent to
+ <code class="filename">xserverrc</code> that was used for <span class="command"><strong>startx</strong></span> X
+ server start up commands, but the syntax is slightly different here. The
+ contents of <code class="filename">/etc/X11/xdm/Xservers</code> on my system are simply:
+
+</p><p>
+ </p><pre class="screen">
+
+ :0 local /usr/X11R6/bin/X 
+
+ </pre><p>
+</p><p>
+ This starts <span class="application">X</span> on the first local display
+ (designated by 0). Any special command line arguments that you want to add go
+ here at the end.
+
+</p><p>
+ Below is a sample <code class="filename">/etc/X11/xdm/Xsetup_0</code> which is
+ used to configure the log-in screen only. Notice that we're using a shell
+ script here, and it's calling <span class="command"><strong>xv</strong></span> (a graphics display
+ program) to set the background to a nice image (instead of the boring black
+ and white background pattern), and if that fails,
+ <span class="command"><strong>xsetroot</strong></span> is then invoked to at least try to set the
+ background to a nicer blue color. This does not configure the login widget
+ itself -- just other things that might be wanted on the screen during login.
+ 
+</p><p>
+ </p><pre class="screen">
+ 
+ #!/bin/sh
+ xconsole -geometry 480x100-0-0 -daemon -notify -verbose -fn \
+   '-schumacher-clean-medium-r-*-*-10-*-*-*-*-*-*-*' -exitOnFail  &amp;
+ 
+ /usr/X11R6/bin/xv -quit -root /usr/share/pixmaps/Backgrounds/InDreams.jpg \
+   || xsetroot -solid darkblue
+ 
+ </pre><p>
+</p><p>
+ <code class="filename">/etc/X11/xdm/Xresources</code> controls the X
+ <span class="quote">&#8220;<span class="quote">resources</span>&#8221;</span> used during log in. In this context, <span class="quote">&#8220;<span class="quote">resources</span>&#8221;</span> 
+ are user preferences for such items as fonts and colors (described in more
+ detail below). Below is a snippet that sets up fonts for the log-in widget:
+
+</p><p>
+ </p><pre class="screen">
+
+ #if WIDTH &gt; 800
+ xlogin*greetFont: -adobe-helvetica-bold-o-normal--24-240-75-75-p-138-iso8859-1
+ xlogin*font: -adobe-helvetica-medium-r-normal--18-180-75-75-p-103-iso8859-1
+ xlogin*promptFont: -adobe-helvetica-bold-r-normal--18-180-75-75-p-103-iso8859-1
+ xlogin*failFont: -adobe-helvetica-bold-r-normal--18-180-75-75-p-103-iso8859-1
+ #else
+ xlogin*greetFont: -adobe-helvetica-bold-o-normal--17-120-100-100-p-92-iso8859-1
+ xlogin*font: -adobe-helvetica-medium-r-normal--12-120-75-75-p-69-iso8859-1
+ xlogin*promptFont: -adobe-helvetica-bold-r-normal--12-120-75-75-p-69-iso8859-1
+ xlogin*failFont: -adobe-helvetica-bold-o-normal--14-140-75-75-p-82-iso8859-1
+ #endif
+
+ </pre><p>
+</p><p>
+ As you can see this is using helvetica as the preferred font, with different
+ point sizes and dots per inch depending on the screen size. This is
+ customizable to suit individual needs. (See below for more on understanding X
+ font naming conventions.) Various other aspects can similarly be configured.
+
+</p><p>
+ <code class="filename">/etc/X11/xdm/Xsession</code> is the rough equivalent to
+ <code class="filename">xinitrc</code> for <span class="command"><strong>startx</strong></span>. It will similarly
+ set up a default environment for keyboard, etc. And can also start either 
+ <span class="application">KDE</span> or <span class="application">GNOME</span>, and other
+ <span class="application">X</span> client programs. This is the system wide
+ configuration file. It should also check the user's home directory for
+ <code class="filename">~/.xsession</code>, and possibly
+ <code class="filename">~/.Xclients</code>, which would contain the user's preferred
+ environment and start up programs, just as <code class="filename">~/.xinitrc</code>
+ did with <span class="command"><strong>startx</strong></span>. Again, the files in a user's home
+ directory may be created or modified by the user any time and must be
+ executable shell scripts.
+
+</p><p>
+ We shall not include an <code class="filename">~/.xsession</code> example here, since it
+ would be very similar to the <code class="filename">~/.xinitrc</code> and 
+ <code class="filename">~/.Xclients</code> examples above.
+
+</p><p>
+ We've looked only briefly at the main <span class="command"><strong>xdm</strong></span> configuration files.
+ Be sure to read the man page, and look at what is installed locally, for more 
+ information. Let's look now at <span class="command"><strong>gdm</strong></span> and <span class="command"><strong>kdm</strong></span>. 
+ We'll just highlight significant differences, since they essentially provide
+ the same functionality.
+
+</p></div><div class="sect3"><div class="titlepage"><div><div><h4 class="title"><a name="idm553"></a>3.2.2. gdm</h4></div></div></div><p>
+ <span class="command"><strong>gdm</strong></span> is the default display manager for
+ <span class="application">GNOME</span>. <span class="command"><strong>gdm</strong></span> was written 
+ from scratch, but functions similarly to <span class="command"><strong>xdm</strong></span>. The main
+ configuration file is <code class="filename">gdm.conf</code>, typically located as
+ <code class="filename">/etc/X11/gdm/gdm.conf</code>. This is quite different looking
+ than <code class="filename">xdm-config</code>. Comments are denoted with a
+ <span class="quote">&#8220;<span class="quote">#</span>&#8221;</span>, and the file has sections, with section headers enclosed
+ in square brackets. The command to start <span class="application">X</span> is in
+ the <span class="quote">&#8220;<span class="quote">[servers]</span>&#8221;</span> section:
+
+</p><p>
+ </p><pre class="screen">
+
+ [servers]
+ 0=/usr/bin/X11/X
+ #1=/usr/bin/X11/X
+
+ </pre><p>
+</p><p>
+ Notice this has potentially two displays set up, but the second one is
+ commented out. Add any additional <span class="application">X</span> startup
+ options here, e.g. <span class="quote">&#8220;<span class="quote">-dpi 100</span>&#8221;</span>. The log-in screen and log-in
+ widget are configured in the <span class="quote">&#8220;<span class="quote">[greeter]</span>&#8221;</span> section. 
+
+</p><p>
+ Start up clients and programs are determined by the <span class="quote">&#8220;<span class="quote">SessionDir</span>&#8221;</span>
+ statement in the <span class="quote">&#8220;<span class="quote">[daemon]</span>&#8221;</span> section. On my installation, this
+ points to <code class="filename">/etc/X11/gdm/Sessions/</code>, which contains several
+ short scripts. If I look at my <code class="filename">Default</code> script, it
+ actually executes <code class="filename">/etc/X11/xdm/Xsession</code>, which in turn
+ would execute <code class="filename">~/.xsession</code>, if present. So at this final 
+ stage, <span class="command"><strong>gdm</strong></span> acts very much like <span class="command"><strong>xdm</strong></span>.
+
+</p><p>
+ <span class="application">GNOME</span> includes the <span class="command"><strong>gdmconfig</strong></span>
+ utility to control many aspects of <span class="command"><strong>gdm</strong></span> behavior. 
+
+</p></div><div class="sect3"><div class="titlepage"><div><div><h4 class="title"><a name="idm585"></a>3.2.3. kdm</h4></div></div></div><p>
+ <span class="command"><strong>kdm</strong></span> is the display manager from <span class="application">KDE</span>. 
+ The main configuration file for <span class="command"><strong>kdm</strong></span> is
+ <code class="filename">kdmrc</code> and is typically installed
+ as <code class="filename">/etc/kde/kdm/kdmrc</code>. As is the case with
+ <code class="filename">gdm.conf</code>, <code class="filename">kdmrc</code> uses
+ <span class="quote">&#8220;<span class="quote">#</span>&#8221;</span> for comments, and has sections with section headers in
+ similar square brackets. <span class="command"><strong>kdm</strong></span> configuration can also be
+ edited with the <span class="command"><strong>kcontrol</strong></span> utility.
+
+</p><p>
+ The visible desktop is configured in the <span class="quote">&#8220;<span class="quote">[Desktop*]</span>&#8221;</span>
+ section(s), and by the <span class="quote">&#8220;<span class="quote">Setup</span>&#8221;</span> directive which should point to a
+ file like <code class="filename">/usr/share/config/kdm/Xsetup</code> or 
+ <code class="filename">/etc/X11/xdm/Xsetup_0</code>. This will accomplish the same
+ thing as <span class="command"><strong>xdm</strong></span>'s <code class="filename">Xsetup_0</code> does: namely
+ running any programs the user might want such as <span class="command"><strong>xconsole</strong></span>.
+
+</p><p>
+ The command to launch the X server is the <span class="quote">&#8220;<span class="quote">Xservers</span>&#8221;</span> directive
+ in the <span class="quote">&#8220;<span class="quote">[General]</span>&#8221;</span>. Again, this should point to a file such as 
+ <code class="filename">/etc/X11/xdm/Xservers</code>, and uses the same syntax as
+ <span class="command"><strong>xdm</strong></span>:
+
+</p><p>
+ </p><pre class="screen">
+
+ :0 local /usr/X11R6/bin/X 
+
+ </pre><p>
+</p><p>
+ Any command line options for the X server, go here.
+
+</p><p>
+ The login widget itself is configured in the <span class="quote">&#8220;<span class="quote">[X-*-Greeter]</span>&#8221;</span>
+ section(s). Compiled in defaults are used if the user does not specify any.
+
+</p><p>
+ <span class="application">KDE</span> includes the <span class="command"><strong>kdmdesktop</strong></span>
+ utility to control some aspects of <span class="command"><strong>kdm</strong></span> behavior, mostly 
+ just the login background.
+
+</p></div></div></div><div class="navfooter"><hr><table width="100%" summary="Navigation footer"><tr><td width="40%" align="left"><a accesskey="p" href="ar01s02.html">Prev</a> </td><td width="20%" align="center"> </td><td width="40%" align="right"> <a accesskey="n" href="ar01s04.html">Next</a></td></tr><tr><td width="40%" align="left" valign="top">2. XFree86 </td><td width="20%" align="center"><a accesskey="h" href="index.html">Home</a></td><td width="40%" align="right" valign="top"> 4. More X Configuration</td></tr></table></div></body></html>

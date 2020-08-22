@@ -1,0 +1,259 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1"><title>10. Adding SpamAssassin</title><link rel="stylesheet" type="text/css" href="style.css"><meta name="generator" content="DocBook XSL Stylesheets V1.79.1"><meta name="keywords" content="anti-spam, anti-virus, bogus virus warnings, collateral spam, delivery status notification, dsn, exim, exim4, exiscan, exiscan-acl, greylisting, junk mail, sa-exim, smtp, spam, spamassassin, teergrubing, transaction delay"><link rel="home" href="index.html" title="Spam Filtering for Mail Exchangers"><link rel="up" href="exim.html" title="Appendix A. Exim Implementation"><link rel="prev" href="exim-av.html" title="9. Adding Anti-Virus Software"><link rel="next" href="exim-sign.html" title="11. Adding Envelope Sender Signatures"></head><body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF"><div class="navheader"><table width="100%" summary="Navigation header"><tr><th colspan="3" align="center">10. Adding SpamAssassin</th></tr><tr><td width="20%" align="left"><a accesskey="p" href="exim-av.html">Prev</a> </td><th width="60%" align="center">Appendix A. Exim Implementation</th><td width="20%" align="right"> <a accesskey="n" href="exim-sign.html">Next</a></td></tr></table><hr></div><div class="section"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="exim-sa"></a>10. Adding SpamAssassin</h2></div></div></div><p>
+      Invoking SpamAssassin at SMTP-time is commonly done in either
+      of two ways in Exim:
+    </p><div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem"><p>
+          Via the <code class="option">spam</code> condition offered by
+          <code class="option">Exiscan-ACL</code>.  This is the mechanism we
+          will cover here.
+        </p></li><li class="listitem"><p>
+          Via <code class="option">SA-Exim</code>, another utility written by
+          Marc Merlins (<code class="email">&lt;<a class="email" href="mailto:marc%20(at)%20merlins.org">marc (at) merlins.org</a>&gt;</code>),
+          specifically for running SpamAssassin at SMTP time in Exim.
+          This program operates through Exim's
+          <code class="option">local_scan()</code> interface, either patched
+          directly into the Exim source code, or via Marc's own
+          <code class="option">dlopen()</code> plugin (which, by the way, is
+          included in Debian's <code class="option">exim4-daemon-light</code>
+          and <code class="option">exim4-daemon-heavy</code> packages).
+        </p><p>
+          <code class="option">SA-Exim</code> offers some other features as
+          well, namely <span class="emphasis"><em>greylisting</em></span> and
+          <span class="emphasis"><em>teergrubing</em></span>.  However, because the
+          scan happens after the message data has been received,
+          neither of these two features may be as useful as they
+          would be earlier in the SMTP transaction.
+        </p><p>
+          <code class="option">SA-Exim</code> can be found at:
+          <a class="ulink" href="http://marc.merlins.org/linux/exim/sa.html" target="_top">http://marc.merlins.org/linux/exim/sa.html</a>.
+        </p></li></ul></div><div class="section"><div class="titlepage"><div><div><h3 class="title"><a name="exim-sa-exiscan"></a>10.1. Invoke SpamAssassin via Exiscan</h3></div></div></div><p>
+        <code class="option">Exiscan-ACL</code>'s
+        <span class="quote">&#8220;<span class="quote"><code class="option">spam</code></span>&#8221;</span> condition passes the
+        message through either SpamAssassin or Brightmail, and
+        triggers if these indicate that the message is junk.  By
+        default, it connects to a SpamAssassin daemon
+        (<code class="option">spamd</code>) running on
+        <code class="option">localhost</code>.  The host address and port can be
+        changed by adding a <code class="option">spamd_address</code> setting in
+        the <span class="emphasis"><em>main</em></span> section of the Exim
+        configuration file.  For more information, see the
+        <code class="option">exiscan-acl-spect.txt</code> file included with the
+        patch.
+      </p><p>
+        In our implementation, we are going to reject messages
+        classified as spam.  However, we would like to keep a copy of
+        such messages in a separate mail folder, at least for the time
+        being.  This is so that the user can periodically scan for
+        <a class="xref" href="gloss.html#falsepos" title="False Positive">False Positive</a>s.
+      </p><p>
+        Exim offers <span class="emphasis"><em>controls</em></span> that can be applied
+        to a message that is accepted, such as
+        <code class="option">freeze</code>.  The Exiscan-ACL patch adds one more
+        of these controls, namely <code class="option">fakereject</code>.
+        This causes the following SMTP response:
+
+</p><pre class="screen">
+550-FAKEREJECT id=<em class="parameter"><code>message-id</code></em>
+550-Your message has been rejected but is being kept for evaluation.
+550 If it was a legit message, it may still be delivered to the target recipient(s).
+</pre><p>
+      </p><p>
+        We can incorporate this feature into our implementation, by
+        inserting the following snippet in <a class="xref" href="exim-firstpass.html#acl_data_1" title="4.5. acl_data">acl_data</a>, prior to the final
+        <code class="option">accept</code> statement:
+
+</p><pre class="screen">
+  # Invoke SpamAssassin to obtain $spam_score and $spam_report.
+  # Depending on the classification, $acl_m9 is set to "ham" or "spam".
+  #
+  # If the message is classified as spam, pretend to reject it. 
+  #
+  warn
+    set acl_m9  = ham
+    spam        = mail
+    set acl_m9  = spam
+    control     = fakereject
+    logwrite    = :reject: Rejected spam (score $spam_score): $spam_report
+
+  # Add an appropriate X-Spam-Status: header to the message.
+  #
+  warn
+    message     = X-Spam-Status: \
+                  ${if eq {$acl_m9}{spam}{Yes}{No}} (score $spam_score)\
+                  ${if def:spam_report {: $spam_report}}
+    logwrite    = :main: Classified as $acl_m9 (score $spam_score)
+
+</pre><p>
+      </p><p>
+        In this example, <code class="varname">$acl_m9</code> is initially set to
+        <span class="quote">&#8220;<span class="quote">ham</span>&#8221;</span>.  Then SpamAssassin is invoked as the user
+        <code class="option">mail</code>. If the message is classified as spam,
+        then <code class="varname">$acl_m9</code> is set to <span class="quote">&#8220;<span class="quote">spam</span>&#8221;</span>,
+        and the <code class="option">FAKEREJECT</code> response above is issued.
+        Finally, an <code class="option">X-Spam-Status:</code> header is added to
+        the message.  The idea is that the <a class="xref" href="gloss.html#mda" title="Mail Delivery Agent">Mail Delivery Agent</a> or
+        the recipient's <a class="xref" href="gloss.html#mua" title="Mail User Agent">Mail User Agent</a> can use this header to
+        filter junk mail into a separate folder.
+      </p></div><div class="section"><div class="titlepage"><div><div><h3 class="title"><a name="exim-sa-config"></a>10.2. Configure SpamAssassin</h3></div></div></div><p>
+        By default, SpamAssassin presents its report in a verbose,
+        table-like format, mainly suitable for inclusion in or
+        attachment to the message body.  In our case, we want a terse
+        report, suitable for the <code class="option">X-Spam-Status:</code>
+        header in the example above.  To do this, we add the following
+        snippet in its site specific configuration file
+        (<code class="option">/etc/spamassassin/local.cf</code>,
+        <code class="option">/etc/mail/spamassassin/local.cf</code>, or similar):
+
+</p><pre class="screen">
+### Report template
+clear_report_template
+report "_TESTSSCORES(, )_"
+</pre><p>
+      </p><p>
+        Also, a <a class="link" href="gloss.html#bayesian" title="Bayesian Filters">Bayesian</a> scoring
+        feature is built in, and is turned on by default.  We normally
+        want to turn this off, because it requires training that will
+        be specific to each user, and thus is not suitable for
+        system-wide SMTP time filtering:
+
+</p><pre class="screen">
+### Disable Bayesian scoring
+use_bayes 0
+</pre><p>
+      </p><p>
+        For these changes to take effect, you have to restart the
+        SpamAssassin daemon (<span class="command"><strong>spamd</strong></span>).
+      </p></div><div class="section"><div class="titlepage"><div><div><h3 class="title"><a name="exim-per-user"></a>10.3. User Settings and Data</h3></div></div></div><p>
+        Say you have a number of users that want to specify their
+        individual SpamAssassin preferences, such as the spam
+        threshold, acceptable languages and character sets,
+        white/blacklisted senders, and so on.  Or perhaps they really
+        want to be able to make use of SpamAssassin's native Bayesian
+        scoring (though I don't see why<a href="#ftn.idm1828" class="footnote" name="idm1828"><sup class="footnote">[17]</sup></a>).
+      </p><p>
+        As discussed in the <a class="xref" href="usersettings.html" title="4. User Settings and Data">User Settings and Data</a> section
+        earlier in the document, there is a way for this to happen.
+        We need to limit the number of recipients we accept per
+        incoming mail delivery to one.  We accept the first
+        <span class="command"><strong>RCPT TO:</strong></span> command issued by the caller, then
+        defer subsequent ones using a <span class="command"><strong>451</strong></span> SMTP
+        response.  As with <a class="link" href="exim-greylisting.html" title="6. Adding Greylisting Support">greylisting</a>, if the caller
+        is a well-behaved MTA it will know how to interpret this
+        response, and retry later.
+      </p><div class="section"><div class="titlepage"><div><div><h4 class="title"><a name="exim-limit-one-user"></a>10.3.1. Tell Exim to accept only one recipient per delivery</h4></div></div></div><p>
+          In the <a class="xref" href="exim-final.html#acl_rcpt_to_final" title="14.4. acl_rcpt_to">acl_rcpt_to</a>, we insert the
+          following statement after validating the recipient address,
+          but before any <code class="option">accept</code> statements pertaining
+          to unauthenticated deliveries from remote hosts to local
+          users (i.e. before any greylist checks, envelope signature
+          checks, etc):
+
+</p><pre class="screen">
+  # Limit the number of recipients in each incoming message to one
+  # to support per-user settings and data (e.g. for SpamAssassin).
+  #
+  # NOTE: Every mail sent to several users at your site will be
+  #       delayed for 30 minutes or more per recipient.  This
+  #       significantly slow down the pace of discussion threads
+  #       involving several internal and external parties.
+  #
+  defer
+    message      = We only accept one recipient at a time - please try later.
+    condition    = $recipients_count
+
+</pre><p>
+        </p></div><div class="section"><div class="titlepage"><div><div><h4 class="title"><a name="exim-sa-as-user"></a>10.3.2. Pass the recipient username to SpamAssassin</h4></div></div></div><p>
+          In <a class="xref" href="exim-final.html#acl_data_final" title="14.5. acl_data">acl_data</a>, we modify the
+          <code class="option">spam</code> condition given in the previous
+          section, so that it passes on to SpamAssassin the username
+          specified in the local part of the recipient address.
+
+</p><pre class="screen">
+  # Invoke SpamAssassin to obtain $spam_score and $spam_report.
+  # Depending on the classification, $acl_m9 is set to "ham" or "spam".
+  #
+  # We pass on the username specified in the recipient address,
+  # i.e. the portion before any '=' or '@' character, converted
+  # to lowercase.  Multiple recipients should not occur, since
+  # we previously limited delivery to one recipient at a time.
+  #
+  # If the message is classified as spam, pretend to reject it. 
+  #
+  warn
+    set acl_m9  = ham
+    spam        = ${lc:${extract{1}{=@}{$recipients}{$value}{mail}}}
+    set acl_m9  = spam
+    control     = fakereject
+    logwrite    = :reject: Rejected spam (score $spam_score): $spam_report
+
+</pre><p>
+        </p><p>
+          Note that instead of using Exim's
+          <code class="option">${local_part:...}</code> function to get the
+          username, we manually extracted the portion before any
+          <span class="quote">&#8220;<span class="quote">@</span>&#8221;</span> or <span class="quote">&#8220;<span class="quote">=</span>&#8221;</span> character.  This is
+          because we will use the latter character in our <a class="link" href="exim-sign.html" title="11. Adding Envelope Sender Signatures">envelope signature</a> scheme, to
+          follow.
+        </p></div><div class="section"><div class="titlepage"><div><div><h4 class="title"><a name="exim-per-user-sa"></a>10.3.3. Enable per-user settings in SpamAssassin</h4></div></div></div><p>
+          Let us now again look at SpamAssassin.  First of all, you
+          may choose to remove the <code class="option">use_bayes 0</code>
+          setting that we previously added in its site-wide
+          configuration file.  In any case, each user will now have
+          the ability to decide whether to override this setting for
+          themselves.
+        </p><p>
+          If mailboxes on your system map directly to local UNIX
+          accounts with home directories, you are done.  By default,
+          the SpamAssassin daemon (<span class="command"><strong>spamd</strong></span>) performs
+          a <code class="option">setuid()</code> to the username we pass to it,
+          and stores user data and settings in that user's home
+          directory.
+        </p><p>
+          If this is not the case (for instance, if your mail accounts
+          are managed by Cyrus SASL or by another server), you need to
+          tell SpamAssassin where to find each user's preferences and
+          data files.  Also, <span class="command"><strong>spamd</strong></span> needs to keep
+          running as a specific local user instead of attempting to
+          <code class="option">setuid()</code> to a non-existing user.
+        </p><p>
+          We do these things by specifying the options passed to
+          <span class="command"><strong>spamd</strong></span> at startup:
+        </p><div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem"><p>
+              On a Debian system, edit the <code class="option">OPTIONS=</code>
+              setting in <code class="option">/etc/default/spamassassin</code>.
+            </p></li><li class="listitem"><p>
+              On a RedHat system, edit the
+              <code class="option">SPAMDOPTIONS=</code> setting in
+              <code class="option">/etc/sysconfig/spamassassin</code>.
+            </p></li><li class="listitem"><p>
+              Others, figure it out.
+            </p></li></ul></div><p>
+          The options you need are:
+        </p><div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem"><p>
+              <code class="option">-u</code> <em class="parameter"><code>username</code></em> -
+              specify the user under which <span class="command"><strong>spamd</strong></span>
+              will run (e.g. <code class="option">mail</code>)
+            </p></li><li class="listitem"><p>
+              <code class="option">-x</code> - disable configuration files in
+              user's home directory.
+            </p></li><li class="listitem"><p>
+              <code class="option">--virtual-config-dir=/var/lib/spamassassin/%u</code>
+              - specify where per-user settings and data are stored.
+              <span class="quote">&#8220;<span class="quote">%u</span>&#8221;</span> is replaced with the calling username.
+              <span class="command"><strong>spamd</strong></span> must be able to create or
+              modify this directory:
+</p><pre class="screen">
+# mkdir /var/lib/spamassassin
+# chown -R mail:mail /var/lib/spamassassin
+</pre><p>
+            </p></li></ul></div><p>
+          Needless to say, after making these changes, you need to
+          restart <span class="command"><strong>spamd</strong></span>.
+        </p></div></div><div class="footnotes"><br><hr style="width:100; text-align:left;margin-left: 0"><div id="ftn.idm1828" class="footnote"><p><a href="#idm1828" class="para"><sup class="para">[17] </sup></a>
+          Although it is true that Bayesian training is specific to
+          each user, it should be noted that SpamAssassin's
+          Bayesian classifier is, IMHO, not that stellar in any case.
+          Especially I find this to be the case since spammers have
+          learned to defeat such systems by seeding random dictionary
+          words or stories in their mail (e.g.  in the metadata of
+          HTML messages).
+        </p></div></div></div><div class="navfooter"><hr><table width="100%" summary="Navigation footer"><tr><td width="40%" align="left"><a accesskey="p" href="exim-av.html">Prev</a> </td><td width="20%" align="center"><a accesskey="u" href="exim.html">Up</a></td><td width="40%" align="right"> <a accesskey="n" href="exim-sign.html">Next</a></td></tr><tr><td width="40%" align="left" valign="top">9. Adding Anti-Virus Software </td><td width="20%" align="center"><a accesskey="h" href="index.html">Home</a></td><td width="40%" align="right" valign="top"> 11. Adding Envelope Sender Signatures</td></tr></table></div></body></html>

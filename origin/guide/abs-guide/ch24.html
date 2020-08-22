@@ -1,0 +1,235 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1"><title>Chapter 24. Functions</title><link rel="stylesheet" type="text/css" href="style.css"><meta name="generator" content="DocBook XSL Stylesheets V1.79.1"><link rel="home" href="index.html" title="Advanced Bash-Scripting Guide"><link rel="up" href="pt05.html" title="Part Part 5. Advanced Topics"><link rel="prev" href="ch23.html" title="Chapter 23. Process Substitution"><link rel="next" href="ch24s01.html" title="1. Complex Functions and Function Complexities"></head><body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF"><div class="navheader"><table width="100%" summary="Navigation header"><tr><th colspan="3" align="center">Chapter 24. Functions</th></tr><tr><td width="20%" align="left"><a accesskey="p" href="ch23.html">Prev</a> </td><th width="60%" align="center">Part Part 5. Advanced Topics</th><td width="20%" align="right"> <a accesskey="n" href="ch24s01.html">Next</a></td></tr></table><hr></div><div class="chapter"><div class="titlepage"><div><div><h2 class="title"><a name="functions"></a>Chapter 24. Functions</h2></div></div></div><div class="toc"><p><b>Table of Contents</b></p><dl class="toc"><dt><span class="sect1"><a href="ch24s01.html">1. Complex Functions and Function Complexities</a></span></dt><dt><span class="sect1"><a href="ch24s02.html">2. Local Variables</a></span></dt><dd><dl><dt><span class="sect2"><a href="ch24s02.html#locvarrecur">2.1. Local variables and recursion.</a></span></dt></dl></dd><dt><span class="sect1"><a href="ch24s03.html">3. Recursion Without Local Variables</a></span></dt></dl></div><p><a name="functionref"></a></p><p>Like <span class="quote">&#8220;<span class="quote">real</span>&#8221;</span> programming languages,
+	Bash has functions, though in a somewhat limited implementation.
+	A function is a subroutine, a <a class="link" href="ch03.html#codeblockref">code
+	block</a> that implements a set of operations, a <span class="quote">&#8220;<span class="quote">black
+	box</span>&#8221;</span> that performs a specified task.  Wherever there is
+	repetitive code, when a task repeats with only slight variations in
+	procedure, then consider using a function.</p><div class="cmdsynopsis"><p><code class="command">function</code>   <em class="replaceable"><code>function_name</code></em>   { <br>  <em class="replaceable"><code>command</code></em>... <br>  } <br></p></div><p>
+	or 
+	</p><div class="cmdsynopsis"><p> <em class="replaceable"><code>function_name</code></em>   ()   { <br>  <em class="replaceable"><code>command</code></em>... <br>  } <br></p></div><p>
+      </p><p>This second form will cheer the hearts of C programmers
+	      (and is more <a class="link" href="ch36s09.html" title="9. Portability Issues">portable</a>).</p><p>As in C, the function's opening bracket may optionally appear
+        on the second line.</p><div class="cmdsynopsis"><p> <em class="replaceable"><code>function_name</code></em>   () <br>  { <br>  <em class="replaceable"><code>command</code></em>... <br>  } <br></p></div><p>
+      </p><div class="note" style="margin-left: 0.5in; margin-right: 0.5in;"><h3 class="title">Note</h3><p>A function may be <span class="quote">&#8220;<span class="quote">compacted</span>&#8221;</span> into a single
+          line.</p><pre class="programlisting">fun () { echo "This is a function"; echo; }
+#                                 ^     ^</pre><p>In this case, however, a <em class="firstterm">semicolon</em>
+          must follow the final command in the function.</p><pre class="programlisting">fun () { echo "This is a function"; echo } # Error!
+#                                       ^
+
+fun2 () { echo "Even a single-command function? Yes!"; }
+#                                                    ^</pre></div><p>Functions are called, <em class="firstterm">triggered</em>, simply by
+	invoking their names. <span class="emphasis"><em>A function call is equivalent to
+	a command.</em></span></p><div class="example"><a name="ex59"></a><p class="title"><b>Example 24.1. Simple functions</b></p><div class="example-contents"><pre class="programlisting">#!/bin/bash
+# ex59.sh: Exercising functions (simple).
+
+JUST_A_SECOND=1
+
+funky ()
+{ # This is about as simple as functions get.
+  echo "This is a funky function."
+  echo "Now exiting funky function."
+} # Function declaration must precede call.
+
+
+fun ()
+{ # A somewhat more complex function.
+  i=0
+  REPEATS=30
+
+  echo
+  echo "And now the fun really begins."
+  echo
+
+  sleep $JUST_A_SECOND    # Hey, wait a second!
+  while [ $i -lt $REPEATS ]
+  do
+    echo "----------FUNCTIONS----------&gt;"
+    echo "&lt;------------ARE-------------"
+    echo "&lt;------------FUN------------&gt;"
+    echo
+    let "i+=1"
+  done
+}
+
+  # Now, call the functions.
+
+funky
+fun
+
+exit $?
+</pre></div></div><br class="example-break"><p><a name="functdefmust"></a></p><p>The function definition must precede the first call to
+	it. There is no method of <span class="quote">&#8220;<span class="quote">declaring</span>&#8221;</span> the function,
+	as, for example, in C.
+	  </p><pre class="programlisting">f1
+# Will give an error message, since function "f1" not yet defined.
+
+declare -f f1      # This doesn't help either.
+f1                 # Still an error message.
+
+# However...
+
+	  
+f1 ()
+{
+  echo "Calling function \"f2\" from within function \"f1\"."
+  f2
+}
+
+f2 ()
+{
+  echo "Function \"f2\"."
+}
+
+f1  #  Function "f2" is not actually called until this point,
+    #+ although it is referenced before its definition.
+    #  This is permissible.
+    
+    # Thanks, S.C.</pre><p>
+      </p><div class="note" style="margin-left: 0.5in; margin-right: 0.5in;"><h3 class="title">Note</h3><p><a name="emptyfunc"></a>Functions may not be empty!
+        </p><pre class="programlisting">#!/bin/bash
+# empty-function.sh
+
+empty ()
+{
+}
+
+exit 0  # Will not exit here!
+
+# $ sh empty-function.sh
+# empty-function.sh: line 6: syntax error near unexpected token `}'
+# empty-function.sh: line 6: `}'
+
+# $ echo $?
+# 2
+
+
+# Note that a function containing only comments is empty.
+
+func ()
+{
+  # Comment 1.
+  # Comment 2.
+  # This is still an empty function.
+  # Thank you, Mark Bova, for pointing this out.
+}
+# Results in same error message as above.
+
+
+# However ...
+
+not_quite_empty ()
+{
+  illegal_command
+} #  A script containing this function will *not* bomb
+  #+ as long as the function is not called.
+
+not_empty ()
+{
+  :
+} # Contains a : (null command), and this is okay.
+
+
+# Thank you, Dominick Geyer and Thiemo Kellner.</pre><p>
+</p></div><p>It is even possible to nest a function within another function,
+        although this is not very useful.
+	  </p><pre class="programlisting">f1 ()
+{
+
+  f2 () # nested
+  {
+    echo "Function \"f2\", inside \"f1\"."
+  }
+
+}  
+
+f2  #  Gives an error message.
+    #  Even a preceding "declare -f f2" wouldn't help.
+
+echo    
+
+f1  #  Does nothing, since calling "f1" does not automatically call "f2".
+f2  #  Now, it's all right to call "f2",
+    #+ since its definition has been made visible by calling "f1".
+
+    # Thanks, S.C.</pre><p>
+      </p><p>Function declarations can appear in unlikely places, even where a
+        command would otherwise go.
+          </p><pre class="programlisting">ls -l | foo() { echo "foo"; }  # Permissible, but useless.
+
+
+
+if [ "$USER" = bozo ]
+then
+  bozo_greet ()   # Function definition embedded in an if/then construct.
+  {
+    echo "Hello, Bozo."
+  }
+fi  
+
+bozo_greet        # Works only for Bozo, and other users get an error.
+
+
+
+# Something like this might be useful in some contexts.
+NO_EXIT=1   # Will enable function definition below.
+
+[[ $NO_EXIT -eq 1 ]] &amp;&amp; exit() { true; }     # Function definition in an "and-list".
+# If $NO_EXIT is 1, declares "exit ()".
+# This disables the "exit" builtin by aliasing it to "true".
+
+exit  # Invokes "exit ()" function, not "exit" builtin.
+
+
+
+# Or, similarly:
+filename=file1
+
+[ -f "$filename" ] &amp;&amp;
+foo () { rm -f "$filename"; echo "File "$filename" deleted."; } ||
+foo () { echo "File "$filename" not found."; touch bar; }
+
+foo
+
+# Thanks, S.C. and Christopher Head</pre><p>
+      </p><p><a name="fstrangeref"></a>Function names can take strange
+      forms.
+        </p><pre class="programlisting">  _(){ for i in {1..10}; do echo -n "$FUNCNAME"; done; echo; }
+# ^^^         No space between function name and parentheses.
+#             This doesn't always work. Why not?
+
+# Now, let's invoke the function.
+  _         # __________
+#             ^^^^^^^^^^   10 underscores (10 x function name)!  
+# A "naked" underscore is an acceptable function name.
+
+
+# In fact, a colon is likewise an acceptable function name.
+
+:(){ echo ":"; }; :
+
+# Of what use is this?
+# It's a devious way to obfuscate the code in a script.</pre><p>
+      See also <a class="xref" href="apa.html#gronsfeld" title="Example A.56. The Gronsfeld Cipher">Example A.56, &#8220;The Gronsfeld Cipher&#8221;</a></p><div class="note" style="margin-left: 0.5in; margin-right: 0.5in;"><h3 class="title">Note</h3><p>What happens when different versions of the same function
+        appear in a script?
+	</p><pre class="programlisting">#  As Yan Chen points out,
+#  when a function is defined multiple times,
+#  the final version is what is invoked.
+#  This is not, however, particularly useful.
+
+func ()
+{
+  echo "First version of func ()."
+}
+
+func ()
+{
+  echo "Second version of func ()."
+}
+
+func   # Second version of func ().
+
+exit $?
+
+#  It is even possible to use functions to override
+#+ or preempt system commands.
+#  Of course, this is *not* advisable.</pre></div></div><div class="navfooter"><hr><table width="100%" summary="Navigation footer"><tr><td width="40%" align="left"><a accesskey="p" href="ch23.html">Prev</a> </td><td width="20%" align="center"><a accesskey="u" href="pt05.html">Up</a></td><td width="40%" align="right"> <a accesskey="n" href="ch24s01.html">Next</a></td></tr><tr><td width="40%" align="left" valign="top">Chapter 23. Process Substitution </td><td width="20%" align="center"><a accesskey="h" href="index.html">Home</a></td><td width="40%" align="right" valign="top"> 1. Complex Functions and Function Complexities</td></tr></table></div></body></html>

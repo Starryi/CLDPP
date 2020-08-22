@@ -1,0 +1,776 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN""http://www.w3.org/TR/html4/loose.dtd">
+<HTML
+><HEAD
+><TITLE
+>A note on callsigns, addresses and things before we start</TITLE
+><META
+NAME="GENERATOR"
+CONTENT="Modular DocBook HTML Stylesheet Version 1.79"><LINK
+REL="HOME"
+TITLE="Linux Amateur Radio AX.25 HOWTO"
+HREF="index.html"><LINK
+REL="PREVIOUS"
+TITLE="Installing the AX.25/NET/ROM/ROSE software"
+HREF="x134.html"><LINK
+REL="NEXT"
+TITLE="Configuring an AX.25 port"
+HREF="x485.html"></HEAD
+><BODY
+CLASS="SECT1"
+BGCOLOR="#FFFFFF"
+TEXT="#000000"
+LINK="#0000FF"
+VLINK="#840084"
+ALINK="#0000FF"
+><DIV
+CLASS="NAVHEADER"
+><TABLE
+SUMMARY="Header navigation table"
+WIDTH="100%"
+BORDER="0"
+CELLPADDING="0"
+CELLSPACING="0"
+><TR
+><TH
+COLSPAN="3"
+ALIGN="center"
+>Linux Amateur Radio AX.25 HOWTO</TH
+></TR
+><TR
+><TD
+WIDTH="10%"
+ALIGN="left"
+VALIGN="bottom"
+><A
+HREF="x134.html"
+ACCESSKEY="P"
+>Prev</A
+></TD
+><TD
+WIDTH="80%"
+ALIGN="center"
+VALIGN="bottom"
+></TD
+><TD
+WIDTH="10%"
+ALIGN="right"
+VALIGN="bottom"
+><A
+HREF="x485.html"
+ACCESSKEY="N"
+>Next</A
+></TD
+></TR
+></TABLE
+><HR
+ALIGN="LEFT"
+WIDTH="100%"></DIV
+><DIV
+CLASS="SECT1"
+><H1
+CLASS="SECT1"
+><A
+NAME="AEN225"
+>5. A note on callsigns, addresses and things before we start</A
+></H1
+><P
+>Each AX.25 and NET/ROM port on your system must have a callsign/ssid allocated
+to it. These are configured in the configuration files that will be described
+in detail later on.</P
+><P
+>Some AX.25 implementations such as NOS and BPQ will allow you to configure
+the same callsign/ssid on each AX.25 and NET/ROM port. For somewhat complicated
+technical reasons Linux does not allow this. This isn't as big a problem in
+practice as it might seem.</P
+><P
+>This means that there are things you should be aware of and take into
+consideration when doing your configurations.</P
+><P
+>&#13;<P
+></P
+><OL
+TYPE="1"
+><LI
+><P
+>Each AX.25 and NET/ROM port must be configured with a unique callsign/ssid.</P
+></LI
+><LI
+><P
+>TCP/IP will use the callsign/ssid of the AX.25 port it is being
+transmitted or received by, ie the one you configured for the AX.25 interface
+in point 1.</P
+></LI
+><LI
+><P
+>NET/ROM will use the callsign/ssid specified for it in its
+configuration file, but this callsign is only used when your NET/ROM is
+speaking to another NET/ROM, this is <EM
+>not</EM
+> the
+callsign/ssid that AX.25 users who wish to use your NET/ROM `node' will
+use. More on this later.</P
+></LI
+><LI
+><P
+>ROSE will, by default, use the callsign/ssid of the AX.25 port, unless
+the ROSE callsign has been specifically set using the
+`<EM
+>rsparms</EM
+>' command. If you set a callsign/ssid
+using the `<EM
+>rsparms</EM
+>' command then ROSE will use
+this callsign/ssid on all ports.</P
+></LI
+><LI
+><P
+>Other programs, such as the `<EM
+>ax25d</EM
+>' program can listen using
+any callsign/ssid that they wish and these may be duplicated across different
+ports.</P
+></LI
+><LI
+><P
+>If you are careful with routing you can configure the same IP address on
+all ports if you wish.</P
+></LI
+></OL
+>&#13;</P
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN248"
+>5.1. What are all those T1, T2, N2 and things ?</A
+></H2
+><P
+>Not every AX.25 implementation is a TNC2. Linux uses nomenclature that
+differs in some respects from that you will be used to if your sole
+experience with packet is a TNC. The following table should help you
+interpret what each of the configurable items are, so that when you come
+across them later in this text you'll understand what they mean.</P
+><P
+><DIV
+CLASS="INFORMALTABLE"
+><P
+></P
+><A
+NAME="AEN252"
+></A
+><TABLE
+BORDER="1"
+FRAME="border"
+CLASS="CALSTABLE"
+><COL><COL><COL><THEAD
+><TR
+><TH
+>Linux</TH
+><TH
+>TAPR TNC</TH
+><TH
+>Description</TH
+></TR
+></THEAD
+><TBODY
+><TR
+><TD
+>T1</TD
+><TD
+>FRACK</TD
+><TD
+>How long to wait before retransmitting an unacknowledged frame.</TD
+></TR
+><TR
+><TD
+>T2</TD
+><TD
+>RESPTIME</TD
+><TD
+>The minimum amount of time to wait for another frame to be received
+before transmitting an acknowledgement.</TD
+></TR
+><TR
+><TD
+>T3</TD
+><TD
+>CHECK</TD
+><TD
+>The period of time we wait between sending a check that the link is still active.</TD
+></TR
+><TR
+><TD
+>N2</TD
+><TD
+>RETRY</TD
+><TD
+>How many times to retransmit a frame before assuming the connection has failed.</TD
+></TR
+><TR
+><TD
+>Idle</TD
+><TD
+>&nbsp;</TD
+><TD
+>The period of time a connection can be idle before we close it down.</TD
+></TR
+><TR
+><TD
+>Window</TD
+><TD
+>MAXFRAME</TD
+><TD
+>The maximum number of unacknowledged transmitted frames.</TD
+></TR
+></TBODY
+></TABLE
+><P
+></P
+></DIV
+></P
+></DIV
+><DIV
+CLASS="SECT2"
+><H2
+CLASS="SECT2"
+><A
+NAME="AEN284"
+>5.2. Run time configurable parameters</A
+></H2
+><P
+>The kernel allows you to change many parameters at run time. If you
+take a careful look at the <TT
+CLASS="LITERAL"
+>/proc/sys/net/</TT
+> directory
+structure you will see many files with useful names that describe
+various parameters for the network configuration. The files in the
+<TT
+CLASS="LITERAL"
+>/proc/sys/net/ax25/</TT
+> directory each represent one
+configured AX.25 port. The name of the file relates to the name of the
+port.</P
+><P
+>The structure of the files in
+<TT
+CLASS="LITERAL"
+>/proc/sys/net/ax25/<TT
+CLASS="REPLACEABLE"
+><I
+>portname</I
+></TT
+>/</TT
+>
+is as follows:</P
+><P
+><DIV
+CLASS="INFORMALTABLE"
+><P
+></P
+><A
+NAME="AEN293"
+></A
+><TABLE
+BORDER="1"
+FRAME="border"
+CLASS="CALSTABLE"
+><COL><COL><COL><COL><THEAD
+><TR
+><TH
+>Filename</TH
+><TH
+>Meaning</TH
+><TH
+>Values</TH
+><TH
+>Default</TH
+></TR
+></THEAD
+><TBODY
+><TR
+><TD
+>ip_default_mode</TD
+><TD
+>IP Default Mode</TD
+><TD
+>0=DG 1=VC</TD
+><TD
+>0</TD
+></TR
+><TR
+><TD
+>ax25_default_mode</TD
+><TD
+>AX.25 Default Mode</TD
+><TD
+>0=Normal 1=Extended</TD
+><TD
+>0</TD
+></TR
+><TR
+><TD
+>backoff_type</TD
+><TD
+>Backoff</TD
+><TD
+>0=Linear 1=Exponential</TD
+><TD
+>1</TD
+></TR
+><TR
+><TD
+>connect_mode</TD
+><TD
+>Connected Mode</TD
+><TD
+>0=No 1=Yes</TD
+><TD
+>1</TD
+></TR
+><TR
+><TD
+>standard_window_size</TD
+><TD
+>Standard Window</TD
+><TD
+>1 .. 7</TD
+><TD
+>2</TD
+></TR
+><TR
+><TD
+>extended_window_size</TD
+><TD
+>Extended Window</TD
+><TD
+>1 .. 63</TD
+><TD
+>32</TD
+></TR
+><TR
+><TD
+>t1_timeout</TD
+><TD
+>T1 Timeout</TD
+><TD
+>1s .. 30s</TD
+><TD
+>10s</TD
+></TR
+><TR
+><TD
+>t2_timeout</TD
+><TD
+>T2 Timeout</TD
+><TD
+>1s .. 20s</TD
+><TD
+>3s</TD
+></TR
+><TR
+><TD
+>t3_timeout</TD
+><TD
+>T3 Timeout</TD
+><TD
+>0s .. 3600s</TD
+><TD
+>300s</TD
+></TR
+><TR
+><TD
+>idle_timeout</TD
+><TD
+>Idle Timeout</TD
+><TD
+>0m or greater</TD
+><TD
+>20m</TD
+></TR
+><TR
+><TD
+>maximum_retry_count</TD
+><TD
+>N2</TD
+><TD
+>1 .. 31</TD
+><TD
+>10</TD
+></TR
+><TR
+><TD
+>maximum_packet_length</TD
+><TD
+>AX.25 Frame Length</TD
+><TD
+>1 .. 512</TD
+><TD
+>256</TD
+></TR
+></TBODY
+></TABLE
+><P
+></P
+></DIV
+></P
+><P
+>In the table T1, T2 and T3 are given in seconds, and the Idle Timeout
+is given in minutes. But please note that the values used in the sysctl
+interface are given in internal units where the time in seconds is
+multiplied by 10, this allows resolution down to 1/10 of a second. With
+timers that are allowed to be zero, e.g. T3 and Idle, a zero value indicates
+that the timer is disabled.</P
+><P
+>The structure of the files in <TT
+CLASS="LITERAL"
+>/proc/sys/net/netrom/</TT
+>
+is as follows:</P
+><P
+><DIV
+CLASS="INFORMALTABLE"
+><P
+></P
+><A
+NAME="AEN366"
+></A
+><TABLE
+BORDER="1"
+FRAME="border"
+CLASS="CALSTABLE"
+><COL><COL><THEAD
+><TR
+><TH
+>Filename</TH
+><TH
+>Meaning</TH
+><TH
+>Values</TH
+><TH
+>Default</TH
+></TR
+></THEAD
+><TBODY
+><TR
+><TD
+>default_path_quality</TD
+><TD
+>&nbsp;</TD
+><TD
+>&nbsp;</TD
+><TD
+>10</TD
+></TR
+><TR
+><TD
+>link_fails_count</TD
+><TD
+>&nbsp;</TD
+><TD
+>&nbsp;</TD
+><TD
+>2</TD
+></TR
+><TR
+><TD
+>network_ttl_initialiser</TD
+><TD
+>&nbsp;</TD
+><TD
+>&nbsp;</TD
+><TD
+>16</TD
+></TR
+><TR
+><TD
+>obsolescence_count_initialiser</TD
+><TD
+>&nbsp;</TD
+><TD
+>&nbsp;</TD
+><TD
+>6</TD
+></TR
+><TR
+><TD
+>routing_control</TD
+><TD
+>&nbsp;</TD
+><TD
+>&nbsp;</TD
+><TD
+>1</TD
+></TR
+><TR
+><TD
+>transport_acknowledge_delay</TD
+><TD
+>&nbsp;</TD
+><TD
+>&nbsp;</TD
+><TD
+>50</TD
+></TR
+><TR
+><TD
+>transport_busy_delay</TD
+><TD
+>&nbsp;</TD
+><TD
+>&nbsp;</TD
+><TD
+>1800</TD
+></TR
+><TR
+><TD
+>transport_maximum_tries</TD
+><TD
+>&nbsp;</TD
+><TD
+>&nbsp;</TD
+><TD
+>3</TD
+></TR
+><TR
+><TD
+>transport_requested_window_size</TD
+><TD
+>&nbsp;</TD
+><TD
+>&nbsp;</TD
+><TD
+>4</TD
+></TR
+><TR
+><TD
+>transport_timeout</TD
+><TD
+>&nbsp;</TD
+><TD
+>&nbsp;</TD
+><TD
+>1200</TD
+></TR
+></TBODY
+></TABLE
+><P
+></P
+></DIV
+></P
+><P
+>The structure of the files in <TT
+CLASS="LITERAL"
+>/proc/sys/net/rose/</TT
+>
+is as follows:</P
+><P
+><DIV
+CLASS="INFORMALTABLE"
+><P
+></P
+><A
+NAME="AEN428"
+></A
+><TABLE
+BORDER="1"
+FRAME="border"
+CLASS="CALSTABLE"
+><COL><COL><THEAD
+><TR
+><TH
+>Filename</TH
+><TH
+>Meaning</TH
+><TH
+>Values</TH
+><TH
+>Default</TH
+></TR
+></THEAD
+><TBODY
+><TR
+><TD
+>acknowledge_hold_back_timeout</TD
+><TD
+>&nbsp;</TD
+><TD
+>&nbsp;</TD
+><TD
+>50</TD
+></TR
+><TR
+><TD
+>call_request_timeout</TD
+><TD
+>&nbsp;</TD
+><TD
+>&nbsp;</TD
+><TD
+>2000</TD
+></TR
+><TR
+><TD
+>clear_request_timeout</TD
+><TD
+>&nbsp;</TD
+><TD
+>&nbsp;</TD
+><TD
+>1800</TD
+></TR
+><TR
+><TD
+>link_fail_timeout</TD
+><TD
+>&nbsp;</TD
+><TD
+>&nbsp;</TD
+><TD
+>1200</TD
+></TR
+><TR
+><TD
+>maximum_virtual_circuits</TD
+><TD
+>&nbsp;</TD
+><TD
+>&nbsp;</TD
+><TD
+>50</TD
+></TR
+><TR
+><TD
+>reset_request_timeout</TD
+><TD
+>&nbsp;</TD
+><TD
+>&nbsp;</TD
+><TD
+>1800</TD
+></TR
+><TR
+><TD
+>restart_request_timeout</TD
+><TD
+>&nbsp;</TD
+><TD
+>&nbsp;</TD
+><TD
+>1800</TD
+></TR
+><TR
+><TD
+>routing_control</TD
+><TD
+>&nbsp;</TD
+><TD
+>&nbsp;</TD
+><TD
+>1</TD
+></TR
+><TR
+><TD
+>window_size</TD
+><TD
+>&nbsp;</TD
+><TD
+>&nbsp;</TD
+><TD
+>3</TD
+></TR
+></TBODY
+></TABLE
+><P
+></P
+></DIV
+></P
+><P
+>To set a parameter all you need to do is write the desired value to the file
+itself, for example to check and set the ROSE window size you'd use something
+like:</P
+><P
+><TABLE
+BORDER="1"
+BGCOLOR="#E0E0E0"
+WIDTH="100%"
+><TR
+><TD
+><FONT
+COLOR="#000000"
+><PRE
+CLASS="SCREEN"
+># cat /proc/sys/net/rose/window_size
+3
+# echo 4 &#62;/proc/sys/net/rose/window_size
+# cat /proc/sys/net/rose/window_size
+4</PRE
+></FONT
+></TD
+></TR
+></TABLE
+></P
+></DIV
+></DIV
+><DIV
+CLASS="NAVFOOTER"
+><HR
+ALIGN="LEFT"
+WIDTH="100%"><TABLE
+SUMMARY="Footer navigation table"
+WIDTH="100%"
+BORDER="0"
+CELLPADDING="0"
+CELLSPACING="0"
+><TR
+><TD
+WIDTH="33%"
+ALIGN="left"
+VALIGN="top"
+><A
+HREF="x134.html"
+ACCESSKEY="P"
+>Prev</A
+></TD
+><TD
+WIDTH="34%"
+ALIGN="center"
+VALIGN="top"
+><A
+HREF="index.html"
+ACCESSKEY="H"
+>Home</A
+></TD
+><TD
+WIDTH="33%"
+ALIGN="right"
+VALIGN="top"
+><A
+HREF="x485.html"
+ACCESSKEY="N"
+>Next</A
+></TD
+></TR
+><TR
+><TD
+WIDTH="33%"
+ALIGN="left"
+VALIGN="top"
+>Installing the AX.25/NET/ROM/ROSE software</TD
+><TD
+WIDTH="34%"
+ALIGN="center"
+VALIGN="top"
+>&nbsp;</TD
+><TD
+WIDTH="33%"
+ALIGN="right"
+VALIGN="top"
+>Configuring an AX.25 port</TD
+></TR
+></TABLE
+></DIV
+></BODY
+></HTML
+>

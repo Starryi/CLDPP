@@ -1,0 +1,116 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1"><title>3. Breaking a network in two with proxy ARP</title><link rel="stylesheet" type="text/css" href="style.css"><meta name="generator" content="DocBook XSL Stylesheets V1.79.1"><meta name="keywords" content="linux, ip, iproute2, ifconfig, firewall, ARP, NAT, route, routing, route selection, routing selection, network administration"><link rel="home" href="index.html" title="Guide to IP Layer Network Administration with Linux"><link rel="up" href="ch09.html" title="Chapter 9. Advanced IP Management"><link rel="prev" href="ch09s02.html" title="2. Multiple IP Networks on one Ethernet Segment"><link rel="next" href="ch09s04.html" title="4. Multiple IPs on an Interface"></head><body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF"><div class="navheader"><table width="100%" summary="Navigation header"><tr><th colspan="3" align="center">3. Breaking a network in two with proxy ARP</th></tr><tr><td width="20%" align="left"><a accesskey="p" href="ch09s02.html">Prev</a> </td><th width="60%" align="center">Chapter 9. Advanced IP Management</th><td width="20%" align="right"> <a accesskey="n" href="ch09s04.html">Next</a></td></tr></table><hr></div><div class="section"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="adv-proxy-arp"></a>3. Breaking a network in two with proxy ARP</h2></div></div></div><a class="indexterm" name="idm3096"></a><a class="indexterm" name="idm3099"></a><p>
+      Proxy ARP is a technique for splitting an IP network into two
+      separate segments.  Hosts on one segment can only reach hosts in the
+      other segment through the router performing proxy ARP.  If a router sits
+      between two parts of an IP network and is not running bridging software,
+      then routes to hosts in each segment and proxy ARP are required
+      on the router to allow each half of the
+      network to communicate with the other half.
+    </p><p>
+      Occasionally, this technique is incorrectly called proxy ARP bridging.
+      An Ethernet bridge operates on frames and a router operates on packets.
+      The proxy ARP router should have routes to all hosts on both segments.
+      Once the router can reach all locally connected destinations via the
+      correct interfaces, you can begin to configure the proxy ARP
+      functionality.
+    </p><p>
+      Although proxy ARP complicates a network, a great advantage of proxy ARP
+      technique is the greater control over IP connections between hosts.
+    </p><p>
+      There are two primary proxy ARP techniques.  With the 2.4 kernel, it is
+      possible to use the sysctl
+      <code class="filename">net/ipv4/conf/all/proxy_arp</code> to perform proxy ARP.
+      Alternatively, manual population of the ARP table reaches the same end.
+    </p><p>
+      The key part of the correct functioning of proxy ARP in a network is
+      that the host breaking a network into two parts has correct routes for
+      all destinations in both halves of the network.  If the host which has
+      interfaces in both networks does not have an accurate routing table, IP
+      packets will get dropped on the routing device.
+    </p><p>
+      One common method of breaking a network in two involves making a very
+      small stub subnet at one end or the other of the IP range.  This small
+      subnet (maybe as small as a /30 network, with two usable IPs) makes an
+      excellent sequestered location for a host which requires more
+      protection or even, a generally untrusted host which shouldn't have
+      complete access to the Ethernet to which the other machines connect.
+    </p><p>
+      For a practical example of this, see the relationship between the
+      <code class="systemitem">service-router</code>, <code class="systemitem">masq-gw</code> and <code class="systemitem">isolde</code> in the
+      <a class="link" href="apas01.html" title="1. Example Network Map and General Notes">network map</a>.  <code class="systemitem">isolde</code> and
+      <code class="systemitem">service-router</code> share the same IP network, 192.168.100.0/24.  If either
+      has a packet for the other, it will generate an ARP request which should
+      be answered by <code class="systemitem">masq-gw</code>.  Naturally, <code class="systemitem">masq-gw</code> has its routes
+      configured in such a way that both hosts are reachable from it.  Thus,
+      the packet will successfully pass through <code class="systemitem">masq-gw</code>.
+    </p><p>
+      Let's examine what the sequence of events is by which the packet will
+      reach <code class="systemitem">service-router</code> from <code class="systemitem">isolde</code>.  In this example, <code class="systemitem">isolde</code> will
+      send an echo request packet to <code class="systemitem">service-router</code>.  Please also refer to
+      <a class="xref" href="apbs01.html" title="1. arp">Section 1, &#8220;<span class="command"><strong>arp</strong></span>&#8221;</a> for examples and command lines to create
+      a proxy ARP configuration.
+    </p><a name="list-adv-proxy-arp"></a><div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem"><p>
+          the admin on <code class="systemitem">isolde</code> creates an echo request packet 
+          for 192.168.100.1 with
+          <a class="link" href="apgs01.html" title="1. ping"><span class="command"><strong>ping</strong></span></a>
+        </p></li><li class="listitem"><p>
+          <code class="systemitem">isolde</code> sends an ARP request for the owner of 192.168.100.1
+        </p></li><li class="listitem"><p>
+          <code class="systemitem">masq-gw</code> replies that <code class="systemitem">isolde</code> should send packets for
+          192.168.100.1 to its Ethernet address, 00:80:c8:f8:5c:71
+        </p></li><li class="listitem"><p>
+          <code class="systemitem">masq-gw</code> receives the packet, unwraps it and selects eth3 as
+          the output interface
+        </p></li><li class="listitem"><p>
+          <code class="systemitem">masq-gw</code> sends an ARP request for the owner of 192.168.100.1
+        </p></li><li class="listitem"><p>
+          <code class="systemitem">service-router</code> replies that <code class="systemitem">masq-gw</code> should send packets for
+          192.168.100.1 to its Ethernet address, 00:c0:7b:7d:00:c8
+        </p></li><li class="listitem"><p>
+          <code class="systemitem">service-router</code> receives the packet unwraps it and hands it up
+          the IP stack, which generates an echo reply bound for the source
+          address, 192.168.100.17 (<code class="systemitem">isolde</code>'s IP)
+        </p></li><li class="listitem"><p>
+          <code class="systemitem">service-router</code> sends an ARP request for the owner of 192.168.100.17
+        </p></li><li class="listitem"><p>
+          <code class="systemitem">masq-gw</code> replies that <code class="systemitem">service-router</code> should send packets for
+          192.168.100.17 to its Ethernet address, 00:80:c8:f8:5c:74
+        </p></li><li class="listitem"><p>
+          <code class="systemitem">masq-gw</code> receives the packet, unwraps it and selects eth0 as
+          the output interface
+        </p></li><li class="listitem"><p>
+          <code class="systemitem">masq-gw</code> sends an ARP request for the owner of 192.168.100.17
+        </p></li><li class="listitem"><p>
+          <code class="systemitem">isolde</code> replies that <code class="systemitem">masq-gw</code> should send packets for
+          192.168.100.17 to its Ethernet address, 00:80:c8:e8:4b:8e
+        </p></li><li class="listitem"><p>
+          <code class="systemitem">isolde</code> receives the reply, unwraps it and hands it up the IP stack
+          to the awaiting
+          <a class="link" href="apgs01.html" title="1. ping"><span class="command"><strong>ping</strong></span></a> command
+        </p></li></ul></div><p>
+      Where possible, a simplified network is easier to maintain, but
+      occasionally, this sort of trickery is necessary.  This is an excellent
+      way to insert a firewall into the middle of a network.  The firewall,
+      naturally, has to have its routes set properly, and proxy ARP entries
+      will be required for routers.
+    </p><p>
+      Now, here's a short script and configuration file which can be run as a
+      SysVInit style script.  This script provides a great deal of control
+      over the ARP table directly so may be preferable in some cases to an
+      alternate solution outlined below.  This
+      <a class="link" href="ch11s01.html#ex-sc-proxy-arp" title="Example 11.1. Proxy ARP SysV initialization script">proxy-arp script</a> reads the
+      following
+      <a class="link" href="ch11s01.html#ex-sc-proxy-arp-conf" title="Example 11.2. Proxy ARP configuration file">configuration file</a>.
+      Each is commented heavily so it should be clear how to use them.
+    </p><p>
+      This chapter discussed how to break a network in twain with proxy ARP
+      techniques.  For another explanation of the same concepts, read the
+      <a class="ulink" href="http://www.linuxpowered.com/HOWTO/mini/Proxy-ARP-Subnet/" target="_top">Proxy
+      ARP Subnet mini-HOWTO</a>.  Available in most (all?) 2.4 kernels is
+      built-in capability for Proxy ARP.  This is documented in deeper detail
+      <a class="link" href="ch02s02.html#ether-arp-proxy-kernel">above</a>.
+      Consider familiarizing yourself with the methods of suppressing
+      and controling ARP through
+      <a class="ulink" href="http://www.ssi.bg/~ja/" target="_top">Julian
+      Anastasov's work</a>.
+    </p></div><div class="navfooter"><hr><table width="100%" summary="Navigation footer"><tr><td width="40%" align="left"><a accesskey="p" href="ch09s02.html">Prev</a> </td><td width="20%" align="center"><a accesskey="u" href="ch09.html">Up</a></td><td width="40%" align="right"> <a accesskey="n" href="ch09s04.html">Next</a></td></tr><tr><td width="40%" align="left" valign="top">2. Multiple IP Networks on one Ethernet Segment </td><td width="20%" align="center"><a accesskey="h" href="index.html">Home</a></td><td width="40%" align="right" valign="top"> 4. Multiple IPs on an Interface</td></tr></table></div></body></html>

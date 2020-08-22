@@ -1,0 +1,316 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN""http://www.w3.org/TR/html4/loose.dtd">
+<HTML
+><HEAD
+><TITLE
+>Tuning Linux dialup</TITLE
+><META
+NAME="GENERATOR"
+CONTENT="Modular DocBook HTML Stylesheet Version 1.79"><LINK
+REL="HOME"
+TITLE="Tuning Linux"
+HREF="index.html"><LINK
+REL="UP"
+TITLE="Network Tuning"
+HREF="network.html"><LINK
+REL="PREVIOUS"
+TITLE="Tuning TCP/IP performance"
+HREF="networktcpip.html"><LINK
+REL="NEXT"
+TITLE="Wireless Ethernet"
+HREF="networkwireless.html"></HEAD
+><BODY
+CLASS="SECTION"
+BGCOLOR="#FFFFFF"
+TEXT="#000000"
+LINK="#0000FF"
+VLINK="#840084"
+ALINK="#0000FF"
+><DIV
+CLASS="NAVHEADER"
+><TABLE
+SUMMARY="Header navigation table"
+WIDTH="100%"
+BORDER="0"
+CELLPADDING="0"
+CELLSPACING="0"
+><TR
+><TH
+COLSPAN="3"
+ALIGN="center"
+>Tuning Linux</TH
+></TR
+><TR
+><TD
+WIDTH="10%"
+ALIGN="left"
+VALIGN="bottom"
+><A
+HREF="networktcpip.html"
+ACCESSKEY="P"
+>Prev</A
+></TD
+><TD
+WIDTH="80%"
+ALIGN="center"
+VALIGN="bottom"
+>Chapter 5. Network Tuning</TD
+><TD
+WIDTH="10%"
+ALIGN="right"
+VALIGN="bottom"
+><A
+HREF="networkwireless.html"
+ACCESSKEY="N"
+>Next</A
+></TD
+></TR
+></TABLE
+><HR
+ALIGN="LEFT"
+WIDTH="100%"></DIV
+><DIV
+CLASS="SECTION"
+><H1
+CLASS="SECTION"
+><A
+NAME="NETWORKDIALUP"
+>5.5. Tuning Linux dialup</A
+></H1
+><P
+>      If your connection to the rest of the world is through a dialup link,
+      don't worry.  <A
+HREF="networktcpip.html"
+>Section 5.4</A
+> covers many of
+      the issues that you will see for dialup.  The MTU for PPP is
+      recommended at 1500, but slower links may want an MTU of 296
+      to have improved latency.
+    </P
+><P
+>      Modems in Linux should be full fledged modems, not ones labeled
+      WinModem or Soft Modems.  Each of these styles of modem pass much
+      of the processing work off to the CPU.  This makes the cards very
+      inexpensive, but increases the load on the CPU.  Modems can be
+      internal or external, but internal modems include their own port
+      settings that may be easier to use than with external modems,
+      since the modem and serial port are in the same card.  If you use
+      external modems, set the data link between the serial port and the modem
+      to be the highest the modem supports, which is usually 115,200bps
+      or 230,400bps.  This ensures that the modem can talk as fast as it needs
+      to with the machine.  You should also ensure that you are using RTS/CTS
+      handshaking, also known as hardware, or out-of-band flow control.  This
+      allows a modem to immediately tell Linux to stop sending data to the
+      modem, preventing loss of data.
+    </P
+><P
+>      Controlling the Linux serial port is used with the
+      <B
+CLASS="COMMAND"
+>setserial</B
+> command.  You can find the available
+      serial ports at bootup, or by looking at
+      <TT
+CLASS="FILENAME"
+>/proc/tty/driver/serial</TT
+>.  Entries in that
+      file that have a UART listed exist in Linux.  Remember that COM1
+      or Serial 1 listed on your box will be listed as
+      <TT
+CLASS="FILENAME"
+>/dev/ttyS0</TT
+>, and COM2 is
+      <TT
+CLASS="FILENAME"
+>/dev/ttyS1</TT
+>.  Most modern applications can
+      comprehend speeds greater than 38,400bps, but some older ones do not.
+      To compensate for this, Linux has made 38,400bps (or 38.4kbps) a
+      <SPAN
+CLASS="QUOTE"
+>"magic"</SPAN
+> speed, and if an application asks for 38.4kbps,
+      Linux will translate this to another speed.  Currently, this can be
+      as high as 460kbps.  To use this, the <B
+CLASS="COMMAND"
+>setserial</B
+>
+      command is used.
+    </P
+><TABLE
+BORDER="1"
+BGCOLOR="#E0E0E0"
+WIDTH="100%"
+><TR
+><TD
+><FONT
+COLOR="#000000"
+><PRE
+CLASS="SCREEN"
+># setserial /dev/ttyS0
+/dev/ttyS0, UART: 16550A, Port: 0x03f8, IRQ: 4
+# setserial /dev/ttyS0 spd_vhi
+# setserial /dev/ttyS0
+/dev/ttyS0, UART: 16550A, Port: 0x03f8, IRQ: 4, Flags: spd_vhi</PRE
+></FONT
+></TD
+></TR
+></TABLE
+><P
+>      Speeds are listed as codes for setserial, and these codes are listed
+      in <A
+HREF="networkdialup.html#NETWORKSPEED"
+>Table 5-2</A
+>.  These values can be set by
+      non-root users.
+    </P
+><DIV
+CLASS="TABLE"
+><A
+NAME="NETWORKSPEED"
+></A
+><P
+><B
+>Table 5-2. Settings for <B
+CLASS="COMMAND"
+>setserial</B
+></B
+></P
+><TABLE
+BORDER="1"
+CLASS="CALSTABLE"
+><COL><COL><THEAD
+><TR
+><TH
+>Code</TH
+><TH
+>Speed</TH
+></TR
+></THEAD
+><TBODY
+><TR
+><TD
+>spd_normal</TD
+><TD
+>38.4kbps</TD
+></TR
+><TR
+><TD
+>spd_hi</TD
+><TD
+>57.6kbps</TD
+></TR
+><TR
+><TD
+>spd_vhi</TD
+><TD
+>115.2kbps</TD
+></TR
+><TR
+><TD
+>spd_shi</TD
+><TD
+>230.4kbps</TD
+></TR
+><TR
+><TD
+>spd_warp</TD
+><TD
+>460.8kbps</TD
+></TR
+></TBODY
+></TABLE
+></DIV
+><P
+>      There is also a spd_cust entry that can use a custom speed instead
+      of 38.4kbps.  The resulting speed becomes the value of baud_base
+      divided by the value of divisor.
+    </P
+><P
+>      If both sides have it available, compression using Deflate or BSD
+      is available and can increse throughput.  Even though many newer
+      modem protocols provide compression, it isn't very strong.  By using
+      Deflate or BSD, greater compression at little loss of CPU or memory
+      space can be attained.  The down side is that both sides need to have
+      either Deflate or BSD compression available built into the PPP software.
+      BSD compression can be activated by using the <CODE
+CLASS="OPTION"
+>bsdcomp</CODE
+>
+      option passed to <B
+CLASS="COMMAND"
+>pppd</B
+> followed by a compression
+      level between 9 and 15.  Higher numbers indicate higher compression.
+      Deflate compression can be used with the <CODE
+CLASS="OPTION"
+>deflate</CODE
+>
+      option followed by a number in the range of 8 to 15.  Deflate
+      is preferred by the pppd used by Linux.
+    </P
+></DIV
+><DIV
+CLASS="NAVFOOTER"
+><HR
+ALIGN="LEFT"
+WIDTH="100%"><TABLE
+SUMMARY="Footer navigation table"
+WIDTH="100%"
+BORDER="0"
+CELLPADDING="0"
+CELLSPACING="0"
+><TR
+><TD
+WIDTH="33%"
+ALIGN="left"
+VALIGN="top"
+><A
+HREF="networktcpip.html"
+ACCESSKEY="P"
+>Prev</A
+></TD
+><TD
+WIDTH="34%"
+ALIGN="center"
+VALIGN="top"
+><A
+HREF="index.html"
+ACCESSKEY="H"
+>Home</A
+></TD
+><TD
+WIDTH="33%"
+ALIGN="right"
+VALIGN="top"
+><A
+HREF="networkwireless.html"
+ACCESSKEY="N"
+>Next</A
+></TD
+></TR
+><TR
+><TD
+WIDTH="33%"
+ALIGN="left"
+VALIGN="top"
+>Tuning TCP/IP performance</TD
+><TD
+WIDTH="34%"
+ALIGN="center"
+VALIGN="top"
+><A
+HREF="network.html"
+ACCESSKEY="U"
+>Up</A
+></TD
+><TD
+WIDTH="33%"
+ALIGN="right"
+VALIGN="top"
+>Wireless Ethernet</TD
+></TR
+></TABLE
+></DIV
+></BODY
+></HTML
+>

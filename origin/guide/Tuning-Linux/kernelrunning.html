@@ -1,0 +1,572 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN""http://www.w3.org/TR/html4/loose.dtd">
+<HTML
+><HEAD
+><TITLE
+>Tuning a Runing Linux System</TITLE
+><META
+NAME="GENERATOR"
+CONTENT="Modular DocBook HTML Stylesheet Version 1.79"><LINK
+REL="HOME"
+TITLE="Tuning Linux"
+HREF="index.html"><LINK
+REL="UP"
+TITLE="Kernel Tuning"
+HREF="kernel.html"><LINK
+REL="PREVIOUS"
+TITLE="Compiling the Linux Kernel"
+HREF="kernelcompile.html"><LINK
+REL="NEXT"
+TITLE="Application Tuning"
+HREF="apps.html"></HEAD
+><BODY
+CLASS="SECTION"
+BGCOLOR="#FFFFFF"
+TEXT="#000000"
+LINK="#0000FF"
+VLINK="#840084"
+ALINK="#0000FF"
+><DIV
+CLASS="NAVHEADER"
+><TABLE
+SUMMARY="Header navigation table"
+WIDTH="100%"
+BORDER="0"
+CELLPADDING="0"
+CELLSPACING="0"
+><TR
+><TH
+COLSPAN="3"
+ALIGN="center"
+>Tuning Linux</TH
+></TR
+><TR
+><TD
+WIDTH="10%"
+ALIGN="left"
+VALIGN="bottom"
+><A
+HREF="kernelcompile.html"
+ACCESSKEY="P"
+>Prev</A
+></TD
+><TD
+WIDTH="80%"
+ALIGN="center"
+VALIGN="bottom"
+>Chapter 6. Kernel Tuning</TD
+><TD
+WIDTH="10%"
+ALIGN="right"
+VALIGN="bottom"
+><A
+HREF="apps.html"
+ACCESSKEY="N"
+>Next</A
+></TD
+></TR
+></TABLE
+><HR
+ALIGN="LEFT"
+WIDTH="100%"></DIV
+><DIV
+CLASS="SECTION"
+><H1
+CLASS="SECTION"
+><A
+NAME="KERNELRUNNING"
+>6.3. Tuning a Runing Linux System</A
+></H1
+><P
+>      When Linux first got started, changing options to the kernel often
+      required recompiling.  Getting information out of Linux required
+      applications be recompiled to look at the right memory location
+      to get things like user and process lists.  After the release
+      of the 1.0 kernel, the <TT
+CLASS="FILENAME"
+>/proc</TT
+>
+      filesystem arrived as a way to access information in a kernel-independent
+      way.  Because of this, a command like <B
+CLASS="COMMAND"
+>ps</B
+> will
+      keep operating even if the kernel rev changes.  The <TT
+CLASS="FILENAME"
+>/proc</TT
+> filesystem also allows you
+      to change the kernel itself wile running, allowing you to add
+      in features like TCP/IP forwarding, manage RAID cards, and so on.
+    </P
+><DIV
+CLASS="SECTION"
+><H2
+CLASS="SECTION"
+><A
+NAME="KERNELRUNNINGPROC"
+>6.3.1. The <TT
+CLASS="FILENAME"
+>/proc</TT
+> filesystem</A
+></H2
+><P
+>        This portion is not strictly about tuning a system, but getting
+	information out of your urnning system.  In the event of serious
+	memory or hardware issues, you can sometimes get information
+	out of Linux.
+      </P
+><P
+>        The <TT
+CLASS="FILENAME"
+>/proc</TT
+> heirarchy may change
+	depending on the kernel revision, but is generally arranged
+	into different classes.
+      </P
+><P
+></P
+><DIV
+CLASS="VARIABLELIST"
+><DL
+><DT
+>Processes</DT
+><DD
+><P
+>	      Contains information about each of the running processes,
+	      organized by PID.  Each process has its own directory
+	      of information, including status, list of file descriptors,
+	      command line, environment variables for the application,
+	      and working directory when the application was started.
+	    </P
+></DD
+><DT
+>bus</DT
+><DD
+><P
+>	      Contains information about the system busses.  At this point,
+	      it works with the USB, PCI, and PCMCIA busses.  More, like
+	      IEEE-1394 will list devices and controllers under this directory.
+	      The information about each device is less human readable than
+	      older directoried like <TT
+CLASS="FILENAME"
+>/proc/pci
+	      </TT
+>, but human readability is not the point of
+	      <TT
+CLASS="FILENAME"
+>/proc</TT
+>
+	    </P
+></DD
+><DT
+>cpuinfo</DT
+><DD
+><P
+>	      If you want to find out information about the CPU(s) installed in
+	      your system, you can take a look at the cpuinfo file.  For each
+	      processor, you will get things like CPU speed, vendor,
+	      model type (Pentium II, Pentium III, etc.), and the
+	      ever-popular bogomips rating.
+	    </P
+></DD
+><DT
+>filesystems</DT
+><DD
+><P
+>	      This file has a list of the filesystems that the kernel currently
+	      knows about.  We say currently, since modules can be loaded or
+	      removed to add or remove additional filesystem types.  If
+	      you are having trouble mounting a filesystem, this is an easy
+	      way to make sure the filesystem type is supported by the kernel.
+	    </P
+></DD
+><DT
+>ide</DT
+><DD
+><P
+>	      If your system has
+	      
+	      IDE devices, this directory contains information about the IDE
+	      devices that are in your system.  It is organized by IDE
+	      channels that are available, and each device has informaiton about
+	      the model name and number, serial number, capacity, and any
+	      other information specific to that IDE type.  Tuning of IDE
+	      drives should be done using <B
+CLASS="COMMAND"
+>hdparm</B
+>, and you can
+	      see <A
+HREF="disktuning.html#DISKTUNINGIDEOS"
+>Section 4.3.1.2</A
+> for usage.
+	    </P
+></DD
+><DT
+>meminfo</DT
+><DD
+><P
+>	      This file has the raw memory information that you would normally
+	      see as output of <B
+CLASS="COMMAND"
+>free</B
+>.  The first
+	      part of the ouput contains the memory listing in bytes, followed
+	      by most of the same information in kilobytes.
+	    </P
+></DD
+><DT
+>modules</DT
+><DD
+><P
+>	      You could easily mistake the contents of the modules file
+	      for the output of <B
+CLASS="COMMAND"
+>lsmod</B
+>.  There is a listing
+	      of the modules, size of the module, and dependencies for
+	      the module.
+	    </P
+></DD
+><DT
+>partitions</DT
+><DD
+><P
+>	      This file has a list of all the disk partitions that are known
+	      to Linux, including those not mounted or listed in <TT
+CLASS="FILENAME"
+>	      /etc/fstab</TT
+>.
+	    </P
+></DD
+><DT
+>pci</DT
+><DD
+><P
+>	      This file may go away in the long term, in favor of <TT
+CLASS="FILENAME"
+>/proc/bus/pci</TT
+>, but <TT
+CLASS="FILENAME"
+>	      /proc/pci</TT
+> is more human readable, listing
+	      the device type, vendor, and device name.  But this
+	      will only happen if the Linux kernel knows of the device.
+	    </P
+></DD
+><DT
+>scsi</DT
+><DD
+><P
+>	      
+	      SCSI-based systems can look at and tune their parameters here.
+	      Its setup if much the same as for IDE, listing chains, followed by
+	      devices on each chain.
+	    </P
+></DD
+><DT
+>swaps</DT
+><DD
+><P
+>	      Lists all mounted swap partitions (or files) mounted.
+	    </P
+></DD
+><DT
+>version</DT
+><DD
+><P
+>	      The version file contains version information of the kernel you
+	      are using.  It's very helpful in that it has the user and host
+	      that the kernel was compiled on, GCC version used to compile the
+	      kernel, and date and time this kernel was compiled.  This
+	      makes it much more helpful than <B
+CLASS="COMMAND"
+>uname</B
+>, since
+	      you can quickly check a series of running machines and verify
+	      they all report the same kernel revision.
+	    </P
+></DD
+></DL
+></DIV
+><P
+>        Not listed above is <TT
+CLASS="FILENAME"
+>/proc/sys</TT
+>.
+	This directory is where most of the runtime changes to the kernel
+	take place.  Access to this used to be done manually, using
+	<B
+CLASS="COMMAND"
+>cat</B
+> and <B
+CLASS="COMMAND"
+>echo</B
+> to view or change
+	settings of a running kernel.  If you wanted runtime settings to be
+	changed each time the machine booted, you had to add commands to
+	the <TT
+CLASS="FILENAME"
+>rc.local</TT
+> file for each setting.
+      </P
+><P
+>        An easier way to manage these settings is via the use of
+	<B
+CLASS="COMMAND"
+>sysctl</B
+>.
+	
+      </P
+><P
+><B
+CLASS="COMMAND"
+>sysctl</B
+>  [-n] [<TT
+CLASS="REPLACEABLE"
+><I
+>variable</I
+></TT
+>] [-w <TT
+CLASS="REPLACEABLE"
+><I
+>variable</I
+></TT
+>=<TT
+CLASS="REPLACEABLE"
+><I
+>value</I
+></TT
+>] [-a] [-p <TT
+CLASS="REPLACEABLE"
+><I
+>filename</I
+></TT
+>]</P
+><P
+>        If you use an argument of <TT
+CLASS="REPLACEABLE"
+><I
+>variable</I
+></TT
+>, you will
+	get the current value of
+	<TT
+CLASS="FILENAME"
+>/proc/sys/<TT
+CLASS="REPLACEABLE"
+><I
+>variable</I
+></TT
+></TT
+>.  You
+	can set it by adding an equal sign and <TT
+CLASS="REPLACEABLE"
+><I
+>value</I
+></TT
+>.
+	You can get a list of what is available along with their current values
+	by using -a.
+      </P
+><P
+>        As part of the Linux boot sequence on more modern distributions,
+	<B
+CLASS="COMMAND"
+>sysctl</B
+> is called with -p, which reads
+	settings from <TT
+CLASS="FILENAME"
+>/etc/sysctl.conf</TT
+>.  This file can be
+	edited by a text file, and contains a list of lines of the form
+	<TT
+CLASS="REPLACEABLE"
+><I
+>variable</I
+></TT
+>=<TT
+CLASS="REPLACEABLE"
+><I
+>value</I
+></TT
+>.
+      </P
+><TABLE
+BORDER="1"
+BGCOLOR="#E0E0E0"
+WIDTH="100%"
+><TR
+><TD
+><FONT
+COLOR="#000000"
+><PRE
+CLASS="SCREEN"
+>#
+# /etc/sysctl.conf - Configuration file for setting system variables
+# See sysctl.conf (5) for information.
+#
+#kernel.domainname = example.com
+#net/ipv4/icmp_echo_ignore_broadcasts=1
+net.ipv4.conf.all.hidden = 1
+net.ipv4.conf.lo.hidden=1</PRE
+></FONT
+></TD
+></TR
+></TABLE
+><P
+>        As you can see, <TT
+CLASS="REPLACEABLE"
+><I
+>variable</I
+></TT
+> can separate out
+	directories using either a slash (/), or a dot (.).  Using the dot makes
+	it look more like SNMP variables.
+      </P
+><P
+>        Since everything under <TT
+CLASS="FILENAME"
+>/proc</TT
+>
+	are regular files, security for viewing or setting are handled by
+	regular file permissions.  In some cases, only root can make changes,
+	in others, only root can view or set.
+      </P
+></DIV
+><DIV
+CLASS="SECTION"
+><H2
+CLASS="SECTION"
+><A
+NAME="KERNELRUNNINGPOWERTWEAK"
+>6.3.2. Using <B
+CLASS="COMMAND"
+>powertweak</B
+></A
+></H2
+><P
+>        Another interface to change options of a running kernel is through the
+	use of <B
+CLASS="COMMAND"
+>powertweak</B
+>.  Powertweak also runs on startup
+	of linux, using a daemon called <SPAN
+CLASS="APPLICATION"
+>powertweakd</SPAN
+>
+	to issue changes to the kernel.  Configuration files are stored in the
+	kernel in XML format.
+      </P
+><P
+>        An advantage of using <B
+CLASS="COMMAND"
+>powertweak</B
+> over
+	<B
+CLASS="COMMAND"
+>sysctl</B
+> is that powertweak has a graphical
+	and text interface.  There is a pretty extensive help system that
+	can give you information about each setting.
+      </P
+><P
+>        For those that just want to have optimized settings for a particular
+	use, there are pre-made settings for laptops, web servers, routers,
+	and Oracle usage.  As an example, the laptop setting changes the kernel
+	disk flush so the hard drive can spin down.  These are just generic
+	settings, as each different machine has different PCI devices
+	that can also be set.
+      </P
+><P
+>        You can get the latest version of <SPAN
+CLASS="APPLICATION"
+>powertweak</SPAN
+>
+	from <A
+HREF="http://www.powertweak.org/"
+TARGET="_top"
+>http://www.powertweak.org/</A
+>
+      </P
+><DIV
+CLASS="FIGURE"
+><A
+NAME="KERNELPOWERTWEAK"
+></A
+><P
+><B
+>Figure 6-2. Powertweak</B
+></P
+><DIV
+CLASS="MEDIAOBJECT"
+><P
+><IMG
+SRC="powertweak.jpg"></P
+></DIV
+></DIV
+></DIV
+></DIV
+><DIV
+CLASS="NAVFOOTER"
+><HR
+ALIGN="LEFT"
+WIDTH="100%"><TABLE
+SUMMARY="Footer navigation table"
+WIDTH="100%"
+BORDER="0"
+CELLPADDING="0"
+CELLSPACING="0"
+><TR
+><TD
+WIDTH="33%"
+ALIGN="left"
+VALIGN="top"
+><A
+HREF="kernelcompile.html"
+ACCESSKEY="P"
+>Prev</A
+></TD
+><TD
+WIDTH="34%"
+ALIGN="center"
+VALIGN="top"
+><A
+HREF="index.html"
+ACCESSKEY="H"
+>Home</A
+></TD
+><TD
+WIDTH="33%"
+ALIGN="right"
+VALIGN="top"
+><A
+HREF="apps.html"
+ACCESSKEY="N"
+>Next</A
+></TD
+></TR
+><TR
+><TD
+WIDTH="33%"
+ALIGN="left"
+VALIGN="top"
+>Compiling the Linux Kernel</TD
+><TD
+WIDTH="34%"
+ALIGN="center"
+VALIGN="top"
+><A
+HREF="kernel.html"
+ACCESSKEY="U"
+>Up</A
+></TD
+><TD
+WIDTH="33%"
+ALIGN="right"
+VALIGN="top"
+>Application Tuning</TD
+></TR
+></TABLE
+></DIV
+></BODY
+></HTML
+>

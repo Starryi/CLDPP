@@ -1,0 +1,259 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1"><title>5. Build A JavaStation&#8482;-Ready FileSystem</title><link rel="stylesheet" type="text/css" href="style.css"><meta name="generator" content="DocBook XSL Stylesheets V1.79.1"><link rel="home" href="index.html" title="Linux on the Sun JavaStation &#8482; NC HOWTO"><link rel="up" href="index.html" title="Linux on the Sun JavaStation &#8482; NC HOWTO"><link rel="prev" href="ar01s04.html" title="4. Build Your Kernel"><link rel="next" href="ar01s06.html" title='6. "Out of the Box" JavaStation Boot File Solutions'></head><body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF"><div class="navheader"><table width="100%" summary="Navigation header"><tr><th colspan="3" align="center">5. Build A <span class="productname">JavaStation</span>&#8482;-Ready FileSystem</th></tr><tr><td width="20%" align="left"><a accesskey="p" href="ar01s04.html">Prev</a> </td><th width="60%" align="center"> </th><td width="20%" align="right"> <a accesskey="n" href="ar01s06.html">Next</a></td></tr></table><hr></div><div class="sect1"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="FileSystemBuild-BuildFileSystemChapter"></a>5. Build A <span class="productname">JavaStation</span>&#8482;-Ready FileSystem</h2></div></div></div><p>
+This chapter describes how one constructs a filesystem suitable for use
+on the <span class="application">Linux</span>-running <span class="productname">JavaStations
+</span>&#8482;.
+</p><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="FileSystemBuild-FSBuildIntroSection"></a>5.1. Preparing Yourself to Build Your Own Filesystem</h3></div></div></div><p>
+Building a filesystem for use with the <span class="productname">JavaStations
+</span>&#8482; is a time-consuming, but rewarding task for those 
+who undertake it.  You will learn more about library dependencies than 
+you ever thought you could, all the time while trying to keep the
+overall image size as small as possible. 
+</p><p>
+WARNING: This is not an easy task.    Creating a lasting filesystem is
+not for novices.   If you seriously consider undertaking this step,
+prepare to budget a bit of time to get things just right, particularly
+if you plan to make an embedded-root filesystem which fits in the
+8MB limit.  You have now been properly warned.
+</p><p>
+There are two common approaches one can take when rolling a new
+<span class="productname">JavaStation</span>&#8482;-ready filesystem.
+</p><div class="orderedlist"><ol class="orderedlist" type="1"><li class="listitem"><p>
+Start with an established distribution's filesystem and whittle down 
+to the core.
+</p></li><li class="listitem"><p>
+Start with an established distribution's <span class="quote">&#8220;<span class="quote">rescue disk</span>&#8221;</span>
+filesystem and add desired functionality. 
+</p></li></ol></div><p>
+Which path you take, of course, is entirely up to you.  The <span class="quote">&#8220;<span class="quote">rescue 
+disk</span>&#8221;</span> build procedure seems to work best though, as more base 
+commands in a rescue disk are statically linked, increasing the starting
+image size but causing less initial library headaches.  Commands included
+on a rescue disk also happen to be bare-bones, with many extraneous options 
+not compiled in.
+</p><p>
+Obviously when building a filesystem in the context of the <span class="productname">
+JavaStation</span>&#8482;, you will be basing off of an existing 
+<span class="application">Linux/SPARC</span> filesystem.  The filesystems
+that come with the RedHat, SuSE or Debian distributions are good 
+starting points.
+</p><div class="warning" style="margin-left: 0.5in; margin-right: 0.5in;"><h3 class="title">Warning</h3><p>
+In the future, you will also need to make sure you base off a filesystem 
+built with compiled 32-bit mode executables, as a 64-bit userland project 
+is presently in progress for 64-bit <acronym class="acronym">SPARC</acronym> 
+<span class="application">Linux kernels</span>.  As of Oct. 2001, this is
+still a ways away, but it is being mentioned now for the future.
+</p></div></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="FileSystemBuild-FstabDescSection"></a>5.2. Contents of the <span class="quote">&#8220;<span class="quote">/etc/fstab</span>&#8221;</span> File</h3></div></div></div><p>
+The configuration lines placed into <span class="quote">&#8220;<span class="quote">/etc/fstab</span>&#8221;</span> depend 
+on whether you will be using the <span class="quote">&#8220;<span class="quote">NFS-Root</span>&#8221;</span> or 
+<span class="quote">&#8220;<span class="quote">Embedded-Root</span>&#8221;</span> filesystem configuration. 
+</p><div class="sect3"><div class="titlepage"><div><div><h4 class="title"><a name="FileSystemBuild-NFSRootFstabSection"></a>5.2.1. <span class="quote">&#8220;<span class="quote">NFS-Root</span>&#8221;</span> Filesystem fstab</h4></div></div></div><p>Here is an example of an <span class="quote">&#8220;<span class="quote">/etc/fstab</span>&#8221;</span> for
+an <span class="quote">&#8220;<span class="quote">NFS-Root</span>&#8221;</span> boot option.
+</p><pre class="screen">
+###
+#
+your.nfs.server:/path/to/filesystem  /  nfs defaults,rsize=8192,wsize=8192 1 1
+#
+none                    /proc                   proc    defaults        0 0
+###
+</pre></div><div class="sect3"><div class="titlepage"><div><div><h4 class="title"><a name="FileSystemBuild-EmbeddedRootFstabSection"></a>5.2.2. <span class="quote">&#8220;<span class="quote">Embedded-Root</span>&#8221;</span> Filesystem fstab</h4></div></div></div><p>Here is an example of an <span class="quote">&#8220;<span class="quote">/etc/fstab</span>&#8221;</span> for
+an <span class="quote">&#8220;<span class="quote">Embedded-Root</span>&#8221;</span> boot option.
+</p><pre class="screen">
+###
+#
+/dev/ram /     ext2  defaults
+#
+/proc    /proc    proc  defaults
+###
+</pre></div></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="FileSystemBuild-EmbeddedRootProcedureSection"></a>5.3. The <span class="quote">&#8220;<span class="quote">Embedded-Root</span>&#8221;</span> Image Creation Procedure</h3></div></div></div><p>
+Prepping up the <span class="quote">&#8220;<span class="quote">Embedded-Root</span>&#8221;</span> boot image requires a 
+number of extra steps.  Due to these extra steps, the <span class="quote">&#8220;<span class="quote">NFS-Root</span>&#8221;</span> 
+filesystem option is recommended for beginners to <span class="application">Linux
+</span> on the <span class="productname">JavaStation</span>&#8482;.  You might 
+also try the samples pointed to in this document.  Should you still wish 
+to build and embedded image on your own, this section outlines the basic 
+instructions. 
+</p><p>
+Creating the <span class="quote">&#8220;<span class="quote">Embedded-Root</span>&#8221;</span> boot image is a 5-Step Procedure: 
+</p><div class="orderedlist"><ol class="orderedlist" type="1"><li class="listitem"><p>
+<span class="emphasis"><em>Prototype Your Filesystem</em></span> 
+</p><p>
+This whole chapter deals with rolling your own filesystem.  
+In this step, it is assumed you create your own filesystem,
+perhaps by prototyping one on a working <span class="quote">&#8220;<span class="quote">NFS-Root</span>&#8221;</span>
+filesystem configuration. 
+</p><p>
+One thing to keep in mind is that unlike your <span class="quote">&#8220;<span class="quote">NFS-Root</span>&#8221;</span>
+filesystem, the <span class="quote">&#8220;<span class="quote">Embedded-Root</span>&#8221;</span> filesystem must fit 
+within the confines of your allocated <acronym class="acronym">RAM</acronym>disk, 
+generally 4-16 <acronym class="acronym">MB</acronym>.  Your maximum size is dependant
+on the setting of the <acronym class="acronym">RAM</acronym>disk driver. 
+</p></li><li class="listitem"><p>
+<span class="emphasis"><em>Create an Empty File for Your FileSystem</em></span> 
+</p><p>
+You now need to create a file-based filesystem <span class="quote">&#8220;<span class="quote">container</span>&#8221;</span>.
+This is just a file that is the size of your <acronym class="acronym">RAM</acronym>disk. 
+</p><p>
+To create this, try the <strong class="userinput"><code>dd</code></strong> command: 
+</p><pre class="screen">
+<strong class="userinput"><code>dd if=/dev/zero of=./fs_test.img bs=1k count=8000 </code></strong>
+</pre><p>
+Using this example, you now should have an 8 <acronym class="acronym">MB</acronym> file 
+named <span class="quote">&#8220;<span class="quote">fs_test.img</span>&#8221;</span>.  Note: Be <span class="emphasis"><em>sure</em></span> 
+the count you use matches the <acronym class="acronym">RAM</acronym>disk size you 
+allocated for in the kernel's <acronym class="acronym">RAM</acronym>disk driver! 
+</p></li><li class="listitem"><p>
+<span class="emphasis"><em>Format your Filesystem <span class="quote">&#8220;<span class="quote">Container</span>&#8221;</span></em></span> 
+</p><p>
+Now that you have a <span class="quote">&#8220;<span class="quote">container</span>&#8221;</span> for your filesystem, it
+is time to format it and place a bare filesystem on it. 
+</p><p>
+In our kernel phase, we added in support for the ext2 filesystem.
+We'll now format our <span class="quote">&#8220;<span class="quote">container</span>&#8221;</span> with this filesystem
+type.
+</p><pre class="screen">
+<strong class="userinput"><code>mkfs.ext2 ./fs_test.img</code></strong>
+</pre><p>
+Ignore any warnings about the file not being a block device, and
+proceed anyway.   This is an expected warning message.
+</p></li><li class="listitem"><p>
+<span class="emphasis"><em>Mount the Filesystem <span class="quote">&#8220;<span class="quote">Container</span>&#8221;</span> and Write to It</em></span> 
+</p><p>
+Now that you have your filesystem container, you can 
+mount it and load your prototyped filesystem on it. 
+</p><p>
+To mount the container, use the kernel loopback device.  
+Make sure your server's kernel has loopback support enabled 
+and issue a:  
+</p><pre class="screen">
+<strong class="userinput"><code>mount -o loop ./fs_test.img /mnt</code></strong>
+</pre><p>
+Copy your files to the filesystem, and make sure <span class="quote">&#8220;<span class="quote">/etc/fstab
+</span>&#8221;</span> has the <acronym class="acronym">RAM</acronym>disk entries as described 
+elsewhere in this document.
+</p><p>
+To avoid symbolic links being changed into actual copies of files, use
+a copy tool like <span class="quote">&#8220;<span class="quote">tar</span>&#8221;</span> or <span class="quote">&#8220;<span class="quote">cpio</span>&#8221;</span> instead of a 
+<span class="quote">&#8220;<span class="quote">cp</span>&#8221;</span>. 
+</p></li><li class="listitem"><p>
+<span class="emphasis"><em>Unmount and Compress the Root Filesystem</em></span> 
+</p><p>
+Unmount the root filesystem you just created. 
+</p><pre class="screen">
+<strong class="userinput"><code>umount /mnt</code></strong>
+</pre><p>
+Compress the filesystem file with maximum <span class="quote">&#8220;<span class="quote">gzip</span>&#8221;</span> 
+compression levels. 
+</p><pre class="screen">
+<strong class="userinput"><code>gzip -v9 ./fs_test.img</code></strong>
+</pre><p>
+You should now have <span class="quote">&#8220;<span class="quote">fs_test.img.gz</span>&#8221;</span> file.
+</p></li><li class="listitem"><p>
+<span class="emphasis"><em>Hook the Root-Filesystem Onto the Back of Your Kernel Image</em></span>
+</p><p>
+Now you must append the filesystem image onto your kernel. 
+</p><p>
+You do this with a utility program called <span class="quote">&#8220;<span class="quote">piggyback</span>&#8221;</span>.  
+The piggyback program takes care of the task of appending the two and 
+letting the kernel know where both it and the filesystem begins and ends. 
+</p><p>
+The <span class="quote">&#8220;<span class="quote">piggyback</span>&#8221;</span> program is found in your kernel source tree 
+under &lt;LINUXROOT&gt;/arch/sparc/boot.  It might also be found on your
+favorite ftp.kernel.org site. 
+</p><p>
+For piggyback to work, it needs your <acronym class="acronym">AOUT</acronym> format 
+kernel image, the System.map file from your kernel source root 
+directory, and the compressed root-filesystem you just created. 
+</p><p>
+We put it all together with a: 
+</p><pre class="screen">
+<strong class="userinput"><code>piggyback vmlinux.aout System.map fs_test.img.gz</code></strong>
+</pre><p>
+Be sure to backup your kernel image first, as piggyback used the same 
+<span class="quote">&#8220;<span class="quote">vmlinux.aout</span>&#8221;</span> filename for output.  Check the filesize of 
+your <span class="quote">&#8220;<span class="quote">vmlinux.aout</span>&#8221;</span> file after giving this command and you 
+can verify the filesystem has indeed been appended. 
+</p></li></ol></div><p>
+Congratulations!  You've created an <span class="quote">&#8220;<span class="quote">Embedded-Root</span>&#8221;</span> 
+kernel/filesystem boot image.
+</p></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="FileSystemBuild-SampleFilesystemsSection"></a>5.4. Sample FileSystems</h3></div></div></div><p>
+Here are some sample filesystems for you to start with.   They have
+been contributed by various JavaStation users.
+</p><p>
+Warning: Some of these filesystem images may be considered out of date, 
+and should be avoided in a production environment. It is up to you 
+to decide how much of a liability you feel running them holds. The
+document author and filesystem contributors cannot be held liable for any
+damage caused by the use of these files. They are provided with
+absolutely no warranties.
+</p><div class="sect3"><div class="titlepage"><div><div><h4 class="title"><a name="FileSystemBuild-jsroot_varol_19991221"></a>5.4.1. jsroot_varol_19991221</h4></div></div></div><p>
+filesystem (md5sum 450669bc5f3f8a4006fdc75471c0454b):
+<a class="ulink" href="http://dubinski-family.org/~jshowto/Files/filesystems/jsroot_varol/jsroot_varol_19991221.tar.bz2" target="_top">
+ http://dubinski-family.org/~jshowto/Files/filesystems/jsroot_varol/jsroot_varol_19991221.tar.bz2
+</a>
+</p><p>
+Description:
+</p><p>
+This image, created by Varol Kapton <code class="email">&lt;<a class="email" href="mailto:varol@ulakbim.gov.tr">varol@ulakbim.gov.tr</a>&gt;</code>,
+was based on RedHat 6/SPARC.  It has the Xfree 3.3.5 framebuffer 
+server dated 19990823, but only works with Krups.  If you are working with
+a Mr. Coffee unit, you must substitute the other X server discussed later in 
+this HOWTO.
+</p><p>
+As the network settings included are configured for Varol's network, you must
+first mount this image, and edit /etc/hosts and /etc/resolv.conf accordingly.
+</p><p>
+Confirmed OK: YES
+</p><p>
+Good for Mr. Coffee: YES
+</p><p>
+Good for Krups: NO
+</p><p>
+Good for Espresso: NO
+</p></div></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="FileSystemBuild-XBinariesSection"></a>5.5. Sample X Servers</h3></div></div></div><p>
+One of the most frequently asked questions users have is where
+to get an X server from.  Here are some sample X servers for you 
+to start with.   They have been contributed by various JavaStation users.
+</p><p>
+Warning: Some of these files may be considered out of date, 
+and should be avoided in a production environment. It is up to you 
+to decide how much of a liability you feel running them holds. The
+document author and filesystem contributors cannot be held liable for any
+damage caused by the use of these files. They are provided with
+absolutely no warranties.
+</p><div class="sect3"><div class="titlepage"><div><div><h4 class="title"><a name="FileSystemBuild-XF86_FBDev_3.3.3.1_19990104"></a>5.5.1. XF86_FBDev_3.3.3.1_19990104</h4></div></div></div><p>
+X server (md5sum 88b49bbbfa1c36a5049b62b44c54ed81):
+<a class="ulink" href="http://dubinski-family.org/~jshowto/Files/xfree/XF86_FBDev_3.3.3.1_19990104.bz2" target="_top">
+ http://dubinski-family.org/~jshowto/Files/xfree/XF86_FBDev_3.3.3.1_19990104.bz2
+</a>
+</p><p>
+XF86Config file (md5sum d9fa291efbd178812b3bd253dffb1893):
+<a class="ulink" href="http://dubinski-family.org/~jshowto/Files/xfree/XF86Config_FBDev_3.3.3.1_19990104.txt" target="_top">
+ http://dubinski-family.org/~jshowto/Files/xfree/XF86Config_FBDev_3.3.3.1_19990104.txt
+</a>
+</p><p>
+Description:
+</p><p>
+This is a server for XFree 3.3.3.1 with support for the framebuffers
+of Mr. Coffee and Krups.
+</p><p>
+Confirmed OK: YES
+</p><p>
+Good for Mr. Coffee: YES
+</p><p>
+Good for Krups: YES
+</p><p>
+Good for Espresso: NO
+</p></div></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="FileSystemBuild-OutsideFilesystems"></a>5.6. Outside Sample Filesystems</h3></div></div></div><p>
+Of course, other filesystems and tools exist outside this document, and 
+have been used by JavaStation users.  Here are a few files that were 
+reported on the sparclinux mailing list as having been used.
+</p><div class="orderedlist"><ol class="orderedlist" type="1"><li class="listitem"><p>
+<a class="ulink" href="http://busybox.lineo.com" target="_top">
+http://busybox.lineo.com (a single executable which has dozens of common
+unix tool functions built in)
+</a>
+</p></li><li class="listitem"><p>
+<a class="ulink" href="http://www.ultralinux.org/js" target="_top">
+http://www.ultralinux.org/js (Jim Mintha's filesystems)
+</a>
+</p></li></ol></div></div></div><div class="navfooter"><hr><table width="100%" summary="Navigation footer"><tr><td width="40%" align="left"><a accesskey="p" href="ar01s04.html">Prev</a> </td><td width="20%" align="center"> </td><td width="40%" align="right"> <a accesskey="n" href="ar01s06.html">Next</a></td></tr><tr><td width="40%" align="left" valign="top">4. Build Your Kernel </td><td width="20%" align="center"><a accesskey="h" href="index.html">Home</a></td><td width="40%" align="right" valign="top"> 6. "Out of the Box" JavaStation Boot File Solutions</td></tr></table></div></body></html>

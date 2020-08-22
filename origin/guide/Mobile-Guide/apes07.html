@@ -1,0 +1,226 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1"><title>7. Power Saving Techniques</title><link rel="stylesheet" type="text/css" href="style.css"><meta name="generator" content="DocBook XSL Stylesheets V1.79.1"><meta name="keywords" content="laptop, notebook, pda, handheld, computer, mobile, mobile phone, cell phone, portable player, linux, unix"><link rel="home" href="index.html" title="Linux on the Road"><link rel="up" href="ape.html" title="Appendix E. Dealing with Limited Resources or Tuning the System"><link rel="prev" href="apes06.html" title="6. Low CPU Speed"><link rel="next" href="apes08.html" title="8. Kernel"></head><body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF"><div class="navheader"><table width="100%" summary="Navigation header"><tr><th colspan="3" align="center">7. Power Saving Techniques</th></tr><tr><td width="20%" align="left"><a accesskey="p" href="apes06.html">Prev</a> </td><th width="60%" align="center">Appendix E. Dealing with Limited Resources or Tuning the System</th><td width="20%" align="right"> <a accesskey="n" href="apes08.html">Next</a></td></tr></table><hr></div><div class="sect1"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="mobile-guide-p6a5s7-power-saving-techniques"></a>7. Power Saving Techniques</h2></div></div></div><p>
+
+</p><div class="orderedlist"><ol class="orderedlist" type="1"><li class="listitem"><p>
+   If you don't need infrared support, disable it in the
+   <acronym class="acronym">BIOS</acronym> or shutdown the <span class="trademark">IrDA</span>® device driver. There are also some
+   <span class="trademark">IrDA</span>® features of the kernel
+   which are useful for saving power.
+</p></li><li class="listitem"><p>
+   <acronym class="acronym">PCMCIA</acronym> services consume much power, so shut them down if you don't need them.
+</p></li><li class="listitem"><p>
+   I'm not sure to which extend the <span class="emphasis"><em>backlight</em></span> consumes power.
+</p><div class="warning" style="margin-left: 0.5in; margin-right: 0.5in;"><h3 class="title">Warning</h3><p>
+
+
+
+   As far as I know this device can only bear a limited 
+   number of uptime circles. So avoid using screensavers,
+   which turn off the backlight. 
+</p></div><p>
+   If you want do it anyhow, you may use <span class="command"><strong>xset +dpms</strong></span>
+   and <span class="command"><strong>xset dpms 0 0 300</strong></span> This turns the screen off
+   after 5 minutes of inactivity. Works only if the display is DPMS
+   capable.
+</p></li><li class="listitem"><p>
+   For some examples to build batteries with increased uptime up to 
+   8 hours look at 
+   <a class="ulink" href="http://repair4laptop.org/notebook_battery.html" target="_top">Repair4Laptop: Battery</a>
+   . 
+</p></li><li class="listitem"><p>
+   For information about <acronym class="acronym">APM</acronym> look at the chapter 
+   <acronym class="acronym">APM</acronym> above.
+</p></li><li class="listitem"><p>
+   The "noatime" option when mouting filesystems tells the kernel to
+   <span class="emphasis"><em>not</em></span> update the <span class="emphasis"><em>access time</em></span>
+   information of the file. This information, although sometimes useful, is
+   not used by most people. Therefore, you can safely disable it, then
+   preventing disk access each time you <span class="command"><strong>cat</strong></span> a file. Here
+   is an example of a <code class="filename">/etc/fstab</code> with this
+   power-saving option: <span class="command"><strong> /dev/hda7 /var ext2 defaults,noatime 0 2
+   </strong></span>
+   
+</p></li><li class="listitem"><p>
+<a class="ulink" href="http://sourceforge.net/projects/hdparm/" target="_top">hdparm</a>
+<span class="emphasis"><em>hdparm</em></span> is a Linux disk utility that lets you 
+set spin-down timeouts and other disk parameters.
+</p></li><li class="listitem"><p>
+   <a class="ulink" href="http://www.complang.tuwien.ac.at/ulrich/linux/tips.html" target="_top">Mobile Update Daemon</a>
+   This is a drop-in replacement for the standard <span class="command"><strong>update</strong></span>
+   daemon, <span class="command"><strong>mobile-update</strong></span> minimizes disk spin ups and
+   reduces disk uptime. It flushes buffers only when other disk activity is
+   present. To ensure a consistent file system call <span class="command"><strong>sync</strong></span>
+   manually. Otherwise files may be lost on power failure.
+   <span class="command"><strong>mobile-update</strong></span> does not use APM. So it works also on
+   older systems.
+</p></li><li class="listitem"><p>
+   <a class="ulink" href="http://noflushd.sourceforge.net/" target="_top">noflushd</a>
+   : <span class="command"><strong>noflushd</strong></span> monitors disk activity and spins down
+   disks that have been idle for more than &lt;timeout&gt; seconds. It
+   requires a kernel &gt;=2.2.11 . Useful in combination with
+   <span class="command"><strong>hdparm</strong></span> and <span class="command"><strong>mount</strong></span> with
+   <span class="emphasis"><em>noatime</em></span> option to bring down disk activity.
+
+
+
+</p><p>
+   Here are some comments and thoughts by Nat Makarevitch 
+   
+   about a possible approach which may
+   reduce the disk activity under Linux (sparing energy, especially with
+   noflushd) the file Documentation/filesystems/proc.txt of the Linux sourcetree
+   documents some useful features, esp. in the 
+   <code class="filename">/proc/sys/vm</code> section.
+
+   Under Linux 2.2 I used:
+
+</p><pre class="programlisting">
+echo "100 5000 8 256 500 60000 60000 1884 2" &gt; /proc/sys/vm/bdflush
+</pre><p>
+
+   especially under Linux 2.4 which uses its spare time to 'pre-save' the
+   less-used memory pages into the swap, increasing the disk activity
+   
+   I tried to figure the more adequate parameters (Linux 2.4.9, 192 MB RAM,
+   Toshiba 3480 laptop)
+   
+   beware: some of those parameters may be dangerous or useless (I have not
+   gathered serious data about the practical efficiency).  moreover do not
+   forget that delaying disk writes of data is intrinsically dangerous
+
+</p><pre class="programlisting">
+echo 99 512 32 512 0 300000 60 0 0 &gt; /proc/sys/vm/bdflush
+# is '60' the max value for age_super?
+echo 1 1 96 &gt; /proc/sys/vm/buffermem
+echo 512 128 32 &gt; /proc/sys/vm/kswapd
+echo 1 10 96 &gt; /proc/sys/vm/pagecache
+</pre><p>
+</p></li><li class="listitem"><p>
+   The 
+   <a class="ulink" href="http://www.buzzard.me.uk/toshiba/index.html" target="_top">Toshiba Linux Utilities</a>
+   are a set of Linux utilities for controlling the fan, supervisor passwords, 
+   and hot key functions of Toshiba Pentium notebooks. 
+   There is a KDE package <span class="emphasis"><em>Klibreta</em></span>, too.
+</p></li><li class="listitem"><p>
+   At Kenneth E. Harker's page there is a recommendation for LCDproc 
+   <a class="ulink" href="http://lcdproc.omnipotent.net/" target="_top">LCDProc</a>
+   . "LCDproc is a small piece of software that will enable your Linux
+   box to display live system information on a 20x4 line backlit
+   <acronym class="acronym">LCD</acronym> display. This program shows, among other
+   things, battery status on notebooks." I tried this package and
+   found that it connects only to the external 
+   <a class="ulink" href="http://www.matrixorbital.com/" target="_top">Matrix-Orbital</a>
+   <acronym class="acronym">LCD</acronym> 20x4 display 
+   , which is a <acronym class="acronym">LCD</acronym> display connected to a serial
+   port. I can't see any use for a laptop yet, but you might use it to
+   build a wearable.
+</p></li><li class="listitem"><p>
+   The
+   <a class="ulink" href="http://sourceforge.net/projects/diald/" target="_top">Diald Dial Daemon</a>
+   provides on demand Internet connectivity
+   using the SLIP or PPP protocols. Diald can automatically dial
+   in to a remote host when needed or bring down dial-up
+   connections that are inactive.
+   
+</p></li><li class="listitem"><p>
+   <a class="ulink" href="http://www.kde.org" target="_top">KDE</a>
+   provides <span class="emphasis"><em>KAPM</em></span>,
+   <span class="emphasis"><em>Kbatmon</em></span> and
+   <span class="emphasis"><em>Kcmlaptop</em></span>. Written by Paul Campbell
+   <span class="emphasis"><em>kcmlaptop</em></span> is a set of KDE control panels
+   that implements laptop computer support functions, it includes
+   a dockable battery status monitor for laptops - in short a
+   little icon in the KDE status bar that shows how much battery
+   time you have left. It also will warn you when power is
+   getting low and allows you to configure power saving options.
+   Similar packages you may find at the GNOME project 
+   <a class="ulink" href="http://www.gnome.org/" target="_top">GNOME</a>
+   . See the software maps at both
+   sites.
+   
+</p></li><li class="listitem"><p>
+   Please see the 
+   <a class="ulink" href="http://tldp.org/HOWTO/Battery-Powered/" target="_top">Battery-Powered-HOWTO</a>
+   for further information.
+</p></li></ol></div><p>
+
+</p><p>
+   Some more words about
+   disks spin down with <span class="command"><strong>noflushd</strong></span> or
+   <span class="command"><strong>hdparm</strong></span> utilities. The objective
+   is to reduce hard disk usage to minimum, because on most laptops it
+   is the primary source of noise and energy consumption. The "noflushd" daemon is a
+   replacement of "update" which makes buffer updates on disk only when
+   some other data is being read from the disk (the behavior of "update"
+   is to flush buffers every 5 seconds, and it usually generates
+   constant disk activity, so that the disk never becomes idle).
+   "noflushd" also sets the disk spindown time and automatically calls
+   "sync" before spindown.  The syntax is something like "noflushd -n 5
+   /dev/hda". Using "noflushd" may cause loss of data if some files were
+   edited while the disk was parked and not sync'ed, e.g. if the power
+   was suddenly lost.
+</p><p>
+   The <span class="command"><strong>hdparm</strong></span> utility can set the sleep time too, and also tune the
+   IDE disk parameters for better performance. Make sure that the
+   kernel IDE parameter "Use DMA by default when available" (section
+   "Block devices") is enabled.
+</p><p>
+   However, it is not enough to enable <span class="command"><strong>noflushd</strong></span>
+   or IDE disk sleep time to make the disk 
+   effectively silent, because the system in most
+   default installations is running many cron jobs, writes to log files,
+   uses swap and so on. This activity is not always desirable,
+   especially if the computer is standalone (not on network) and is used
+   mostly by one user.  Here are some recommendations.
+</p><p>
+   First, the cron daemon and friends (anacron, atd, logrotate,
+   sendmail / exim / ...) could be removed from the system if the
+   services they run (such as, cleaning /tmp directories and logs,
+   checking email etc.) are not needed.
+</p><p>
+   Secondly, the syslogd configuration file
+   <code class="filename">/etc/syslog.conf</code> should
+   be modified to reduce the number of log files and messages
+   logged, and also to have "-" signs before every file name (which
+   means that the system will not have to sync the disk every time a
+   message is logged).
+</p><p>
+   Also, it is advisable to add "mark:none;" to the "syslog" strings,
+   so that the "strich strich strich MARK strich strich strich"
+   messages do not get written to the log files every half an hour.
+   Typical Linux installations today have too many log files for the
+   home user.
+</p><p>
+   Finally, the disk may not go to sleep when a lot of swap space is
+   in use. Type "free" and see how much swap is being used and how
+   much free RAM is available. If you think there is enough free RAM
+   to work without swap, or if there is a lot of swap used AND also
+   a lot of free RAM, consider freeing the swap space ("su; swapoff
+   -a; swapon -a") or switching the swap space off altogether ("su;
+   swapoff -a"). Working without swap should be fine on systems with
+   64MB or more of RAM.  (Working without swap will reduce the
+   available memory, of course, and some software crashes without
+   warning when it runs out of memory. But, adding swap will not
+   prevent the crash resulting from some runaway memory consumuing
+   software, it will only delay it, and it will make the system swap
+   a lot before it happens.)
+</p><p>
+   With these changes in the system, one could get the laptop to
+   work for extended periods of time with its hard disk switched
+   off.
+</p><p>
+   The kernel can be configured with "Yes" to "APM Support" and
+   "Enable console blanking using APM" (section "General setup").
+   Then the LCD screen lamp will shut off in console mode (so not
+   just the screen goes black, but also the lamp). In X mode, the
+   same effect can be obtained with "xset +dpms" (enable DPMS
+   function) and "xset s blank" (enable screen blanking). One can
+   add these commands to the X window session or window manager
+   initialization scripts.
+</p><p>
+   The computer's BIOS energy savings options (hard disk sleep
+   time, video blanking time and so on) are probably not
+   useful and in some cases may even cause crashes.  Therefore
+   they could be disabled in the laptop's BIOS.
+
+
+</p></div><div class="navfooter"><hr><table width="100%" summary="Navigation footer"><tr><td width="40%" align="left"><a accesskey="p" href="apes06.html">Prev</a> </td><td width="20%" align="center"><a accesskey="u" href="ape.html">Up</a></td><td width="40%" align="right"> <a accesskey="n" href="apes08.html">Next</a></td></tr><tr><td width="40%" align="left" valign="top">6. Low CPU Speed </td><td width="20%" align="center"><a accesskey="h" href="index.html">Home</a></td><td width="40%" align="right" valign="top"> 8. Kernel</td></tr></table></div></body></html>

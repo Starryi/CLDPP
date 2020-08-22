@@ -1,0 +1,194 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1"><title>2. ip address</title><link rel="stylesheet" type="text/css" href="style.css"><meta name="generator" content="DocBook XSL Stylesheets V1.79.1"><meta name="keywords" content="linux, ip, iproute2, ifconfig, firewall, ARP, NAT, route, routing, route selection, routing selection, network administration"><link rel="home" href="index.html" title="Guide to IP Layer Network Administration with Linux"><link rel="up" href="apc.html" title="Appendix C. IP Address Management"><link rel="prev" href="apcs01.html" title="1. ifconfig"><link rel="next" href="apd.html" title="Appendix D. IP Route Management"></head><body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF"><div class="navheader"><table width="100%" summary="Navigation header"><tr><th colspan="3" align="center">2. <span class="command"><strong>ip address</strong></span></th></tr><tr><td width="20%" align="left"><a accesskey="p" href="apcs01.html">Prev</a> </td><th width="60%" align="center">Appendix C. IP Address Management</th><td width="20%" align="right"> <a accesskey="n" href="apd.html">Next</a></td></tr></table><hr></div><div class="section"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="tools-ip-address"></a>2. <span class="command"><strong>ip address</strong></span></h2></div></div></div><p>
+        Part of the <span class="command"><strong>iproute2</strong></span> suite, <span class="command"><strong>ip
+        address</strong></span> can
+        <a class="link" href="apcs02.html#tools-ip-address-show" title="2.1. Displaying interface information with ip address show">list the IP addresses</a>
+        affiliated with
+        interfaces,
+        <a class="link" href="apcs02.html#tools-ip-address-add" title="2.2. Using ip address add to configure IP address information">add IPs</a>,
+        <a class="link" href="apcs02.html#tools-ip-address-del" title="2.3. Using ip address del to remove IP addresses from an interface">delete IPs</a>, and
+        <a class="link" href="apcs02.html#tools-ip-address-flush" title="2.4. Removing all IP address information from an interface with ip address flush">remove all IPs on a given
+        device</a>.
+      </p><div class="section"><div class="titlepage"><div><div><h3 class="title"><a name="tools-ip-address-show"></a>2.1. Displaying interface information with
+            <span class="command"><strong>ip address show</strong></span></h3></div></div></div><p>
+          The first thing you'll want to do is list the IPs on your machine.
+          The <span class="command"><strong>ip address</strong></span> tool will display IP (and
+          terse encapsulation information) when invoked with the
+          <span class="command"><strong>show</strong></span> verb.  To specify that you wish to see the IP
+          information for only one interface, you can add <span class="command"><strong>dev
+          &lt;device-name&gt;</strong></span>
+        </p><div class="example"><a name="ex-tools-ip-address-display"></a><p class="title"><b>Example C.6. Displaying IP information with <span class="command">ip address</span></b></p><div class="example-contents"><pre class="programlisting">
+<code class="prompt">[root@tristan]# </code><strong class="userinput"><code>ip address show</code></strong>
+<code class="computeroutput">1: lo: &lt;LOOPBACK,UP&gt; mtu 16436 qdisc noqueue 
+    link/loopback 00:00:00:00:00:00 brd 00:00:00:00:00:00
+    inet 127.0.0.1/8 brd 127.255.255.255 scope host lo
+2: eth0: &lt;BROADCAST,MULTICAST,UP&gt; mtu 1500 qdisc pfifo_fast qlen 100
+    link/ether 00:80:c8:f8:4a:51 brd ff:ff:ff:ff:ff:ff
+    inet 192.168.99.35/24 brd 192.168.99.255 scope global eth0</code>
+<code class="prompt">[root@tristan]# </code><strong class="userinput"><code>ip address show dev eth0</code></strong>
+<code class="computeroutput">2: eth0: &lt;BROADCAST,MULTICAST,UP&gt; mtu 1500 qdisc pfifo_fast qlen 100
+    link/ether 00:80:c8:f8:4a:51 brd ff:ff:ff:ff:ff:ff
+    inet 192.168.99.35/24 brd 192.168.99.255 scope global eth0</code>
+<code class="prompt">[root@wan-gw]# </code><strong class="userinput"><code>ip address show wan0</code></strong>
+<code class="computeroutput">8: wan0: &lt;POINTOPOINT,NOARP,UP&gt; mtu 1500 qdisc pfifo_fast qlen 100
+    link/ppp 01:f4 peer 00:00
+    inet 205.254.209.73 peer 205.254.209.74/32 scope global wan0</code>
+<code class="prompt">[root@real-example]# </code><strong class="userinput"><code>ip address show ppp0</code></strong>
+<code class="computeroutput">5: ppp0: &lt;POINTOPOINT,MULTICAST,NOARP,UP&gt; mtu 1492 qdisc htb qlen 3
+    link/ppp 
+    inet 67.38.163.197 peer 67.38.163.254/32 scope global ppp0</code>
+          </pre></div></div><br class="example-break"><p>
+          You should notice some similarity between the output of
+          <span class="command"><strong>ip address</strong></span> and
+          <a class="link" href="apcs01.html#tools-ifconfig-output" title="1.4. Reading ifconfig output"><span class="command"><strong>ifconfig</strong></span></a>.
+          Each device is given an sequential number as an identifying number.
+          This is merely a convenience, and should not be used to refer to
+          devices.  The second field in an entry is the interface name (which
+          usually corresponds to the device name).  Next, we see the familiar
+          device <a class="link" href="apcs01.html#tb-tools-ifconfig-flags" title="Table C.1. Interface Flags">flags</a> and
+          maximum transmission unit size.
+        </p><p>
+          The final fields in the first line of output for each device entry
+          refer to the traffic control queueing discipline (qdisc) and the
+          Ethernet buffer transmit queue length (qlen).  For more on
+          understanding and using traffic control under linux, see
+          <a class="ulink" href="http://lartc.org/howto/" target="_top">the LARTC documentation</a>.
+        </p><p>
+          The second line of output describes the link layer characteristics
+          of the device.  For Ethernet devices, this will always say
+          "link/ether" followed by the hardware address of the device and the
+          media broadcast address.  For more detail on the link layer
+          characteristics of a device see <a class="xref" href="apbs03.html" title="3. ip link">Section 3, &#8220;<span class="command"><strong>ip link</strong></span>&#8221;</a>.
+        </p><p>
+          Subsequent lines of output describe the IP addresses available on each
+          interface.  In a typical installation only one address is used on
+          each interface, although an arbitrary number of addresses can also be
+          used on each interface.
+        </p><p>
+          Each line contains the IP address and netmask in CIDR notation, an
+          optional broadcast address, scope information and a label.  Let's
+          examine the scope and label first and then discuss IP addressing and
+          broadcast calculation.  The possible values for scope are outlined in
+          the following table.
+        </p><div class="table"><a name="tb-tools-ip-addr-scope"></a><p class="title"><b>Table C.2. IP Scope under <span class="command">ip address</span></b></p><div class="table-contents"><table class="table" summary="IP Scope under ip address" border="1"><colgroup><col><col></colgroup><thead><tr><th align="center">Scope</th><th align="center">Description</th></tr></thead><tbody><tr><td align="center">global</td><td align="center">valid everywhere</td></tr><tr><td align="center">site</td><td align="center">valid only within this site (IPv6)</td></tr><tr><td align="center">link</td><td align="center">valid only on this device</td></tr><tr><td align="center">host</td><td align="center">valid only inside this host (machine)</td></tr></tbody></table></div></div><br class="table-break"><p>
+          Scope is normally determined by the <span class="command"><strong>ip</strong></span> utility
+          without explicit use on the command line.  For example, an IP address
+          in the 127.0.0.0/8 range falls in the range of localhost IPs, so
+          should not be routed out any device.  This explains the presence of
+          the <span class="command"><strong>host</strong></span> scope for addresses bound to interface
+          <span class="command"><strong>lo</strong></span>.  Usually, addresses on other interfaces are
+          public interfaces, which means that their scope will be global.  We
+          will revisit scope again when we discuss routing with <span class="command"><strong>ip
+          route</strong></span>, and there we will also encounter the link scope.
+        </p><p>
+          Now, let's examine IP addressing with the <span class="command"><strong>ip
+          address</strong></span> utility by adding and removing IP addresses from
+          active interfaces. 
+        </p></div><div class="section"><div class="titlepage"><div><div><h3 class="title"><a name="tools-ip-address-add"></a>2.2. Using <span class="command"><strong>ip address add</strong></span> to configure
+          IP address information</h3></div></div></div><p>
+          If you need to host an additional IP address on
+          <code class="systemitem">tristan</code>, here's how you
+          would accomplish this task.
+        </p><div class="example"><a name="ex-tools-ip-address-add"></a><p class="title"><b>Example C.7. Adding IP addresses to an interface with <span class="command">ip address</span></b></p><div class="example-contents"><pre class="programlisting">
+<code class="prompt">[root@tristan]# </code><strong class="userinput"><code>ip address add 192.168.99.37/24 brd + dev eth0</code></strong>
+<code class="prompt">[root@tristan]# </code><strong class="userinput"><code>ip address show dev eth0</code></strong>
+<code class="computeroutput">2: eth0: &lt;BROADCAST,MULTICAST,UP&gt; mtu 1500 qdisc pfifo_fast qlen 100
+    link/ether 00:80:c8:f8:4a:51 brd ff:ff:ff:ff:ff:ff
+    inet 192.168.99.35/24 brd 192.168.99.255 scope global eth0
+    inet 192.168.99.37/24 brd 192.168.99.255 scope global secondary eth0</code>
+          </pre></div></div><br class="example-break"><p>
+          There are a few items of note.  You can use <span class="command"><strong>ip address
+          add</strong></span> even if the link layer on the device is down.  This
+          means that you can readdress an interface without bringing it up.
+          When you add an address within the same CIDR network as another
+          address on the same interface, the second address becomes a secondary
+          address, meaning that if the first address is removed, the second
+          address will also be purged from the interface.
+        </p><p>
+          In order to support compatibility with
+          <a class="link" href="apcs01.html" title="1. ifconfig"><span class="command"><strong>ifconfig</strong></span></a> the
+          <span class="command"><strong>ip address</strong></span> command allows the user to specify a
+          label on every hosted address on a given device.  After adding an
+          address to an interface as we did in
+          <a class="xref" href="apcs02.html#ex-tools-ip-address-add" title="Example C.7. Adding IP addresses to an interface with ip address">Example C.7, &#8220;Adding IP addresses to an interface with <span class="command">ip address</span>&#8221;</a>,
+          <span class="command"><strong>ifconfig</strong></span> will not report that the new IP
+          192.168.99.37 is hosted on the same device as the primary IP
+          192.168.99.35.  In order to prevent this sort of confusion or apparently
+          contradictory output, you should get in the habit of using the
+          <span class="command"><strong>label</strong></span> option to identify each IP hosted on a
+          device.  Let's take a look at how to remove the 192.168.99.37 IP from
+          eth0 and add it back so that <span class="command"><strong>ifconfig</strong></span> will report
+          the presence of another IP on the eth0 device.
+        </p></div><div class="section"><div class="titlepage"><div><div><h3 class="title"><a name="tools-ip-address-del"></a>2.3. Using <span class="command"><strong>ip address del</strong></span> to remove IP addresses
+          from an interface</h3></div></div></div><p>
+          There is a difference between IPs considered as primary addresses on
+          an interface and secondary addresses.  If in the output, an address
+          is listed as a secondary address, removing the primary address will
+          also remove the secondary address.
+        </p><p>
+          A workaround is to set the netmask on the second address added to
+          the interface to /32.  Unfortunately, this subterfuge will prevent
+          the kernel from entering the correct corresponding network and
+          broadcast routes.
+        </p><div class="example"><a name="ex-tools-ip-address-del"></a><p class="title"><b>Example C.8. Removing IP addresses from interfaces with <span class="command">ip address</span></b></p><div class="example-contents"><pre class="programlisting">
+<code class="prompt">[root@tristan]# </code><strong class="userinput"><code>ip address del 192.168.99.37/24 brd + dev eth0</code></strong>
+<code class="prompt">[root@tristan]# </code><strong class="userinput"><code>ip address add 192.168.99.37/24 brd + dev eth0 label eth0:0</code></strong>
+<code class="prompt">[root@tristan]# </code><strong class="userinput"><code>ip address show dev eth0</code></strong>
+<code class="computeroutput">2: eth0: &lt;BROADCAST,MULTICAST,UP&gt; mtu 1500 qdisc pfifo_fast qlen 100
+    link/ether 00:80:c8:f8:4a:51 brd ff:ff:ff:ff:ff:ff
+    inet 192.168.99.35/24 brd 192.168.99.255 scope global eth0
+    inet 192.168.99.37/24 brd 192.168.99.255 scope global secondary eth0:0</code>
+<code class="prompt">[root@tristan]# </code><strong class="userinput"><code>ifconfig</code></strong>
+<code class="computeroutput">eth0      Link encap:Ethernet  HWaddr 00:80:C8:F8:4A:51
+          inet addr:192.168.99.35  Bcast:192.168.99.255  Mask:255.255.255.0
+          UP BROADCAST RUNNING MULTICAST  MTU:1500  Metric:1
+          RX packets:190312 errors:0 dropped:0 overruns:0 frame:0
+          TX packets:86955 errors:0 dropped:0 overruns:0 carrier:0
+          collisions:0 txqueuelen:100 
+          RX bytes:30701229 (29.2 Mb)  TX bytes:7878951 (7.5 Mb)
+          Interrupt:9 Base address:0x5000 
+
+eth0:0    Link encap:Ethernet  HWaddr 00:80:C8:F8:4A:51  
+          inet addr:10.10.20.10  Bcast:10.10.20.255  Mask:255.255.255.0
+          UP BROADCAST RUNNING MULTICAST  MTU:1500  Metric:1
+          Interrupt:9 Base address:0x1000
+
+lo        Link encap:Local Loopback  
+          inet addr:127.0.0.1  Mask:255.0.0.0
+          UP LOOPBACK RUNNING  MTU:16436  Metric:1
+          RX packets:306 errors:0 dropped:0 overruns:0 frame:0
+          TX packets:306 errors:0 dropped:0 overruns:0 carrier:0
+          collisions:0 txqueuelen:0 
+          RX bytes:29504 (28.8 Kb)  TX bytes:29504 (28.8 Kb)</code>
+          </pre></div></div><br class="example-break"><p>
+          Taking the minor precaution of using <span class="command"><strong>label</strong></span>s on IP
+          addresses added to an interface will prevent confusion if there are
+          multiple administrators of a machine, some of whom use
+          <span class="command"><strong>ifconfig</strong></span>.
+        </p></div><div class="section"><div class="titlepage"><div><div><h3 class="title"><a name="tools-ip-address-flush"></a>2.4. Removing all IP address information from an interface
+          with <span class="command"><strong>ip address flush</strong></span></h3></div></div></div><p>
+          Finally, let's look at the use of <span class="command"><strong>ip address flush</strong></span>.
+          If an interface has already had IP addresses assigned to it, and all
+          of the addresses need to be removed (along with their routes), there
+          is one handy command to accomplish all of these tasks.  <span class="command"><strong>ip
+          address flush</strong></span> takes an interface name as an argument.
+          Let's look at the output of <span class="command"><strong>ip address show</strong></span> just
+          before and just after removing all IPs.
+        </p><div class="example"><a name="ex-tools-ip-address-flush"></a><p class="title"><b>Example C.9. Removing all IPs on an interface with <span class="command">ip address flush</span></b></p><div class="example-contents"><pre class="programlisting">
+<code class="prompt">[root@tristan]# </code><strong class="userinput"><code>ip address show dev eth0</code></strong>
+<code class="computeroutput">2: eth0: &lt;BROADCAST,MULTICAST,UP&gt; mtu 1500 qdisc pfifo_fast qlen 100
+    link/ether 00:80:c8:f8:4a:51 brd ff:ff:ff:ff:ff:ff
+    inet 192.168.99.35/24 brd 192.168.99.255 scope global eth0
+    inet 192.168.99.37/24 brd 192.168.99.255 scope global secondary eth0:0</code>
+<code class="prompt">[root@tristan]# </code><strong class="userinput"><code>ip address flush</code></strong>
+<code class="computeroutput">Flush requires arguments.</code>
+<code class="prompt">[root@tristan]# </code><strong class="userinput"><code>ip address flush dev eth0</code></strong>
+<code class="prompt">[root@tristan]# </code><strong class="userinput"><code>ip address show dev eth0</code></strong>
+<code class="computeroutput">2: eth0: &lt;BROADCAST,MULTICAST,UP&gt; mtu 1500 qdisc pfifo_fast qlen 100
+    link/ether 00:80:c8:f8:4a:51 brd ff:ff:ff:ff:ff:ff</code>
+          </pre></div></div><br class="example-break"></div><div class="section"><div class="titlepage"><div><div><h3 class="title"><a name="tools-ip-address-conclusion"></a>2.5. Conclusion</h3></div></div></div><p>
+          As you can see, the <span class="command"><strong>ip address</strong></span> utility provides a
+          wealth of information and a great deal of control over the IPs
+          associated with each device.  For more detailed information about
+          the <span class="command"><strong>iproute2</strong></span> package and included tools, see
+          <a class="xref" href="apis01.html#links-iproute2" title="1.6. iproute2 documentation">Section 1.6, &#8220;iproute2 documentation&#8221;</a>.
+        </p></div></div><div class="navfooter"><hr><table width="100%" summary="Navigation footer"><tr><td width="40%" align="left"><a accesskey="p" href="apcs01.html">Prev</a> </td><td width="20%" align="center"><a accesskey="u" href="apc.html">Up</a></td><td width="40%" align="right"> <a accesskey="n" href="apd.html">Next</a></td></tr><tr><td width="40%" align="left" valign="top">1. <span class="command"><strong>ifconfig</strong></span> </td><td width="20%" align="center"><a accesskey="h" href="index.html">Home</a></td><td width="40%" align="right" valign="top"> Appendix D. IP Route Management</td></tr></table></div></body></html>

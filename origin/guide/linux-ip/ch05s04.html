@@ -1,0 +1,104 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1"><title>4. Stateless NAT and Packet Filtering</title><link rel="stylesheet" type="text/css" href="style.css"><meta name="generator" content="DocBook XSL Stylesheets V1.79.1"><meta name="keywords" content="linux, ip, iproute2, ifconfig, firewall, ARP, NAT, route, routing, route selection, routing selection, network administration"><link rel="home" href="index.html" title="Guide to IP Layer Network Administration with Linux"><link rel="up" href="ch05.html" title="Chapter 5. Network Address Translation (NAT)"><link rel="prev" href="ch05s03.html" title="3. Stateless NAT with iproute2"><link rel="next" href="ch05s05.html" title="5. Destination NAT with netfilter (DNAT)"></head><body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF"><div class="navheader"><table width="100%" summary="Navigation header"><tr><th colspan="3" align="center">4. Stateless NAT and Packet Filtering</th></tr><tr><td width="20%" align="left"><a accesskey="p" href="ch05s03.html">Prev</a> </td><th width="60%" align="center">Chapter 5. Network Address Translation (NAT)</th><td width="20%" align="right"> <a accesskey="n" href="ch05s05.html">Next</a></td></tr></table><hr></div><div class="section"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="nat-stateless-pf-interaction"></a>4. Stateless NAT and Packet Filtering</h2></div></div></div><p>
+      Because NAT rewrites the packet as it passes through the IP stack, 
+      packet filtering can become complex.  With attentiveness to the
+      addressing of the packet at each stage
+      in its journey through the packet filtering code, you can ease the
+      burden of writing a packet filter.
+    </p><p>
+      All of the below requirements can be deduced from an understanding of
+      NAT and the path a packet takes through the kernel.  Consult also the
+      <a class="ulink" href="http://www.tldp.org/HOWTO/IPCHAINS-HOWTO-4.html#ss4.1" target="_top"><span class="command"><strong>ipchains</strong></span>
+      packet path</a> as illustrated in the
+      <a class="ulink" href="http://www.tldp.org/HOWTO/IPCHAINS-HOWTO.html" target="_top"><span class="command"><strong>ipchains</strong></span>
+      HOWTO</a> to understand the packet path when using
+      <span class="command"><strong>ipchains</strong></span>.  Keep in mind when viewing the ASCII
+      diagram that stateless NAT will always occur in the routing stage.  Also
+      consult the
+      <a class="ulink" href="http://docum.org/stef.coene/qos/kptd/" target="_top">kernel packet
+      traveling diagram</a> for a good picture of a 2.4 kernel packet
+      path.
+    </p><p>
+      <a class="xref" href="ch05s04.html#tb-nat-pf-ipchains" title="Table 5.1. Filtering an iproute2 NAT packet with ipchains">Table 5.1, &#8220;Filtering an <span class="command">iproute2</span> NAT packet with
+      <span class="command">ipchains</span>&#8221;</a> identifies the IP addresses
+      on a packet traversing each of the input,
+      forward and output chains in an <span class="command"><strong>ipchains</strong></span>
+      installation.
+    </p><div class="table"><a name="tb-nat-pf-ipchains"></a><p class="title"><b>Table 5.1. Filtering an <span class="command">iproute2</span> NAT packet with
+      <span class="command">ipchains</span></b></p><div class="table-contents"><table class="table" summary="Filtering an iproute2 NAT packet with
+      ipchains" border="1"><colgroup><col align="center" class="c1"><col align="center" class="c2"><col align="center" class="c3"></colgroup><thead><tr><th colspan="3" align="center">Inbound to the NAT IP</th></tr><tr><th align="center">Chain</th><th align="center">Source IP</th><th align="center">Destination IP</th></tr></thead><tbody><tr><td align="center">input</td><td align="center">64.70.12.210</td><td align="center">205.254.211.17</td></tr><tr><td colspan="3" align="center">Routing Stage</td></tr><tr><td align="center">forward</td><td align="center">64.70.12.210</td><td align="center">192.168.100.17</td></tr><tr><td align="center">output</td><td align="center">64.70.12.210</td><td align="center">192.168.100.17</td></tr></tbody></table><table class="table" summary="Filtering an iproute2 NAT packet with
+      ipchains" border="1"><colgroup><col align="center" class="c1"><col align="center" class="c2"><col align="center" class="c3"></colgroup><thead><tr><th colspan="3" align="center">Outbound from the real IP</th></tr><tr><th align="center">Chain</th><th align="center">Source IP</th><th align="center">Destination IP</th></tr></thead><tbody><tr><td align="center">input</td><td align="center">192.168.100.17</td><td align="center">64.70.12.210</td></tr><tr><td colspan="3" align="center">Routing Stage</td></tr><tr><td align="center">forward</td><td align="center">205.254.211.17</td><td align="center">64.70.12.210</td></tr><tr><td align="center">output</td><td align="center">205.254.211.17</td><td align="center">64.70.12.210</td></tr></tbody></table></div></div><br class="table-break"><p>
+      A firewall implementing a tight policy (deny all, selectively allow)
+      will require a large number of individual rules to allow the NAT packets
+      to traverse the firewall packet filter.
+      Assuming the configuration detailed in
+      <a class="xref" href="ch05s03.html#ex-nat-basic" title="Example 5.1.  Stateless NAT Packet Capture">Example 5.1, &#8220;
+          Stateless NAT Packet Capture
+          
+        &#8221;</a>, the following set of chains is
+      required and will restrict access to only port 25
+      <a href="#ftn.idm2762" class="footnote" name="idm2762"><sup class="footnote">[33]</sup></a>.
+    </p><div class="example"><a name="ex-nat-pf-ipchains"></a><p class="title"><b>Example 5.4. Using an <span class="command">ipchains</span> packet filter with
+        stateless NAT</b></p><div class="example-contents"><pre class="programlisting">
+<code class="prompt">[root@masq-gw]# </code><strong class="userinput"><code>ipchains -I input  -i eth1 -p tcp -l -y -s 0/0 1024:65535    -d 205.254.211.17 25 -j ACCEPT</code></strong>
+<code class="prompt">[root@masq-gw]# </code><strong class="userinput"><code>ipchains -I input  -i eth1 -p tcp  ! -y -s 0/0 1024:65535    -d 205.254.211.17 25 -j ACCEPT</code></strong>
+<code class="prompt">[root@masq-gw]# </code><strong class="userinput"><code>ipchains -I forward        -p tcp       -s 0/0 1024:65535    -d 192.168.100.17 25 -j ACCEPT</code></strong>
+<code class="prompt">[root@masq-gw]# </code><strong class="userinput"><code>ipchains -I output -i eth0 -p tcp       -s 0/0 1024:65535    -d 192.168.100.17 25 -j ACCEPT</code></strong>
+<code class="prompt">[root@masq-gw]# </code><strong class="userinput"><code>ipchains -I input  -i eth0 -p tcp  ! -y -s 192.168.100.17 25 -d 0/0 1024:65535    -j ACCEPT</code></strong>
+<code class="prompt">[root@masq-gw]# </code><strong class="userinput"><code>ipchains -I forward        -p tcp       -s 205.254.211.17 25 -d 0/0 1024:65535    -j ACCEPT</code></strong>
+<code class="prompt">[root@masq-gw]# </code><strong class="userinput"><code>ipchains -I output -i eth1 -p tcp       -s 205.254.211.17 25 -d 0/0 1024:65535    -j ACCEPT</code></strong>
+<code class="prompt">[root@masq-gw]# </code><strong class="userinput"><code>for icmptype in \</code></strong>
+<code class="prompt">&gt; </code><strong class="userinput"><code>destination-unreachable source-quench time-exceeded parameter-problem; do</code></strong>
+<code class="prompt">&gt; </code><strong class="userinput"><code>ipchains -I input  -i eth1 -p icmp -s 0/0 $icmptype            -d 205.254.211.17 -j ACCEPT</code></strong>
+<code class="prompt">&gt; </code><strong class="userinput"><code>ipchains -I forward        -p icmp -s 0/0 $icmptype            -d 192.168.100.17 -j ACCEPT</code></strong>
+<code class="prompt">&gt; </code><strong class="userinput"><code>ipchains -I output -i eth0 -p icmp -s 0/0 $icmptype            -d 192.168.100.17 -j ACCEPT</code></strong>
+<code class="prompt">&gt; </code><strong class="userinput"><code>ipchains -I input  -i eth0 -p icmp -s 192.168.100.17 $icmptype -d 0/0            -j ACCEPT</code></strong>
+<code class="prompt">&gt; </code><strong class="userinput"><code>ipchains -I forward        -p icmp -s 205.254.211.17 $icmptype -d 0/0            -j ACCEPT</code></strong>
+<code class="prompt">&gt; </code><strong class="userinput"><code>ipchains -I output -i eth1 -p icmp -s 205.254.211.17 $icmptype -d 0/0            -j ACCEPT</code></strong>
+<code class="prompt">&gt; </code><strong class="userinput"><code>done</code></strong>
+      </pre></div></div><br class="example-break"><p>
+      Please note that the formatting of the commands is simply for display
+      purposes, and to allow for easier reading of a complex set of commands.
+      The above set of rules is 31 individual chains.  This is most certainly
+      a complex set of rules.  For further details on how to use
+      <span class="command"><strong>ipchains</strong></span> please see the 
+      <a class="ulink" href="http://www.tldp.org/HOWTO/IPCHAINS-HOWTO.html" target="_top"><span class="command"><strong>ipchains</strong></span>
+      HOWTO</a>.  The salient detail you should notice from the above set
+      of rules is the difference between the IPs used in the input and forward
+      chains.  
+      Since packets are rewritten by the stateless NAT code in the routing
+      stage, the transformation of the packet will by complete before the
+      forward chain is traversed.
+    </p><p>
+      The first two lines cover all inbound TCP packets, the first line as a
+      special case of the second, indicating (<code class="option">-l</code>) that we
+      want to log the packet.  After successfully traversing the input chain,
+      the packet is routed, at which point the destination address of the
+      packet has changed.  Now, we need to forward the packet from the public
+      source address to the private (or real) internal IP address.  Finally,
+      we need to allow the packet out on the internal interface.
+    </p><p>
+      The next set of rules handles all of the TCP return packets.  On the
+      input rule, we are careful to match only non-SYN packets from our
+      internal server bound for the world.  Once again, the packet is
+      rewritten during the routing stage.  Now in the forward chain, the
+      packet's source IP is the public IP of the service.  Finally, we need to
+      let the packet out on our external interface.
+    </p><p>
+      The next series of lines are required ICMP rules to prevent network
+      traffic from breaking terribly.  These types of ICMP, particularly
+      destination unreachable (ICMP 3) and source quench (ICMP 4) help to
+      ensure that TCP sessions run with optimized characteristics.
+    </p><p>
+      These rules are the minimum set of <span class="command"><strong>ipchains</strong></span> rules
+      needed to support a NAT'd TCP service.  This concludes our discussion of
+      publishing a service to the world with <span class="command"><strong>iproute2</strong></span> based
+      NAT and protecting the service with <span class="command"><strong>ipchains</strong></span>.  As you
+      can see, the complexity of supporting NAT with
+      <span class="command"><strong>iproute2</strong></span> can be substantial, which is why we'll
+      examine the benefits of inbound NAT (DNAT) with netfilter in the next
+      section.
+    </p><div class="footnotes"><br><hr style="width:100; text-align:left;margin-left: 0"><div id="ftn.idm2762" class="footnote"><p><a href="#idm2762" class="para"><sup class="para">[33] </sup></a>
+          I assume here that the user has a restrictive default policy on the
+          firewalling device.  I suggest a policy of DENY on each of the built
+          in <span class="command"><strong>ipchains</strong></span> chains.
+        </p></div></div></div><div class="navfooter"><hr><table width="100%" summary="Navigation footer"><tr><td width="40%" align="left"><a accesskey="p" href="ch05s03.html">Prev</a> </td><td width="20%" align="center"><a accesskey="u" href="ch05.html">Up</a></td><td width="40%" align="right"> <a accesskey="n" href="ch05s05.html">Next</a></td></tr><tr><td width="40%" align="left" valign="top">3. Stateless NAT with <span class="command"><strong>iproute2</strong></span> </td><td width="20%" align="center"><a accesskey="h" href="index.html">Home</a></td><td width="40%" align="right" valign="top"> 5. Destination NAT with netfilter (DNAT)</td></tr></table></div></body></html>

@@ -1,0 +1,344 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1"><title>8. Routing Tables</title><link rel="stylesheet" type="text/css" href="style.css"><meta name="generator" content="DocBook XSL Stylesheets V1.79.1"><meta name="keywords" content="linux, ip, iproute2, ifconfig, firewall, ARP, NAT, route, routing, route selection, routing selection, network administration"><link rel="home" href="index.html" title="Guide to IP Layer Network Administration with Linux"><link rel="up" href="ch04.html" title="Chapter 4. IP Routing"><link rel="prev" href="ch04s07.html" title="7. Routing Cache"><link rel="next" href="ch04s09.html" title="9. Routing Policy Database (RPDB)"></head><body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF"><div class="navheader"><table width="100%" summary="Navigation header"><tr><th colspan="3" align="center">8. Routing Tables</th></tr><tr><td width="20%" align="left"><a accesskey="p" href="ch04s07.html">Prev</a> </td><th width="60%" align="center">Chapter 4. IP Routing</th><td width="20%" align="right"> <a accesskey="n" href="ch04s09.html">Next</a></td></tr></table><hr></div><div class="section"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="routing-tables"></a>8. Routing Tables</h2></div></div></div><a class="indexterm" name="idm1995"></a><p>
+      Linux kernel 2.2 and 2.4 support multiple routing tables
+      <a href="#ftn.idm1999" class="footnote" name="idm1999"><sup class="footnote">[22]</sup></a>.
+      Beyond the two commonly used routing tables
+      (<a class="link" href="ch04s08.html#routing-table-local" title="8.2. The Local Routing Table">the local</a> and
+      <a class="link" href="ch04s08.html#routing-table-main" title="8.3. The Main Routing Table">main</a> routing tables), the
+      kernel supports up to 252 additional routing tables.
+    </p><p>
+      The multiple routing table system provides a flexible infrastructure on
+      top of which to implement policy routing.  By allowing multiple
+      traditional routing tables (keyed primarily to destination address)
+      to be combined with the
+      <a class="link" href="ch04s09.html" title="9. Routing Policy Database (RPDB)">routing policy database (RPDB)</a>
+      (keyed primarily to source address), the
+      kernel supports a well-known and well-understood interface while
+      simultaneously expanding and extending its routing capabilities.
+      Each routing table still operates in the traditional and expected
+      fashion.  Linux simply allows you to choose from a
+      number of routing tables, and to traverse routing tables in a
+      user-definable sequence until a matching route is found.
+    </p><a name="routing-tables-keys"></a><a class="indexterm" name="idm2007"></a><p>
+      Any given routing table can contain an arbitrary number of entries,
+      each of which is keyed on the following characteristics (cf.
+      <a class="xref" href="ch04s05.html#tb-routing-selection-adv" title="Table 4.1. Keys used for hash table lookups during route selection">Table 4.1, &#8220;Keys used for hash table lookups during route selection&#8221;</a>)
+      </p><div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem"><p>
+            destination address; a network or host address (primary key)
+          </p></li><li class="listitem"><p>
+            tos; Type of Service
+          </p></li><li class="listitem"><p>
+            <a class="link" href="apcs02.html#tb-tools-ip-addr-scope" title="Table C.2. IP Scope under ip address">scope</a>
+          </p></li><li class="listitem"><p>
+            output interface
+          </p></li></ul></div><p>
+    </p><p>
+      For practical purposes, this means that (even) a single routing table can
+      contain multiple routes to the same destination if the ToS differs
+      on each route or if the route applies to a different interface
+      <a href="#ftn.idm2023" class="footnote" name="idm2023"><sup class="footnote">[23]</sup></a>.
+    </p><p>
+      Kernels supporting multiple routing tables refer to routing tables by
+      unique integer slots between 0 and 255
+      <a href="#ftn.idm2026" class="footnote" name="idm2026"><sup class="footnote">[24]</sup></a>.
+      The two routing tables normally employed are
+      <a class="link" href="ch04s08.html#routing-table-local" title="8.2. The Local Routing Table">table 255, the
+      <code class="constant">local</code> routing table</a>, and
+      <a class="link" href="ch04s08.html#routing-table-main" title="8.3. The Main Routing Table">table 254, the
+      <code class="constant">main</code> routing table</a>.  For
+      examples of using multiple routing tables, see
+      <a class="xref" href="ch09.html" title="Chapter 9. Advanced IP Management">Chapter 9, <i>Advanced IP Management</i></a>, in particular,
+      <a class="xref" href="ch10s04.html#ex-adv-multi-internet-outbound-ip-routing" title="Example 10.1. Multiple Outbound Internet links, part I; ip route">Example 10.1, &#8220;Multiple Outbound Internet links, part I;
+          <span class="command">ip route</span>&#8221;</a>,
+      <a class="xref" href="ch10s04.html#ex-adv-multi-internet-outbound-ip-rule" title="Example 10.3. Multiple Outbound Internet links, part III; ip rule">Example 10.3, &#8220;Multiple Outbound Internet links, part III;
+          <span class="command">ip rule</span>&#8221;</a> and 
+      <a class="xref" href="ch10s04.html#ex-adv-multi-internet-inbound" title="Example 10.4. Multiple Internet links, inbound traffic; using iproute2 only">Example 10.4, &#8220;Multiple Internet links, inbound traffic; using
+          <span class="command">iproute2</span> only
+          
+        &#8221;</a>.  Also be sure
+      to read
+      <a class="xref" href="ch10s03.html" title="3. Using the Routing Policy Database and Multiple Routing Tables">Section 3, &#8220;Using the Routing Policy Database and Multiple Routing
+      Tables&#8221;</a> and 
+      <a class="xref" href="ch04s09.html" title="9. Routing Policy Database (RPDB)">Section 9, &#8220;Routing Policy Database (RPDB)&#8221;</a>.
+    </p><p>
+      The <span class="command"><strong>ip route</strong></span> and <span class="command"><strong>ip rule</strong></span> commands
+      have built in support for the special tables <code class="constant">main</code> and <code class="constant">local</code>.
+      Any other routing tables can be referred to by number or an
+      administratively maintained mapping file,
+      <code class="filename">/etc/iproute2/rt_tables</code>.
+    </p><p>
+      The format of this file is extraordinarily simple.  Each line represents
+      one mapping of an arbitrary string to an integer.  Comments are allowed.
+    </p><div class="example"><a name="ex-routing-tables-rt-table"></a><p class="title"><b>Example 4.6. Typical content of
+        <code class="filename">/etc/iproute2/rt_tables</code></b></p><div class="example-contents"><pre class="programlisting">
+<code class="computeroutput">#
+# reserved values
+#
+255     local      <a class="co" name="id-rtrt-local" href="ch04s08.html#id-rtrt-local-text"><span><img src="images/callouts/1.png" alt="1" border="0"></span></a>
+254     main       <a class="co" name="id-rtrt-main" href="ch04s08.html#id-rtrt-main-text"><span><img src="images/callouts/2.png" alt="2" border="0"></span></a>
+253     default    <a class="co" name="id-rtrt-default" href="ch04s08.html#id-rtrt-default-text"><span><img src="images/callouts/3.png" alt="3" border="0"></span></a>
+0       unspec     <a class="co" name="id-rtrt-unspec" href="ch04s08.html#id-rtrt-unspec-text"><span><img src="images/callouts/4.png" alt="4" border="0"></span></a>
+#
+# local
+#
+1      inr.ruhep   <a class="co" name="id-rtrt-user" href="ch04s08.html#id-rtrt-user-text"><span><img src="images/callouts/5.png" alt="5" border="0"></span></a></code>
+      </pre><div class="calloutlist"><table border="0" summary="Callout list"><tr><td width="5%" valign="top" align="left"><p><a name="id-rtrt-local-text"></a><a href="#id-rtrt-local"><span><img src="images/callouts/1.png" alt="1" border="0"></span></a> </p></td><td valign="top" align="left">
+              The <code class="constant">local</code> table is a special routing table maintained by the
+              kernel.  Users can remove entries from the local routing table
+              at their own risk.  Users cannot add entries to the local
+              routing table.  The file
+              <code class="filename">/etc/iproute2/rt_tables</code> need not exist, as
+              the <span class="command"><strong>iproute2</strong></span> tools have a hard-coded entry for the <code class="constant">local</code>
+              table.
+            </td></tr><tr><td width="5%" valign="top" align="left"><p><a name="id-rtrt-main-text"></a><a href="#id-rtrt-main"><span><img src="images/callouts/2.png" alt="2" border="0"></span></a> </p></td><td valign="top" align="left">
+              The main routing table is the table operated upon by
+              <span class="command"><strong>route</strong></span> and, when not otherwise specified, by
+              <span class="command"><strong>ip route</strong></span>.  The file
+              <code class="filename">/etc/iproute2/rt_tables</code> need not exist, as
+              the <span class="command"><strong>iproute2</strong></span> tools have a hard-coded entry for the <code class="constant">main</code>
+              table.
+            </td></tr><tr><td width="5%" valign="top" align="left"><p><a name="id-rtrt-default-text"></a><a href="#id-rtrt-default"><span><img src="images/callouts/3.png" alt="3" border="0"></span></a> </p></td><td valign="top" align="left">
+              The <code class="constant">default</code> routing table is another
+              special routing table, but WHY is it special!?!
+            </td></tr><tr><td width="5%" valign="top" align="left"><p><a name="id-rtrt-unspec-text"></a><a href="#id-rtrt-unspec"><span><img src="images/callouts/4.png" alt="4" border="0"></span></a> </p></td><td valign="top" align="left">
+              Operating on the <code class="constant">unspec</code> routing table
+              appears to operate on all routing tables simultaneously.  Is
+              this true!?  What does that imply?
+            </td></tr><tr><td width="5%" valign="top" align="left"><p><a name="id-rtrt-user-text"></a><a href="#id-rtrt-user"><span><img src="images/callouts/5.png" alt="5" border="0"></span></a> </p></td><td valign="top" align="left">
+              This is an example indicating that table 1 is known by the name
+              inr.ruhep.  Any references to <strong class="userinput"><code>table
+              inr.ruhep</code></strong> in an <span class="command"><strong>ip rule</strong></span>
+              or <span class="command"><strong>ip route</strong></span> will substitue the
+              value 1 for the word inr.ruhep.
+            </td></tr></table></div></div></div><br class="example-break"><p>
+      The routing table manipulated by the conventional
+      <a class="link" href="apds01.html" title="1. route"><span class="command"><strong>route</strong></span></a> command
+      is the <code class="constant">main</code> routing table.  Additionally, the use of both
+      <a class="link" href="apcs02.html" title="2. ip address"><span class="command"><strong>ip address</strong></span></a> and
+      <a class="link" href="apcs01.html" title="1. ifconfig"><span class="command"><strong>ifconfig</strong></span></a>
+      will cause the kernel to alter the local routing table (and usually the
+      main routing table).  For further documentation on how to manipulate
+      the other routing tables, see the command description of
+      <a class="link" href="apds02.html" title="2. ip route"><span class="command"><strong>ip route</strong></span></a>.
+    </p><p>
+    </p><p>
+    </p><p>
+    </p><div class="section"><div class="titlepage"><div><div><h3 class="title"><a name="routing-table-entries"></a>8.1. Routing Table Entries (Routes)</h3></div></div></div><a class="indexterm" name="idm2095"></a><a class="indexterm" name="idm2098"></a><p>
+        Each routing table can contain an arbitrary number of route entries.
+        Aside from the
+        <a class="link" href="ch04s08.html#routing-table-local" title="8.2. The Local Routing Table">local routing table</a>, which
+        is maintained by the kernel, and the
+        <a class="link" href="ch04s08.html#routing-table-main" title="8.3. The Main Routing Table">main routing table</a> which is
+        partially maintained by the kernel, 
+        all routing tables are controlled by the administrator or routing
+        software.  All routes on a machine can be changed or removed
+        <a href="#ftn.idm2104" class="footnote" name="idm2104"><sup class="footnote">[25]</sup></a>.
+      </p><p>
+        Each of the following route types is available for use with
+        the <span class="command"><strong>ip route</strong></span> command.  Each route type causes a
+        particular sort of behaviour, which is identified in the textual
+        description.  Compare the route types described below with the
+        <a class="link" href="ch04s09.html#list-routing-rule-types">rule types</a> available
+        for use in the RPDB.
+      </p><div class="variablelist"><a name="list-routing-route-types"></a><dl class="variablelist"><dt><a name="list-routing-route-types-unicast"></a><span class="term">unicast</span></dt><dd><a class="indexterm" name="idm2113"></a><p>
+              A unicast route is the most common route in routing tables.
+              This is a typical route to a destination network address, which
+              describes the path to the destination.  Even complex routes,
+              such as nexthop routes are considered unicast routes.  If no
+              route type is specified on the command line, the route is
+              assumed to be a unicast route.
+            </p><div class="example"><a name="ex-list-route-unicast"></a><p class="title"><b>Example 4.7. unicast route types</b></p><div class="example-contents"><pre class="programlisting">
+<strong class="userinput"><code>ip route add unicast 192.168.0.0/24 via 192.168.100.5</code></strong>
+<strong class="userinput"><code>ip route add default via 193.7.255.1</code></strong>
+<strong class="userinput"><code>ip route add unicast default via 206.59.29.193</code></strong>
+<strong class="userinput"><code>ip route add 10.40.0.0/16 via 10.72.75.254</code></strong>
+              </pre></div></div><br class="example-break"></dd><dt><a name="list-routing-route-types-broadcast"></a><span class="term">broadcast</span></dt><dd><a class="indexterm" name="idm2128"></a><p>
+              This route type is used for link layer devices (such as Ethernet
+              cards) which support the notion of a broadcast address.  This
+              route type is used only in the local routing table
+              <a href="#ftn.idm2133" class="footnote" name="idm2133"><sup class="footnote">[26]</sup></a>
+              and is typically handled by the kernel.
+            </p><div class="example"><a name="ex-list-route-broadcast"></a><p class="title"><b>Example 4.8. broadcast route types</b></p><div class="example-contents"><pre class="programlisting">
+<strong class="userinput"><code>ip route add table local broadcast 10.10.20.255 dev eth0 proto kernel scope link src 10.10.20.67</code></strong>
+<strong class="userinput"><code>ip route add table local broadcast 192.168.43.31 dev eth4 proto kernel scope link src 192.168.43.14</code></strong>
+              </pre></div></div><br class="example-break"></dd><dt><a name="list-routing-route-types-local"></a><span class="term">local</span></dt><dd><a class="indexterm" name="idm2143"></a><p>
+              The kernel will add entries into the local routing table when
+              IP addresses are added to an interface.  This means that the IPs
+              are locally hosted IPs
+              <a href="#ftn.idm2148" class="footnote" name="idm2148"><sup class="footnote">[27]</sup></a>.
+            </p><div class="example"><a name="ex-list-route-local"></a><p class="title"><b>Example 4.9. local route types</b></p><div class="example-contents"><pre class="programlisting">
+<strong class="userinput"><code>ip route add table local local 10.10.20.64 dev eth0 proto kernel scope host src 10.10.20.67</code></strong>
+<strong class="userinput"><code>ip route add table local local 192.168.43.12 dev eth4 proto kernel scope host src 192.168.43.14</code></strong>
+              </pre></div></div><br class="example-break"></dd><dt><a name="list-routing-route-types-nat"></a><span class="term">nat</span></dt><dd><a class="indexterm" name="idm2158"></a><p>
+              This route entry is added by the kernel in the local routing
+              table, when the user attempts to configure stateless NAT. See
+              <a class="xref" href="ch05s03.html" title="3. Stateless NAT with iproute2">Section 3, &#8220;Stateless NAT with <span class="command"><strong>iproute2</strong></span>&#8221;</a> for a fuller discussion of
+              network address translation in general.
+              <a href="#ftn.idm2164" class="footnote" name="idm2164"><sup class="footnote">[28]</sup></a>.
+            </p><div class="example"><a name="ex-list-route-nat"></a><p class="title"><b>Example 4.10. nat route types</b></p><div class="example-contents"><pre class="programlisting">
+<strong class="userinput"><code>ip route add nat 193.7.255.184 via 172.16.82.184</code></strong>
+<strong class="userinput"><code>ip route add nat 10.40.0.0/16 via 172.40.0.0</code></strong>
+              </pre></div></div><br class="example-break"></dd><dt><a name="list-routing-route-types-unreachable"></a><span class="term">unreachable</span></dt><dd><a class="indexterm" name="idm2174"></a><p>
+              When a request for a routing decision returns a destination
+              with an unreachable route type, an ICMP unreachable is
+              generated and returned to the source address.
+            </p><div class="example"><a name="ex-list-route-unreachable"></a><p class="title"><b>Example 4.11. unreachable route types</b></p><div class="example-contents"><pre class="programlisting">
+<strong class="userinput"><code>ip route add unreachable 172.16.82.184</code></strong>
+<strong class="userinput"><code>ip route add unreachable 192.168.14.0/26</code></strong>
+<strong class="userinput"><code>ip route add unreachable 209.10.26.51</code></strong>
+              </pre></div></div><br class="example-break"></dd><dt><a name="list-routing-route-types-prohibit"></a><span class="term">prohibit</span></dt><dd><a class="indexterm" name="idm2188"></a><p>
+              When a request for a routing decision returns a destination with
+              a prohibit route type, the kernel generates an ICMP prohibited
+              to return to the source address.
+            </p><div class="example"><a name="ex-list-route-prohibit"></a><p class="title"><b>Example 4.12. prohibit route types</b></p><div class="example-contents"><pre class="programlisting">
+<strong class="userinput"><code>ip route add prohibit 10.21.82.157</code></strong>
+<strong class="userinput"><code>ip route add prohibit 172.28.113.0/28</code></strong>
+<strong class="userinput"><code>ip route add prohibit 209.10.26.51</code></strong>
+              </pre></div></div><br class="example-break"></dd><dt><a name="list-routing-route-types-blackhole"></a><span class="term">blackhole</span></dt><dd><a class="indexterm" name="idm2202"></a><p>
+              A packet matching a route with the route type blackhole is
+              discarded.  No ICMP is sent and no packet is forwarded.
+            </p><div class="example"><a name="ex-list-route-blackhole"></a><p class="title"><b>Example 4.13. blackhole route types</b></p><div class="example-contents"><pre class="programlisting">
+<strong class="userinput"><code>ip route add blackhole default</code></strong>
+<strong class="userinput"><code>ip route add blackhole 202.143.170.0/24</code></strong>
+<strong class="userinput"><code>ip route add blackhole 64.65.64.0/18</code></strong>
+              </pre></div></div><br class="example-break"></dd><dt><a name="list-routing-route-types-throw"></a><span class="term">throw</span></dt><dd><a class="indexterm" name="idm2216"></a><p>
+              The throw route type is a convenient route type which causes
+              a route lookup in a routing table to fail, returning the
+              <a class="link" href="ch04s05.html#routing-selection-adv" title="5.2. The Whole Story">routing selection
+              process</a> to the RPDB.  This is useful when there are
+              additional routing tables.  Note that there is an implicit throw
+              if no default route exists in a routing table, so the route
+              created by the first command in the example is superfluous,
+              although legal.
+            </p><div class="example"><a name="ex-list-route-throw"></a><p class="title"><b>Example 4.14. throw route types</b></p><div class="example-contents"><pre class="programlisting">
+<strong class="userinput"><code>ip route add throw default</code></strong>
+<strong class="userinput"><code>ip route add throw 10.79.0.0/16</code></strong>
+<strong class="userinput"><code>ip route add throw 172.16.0.0/12</code></strong>
+              </pre></div></div><br class="example-break"></dd></dl></div><p>
+        The power of these route types when combined with the
+        <a class="link" href="ch04s09.html" title="9. Routing Policy Database (RPDB)">routing policy database</a> can hardly
+        be understated.  All of these route types can be used without the
+        RPDB, although the throw route doesn't make much sense outside of a
+        multiple routing table installation.
+      </p><p>
+      </p><p>
+      </p><p>
+      </p></div><div class="section"><div class="titlepage"><div><div><h3 class="title"><a name="routing-table-local"></a>8.2. The Local Routing Table</h3></div></div></div><a class="indexterm" name="idm2235"></a><a class="indexterm" name="idm2238"></a><p>
+        The local routing table is maintained by the kernel.  Normally, the
+        local routing table should not be manipulated,
+        but it is available for viewing.  In
+        <a class="xref" href="apds02.html#ex-tools-ip-route-show-local" title="Example D.12. Viewing the local routing table with ip route show table local">Example D.12, &#8220;Viewing the local routing table with <span class="command">ip route show
+            table local</span>&#8221;</a>, you'll see two of the
+        common uses of the local routing table.  The first common use is the
+        specification of broadcast address, necessary only for link layers
+        which support broadcast addressing.  The second common type of entry
+        in a local routing table is a route to a locally hosted IP.
+      </p><p>
+        The route types found in the local routing table
+        are <code class="constant">local</code>, <code class="constant">nat</code> and
+        <code class="constant">broadcast</code>.  These route types are not relevant in
+        other routing tables, and other route types cannot be used in the
+        local routing table.
+      </p><p>
+        If the machine has several IP addresses on one Ethernet interface,
+        there will be a route to each locally hosted IP in the local routing
+        table.  This is a normal
+        <a class="link" href="ch01s03.html#list-basic-ifconfig-side-effects-up">side effect</a>
+        of bringing up an IP address on an interface under linux.  
+        Maintenance of the broadcast and local routes in the local routing
+        table can only be done by the kernel.
+      </p><div class="example"><a name="ex-routing-table-local-maint"></a><p class="title"><b>Example 4.15. Kernel maintenance of the <code class="constant">local</code> routing table</b></p><div class="example-contents"><pre class="programlisting">
+<code class="prompt">[root@real-server]# </code><strong class="userinput"><code>ip address show dev eth1</code></strong>
+<code class="computeroutput">6: eth1: &lt;BROADCAST,MULTICAST,UP&gt; mtu 1500 qdisc pfifo_fast qlen 100
+   link/ether 00:80:c8:e8:1e:fc brd ff:ff:ff:ff:ff:ff
+   inet 10.10.20.89/24 brd 10.10.20.255 scope global eth1</code>
+<code class="prompt">[root@real-server]# </code><strong class="userinput"><code>ip route show dev eth1</code></strong>
+<code class="computeroutput">10.10.20.0/24  proto kernel  scope link  src 10.10.20.89</code>
+<code class="prompt">[root@real-server]# </code><strong class="userinput"><code>ip route show dev eth1 table local</code></strong>
+<code class="computeroutput">broadcast 10.10.20.0  proto kernel  scope link  src 10.10.20.89 
+broadcast 10.10.20.255  proto kernel  scope link  src 10.10.20.89
+local 10.10.20.89  proto kernel  scope host  src 10.10.20.89</code>
+<code class="prompt">[root@real-server]# </code><strong class="userinput"><code>ip address add 192.168.254.254/24 brd + dev eth1</code></strong>
+<code class="prompt">[root@real-server]# </code><strong class="userinput"><code>ip address show dev eth1</code></strong>
+<code class="computeroutput">6: eth1: &lt;BROADCAST,MULTICAST,UP&gt; mtu 1500 qdisc pfifo_fast qlen 100
+   link/ether 00:80:c8:e8:1e:fc brd ff:ff:ff:ff:ff:ff
+   inet 10.10.20.89/24 brd 10.10.20.255 scope global eth1
+   inet 192.168.254.254/24 brd 192.168.254.255 scope global eth1</code>
+<code class="prompt">[root@real-server]# </code><strong class="userinput"><code>ip route show dev eth1</code></strong>
+<code class="computeroutput">10.10.20.0/24  proto kernel  scope link  src 10.10.20.89 
+192.168.254.0/24  proto kernel  scope link  src 192.168.254.254</code>
+<code class="prompt">[root@real-server]# </code><strong class="userinput"><code>ip route show dev eth1 table local</code></strong>
+<code class="computeroutput">broadcast 10.10.20.0  proto kernel  scope link  src 10.10.20.89 
+broadcast 192.168.254.0  proto kernel  scope link  src 192.168.254.254          
+broadcast 10.10.20.255  proto kernel  scope link  src 10.10.20.89               
+local 192.168.254.254  proto kernel  scope host  src 192.168.254.254            
+local 10.10.20.89  proto kernel  scope host  src 10.10.20.89                    
+broadcast 192.168.254.255  proto kernel  scope link  src 192.168.254.254</code>
+        </pre></div></div><br class="example-break"><p>
+        Note in
+        <a class="xref" href="ch04s08.html#ex-routing-table-local-maint" title="Example 4.15. Kernel maintenance of the local routing table">Example 4.15, &#8220;Kernel maintenance of the <code class="constant">local</code> routing table&#8221;</a>, that the kernel adds
+        not only the route for the locally connected network in the <code class="constant">main</code>
+        routing table, but also the three required special addresses in the
+        <code class="constant">local</code> routing table.  Any IP addresses which are locally hosted on
+        the box will have <code class="constant">local</code> entries in the <code class="constant">local</code> table.  The
+        <a class="link" href="ch04s01.html#list-routing-intro-ipdefs-netaddr">network
+        address</a> and
+        <a class="link" href="ch04s01.html#list-routing-intro-ipdefs-bcast">broadcast
+        address</a> are both entered as <code class="constant">broadcast</code> type
+        addresses on the interface to which they have been bound.
+        Conceptually, there is significance to the distinction between a
+        network and broadcast address, but practically, they are treated
+        analogously, by other networking gear as well as the linux kernel.
+      </p><p>
+        There is one other type of route which commonly ends up in the <code class="constant">local</code>
+        routing table.  When using <span class="command"><strong>iproute2</strong></span> NAT, there will
+        be entries in the local routing table for each network address
+        translation.  Refer to
+        <a class="xref" href="apds02.html#ex-tools-ip-route-nat-simple" title="Example D.21. Creating a NAT route for a single IP with ip route add nat">Example D.21, &#8220;Creating a NAT route for a single IP with <span class="command">ip route add
+            nat</span>&#8221;</a> and
+        <a class="xref" href="apds02.html#ex-tools-ip-route-nat-network" title="Example D.22. Creating a NAT route for an entire network with ip route add nat">Example D.22, &#8220;Creating a NAT route for an entire network with <span class="command">ip
+            route add nat</span>&#8221;</a> for example output.
+      </p></div><div class="section"><div class="titlepage"><div><div><h3 class="title"><a name="routing-table-main"></a>8.3. The Main Routing Table</h3></div></div></div><a class="indexterm" name="idm2289"></a><a class="indexterm" name="idm2292"></a><p>
+        The <code class="constant">main</code> routing table is the routing table most people think of when
+        considering a linux routing table.  When no table is specified to an
+        <span class="command"><strong>ip route</strong></span> command, the kernel assumes the <code class="constant">main</code>
+        routing table.  The <span class="command"><strong>route</strong></span> command only manipulates
+        the <code class="constant">main</code> routing table.
+      </p><p>
+        Similarly to the <code class="constant">local</code> table, the <code class="constant">main</code> table is populated
+        automatically by the kernel when new interfaces are brought up
+        with IP addresses.  Consult the <code class="constant">main</code> routing table before and after
+        <strong class="userinput"><code>ip address add 192.168.254.254/24 brd + dev eth1</code></strong>
+        in 
+        <a class="xref" href="ch04s08.html#ex-routing-table-local-maint" title="Example 4.15. Kernel maintenance of the local routing table">Example 4.15, &#8220;Kernel maintenance of the <code class="constant">local</code> routing table&#8221;</a> for a concrete example
+        of this kernel behaviour.  Also, visit 
+        <a class="link" href="ch01s03.html#list-basic-ifconfig-side-effects-up">this summary of
+        side effects</a> of interface definition and activation with
+        <span class="command"><strong>ifconfig</strong></span> or <span class="command"><strong>ip address</strong></span>.
+      </p><p>
+      </p></div><div class="footnotes"><br><hr style="width:100; text-align:left;margin-left: 0"><div id="ftn.idm1999" class="footnote"><p><a href="#idm1999" class="para"><sup class="para">[22] </sup></a>
+          The kernel must be compiled with the option
+          <code class="constant">CONFIG_IP_MULTIPLE_TABLES=y</code>.  This is common
+          in vendor and stock kernels, both 2.2 and 2.4.
+        </p></div><div id="ftn.idm2023" class="footnote"><p><a href="#idm2023" class="para"><sup class="para">[23] </sup></a>
+          If somebody has used scope or oif as additional keys in a routing
+          table, and has an example, I'd love to see it, for possible
+          inclusion in this documentation.
+        </p></div><div id="ftn.idm2026" class="footnote"><p><a href="#idm2026" class="para"><sup class="para">[24] </sup></a>
+          Can anybody describe to me what is in table 0?  It looks almost like
+          an aggregation of the routing entries in routing tables 254 and 255.
+        </p></div><div id="ftn.idm2104" class="footnote"><p><a href="#idm2104" class="para"><sup class="para">[25] </sup></a>
+            Once again, I recommend caution when altering the local routing
+            table.  Removing local route types from the local routing table
+            can break networking in strange and wonderful ways.
+          </p></div><div id="ftn.idm2133" class="footnote"><p><a href="#idm2133" class="para"><sup class="para">[26] </sup></a>
+                  OK, I'm not absolutely sure you can't use the broadcast
+                  route in other routing tables, but I believe you can't.
+                  Testing forthcoming...
+                </p></div><div id="ftn.idm2148" class="footnote"><p><a href="#idm2148" class="para"><sup class="para">[27] </sup></a>
+                  Ibid.  I'm not sure that local route types can be used
+                  in any routing table other than the local routing table.
+                  Testing forthcoming...
+                </p></div><div id="ftn.idm2164" class="footnote"><p><a href="#idm2164" class="para"><sup class="para">[28] </sup></a>
+                  Ibid.  nat route types might be ineffectual outside
+                  the local routing table.  Testing forthcoming...
+                </p></div></div></div><div class="navfooter"><hr><table width="100%" summary="Navigation footer"><tr><td width="40%" align="left"><a accesskey="p" href="ch04s07.html">Prev</a> </td><td width="20%" align="center"><a accesskey="u" href="ch04.html">Up</a></td><td width="40%" align="right"> <a accesskey="n" href="ch04s09.html">Next</a></td></tr><tr><td width="40%" align="left" valign="top">7. Routing Cache </td><td width="20%" align="center"><a accesskey="h" href="index.html">Home</a></td><td width="40%" align="right" valign="top"> 9. Routing Policy Database (RPDB)</td></tr></table></div></body></html>

@@ -1,0 +1,255 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1"><title>7. linux/init/main.c</title><link rel="stylesheet" type="text/css" href="style.css"><meta name="generator" content="DocBook XSL Stylesheets V1.79.1"><link rel="home" href="index.html" title="Linux i386 Boot Code HOWTO"><link rel="up" href="index.html" title="Linux i386 Boot Code HOWTO"><link rel="prev" href="ar01s06.html" title="6. linux/arch/i386/kernel/head.S"><link rel="next" href="ar01s08.html" title="8. SMP Boot"></head><body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF"><div class="navheader"><table width="100%" summary="Navigation header"><tr><th colspan="3" align="center">7. linux/init/main.c</th></tr><tr><td width="20%" align="left"><a accesskey="p" href="ar01s06.html">Prev</a> </td><th width="60%" align="center"> </th><td width="20%" align="right"> <a accesskey="n" href="ar01s08.html">Next</a></td></tr></table><hr></div><div class="sect1"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="init_main"></a>7. linux/init/main.c</h2></div></div></div><p>
+   I felt guilty writing this chapter as there are too many documents
+   about it, if not more than enough.
+   <span class="emphasis"><em>start_kernel()</em></span> supporting functions
+   are changed from version to version, as they depend on
+   OS component internals, which are being improved all the time.
+   I may not have the time for frequent document updates,
+   so I decided to keep this chapter as simple as possible.
+  </p><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="start_kernel"></a>7.1. start_kernel()</h3></div></div></div><p>
+</p><pre class="programlisting">///////////////////////////////////////////////////////////////////////////////
+<a class="ulink" href="http://kernelnewbies.org/faq/index.php3#asmlinkage" target="_top">asmlinkage</a> void <a class="ulink" href="http://www.tldp.org/LDP/lki/lki-1.html#ss1.8" target="_top">__init</a> start_kernel(void)
+{
+        char * command_line;
+        extern char saved_command_line[];
+/*
+ * Interrupts are still disabled. Do necessary setups, then enable them
+ */
+        lock_kernel();
+        printk(linux_banner);
+
+        /* <a class="ulink" href="http://www.symonds.net/~abhi/files/mm/mm.html" target="_top">Memory Management in Linux</a>, esp. for setup_arch()
+         * <a class="ulink" href="http://linux-mm.org/docs/initialization.html" target="_top">Linux-2.4.4 MM Initialization</a> */
+        setup_arch(&amp;command_line);
+        printk("Kernel command line: %s\n", saved_command_line);
+
+        /* <code class="filename">linux/Documentation/kernel-parameters.txt</code>
+         * <a class="ulink" href="http://www.tldp.org/HOWTO/BootPrompt-HOWTO.html" target="_top">The Linux BootPrompt-HowTo</a> */
+        parse_options(command_line);
+
+        trap_init() {
+#ifdef CONFIG_EISA
+                if (isa_readl(0x0FFFD9) == 'E'+('I'&lt;&lt;8)+('S'&lt;&lt;16)+('A'&lt;&lt;24))
+                        EISA_bus = 1;
+#endif
+#ifdef CONFIG_X86_LOCAL_APIC
+                init_apic_mappings();
+#endif
+                set_xxxx_gate(x, &amp;func);    // setup gates
+                cpu_init();
+        }
+        init_IRQ();
+        sched_init();
+        softirq_init() {
+                for (int i=0; i&lt;32: i++)
+                        tasklet_init(bh_task_vec+i, bh_action, i);
+                open_softirq(TASKLET_SOFTIRQ, tasklet_action, NULL);
+                open_softirq(HI_SOFTIRQ, tasklet_hi_action, NULL);
+        }
+        time_init();
+
+        /*
+         * HACK ALERT! This is early. We're enabling the console before
+         * we've done PCI setups etc, and console_init() must be aware of
+         * this. But we do want output early, in case something goes wrong.
+         */
+        console_init();
+#ifdef CONFIG_MODULES
+        init_modules();
+#endif
+        if (prof_shift) {
+                unsigned int size;
+                /* only text is profiled */
+                prof_len = (unsigned long) &amp;_etext - (unsigned long) &amp;_stext;
+                prof_len &gt;&gt;= prof_shift;
+                size = prof_len * sizeof(unsigned int) + PAGE_SIZE-1;
+                prof_buffer = (unsigned int *) alloc_bootmem(size);
+        }
+
+        kmem_cache_init();
+        sti();
+
+        // <a class="ulink" href="http://www.tldp.org/HOWTO/BogoMips.html" target="_top">BogoMips mini-Howto</a>
+        calibrate_delay();
+
+        // <code class="filename">linux/Documentation/initrd.txt</code>
+#ifdef CONFIG_BLK_DEV_INITRD
+        if (initrd_start &amp;&amp; !initrd_below_start_ok &amp;&amp;
+                        initrd_start &lt; min_low_pfn &lt;&lt; PAGE_SHIFT) {
+                printk(KERN_CRIT "initrd overwritten (0x%08lx &lt; 0x%08lx) - "
+                    "disabling it.\n",initrd_start,min_low_pfn &lt;&lt; PAGE_SHIFT);
+                initrd_start = 0;
+        }
+#endif
+
+        mem_init();
+        kmem_cache_sizes_init();
+        pgtable_cache_init();
+
+        /*
+         * For architectures that have highmem, num_mappedpages represents
+         * the amount of memory the kernel can use.  For other architectures
+         * it's the same as the total pages.  We need both numbers because
+         * some subsystems need to initialize based on how much memory the
+         * kernel can use.
+         */
+        if (num_mappedpages == 0)
+                num_mappedpages =  num_physpages;
+
+        fork_init(num_mempages);
+        proc_caches_init();
+        vfs_caches_init(num_physpages);
+        buffer_init(num_physpages);
+        page_cache_init(num_physpages);
+#if defined(CONFIG_ARCH_S390)
+        ccwcache_init();
+#endif
+        signals_init();
+#ifdef CONFIG_PROC_FS
+        proc_root_init();
+#endif
+#if defined(CONFIG_SYSVIPC)
+        ipc_init();
+#endif
+        check_bugs();
+        printk("POSIX conformance testing by UNIFIX\n");
+
+        /*
+         *      We count on the initial thread going ok
+         *      Like idlers init is an unlocked kernel thread, which will
+         *      make syscalls (and thus be locked).
+         */
+        smp_init() {
+#ifndef CONFIG_SMP
+#     ifdef CONFIG_X86_LOCAL_APIC
+                APIC_init_uniprocessor();
+#     else
+                do { } while (0);
+#     endif
+#else
+                /* Check <a class="xref" href="ar01s08.html#smp_init" title="8.2. smp_init()">Section 8.2, &#8220;smp_init()&#8221;</a>. */
+#endif
+        }
+
+        rest_init() {
+                // init process, pid = 1
+                kernel_thread(init, NULL, CLONE_FS | CLONE_FILES | CLONE_SIGNAL);
+                unlock_kernel();
+                current-&gt;need_resched = 1;
+                // idle process, pid = 0
+                cpu_idle();     // never return
+        }
+}</pre><p>
+     <span class="emphasis"><em>start_kernel()</em></span> calls <span class="emphasis"><em>rest_init()</em></span>
+     to spawn an "init" process and become "idle" process itself.
+    </p></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="init_proc"></a>7.2. init()</h3></div></div></div><p>
+     "Init" process:
+</p><pre class="programlisting">///////////////////////////////////////////////////////////////////////////////
+static int init(void * unused)
+{
+        lock_kernel();
+        do_basic_setup();
+
+        prepare_namespace();
+
+        /*
+         * Ok, we have completed the initial bootup, and
+         * we're essentially up and running. Get rid of the
+         * initmem segments and start the user-mode stuff..
+         */
+        free_initmem();
+        unlock_kernel();
+
+        if (open("/dev/console", O_RDWR, 0) &lt; 0)        // stdin
+                printk("Warning: unable to open an initial console.\n");
+
+        (void) dup(0);                                  // stdout
+        (void) dup(0);                                  // stderr
+
+        /*
+         * We try each of these until one succeeds.
+         *
+         * The Bourne shell can be used instead of init if we are
+         * trying to recover a really broken machine.
+         */
+
+        if (execute_command)
+                execve(execute_command,argv_init,envp_init);
+        execve("/sbin/init",argv_init,envp_init);
+        execve("/etc/init",argv_init,envp_init);
+        execve("/bin/init",argv_init,envp_init);
+        execve("/bin/sh",argv_init,envp_init);
+        panic("No init found.  Try passing init= option to kernel.");
+}</pre><p>
+     Refer to "<span class="command"><strong>man init</strong></span>" or
+     <a class="ulink" href="http://freshmeat.net/projects/sysvinit" target="_top">SysVinit</a>
+     for further information on user-mode "init" process.
+    </p></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="idle_proc"></a>7.3. cpu_idle()</h3></div></div></div><p>
+     "Idle" process:
+</p><pre class="programlisting">/*
+ * The idle thread. There's no useful work to be
+ * done, so just try to conserve power and have a
+ * low exit latency (ie sit in a loop waiting for
+ * somebody to say that they'd like to reschedule)
+ */
+void cpu_idle (void)
+{
+        /* endless idle loop with no priority at all */
+        init_idle();
+        current-&gt;nice = 20;
+        current-&gt;counter = -100;
+
+        while (1) {
+                void (*idle)(void) = pm_idle;
+                if (!idle)
+                        idle = default_idle;
+                while (!current-&gt;need_resched)
+                        idle();
+                schedule();
+                check_pgt_cache();
+        }
+}
+
+///////////////////////////////////////////////////////////////////////////////
+void __init init_idle(void)
+{
+        struct schedule_data * sched_data;
+        sched_data = &amp;aligned_data[smp_processor_id()].schedule_data;
+
+        if (current != &amp;init_task &amp;&amp; task_on_runqueue(current)) {
+                printk("UGH! (%d:%d) was on the runqueue, removing.\n",
+                        smp_processor_id(), current-&gt;pid);
+                del_from_runqueue(current);
+        }
+        sched_data-&gt;curr = current;
+        sched_data-&gt;last_schedule = get_cycles();
+        clear_bit(current-&gt;processor, &amp;wait_init_idle);
+}
+
+///////////////////////////////////////////////////////////////////////////////
+void default_idle(void)
+{
+        if (current_cpu_data.hlt_works_ok &amp;&amp; !hlt_counter) {
+                __cli();
+                if (!current-&gt;need_resched)
+                        safe_halt();
+                else
+                        __sti();
+        }
+}
+
+/* defined in linux/include/asm-i386/system.h */
+#define __cli()                 __asm__ __volatile__("cli": : :"memory")
+#define __sti()                 __asm__ __volatile__("sti": : :"memory")
+
+/* used in the idle loop; sti takes one instruction cycle to complete */
+#define safe_halt()             __asm__ __volatile__("sti; hlt": : :"memory")</pre><p>
+     CPU will resume code execution with the instruction following "hlt"
+     on the return from an interrupt handler.
+    </p></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="main_ref"></a>7.4. Reference</h3></div></div></div><p>
+    </p><div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem"><p><a class="ulink" href="http://www.tldp.org/LDP/lki/index.html" target="_top">
+        Linux Kernel 2.4 Internals</a></p></li><li class="listitem"><p><a class="ulink" href="http://kernelnewbies.org/documents/" target="_top">
+        Kerneldoc</a></p></li><li class="listitem"><p><a class="ulink" href="http://www.tldp.org/HOWTO/HOWTO-INDEX/index.html" target="_top">
+        LDP HOWTO-INDEX</a></p></li><li class="listitem"><p><a class="ulink" href="http://www.xml.com/ldd/chapter/book" target="_top">
+        Linux Device Drivers, 2nd Edition</a></p></li></ul></div><p>
+    </p></div></div><div class="navfooter"><hr><table width="100%" summary="Navigation footer"><tr><td width="40%" align="left"><a accesskey="p" href="ar01s06.html">Prev</a> </td><td width="20%" align="center"> </td><td width="40%" align="right"> <a accesskey="n" href="ar01s08.html">Next</a></td></tr><tr><td width="40%" align="left" valign="top">6. linux/arch/i386/kernel/head.S </td><td width="20%" align="center"><a accesskey="h" href="index.html">Home</a></td><td width="40%" align="right" valign="top"> 8. SMP Boot</td></tr></table></div></body></html>

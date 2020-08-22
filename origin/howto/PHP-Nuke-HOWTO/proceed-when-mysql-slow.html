@@ -1,0 +1,321 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN""http://www.w3.org/TR/html4/loose.dtd">
+<HTML
+><HEAD
+><TITLE
+>How to proceed when MySQL is slow</TITLE
+><META
+NAME="GENERATOR"
+CONTENT="Modular DocBook HTML Stylesheet Version 1.79"><LINK
+REL="HOME"
+TITLE="PHP-Nuke: Management and Programming"
+HREF="index.html"><LINK
+REL="UP"
+TITLE="Optimizing PHP-Nuke "
+HREF="optimizing-php-nuke.html"><LINK
+REL="PREVIOUS"
+TITLE="How to make a dynamic CSS"
+HREF="make-dynamic-css.html"><LINK
+REL="NEXT"
+TITLE="How to solve common probems with PHP-Nuke"
+HREF="solve-common-problems-php-nuke.html"></HEAD
+><BODY
+CLASS="SECT1"
+BGCOLOR="#FFFFFF"
+TEXT="#000000"
+LINK="#0000FF"
+VLINK="#840084"
+ALINK="#0000FF"
+><DIV
+CLASS="NAVHEADER"
+><TABLE
+SUMMARY="Header navigation table"
+WIDTH="100%"
+BORDER="0"
+CELLPADDING="0"
+CELLSPACING="0"
+><TR
+><TH
+COLSPAN="3"
+ALIGN="center"
+>PHP-Nuke: Management and Programming</TH
+></TR
+><TR
+><TD
+WIDTH="10%"
+ALIGN="left"
+VALIGN="bottom"
+><A
+HREF="make-dynamic-css.html"
+ACCESSKEY="P"
+>Prev</A
+></TD
+><TD
+WIDTH="80%"
+ALIGN="center"
+VALIGN="bottom"
+>Chapter 25. Optimizing <SPAN
+CLASS="APPLICATION"
+>PHP-Nuke</SPAN
+></TD
+><TD
+WIDTH="10%"
+ALIGN="right"
+VALIGN="bottom"
+><A
+HREF="solve-common-problems-php-nuke.html"
+ACCESSKEY="N"
+>Next</A
+></TD
+></TR
+></TABLE
+><HR
+ALIGN="LEFT"
+WIDTH="100%"></DIV
+><DIV
+CLASS="SECT1"
+><H1
+CLASS="SECT1"
+><A
+NAME="PROCEED-WHEN-MYSQL-SLOW"
+>25.8. How to proceed when MySQL is slow</A
+></H1
+><P
+>It is of course too general a complain to say &#8220;MySQL is slow! What is wrong with my pages?&#8221;, but nonetheless, there exist a couple of things you can check if this happens to you (see <A
+HREF="http://www.nukeforums.com/forums/viewtopic.php?t=18393"
+TARGET="_top"
+>slow page load and mysql errors</A
+>):</P
+><P
+></P
+><UL
+><LI
+><P
+>First obvious question: did your host upgrade or make changes to MySQL?</P
+></LI
+><LI
+><P
+>Second, any new or modified modules added?</P
+></LI
+><LI
+><P
+>Third, does your host have 'log slow queries' enabled for mysql so you can isolate which ones are causing the problems? When started with the --log-slow-queries[=file_name] option, mysqld writes a log file containing all SQL commands that took more than long_query_time seconds to execute. See <A
+HREF="http://www.mysql.com/doc/en/Slow_query_log.html"
+TARGET="_top"
+>The Slow Query Log</A
+>.</P
+></LI
+><LI
+><P
+>Does this happen randomly or during certain time periods throughout the day?</P
+></LI
+><LI
+><P
+>Maybe you need to rebuild your indexes. To rebuild your indexes, the easiest way to do so for a MyISAM table is to use the following statement, which rebuilds the index file:</P
+><TABLE
+BORDER="1"
+BGCOLOR="#E0E0E0"
+WIDTH="90%"
+><TR
+><TD
+><FONT
+COLOR="#000000"
+><PRE
+CLASS="SCREEN"
+>mysql&#62; REPAIR TABLE tbl_name QUICK;</PRE
+></FONT
+></TD
+></TR
+></TABLE
+><P
+>If you don't have access to the MySQL prompt through a terminal, you can write a small <ACRONYM
+CLASS="ACRONYM"
+>PHP</ACRONYM
+> script that does the same. Copy the following code into a file and save it as, say, repair.php: </P
+><TABLE
+BORDER="1"
+BGCOLOR="#E0E0E0"
+WIDTH="90%"
+><TR
+><TD
+><FONT
+COLOR="#000000"
+><PRE
+CLASS="SCREEN"
+>&#60;?php
+require("config.php");
+$host = $dbhost;
+$database = $dbname;
+$username = $dbuname;
+$password = $dbpass;
+mysql_connect($host, $username, $password);
+@mysql_select_db($database);
+$res = mysql_query("repair table ".$prefix."_XXXX");
+if ($res) {
+    echo $res;
+} else {
+    print (mysql_error());
+}
+?&#62;</PRE
+></FONT
+></TD
+></TR
+></TABLE
+><P
+>Dont't forget to replace &#8220;XXXX&#8221; with the actual name (without the prefix!) of the table you are suspecting of causing you trouble. Read the table definitions in the nuke.sql file that came with your <SPAN
+CLASS="APPLICATION"
+>PHP-Nuke</SPAN
+> package under the sql directory (you used nuke.sql during installation to populate the database, see <A
+HREF="installation-process.html#DATABASE-CREATION"
+>Section 3.2.4</A
+> and <A
+HREF="phpmyadmin2.html#INSTALL-DB"
+>Section 3.4.5</A
+>). </P
+><P
+>Upload repair.php to the same directory on your web server where also config.php is in - and point your browser to it. Of course, you should delete it after you are done.</P
+></LI
+><LI
+><P
+>The phpBB software used for the standard Forum in PHP-Nuke, comes with a table, nuke_bbsearch_wordlist, that is used to store words that occur in forum posts. Due to the large size of your database, the nuke_bbsearch_wordlist table may have grown very large. By default phpBB does not include an index for that table. Lack of an index on nuke_bbsearch_wordlist can make your forum slow down. Running the SQL command below will increase the size of the nuke_bbsearch_wordlist table (could double it), but a performance increase is expected with the index (see <A
+HREF="http://phpnuke.org/modules.php?name=News&#38;file=article&#38;sid=6534"
+TARGET="_top"
+>How to Increase your Forums Performance</A
+>):</P
+><TABLE
+BORDER="1"
+BGCOLOR="#E0E0E0"
+WIDTH="90%"
+><TR
+><TD
+><FONT
+COLOR="#000000"
+><PRE
+CLASS="SCREEN"
+>ALTER TABLE nuke_bbsearch_wordmatch ADD INDEX post_id (post_id);</PRE
+></FONT
+></TD
+></TR
+></TABLE
+><P
+>Run this during a time on your site when it is least busy. More records on that table means longer run time.</P
+><P
+>If you find that this doesn't work for you, you can remove the index with:</P
+><TABLE
+BORDER="1"
+BGCOLOR="#E0E0E0"
+WIDTH="90%"
+><TR
+><TD
+><FONT
+COLOR="#000000"
+><PRE
+CLASS="SCREEN"
+>ALTER TABLE nuke_search_wordmatch DROP INDEX post_id;</PRE
+></FONT
+></TD
+></TR
+></TABLE
+></LI
+></UL
+><DIV
+CLASS="TIP"
+><P
+></P
+><TABLE
+CLASS="TIP"
+WIDTH="100%"
+BORDER="0"
+><TR
+><TD
+WIDTH="25"
+ALIGN="CENTER"
+VALIGN="TOP"
+><IMG
+SRC="../images/tip.png"
+HSPACE="5"
+ALT="Tip"></TD
+><TH
+ALIGN="LEFT"
+VALIGN="MIDDLE"
+><B
+>Large Slow Query Logs</B
+></TH
+></TR
+><TR
+><TD
+>&nbsp;</TD
+><TD
+ALIGN="LEFT"
+VALIGN="TOP"
+><P
+>The slow query log can be used to find queries that take a long time to execute and are thus candidates for optimization . With a large log, that can become a difficult task. You can pipe the slow query log through the mysqldumpslow command to get a summary of the queries which appear in the log. </P
+></TD
+></TR
+></TABLE
+></DIV
+></DIV
+><DIV
+CLASS="NAVFOOTER"
+><HR
+ALIGN="LEFT"
+WIDTH="100%"><TABLE
+SUMMARY="Footer navigation table"
+WIDTH="100%"
+BORDER="0"
+CELLPADDING="0"
+CELLSPACING="0"
+><TR
+><TD
+WIDTH="33%"
+ALIGN="left"
+VALIGN="top"
+><A
+HREF="make-dynamic-css.html"
+ACCESSKEY="P"
+>Prev</A
+></TD
+><TD
+WIDTH="34%"
+ALIGN="center"
+VALIGN="top"
+><A
+HREF="index.html"
+ACCESSKEY="H"
+>Home</A
+></TD
+><TD
+WIDTH="33%"
+ALIGN="right"
+VALIGN="top"
+><A
+HREF="solve-common-problems-php-nuke.html"
+ACCESSKEY="N"
+>Next</A
+></TD
+></TR
+><TR
+><TD
+WIDTH="33%"
+ALIGN="left"
+VALIGN="top"
+>How to make a dynamic CSS</TD
+><TD
+WIDTH="34%"
+ALIGN="center"
+VALIGN="top"
+><A
+HREF="optimizing-php-nuke.html"
+ACCESSKEY="U"
+>Up</A
+></TD
+><TD
+WIDTH="33%"
+ALIGN="right"
+VALIGN="top"
+>How to solve common probems with PHP-Nuke</TD
+></TR
+></TABLE
+></DIV
+></BODY
+></HTML
+>

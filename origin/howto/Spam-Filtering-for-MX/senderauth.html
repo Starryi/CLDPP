@@ -1,0 +1,148 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1"><title>5. Sender Authorization Schemes</title><link rel="stylesheet" type="text/css" href="style.css"><meta name="generator" content="DocBook XSL Stylesheets V1.79.1"><meta name="keywords" content="anti-spam, anti-virus, bogus virus warnings, collateral spam, delivery status notification, dsn, exim, exim4, exiscan, exiscan-acl, greylisting, junk mail, sa-exim, smtp, spam, spamassassin, teergrubing, transaction delay"><link rel="home" href="index.html" title="Spam Filtering for Mail Exchangers"><link rel="up" href="techniques.html" title="Chapter 2. Techniques"><link rel="prev" href="greylisting.html" title="4. Greylisting"><link rel="next" href="datachecks.html" title="6. Message data checks"></head><body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF"><div class="navheader"><table width="100%" summary="Navigation header"><tr><th colspan="3" align="center">5. Sender Authorization Schemes</th></tr><tr><td width="20%" align="left"><a accesskey="p" href="greylisting.html">Prev</a> </td><th width="60%" align="center">Chapter 2. Techniques</th><td width="20%" align="right"> <a accesskey="n" href="datachecks.html">Next</a></td></tr></table><hr></div><div class="section"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="senderauth"></a>5. Sender Authorization Schemes</h2></div></div></div><p>
+      Various schemes have been developed for sender verification
+      where not only the validity, but also the authenticity, of
+      the sender address is checked.  The owner of a internet
+      domain specifies certain criteria that must be fulfilled in
+      authentic deliveries from senders within that domain.
+    </p><p>
+      Two early proposed schemes of this kind were:
+    </p><div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem"><p>
+	  <code class="option">MAIL-FROM</code> MX records, conceived by Paul
+	  Vixie <code class="email">&lt;<a class="email" href="mailto:paul%20(at)%20vix.com">paul (at) vix.com</a>&gt;</code>
+	</p></li><li class="listitem"><p>
+	  Reverse Mail Exchanger (RMX) records as an addition to DNS
+	  itself, conceived and published by Hadmut Danisch
+	  <code class="email">&lt;<a class="email" href="mailto:hadmut%20(at)%20danisch.de">hadmut (at) danisch.de</a>&gt;</code>.
+	</p></li></ul></div><p>
+      Under both of these schemes, all mails from
+      <code class="email">&lt;<a class="email" href="mailto:user@domain.com">user@domain.com</a>&gt;</code> had to come from the hosts
+      specified in <code class="email">&lt;<a class="email" href="mailto:domain.com">domain.com</a>&gt;</code>'s DNS zone.
+    </p><p>
+      These schemes have evolved.  Alas, they have also forked.
+    </p><div class="section"><div class="titlepage"><div><div><h3 class="title"><a name="spf"></a>5.1. Sender Policy Framework (SPF)</h3></div></div></div><p>
+	<span class="quote">&#8220;<span class="quote">Server Policy Framework</span>&#8221;</span> (previously
+	<span class="quote">&#8220;<span class="quote">Sender Permitted From</span>&#8221;</span>) is perhaps the most
+	well-known scheme for sender authorization.  It is loosely
+	based on the original schemes described above, but allows
+	for a bit more flexibility in the criteria that can be
+	posted by the domain holder.
+      </p><p>
+	SPF information is published as a <code class="option">TXT</code>
+	record in a domain's top-level DNS zone.  This record can
+	specify:
+      </p><div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem"><p>
+	    which hosts are allowed to send mail from that domain
+	  </p></li><li class="listitem"><p>
+	    the mandatory presence of a GPG (GNU Privacy Guard)
+	    signature in outgoing mail from the domain
+	  </p></li><li class="listitem"><p>
+	    other criteria; see
+	    <a class="ulink" href="http://spf.pobox.com/" target="_top">http://spf.pobox.com/</a> for details.
+	  </p></li></ul></div><p>
+	The structure of the <span class="command"><strong>TXT</strong></span> record is still
+	undergoing development, however basic features to accomplish
+	the above are in place.  It starts with the string
+	<code class="option">v=spf1</code>, followed by such modifiers as:
+      </p><div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem"><p>
+	    <code class="option">a</code> - the IP address of
+	    the domain itself is a valid sender host
+	  </p></li><li class="listitem"><p>
+	    <code class="option">mx</code> - the incoming mail exchanger for
+	    that domain is also a valid sender
+	  </p></li><li class="listitem"><p>
+	    <code class="option">ptr</code> - if a rDNS lookup of the
+	    sending host's IP address yields a name within the
+	    domain portion of the sender address, it is a valid
+	    sender.
+	  </p></li></ul></div><p>
+	Each of these modifiers may be prefixed with a plus sign (+),
+	minus sign (-), question mark (?), or tilde (~) to indicate
+	whether it specifies an authorative source, an non-authorative
+	source, a neutral stance, or a likely non-authorative source,
+	respectively.
+      </p><p>
+	Each modifier may also be extended with a colon, followed by
+	an alternate domain name.  For instance, if you are a Comcast
+	subscriber, your own DNS zone may include the string
+	<span class="quote">&#8220;<span class="quote"><code class="option">-ptr:client.comcast.net
+	ptr:comcast.net</code></span>&#8221;</span> to indicate that your
+	outgoing e-mail never comes from a host that resolves to
+	<em class="parameter"><code>anything</code></em>.client.comcast.net, but could
+	come from other hosts that resolve to
+	<em class="parameter"><code>anything</code></em><code class="option">.comcast.net</code>.
+      </p><p>
+	SPF information is currently published for a number of
+	high-profile internet domains, such as aol.com,
+	altavista.com, dyndns.org, earthlink.net, and google.com.
+      </p><p>
+	Sender authorization schemes in general and SPF in particular
+	are not universally accepted.  In particular, one objection is
+	that domain holders may effectively establish a monopoly on
+	relaying outgoing mail from their users/customers.
+      </p><p>
+	Another objection is that SPF breaks traditional e-mail
+	forwarding - the forwarding host may not have the authority to
+	do so per the SPF information in the envelope sender domain.
+	This is partly addressed via <a class="ulink" href="http://spf.pobox.com/srs.html" target="_top">SRS</a>, or
+	<span class="emphasis"><em>Sender Rewriting Scheme</em></span>, wherein the
+	forwarder of the mail will modify the <a class="xref" href="gloss.html#envfrom" title="Envelope Sender">Envelope Sender</a> address to the format:
+	</p><pre class="screen"><em class="parameter"><code>user</code></em>=<em class="parameter"><code>source.domain</code></em>@<em class="parameter"><code>forwarder.domain</code></em></pre><p>
+      </p></div><div class="section"><div class="titlepage"><div><div><h3 class="title"><a name="ms-cide"></a>5.2. Microsoft Caller-ID for E-Mail</h3></div></div></div><p>
+	Similar to SPF, in that acceptance criteria are posted
+	via a TXT record in the sending domain's DNS zone.
+	However, rather than relying on simple keywords, MS CIDE
+	information consists of fairly large structures encoded in
+	XML.  The XML schema is published under a license by
+	Microsoft.
+      </p><p>
+	While SPF would nominally be used to check the <a class="xref" href="gloss.html#envfrom" title="Envelope Sender">Envelope Sender</a> address of an e-mail, MS CIDE is
+	mainly a tool to validate the RFC 2822 header of the
+	message itself.  Thus, the earliest point at which such a
+	check could be applied would be after the message data has
+	been delivered, before issuing the final
+	<span class="command"><strong>250</strong></span> response.
+      </p><p>
+	Quite frankly, dead on arrival.  Encumbered by patent issues
+	and sheer complexity.
+      </p><p>
+	That said, Recent SPF tools posted on <a class="ulink" href="http://spf.pobox.com/" target="_top">http://spf.pobox.com/</a> are capable of checking MS
+	Caller-ID information in addition to SPF.
+      </p></div><div class="section"><div class="titlepage"><div><div><h3 class="title"><a name="rmxplus"></a>5.3. RMX++</h3></div></div></div><p>
+	(part of <span class="emphasis"><em>Simple Caller Authorization Framework -
+	SCAF</em></span>).  This scheme is developed by Hadmut Danisch,
+	who also conceived of the original RMX.
+      </p><p>
+	RMX++ allows for dynamic authorization by way of HTTP servers.
+	The domain owner publishes a server location via DNS, and the
+	receiving host contacts that server in order to obtain an
+	<span class="emphasis"><em>authorization record</em></span> to verify the
+	authenticity of the caller.
+      </p><p>
+	This scheme allows the domain owner more fine-grained control
+	of criteria used to authenticate the sender address, without
+	having to publicly reveal the structure of their network (as
+	with SPF information in static TXT records).  For instance, an
+	example from Hadmut is an authorization server that allows no
+	more than five messages from a given address per day after
+	business hours, then issues an alert once the limit has been
+	reached.
+      </p><p>
+	Moreover, SCAF is not limited to e-mail, but can also be used
+	to provide caller authentication for other services such as
+	Voice over IP (VoIP).  
+      </p><p>
+	One possible downside with RMX++, as noted by Rick Stewart
+	<code class="email">&lt;<a class="email" href="mailto:rick.stewart%20(at)%20theinternetco.net">rick.stewart (at) theinternetco.net</a>&gt;</code>, is its
+	impact on machine and network resources: Replies from HTTP
+	servers are not as widely cached as information obtained
+	directly via DNS, and it is signifcantly more expensive to
+	make an HTTP request than a DNS request.
+      </p><p>
+	Further, Rick notes that the dynamic nature of RMX++ makes
+	faults harder to track.  If there is a five-message-per-day
+	limit, as in the example above, and one message gets checked
+	five times, then the limit is hit with a single message.  It
+	makes re-checking a message impossible.
+      </p><p>
+	For more information on RMX, RMX++, and SCAF, refer to: <a class="ulink" href="http://www.danisch.de/work/security/antispam.html" target="_top">http://www.danisch.de/work/security/antispam.html</a>.
+      </p></div></div><div class="navfooter"><hr><table width="100%" summary="Navigation footer"><tr><td width="40%" align="left"><a accesskey="p" href="greylisting.html">Prev</a> </td><td width="20%" align="center"><a accesskey="u" href="techniques.html">Up</a></td><td width="40%" align="right"> <a accesskey="n" href="datachecks.html">Next</a></td></tr><tr><td width="40%" align="left" valign="top">4. Greylisting </td><td width="20%" align="center"><a accesskey="h" href="index.html">Home</a></td><td width="40%" align="right" valign="top"> 6. Message data checks</td></tr></table></div></body></html>

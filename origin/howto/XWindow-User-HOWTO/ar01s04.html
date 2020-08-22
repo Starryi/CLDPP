@@ -1,0 +1,574 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1"><title>4. More X Configuration</title><link rel="stylesheet" type="text/css" href="style.css"><meta name="generator" content="DocBook XSL Stylesheets V1.79.1"><meta name="keywords" content="X, X11, XFree, XFree86, X Window, GUI, windows, desktop, display, display manager, xdm"><link rel="home" href="index.html" title="The X Window User HOWTO"><link rel="up" href="index.html" title="The X Window User HOWTO"><link rel="prev" href="ar01s03.html" title="3. Running X"><link rel="next" href="ar01s05.html" title="5. Fonts and Colors"></head><body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF"><div class="navheader"><table width="100%" summary="Navigation header"><tr><th colspan="3" align="center">4. More X Configuration</th></tr><tr><td width="20%" align="left"><a accesskey="p" href="ar01s03.html">Prev</a> </td><th width="60%" align="center"> </th><td width="20%" align="right"> <a accesskey="n" href="ar01s05.html">Next</a></td></tr></table><hr></div><div class="sect1"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="moreconfig"></a>4. More X Configuration</h2></div></div></div><p>
+ Before taking a look at various configuration mechanisms for X servers and
+ clients, it should be noted that the advent of Desktop Environments like 
+ <span class="application">KDE</span> have become popular in part because they can
+ control much of the user interaction configuration themselves with nice, 
+ <span class="quote">&#8220;<span class="quote">user friendly</span>&#8221;</span> GUI controls. And in fact,
+ the compliant applications that are part of the respective Desktops will be
+ best configured through the Desktop's configuration tools, or the
+ application's own GUI configuration methods. So, for instance,
+ <span class="command"><strong>gtop</strong></span>, a <span class="application">GNOME</span> client
+ application, is best configured via <span class="application">GNOME</span> or 
+ <span class="command"><strong>gtop's</strong></span> own menus. But this is not true of all 
+ <span class="application">X</span> applications. 
+
+</p><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="xresources"></a>4.1. X Resources</h3></div></div></div><p>
+ The X server can store various configuration values for client programs
+ so they are readily available when needed. If the application supports this,
+ it will use these as defaults whenever that program is invoked. These are
+ known as <span class="quote">&#8220;<span class="quote">Resources</span>&#8221;</span>, and are often used to define user preferences
+ on a per application basis for fonts, colors, screen placement (geometry) and
+ various other attributes. This makes it easy to customize applications.
+
+</p><p>
+ Resources are specified as text strings (e.g. Netscape*blinkingEnabled:
+ False) that can be read from disk in various places when
+ <span class="application">X</span> is starting, or even interactively defined on the
+ command line. Program components are named in a hierarchical fashion, with
+ each object in the hierarchy identified by a class as well as an instance
+ name. At the top level of the hierarchy is the class and instance name of the
+ application itself. Typically, the class name of the application is the
+ same as the program name, but with the first letter capitalized (e.g.  Vim or
+ Emacs) although some programs that begin with the letter <span class="quote">&#8220;<span class="quote">X</span>&#8221;</span>
+ also capitalize the second letter for historical reasons (e.g. XTerm). 
+ Each definition  will specify a class (or instance), with corresponding
+ resource and value. Below this in the hierarchy are the various attributes
+ that make up the definable aspects of the application. 
+
+</p><p>
+ Traditionally, most <span class="application">X</span> programs were  configured
+ this way. This is not as true today with the advent of Desktop Environments
+ which often have their own configuration mechanisms.
+
+</p><p>
+ As an example, say we prefer to run <span class="command"><strong>xterm</strong></span> with a blue
+ background. So if we run it from the command line, we would run it as:
+
+</p><p>
+ </p><pre class="screen">
+
+ xterm -bg blue &amp;
+
+ </pre><p>
+</p><p>
+ If this is our preference, it would be easier to put this preference in a
+ file somewhere, and have the system use our preference. That way whenever we
+ started <span class="command"><strong>xterm</strong></span>, it would use our preferred value, and we 
+ wouldn't need the command line options (unless as an override).
+
+</p><p>
+ The basic <span class="application">X</span> resource syntax is expressed like:
+
+</p><p>
+ </p><pre class="screen">
+
+ &lt;program&gt;&lt;binding&gt;&lt;widget&gt;&lt;binding&gt;&lt;widget&gt;&lt;...&gt;&lt;resource&gt;:&lt;value&gt;
+
+ </pre><p>
+</p><p>
+ Which, in real life, typically looks something like:
+
+</p><p>
+ </p><pre class="screen">
+
+ xterm*fontMenu*background: darkblue
+
+ </pre><p>
+</p><p>
+ It should be obvious what this does. The use of <span class="quote">&#8220;<span class="quote">*</span>&#8221;</span> in the
+ definition, is called a <span class="quote">&#8220;<span class="quote">loose binding</span>&#8221;</span> and acts as a 
+ wild-card. Meaning there may be gaps in the widget hierarchy. For instance:
+
+</p><p>
+ </p><pre class="screen">
+
+ xterm*background: darkblue
+
+ </pre><p>
+</p><p>
+ This would also give a dark blue background for the <span class="command"><strong>xterm</strong></span>
+ fontMenu, but also any other <span class="command"><strong>xterm</strong></span> properties that also have a
+ <span class="quote">&#8220;<span class="quote">background</span>&#8221;</span> attribute (e.g. window background, etc), no matter 
+ where they may be in the widget hierarchy. Similarly:
+
+</p><p>
+ </p><pre class="screen">
+
+ *background: darkblue
+
+ </pre><p>
+</p><p>
+ This would define the background for any and all programs that support it -- not just
+ <span class="command"><strong>xterm</strong></span>. Using a <span class="quote">&#8220;<span class="quote">.</span>&#8221;</span> in place of a
+ <span class="quote">&#8220;<span class="quote">*</span>&#8221;</span> would be more precise, and will not allow for wild-card gaps
+ in the hierarchy. Also, the application must support the particular widget 
+ attribute. <span class="quote">&#8220;<span class="quote">Background</span>&#8221;</span> is a fairly safe bet, but many
+ applications will have more specialized resources that are not so obvious. It
+ is best to check local documentation (man pages, etc), or see if an
+ application has an included examples. For instance, <span class="command"><strong>Netscape</strong></span> 
+ generally comes with an <code class="filename">Netscape.ad</code> file that has an extensive 
+ set of resource definitions that can be customized.
+
+</p><p>
+ <span class="application">X</span> resources are typically stored in more than one
+ place (see below) and are processed by the <span class="command"><strong>xrdb</strong></span> command (see man page).
+
+</p><div class="sect3"><div class="titlepage"><div><div><h4 class="title"><a name="idm673"></a>4.1.1. App Defaults</h4></div></div></div><p>
+ One way of storing preferred application resources is via files named for the
+ application in an <span class="quote">&#8220;<span class="quote">app-defaults</span>&#8221;</span> directory. For instance, on my
+ system, these are in <code class="filename">/usr/X11R6/lib/X11/app-defaults/</code>,
+ though this may vary according to options your vendor has chosen. This
+ directory contains a number of files for such well known
+ <span class="application">X</span> applications as <span class="command"><strong>xterm</strong></span>,
+ <span class="command"><strong>xclock</strong></span>, <span class="command"><strong>xcalc</strong></span>,
+ <span class="command"><strong>xload</strong></span>, and so on. All in all, it is a relatively small 
+ number of applications in the overall scheme of things. So not all
+ applications use this scheme. In fact, most do not.
+
+</p><p>
+ Each file will contain resource definitions for that application. The X
+ server loads these by itself during start up. A brief example from 
+ <code class="filename">XTerm-color</code>:
+
+</p><p>
+ </p><pre class="screen">
+
+ ! $XFree86$
+
+ #include "XTerm"
+
+ *VT100*colorMode: on
+ *VT100*dynamicColors: on
+
+ ! Uncomment this use color for underline attribute
+ !*VT100*colorULMode: on
+ !*VT100*underLine: off
+
+ ! Uncomment this to use color for the bold attribute
+ !*VT100*colorBDMode: on
+
+ *VT100*color0: black
+ *VT100*color1: red3
+ *VT100*color2: green3
+ *VT100*color3: yellow3
+ *VT100*color4: blue3
+ *VT100*color5: magenta3
+ *VT100*color6: cyan3
+ *VT100*color7: gray90
+ *VT100*color8: gray30
+ *VT100*color9: red
+ *VT100*color10: green
+ *VT100*color11: yellow
+ *VT100*color12: blue
+ *VT100*color13: magenta
+ *VT100*color14: cyan
+ *VT100*color15: white
+ *VT100*colorUL: yellow
+ *VT100*colorBD: white
+
+ </pre><p>
+</p><p>
+ This is mostly various color definitions. The application classname is not
+ explicitly stated, and is assumed from the filename. So think of each line as
+ starting: <code class="literal">XTerm-color*</code>. Also, notice at the top, the
+ <code class="literal">#include "XTerm"</code> line, which <span class="quote">&#8220;<span class="quote">includes</span>&#8221;</span> the
+ resource definitions for <span class="command"><strong>XTerm</strong></span>, a much longer file with a
+ more diverse set of definitions. (Not included due to length, but worth
+ looking at.) These files provide system wide defaults, and generally
+ speaking, would not normally be edited by the user.
+ 
+</p></div><div class="sect3"><div class="titlepage"><div><div><h4 class="title"><a name="idm692"></a>4.1.2. Xdefaults</h4></div></div></div><p>
+ Another common method of reading in resource preferences, is with an
+ <code class="filename">Xdefaults</code> file. Or, sometimes the naming 
+ scheme may be <code class="filename">Xresources</code> instead. This may exist as a
+ system wide file, such as <code class="filename">/etc/X11/Xresources</code>. 
+ Of course, the user is free to create a personal version in his home
+ directory, e.g. <code class="filename">~/.Xdefaults</code>. The user's version will 
+ over-ride any system wide settings, and will remain after system upgrades. 
+ Obviously, this is the place to put your own preferences.
+
+</p><p>
+ <code class="filename">Xresources</code> files are read into the resource database
+ with the <span class="command"><strong>xrdb</strong></span> command. Example:
+
+</p><p>
+ </p><pre class="screen">
+
+ xrdb -merge ~/.Xresources
+
+ </pre><p>
+</p><p>
+ This can be done interactively at the command line, or placed in a script and
+ run automatically as the <span class="application">X</span> session is started. In
+ the case of system wide files, this should be taken care of by the vendor
+ supplied start up scripts. Generally, such scripts will also check the user's
+ home directory as well (see the <code class="filename">xinitrc</code> example above).
+ So probably all that need be done, is to create the file with a text editor.
+
+</p><p>
+ Here's an example to illustrate a very few of the many things that might
+ be done with an <code class="filename">.Xdefaults</code> file:
+
+</p><p>
+ </p><pre class="screen">
+
+ ! This is a comment ;-)
+
+ #ifdef COLOR
+ *customization: -color
+ #endif
+
+ !! Let's cast a wide net, for any app supporting these
+ ! Blink instead of beeping
+ *visualBell: True
+ *scrollTtyOutput: False
+ *scrollKey:       True
+
+ ! See Netscape.ad for many settable resources
+ Netscape*noAboutSplash:	True
+ Netscape*documentFonts.sizeIncrement: 5
+ Netscape*documentFonts.xResolution*iso-8859-1: 120
+ Netscape*documentFonts.yResolution*iso-8859-1: 120
+ netscape-navigator*geometry: 960x820+240+140
+
+ emacs*Background: DarkBlue
+ emacs*Foreground: Wheat
+ emacs*pointerColor: Orchid
+ emacs*cursorColor: Orchid
+ emacs*bitmapIcon: on
+ emacs*font: 10x20
+
+ ! GVim colors, etc
+ !! GTK versions of gvim will not use all these.
+ Vim*useSchemes:         all
+ Vim*sgiMode:            true
+ Vim*useEnhancedFSB:     true
+ Vim.foreground:         Black
+ !Vim.background:        lightyellow2
+ Vim*background:         white
+ ! geometry: width x height
+ Vim.geometry:  88x40
+ Vim*font:  -misc-fixed-medium-r-normal--20-200-75-75-c-100-iso8859-15-*5
+ Vim*menuBackground: yellow
+ Vim*menuForeground: black
+
+ rxvt*backspacekey: ^?
+ rxvt*background: Black
+ rxvt*foreground: wheat
+ rxvt*cursorColor: Orchid
+ rxvt*geometry: 100x18+40+300 
+ rxvt*title: Linux
+ rxvt*reverseVideo: false
+ !rxvt*backgroundPixmap: ~/penguinitis.xpm
+ rxvt*scrollBar: true
+ rxvt*reverseWrap: true
+ rxvt*font: -*-lucidatypewriter-medium-*-*-*-14-*-*-*-*-*-*-*
+ rxvt*fullCursor: true
+ rxvt*saveLines:  1500
+ rxvt*menu: ~/rxvt.menu
+
+ XTerm*saveLines:    1500
+ ! Do not clear the screen after the program exits
+ XTerm*VT100*titeInhibit: true
+
+ ! Fix up xterm's keybindings 
+ xterm*VT100.translations:	#override \
+       &lt;Key&gt;BackSpace:    string(0x7F) \n\
+       &lt;Key&gt;Insert:       string(0x1b) string("[2~")\n\
+       &lt;Key&gt;Delete:       string(0x1b) string("[3~")\n\
+       &lt;Key&gt;Home:         string(0x1b) string("[1~")\n\
+       &lt;Key&gt;End:	     string(0x1b) string("[4~")\n\
+       &lt;Key&gt;Page_Up:      string(0x1b) string("[5~")\n\
+       &lt;Key&gt;Page_Down:    string(0x1b) string("[6~")\n\
+       &lt;KeyPress&gt;Prior : scroll-back(1,page)\n\
+       &lt;KeyPress&gt;Next : scroll-forw(1,page)
+
+ ! Ghostview
+ Ghostview*Font: *-helvetica-bold-r-normal--12-*-*-*-*-*-*
+ Ghostview*BorderColor:  white
+ Ghostview*Text*Font:    rk14
+ Ghostview*Background:   #d9d9d9
+ !Ghostview*Foreground:  white
+ ghostview.form.pageview.page.background: white
+ ghostview.form.pageview.page.foreground: black
+ .ghostview.zoom.form.page.background: white
+ .ghostview.zoom.form.page.foreground: black
+
+ ! xscreensaver !
+ ! Time out after 12 minutes, cycle mode after each 2
+ xscreensaver.timeout: 12
+ xscreensaver.cycle: 5
+ ! Run low priority, and fade between modes
+ xscreensaver.nice: 12
+ xscreensaver.fadeSeconds: 2
+
+ XFontsel.menu.options.showUnselectable: False
+ 
+ </pre><p>
+</p><p>
+ Hopefully, these few examples will give you some ideas to build on.
+ <span class="application">X</span> does not need to be restarted if
+ <span class="command"><strong>xrdb</strong></span> is used interactively from the command line after
+ making changes. The effects are immediate.
+
+</p><p>
+ Resources are sometimes available also as command line options. See below. 
+ Command line options will over-ride any existing resource definitions.
+
+</p></div></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="idm715"></a>4.2. xmodmap, the Keyboard and Mice</h3></div></div></div><p>
+ The keyboard and mouse, as well as other possible input devices, are defined
+ in <code class="filename">XF86Config</code> (or <code class="filename">XF86Config-4</code>).
+ There is a keyboard layout that is defined based on the preferred language:
+
+</p><p>
+ </p><pre class="screen">
+
+ Section "InputDevice"
+	Identifier  "Keyboard0"
+	Driver      "keyboard"
+	Option      "XkbLayout"	"us"
+ EndSection
+
+ </pre><p>
+</p><p>
+ This gives us our default keyboard layout. Valid layout labels are listed in
+ <code class="filename">/usr/X11R6/lib/X11/xkb/symbols</code>. Also, the
+ <span class="command"><strong>setxkbmap</strong></span> utility can be used to change this
+ interactively.
+
+</p><p>
+ <span class="application">X</span> is highly customizable, and we can modify the
+ keyboard and mouse pointer mappings to suit our own preferences. The utility
+ to do this is <span class="command"><strong>xmodmap</strong></span> (see man page). You don't like where
+ the capslock key is? So move it ;-)
+
+</p><p>
+ Like <span class="command"><strong>xrdb</strong></span>, <span class="command"><strong>xmodmap</strong></span> can be run from the
+ command line. Or, preferred settings can be stored in a file. Typically this
+ is <code class="filename">~/.Xmodmap</code>, or similar. If your
+ <span class="application">X</span> start up files don't parse this, then edit as
+ appropriate so that they do (probably from <code class="filename">~/.xinitrc</code> or
+ <code class="filename">~/.xsession</code>).
+
+</p><p>
+ You can view your current key and mouse mappings with: <span class="command"><strong>xmodmap -pk
+ -pp |less</strong></span>. This will print out all active <span class="quote">&#8220;<span class="quote">keycode</span>&#8221;</span>
+ values, with corresponding <span class="quote">&#8220;<span class="quote">keysym</span>&#8221;</span> values, and any keysym names
+ that <span class="command"><strong>xmodmap</strong></span> knows about (e.g. <span class="quote">&#8220;<span class="quote">BackSpace</span>&#8221;</span>).
+ And should also give you an idea of how <span class="command"><strong>xmodmap</strong></span>
+ understands key and mouse events. There are two keysyms per keycode. The
+ second is the shifted value. XFree86's <span class="command"><strong>xev</strong></span> utility can be
+ used to dump a lot of information on key-presses and mouse events
+ interactively. Pay attention to the <span class="quote">&#8220;<span class="quote">keycode</span>&#8221;</span> value. That is
+ what you will need to know in order to re-map.
+
+</p><p>
+ <span class="command"><strong>xmodmap</strong></span> is often used to make minor keyboard adjustments,
+ like proper Backspace/Delete mapping. Or can be used make major adjustments
+ such as for international mappings. You can only re-map keys and mouse events
+ -- you cannot assign macros to key events (your Window Manager or Desktop
+ might have some of this functionality).
+
+</p><p>
+ A nice discussion of 
+<a class="ulink" href="http://tldp.org/HOWTO/Intkeyb/index.html" target="_top">setting up international keyboards
+</a>.
+ 
+Also, 
+<a class="ulink" href="http://google.com/linux" target="_top">Google search</a> 
+ will turn up many creative examples.
+
+</p><p>
+ The man page has many brief examples of various usages. Here is what an 
+ one hypothetical <code class="filename">~/.Xmodmap</code> might look like:
+
+</p><p>
+ </p><pre class="screen">
+
+ ! /home/hal/.Xmodmap, last change 10/03/01
+ !
+ ! Force backspace to 22 and Delete to 111
+ keycode 22 = BackSpace
+ keycode 111 = Delete
+ !
+ ! My keyboard handles right and left Alt differently. Make the 
+ ! Right act like the Left to avoid digital gymnastics.
+ keycode 63 = Alt_L
+ keycode 113 = Meta_L
+ !
+ ! Hard-code the keypad to numeric values as if numlock is always on 
+ ! since I never use it for anything else.
+ keycode 79=7
+ keycode 80=8
+ keycode 81=9
+ keycode 83=4
+ keycode 84=5
+ keycode 85=6
+ keycode 87=1
+ keycode 88=2
+ keycode 89=3
+ keycode 90=0
+ keycode 91=period
+ keycode 86 = plus
+ ! deactivate Num_Lock key since we don't need it now.
+ keycode 77 =
+ !
+ ! My capslock is next to tab. I hit it by mistake sometimes, 
+ ! and don't use it anyway. So make capslock act like Tab.
+ keycode 66 = Tab
+ clear lock
+ !
+ ! Reverse mouse buttons for left-handed people
+ pointer = 3 2 1
+
+ </pre><p>
+</p><p>
+ As with many XFree86 files, the <span class="quote">&#8220;<span class="quote">!</span>&#8221;</span> represents a comment. 
+ Another possible use, is to redefine those annoying <span class="quote">&#8220;<span class="quote">Windows</span>&#8221;</span>
+ keys to something useful. Hopefully this gives an idea of some things one
+ might want to do to make the keyboard more agreeable to us.
+
+</p><p>
+ Speaking of the <code class="literal">Numlock</code> key, <span class="application">X</span>
+ will typically disable this when it starts up. No matter how you have the
+ BIOS set up, or Linux set up before <span class="application">X</span> starts. So the
+ trick above is one way. There is also a utility available as either
+ <span class="application">numlockx</span>, or
+ <span class="application">setnumlock</span>, that can be found on the &#8217;Net, if
+ your distribution does not include one or the other. This can be put in a
+ start up file to turn <code class="literal">Numlock</code> on automatically if you would
+ prefer.
+
+</p><p>
+ Window Managers and Desktop Environments will also allow customization of the
+ keyboard and mouse (as long as it is recognized correctly by
+ <span class="application">X</span>). This may be an easier way to configure certain 
+ customizations.
+
+</p><div class="sect3"><div class="titlepage"><div><div><h4 class="title"><a name="idm765"></a>4.2.1. Special Key Mappings</h4></div></div></div><p>
+ There are several special key mappings traditionally used in
+ XFree86.
+
+</p><div class="variablelist"><dl class="variablelist"><dt><span class="term"><span class="keycap"><strong>Ctrl</strong></span>+<span class="keycap"><strong>Alt</strong></span>+<span class="keycap"><strong>BackSpace</strong></span></span></dt><dd><p>
+     Will kill the <span class="application">X</span> server process in an orderly
+     fashion. This is a quick, easy, legitimate way to restart
+     <span class="application">X</span>. Note it does not restart the display
+     manager (if used) &#8212; just <span class="application">X</span> itself.
+   </p></dd><dt><span class="term"><span class="keycap"><strong>Ctrl</strong></span>+<span class="keycap"><strong>Alt</strong></span>+<span class="keycap"><strong>F<em class="replaceable"><code>n</code></em></strong></span></span></dt><dd><p>
+    
+where <em class="replaceable"><code>n</code></em> 
+corresponds to a valid <acronym class="acronym">TTY</acronym> number
+    (typically 1&#8211;6). 
+This is typically used to jump to a text console login,
+    while <span class="application">X</span> remains running. To get back to
+    <span class="application">X</span>, 
+press 
+<span class="keycap"><strong>Alt</strong></span>+<span class="keycap"><strong>F<em class="replaceable"><code>n</code></em></strong></span>. In this
+    case, <em class="replaceable"><code>n</code></em> 
+represents one plus the last <acronym class="acronym">TTY</acronym> 
+(e.g. <span class="keycap"><strong>Alt</strong></span>+<span class="keycap"><strong>F7</strong></span> if
+    there are six available <acronym class="acronym">TTY</acronym>&#8217;s). 
+   </p></dd><dt><span class="term"><span class="keycap"><strong>Ctrl</strong></span>+<span class="keycap"><strong>Alt</strong></span>+<span class="keycap"><strong>+</strong></span> 
+and <span class="keycap"><strong>Ctrl</strong></span>+<span class="keycap"><strong>Alt</strong></span>+<span class="keycap"><strong>-</strong></span></span></dt><dd><p>
+    That is the plus and minus keys on
+    the keypad. This will cycle through any existing valid screen resolution 
+    modes, e.g. 1024×768 &#8594; 600×800. Note the actual screen
+    size is the same &#8212; just the view and resolution changes. 
+Not all that
+    useful for most purposes. You cannot permanently change the screen 
+    resolution without restarting <span class="application">X</span>.
+    
+   </p></dd></dl></div><p>
+ It's possible your Window Manager, Desktop Environment or other system
+ component may trap these, and alter the standard behavior. In addition, the
+ <span class="keycap"><strong>Ctrl</strong></span>+<span class="keycap"><strong>Alt</strong></span>+<span class="keycap"><strong>Delete</strong></span> may be trapped as well. This should shut
+ <span class="application">X</span> (and the system) down orderly, if it is
+ available.
+
+</p></div><div class="sect3"><div class="titlepage"><div><div><h4 class="title"><a name="idm822"></a>4.2.2. Mice and Pointers</h4></div></div></div><p>
+  As mentioned, Linux and Unix make heavy use of three mouse buttons. If a
+  mouse only has two buttons, then the third (i.e. the middle) button can
+  be simulated by pressing both buttons simultaneously. This is a
+  configuration option set in <code class="filename">XF86Config</code> as the 
+  <span class="quote">&#8220;<span class="quote">Emulate3Buttons</span>&#8221;</span> directive:
+
+</p><p>
+ </p><pre class="screen">
+
+ Section "InputDevice"
+	Identifier  "Mouse0"
+	Driver      "mouse"
+	Option      "Device" "/dev/mouse"
+	Option      "Protocol" "PS/2"
+	Option      "Emulate3Buttons" "on"
+ EndSection
+
+ </pre><p>
+</p><p>
+ When all is said and done, a third button is quite handy and I would personally recommend
+ having one. On wheeled mice, the <span class="quote">&#8220;<span class="quote">wheel</span>&#8221;</span> acts as the third
+ button, if pressed. Many standard wheel mice seem to work with the
+ <span class="quote">&#8220;<span class="quote">IMPS/2</span>&#8221;</span> protocol option.
+
+</p><p>
+ Specifically, the third button (middle) is the <span class="quote">&#8220;<span class="quote">paste</span>&#8221;</span> button in
+ virtually all Linux applications. Copy and paste works a little different in
+ Linux. The left button is the copy button. Just hold it down, and drag over
+ text. It is automatically copied to the <span class="application">X</span>
+ <span class="quote">&#8220;<span class="quote">clipboard</span>&#8221;</span>. Then, the middle button will paste from there. A
+ very simple process. A double-click should copy individual words, and a
+ triple-click individual lines of text. If for some reason, this does not
+ work, it is either a poorly implemented application, or a bug of some kind.
+ Some older versions of <span class="application">Netscape</span> were not
+ consistent about this, for instance. To paste from the keyboard, this should 
+ be shift+insert.
+
+</p><p>
+ <span class="quote">&#8220;<span class="quote">Drag and Drop</span>&#8221;</span> is not natively supported by
+ <span class="application">X</span> itself. But, is implemented by some toolkits and
+ Desktop Environments. One should not expect this to work with non-compliant
+ applications (i.e non-<span class="application">KDE</span> aware applications in 
+ <span class="application">KDE</span> for example).
+
+</p></div></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="idm842"></a>4.3. xset</h3></div></div></div><p>
+ <span class="command"><strong>xset</strong></span> is yet another XFree86 utility to set user
+ preferences. <span class="command"><strong>xset</strong></span> is a bit of a catch-all and is used 
+ to change various, unrelated X server settings. Mostly this is a command 
+ line way of configuring some of the same things that are defined in 
+ <code class="filename">XF86Config</code> (but not everything!).
+
+</p><p>
+ Common usages of <span class="command"><strong>xset</strong></span> are to set DPMS on or off and
+ preferred intervals, to dynamically change the FontPath or re-read it, to
+ control keyboard LEDs, to adjust mouse (or other pointer) movement speed,
+ set keyboard <span class="quote">&#8220;<span class="quote">autorepeat</span>&#8221;</span> and <span class="quote">&#8220;<span class="quote">repeat</span>&#8221;</span> rates, and
+ to control <span class="application">X's</span> built in screen blanking. See the
+ man page, of course, for detailed explanations, and other
+ <span class="command"><strong>xset</strong></span> usages.
+
+</p><p>
+ Again, <span class="command"><strong>xset</strong></span> can be used interactively from the command
+ line. But most often preferred settings are stored in one of the start up 
+ configuration files, like <code class="filename">.xinitrc</code> or
+ <code class="filename">.xsession</code>. A very brief example:
+
+</p><p>
+ </p><pre class="screen">
+
+ # Turn off screen blanking
+ xset s off
+ 
+ # Enable DPMS energy saving
+ xset +dpms
+ 
+ # Tweak the rodent
+ xset m 30/10 4
+ 
+ # Speed up keyboard
+ xset r rate 200 40
+
+ </pre><p>
+</p><p>
+ Your desktop may have a GUI front-end for <span class="command"><strong>xset</strong></span>.
+
+</p></div></div><div class="navfooter"><hr><table width="100%" summary="Navigation footer"><tr><td width="40%" align="left"><a accesskey="p" href="ar01s03.html">Prev</a> </td><td width="20%" align="center"> </td><td width="40%" align="right"> <a accesskey="n" href="ar01s05.html">Next</a></td></tr><tr><td width="40%" align="left" valign="top">3. Running X </td><td width="20%" align="center"><a accesskey="h" href="index.html">Home</a></td><td width="40%" align="right" valign="top"> 5. Fonts and Colors</td></tr></table></div></body></html>

@@ -1,0 +1,361 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1"><title>4. Multiple Connections to the Internet</title><link rel="stylesheet" type="text/css" href="style.css"><meta name="generator" content="DocBook XSL Stylesheets V1.79.1"><meta name="keywords" content="linux, ip, iproute2, ifconfig, firewall, ARP, NAT, route, routing, route selection, routing selection, network administration"><link rel="home" href="index.html" title="Guide to IP Layer Network Administration with Linux"><link rel="up" href="ch10.html" title="Chapter 10. Advanced IP Routing"><link rel="prev" href="ch10s03.html" title="3. Using the Routing Policy Database and Multiple Routing Tables"><link rel="next" href="ch11.html" title="Chapter 11. Scripts for Managing IP"></head><body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF"><div class="navheader"><table width="100%" summary="Navigation header"><tr><th colspan="3" align="center">4. Multiple Connections to the Internet</th></tr><tr><td width="20%" align="left"><a accesskey="p" href="ch10s03.html">Prev</a> </td><th width="60%" align="center">Chapter 10. Advanced IP Routing</th><td width="20%" align="right"> <a accesskey="n" href="ch11.html">Next</a></td></tr></table><hr></div><div class="section"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="adv-multi-internet"></a>4. Multiple Connections to the Internet</h2></div></div></div><p>
+      The questions summarized in this section should rightly be entered
+      into the FAQ, since they are FAQs on the
+      <a class="ulink" href="http://mailman.ds9a.nl/mailman/listinfo/lartc" target="_top">LARTC
+      list</a>.
+    </p><p>
+      There are many places where a linux based router/masquerading device
+      can assist in managing multiple Internet connections.  We'll outline
+      here some of the more common setups involving multiple Internet
+      connections and how to manage them with <span class="command"><strong>iptables</strong></span>,
+      <span class="command"><strong>ipchains</strong></span>, and <span class="command"><strong>iproute2</strong></span>.  One of
+      the first distinctions you can make when planning how to use multiple
+      Internet connections is what inbound services you expect to host and
+      how you want to split traffic over the multiple links.
+    </p><p>
+      In the discussion and examples below, I'll address the issues involved
+      with two separate uplinks to two different providers.  I assume the
+      following:
+    </p><div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem"><p>
+          You are not using BGP, and you do not have your own AS.  If you
+          are using BGP and have your own AS, you have a different set of
+          problems than the problems described here
+          <a href="#ftn.idm3309" class="footnote" name="idm3309"><sup class="footnote">[37]</sup></a>.
+        </p></li><li class="listitem"><p>
+          You have two netblocks from two different ISPs.
+        </p></li><li class="listitem"><p>
+          You are funneling your internal network through this routing
+          device, which is performing masquerading/NAT to the Internet.
+        </p></li></ul></div><p>
+      Additionally, I'll restrict my comments to statically assigned public
+      IP address ranges unless I mention (in particular) dynamically
+      allocated addresses.
+    </p><p>
+      In the following sections we'll look at the use of multiple Internet
+      connections first in terms of
+      <a class="link" href="ch10s04.html#adv-multi-internet-outbound" title="4.1. Outbound traffic Using Multiple Connections to the Internet">outbound
+      traffic only</a>, then in terms of
+      <a class="link" href="ch10s04.html#adv-multi-internet-inbound" title="4.2. Inbound traffic Using Multiple Connections to the Internet">inbound traffic
+      only</a>.  After that, we'll look at using multiple Internet
+      connections for
+      <a class="link" href="ch10s04.html#adv-multi-internet-bidirectional" title="4.3. Using Multiple Connections to the Internet for Inbound and Outbound Connections">handling both
+      inbound and outbound services</a>.
+    </p><p>
+    </p><p>
+    </p><div class="section"><div class="titlepage"><div><div><h3 class="title"><a name="adv-multi-internet-outbound"></a>4.1. Outbound traffic Using Multiple Connections to the
+        Internet</h3></div></div></div><p>
+        There are two main uses for multiple Internet links connected to the
+        same internal network.  One common use is to select an outbound link
+        based on the type of outbound service.  The other is to split traffic
+        arbitrarily across multiple ISPs for reasons like failover and to
+        accommodate greater aggregate bandwidth than would be available
+        on a single uplink.
+      </p><p>
+        If your need is the latter, please consult the documentation on the
+        <a class="ulink" href="http://lartc.org/howto/lartc.rpdb.multiple-links.html" target="_top">LARTC
+        site</a>, as it does a good job of summarizing the issues
+        involved and describes how to accomplish this.  This type of use of
+        multiple Internet connections means that (from the perspective of
+        the linux routing device), there is a multipath default route.  The
+        LARTC documentation remarks that Julian Anastasov's patches "make
+        things nicer to work with."  The patches to which the LARTC
+        documents are referring are Julian's dead gateway detection
+        patches (at least) which can help the linux routing device provide
+        Internet service to the internal network when one of the links is
+        down.  See <a class="ulink" href="http://www.ssi.bg/~ja/#routes" target="_top">here for
+        Julian's route work</a>.
+      </p><p>
+        In the remainder of this section, we'll discuss how to classify
+        traffic for different ISPs, how to handle the packet filtering for
+        this sort of classification scheme, and how to create routing tables
+        appropriate for the task at hand.
+        If anything at all seems unclear in this section, you may find a
+        quick re-reading of <a class="link" href="ch10s02.html" title="2. Overview of Routing and Packet Filter Interactions">the advanced
+        routing overview</a> quite fruitful.
+      </p><p>
+        The simplest way to split Internet access into two separate groups
+        is by source IP of the outbound packet.  This can be done most
+        simply with <span class="command"><strong>ip rule</strong></span> and a second routing table.
+        We'll assume that <code class="systemitem">masq-gw</code> in the example network gets a second,
+        low cost network connection through a DSL vendor.
+      </p><p>
+        The DSL IP on <code class="systemitem">masq-gw</code> will be 67.17.28.12 with a gateway of
+        67.17.28.14.  We'll assume that this is for outbound connectivity
+        only, and that the IP is active on eth4 of the <code class="systemitem">masq-gw</code> machine.
+        Before beginning let's outline the process we are going to follow.
+      </p><div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem"><p>
+            Copy the main routing table to another routing table and set the
+            alternate default route
+            <a href="#ftn.idm3340" class="footnote" name="idm3340"><sup class="footnote">[38]</sup></a>.
+          </p></li><li class="listitem"><p>
+            Use <span class="command"><strong>iptables</strong></span>/<span class="command"><strong>ipchains</strong></span> to
+            mark traffic with fwmark.
+          </p></li><li class="listitem"><p>
+            Add a rule to the routing policy database.
+          </p></li><li class="listitem"><p>
+            Test!
+          </p></li></ul></div><p>
+        Here's a short snippet of shell which you may find handy for copying
+        one routing table to another; see <a class="ulink" href="scripts/copy-routing-table.sh" target="_top">the full script</a> for a
+        more generalized example.
+      </p><div class="example"><a name="ex-adv-multi-internet-outbound-ip-routing"></a><p class="title"><b>Example 10.1. Multiple Outbound Internet links, part I;
+          <span class="command">ip route</span></b></p><div class="example-contents"><pre class="programlisting">
+<code class="prompt">[root@masq-gw]# </code><strong class="userinput"><code>ip route show table main</code></strong>
+<code class="computeroutput">192.168.100.0/30 dev eth3  scope link
+67.17.28.0/28 dev eth4  scope link
+205.254.211.0/24 dev eth1  scope link
+192.168.100.0/24 dev eth0  scope link
+192.168.99.0/24 dev eth0  scope link
+192.168.98.0/24 via 192.168.99.1 dev eth0
+10.38.0.0/16 via 192.168.100.1 dev eth3
+127.0.0.0/8 dev lo  scope link 
+default via 205.254.211.254 dev eth1</code>
+<code class="prompt">[root@masq-gw]# </code><strong class="userinput"><code>ip route flush table 4</code></strong>
+<code class="prompt">[root@masq-gw]# </code><strong class="userinput"><code>ip route show table main | grep -Ev ^default \</code></strong>
+<code class="prompt">&gt; </code><strong class="userinput"><code>  | while read ROUTE ; do</code></strong>
+<code class="prompt">&gt; </code><strong class="userinput"><code>    ip route add table 4 $ROUTE</code></strong>
+<code class="prompt">&gt; </code><strong class="userinput"><code>done</code></strong>
+<code class="prompt">[root@masq-gw]# </code><strong class="userinput"><code>ip route add table 4 default via 67.17.28.14</code></strong>
+<code class="prompt">[root@masq-gw]# </code><strong class="userinput"><code>ip route show table 4</code></strong>
+<code class="computeroutput">192.168.100.0/30 dev eth3  scope link
+67.17.28.0/28 dev eth4  scope link
+205.254.211.0/24 dev eth1  scope link
+192.168.100.0/24 dev eth0  scope link
+192.168.99.0/24 dev eth0  scope link
+192.168.98.0/24 via 192.168.99.1 dev eth0
+10.38.0.0/16 via 192.168.100.1 dev eth3
+127.0.0.0/8 dev lo  scope link 
+default via 67.17.28.14 dev eth4</code>
+        </pre></div></div><br class="example-break"><p>
+        Now, exactly what have we just done?  We have created two routing
+        tables on <code class="systemitem">masq-gw</code> each of which has a different default gateway.
+        We have successfully accomplished the first part of our
+        preparations.
+      </p><p>
+        Now, let's mark the traffic we would like to route in using
+        conditional logic.  We'll use <span class="command"><strong>iptables</strong></span> to select
+        traffic bound for destination ports 80 and 443 originating in the
+        main office desktop network.
+      </p><div class="example"><a name="ex-adv-multi-internet-outbound-iptables"></a><p class="title"><b>Example 10.2. Multiple Outbound Internet links, part II;
+          <span class="command">iptables</span></b></p><div class="example-contents"><pre class="programlisting">
+<code class="prompt">[root@masq-gw]# </code><strong class="userinput"><code>iptables -t mangle -A PREROUTING -p tcp --dport 80 -s 192.168.99.0/24 -j MARK --set-mark 4</code></strong>
+<code class="prompt">[root@masq-gw]# </code><strong class="userinput"><code>iptables -t mangle -A PREROUTING -p tcp --dport 443 -s 192.168.99.0/24 -j MARK --set-mark 4</code></strong>
+<code class="prompt">[root@masq-gw]# </code><strong class="userinput"><code>iptables -t mangle -nvL</code></strong>
+<code class="computeroutput">Chain PREROUTING (policy ACCEPT 0 packets, 0 bytes)
+ pkts bytes target     prot opt in     out     source                destination         
+    0     0 MARK       tcp  --  *      *       192.168.99.0/24       0.0.0.0/0          tcp dpt:80 MARK set 0x4 
+    0     0 MARK       tcp  --  *      *       192.168.99.0/24       0.0.0.0/0          tcp dpt:443 MARK set 0x4 
+
+Chain OUTPUT (policy ACCEPT 0 packets, 0 bytes)
+  pkts bytes target     prot opt in     out     source               destination</code>
+<code class="prompt">[root@masq-gw]# </code><strong class="userinput"><code>iptables -t nat -A POSTROUTING -o eth4 -j SNAT --to-source 67.17.28.12</code></strong>
+<code class="prompt">[root@masq-gw]# </code><strong class="userinput"><code>iptables -t nat -A POSTROUTING -o eth1 -j SNAT --to-source 205.254.211.179</code></strong>
+<code class="computeroutput">Chain PREROUTING (policy ACCEPT 0 packets, 0 bytes)
+ pkts bytes target     prot opt in     out     source               destination         
+
+Chain POSTROUTING (policy ACCEPT 0 packets, 0 bytes)
+ pkts bytes target     prot opt in     out     source               destination         
+    0     0 SNAT       all  --  *      eth4    0.0.0.0/0            0.0.0.0/0          to:67.17.28.12
+    0     0 SNAT       all  --  *      eth1    0.0.0.0/0            0.0.0.0/0          to:205.254.211.179
+
+Chain OUTPUT (policy ACCEPT 0 packets, 0 bytes)
+ pkts bytes target     prot opt in     out     source               destination</code>
+        </pre></div></div><br class="example-break"><p>
+        With these <span class="command"><strong>iptables</strong></span> lines we have instructed
+        netfilter to mark packets matching these criteria with the fwmark
+        and we have prepared the NAT rules so that our outbound packets will
+        originate from the correct IPs.
+      </p><p>
+        Once again, it is important to realize that the fwmark added
+        to a packet is only valid and discernible while the packet is
+        still on the host running the packet filter.  The fwmark is stored
+        in a data structure the kernel uses to track the packet.
+        Because the fwmark is not a part of the packet itself, the fwmark is
+        lost as soon as the packet has left the local machine.  For more
+        detail on the use of fwmark, see
+        <a class="xref" href="ch10s03.html#adv-routing-fwmark" title="3.2. Using fwmark for Policy Routing">Section 3.2, &#8220;Using fwmark for Policy Routing&#8221;</a>.
+      </p><p>
+        <span class="command"><strong>iproute2</strong></span> supports the use of fwmark as a selector
+        for rule lookups, so we can use fwmarks in the routing policy
+        database to cause packets to be conditionally routed based on that
+        fwmark.  This can lead to great complexity if a machine has multiple
+        routing tables, packet filters, and other fancy networking tools,
+        such as NAT or proxies.  Caveat emptor.
+      </p><p>
+        A convention I find sensible is to use the same number for a routing
+        table and fwmark where possible.  This simplifies the maintenance of
+        the systems which are using <span class="command"><strong>iproute2</strong></span> and fwmark,
+        especially if the table identifier and fwmark are set in a
+        configuration file with the same variable name.  Since we are
+        testing this on the command line, we'll just make sure that we can
+        add the rules first.
+      </p><div class="example"><a name="ex-adv-multi-internet-outbound-ip-rule"></a><p class="title"><b>Example 10.3. Multiple Outbound Internet links, part III;
+          <span class="command">ip rule</span></b></p><div class="example-contents"><pre class="programlisting">
+<code class="prompt">[root@masq-gw]# </code><strong class="userinput"><code>ip rule add fwmark 4 table 4</code></strong>
+<code class="prompt">[root@masq-gw]# </code><strong class="userinput"><code>ip rule show</code></strong>
+<code class="computeroutput">0:      from all lookup local 
+32765:  from all fwmark        4 lookup 4 
+32766:  from all lookup main 
+32767:  from all lookup 253</code>
+<code class="prompt">[root@masq-gw]# </code><strong class="userinput"><code>ip route flush cache</code></strong>
+        </pre></div></div><br class="example-break"><p>
+        The last piece is in place.  Now, users in the 192.168.99.0/24 subnet
+        who are browsing the Internet should be using the DSL line instead
+        of the T1 line for connectivity.
+      </p><p>
+        In order to verify that traffic is indeed getting marked and
+        routed appropriately, you should use <span class="command"><strong>tcpdump</strong></span> to
+        profile the outbound traffic on each link at the same time as you
+        generate outbound traffic on both links.  
+      </p><p>
+        The above is a cookbook example of categorizing traffic,
+        and sending the traffic out across different
+        providers.  To my knowledge, the commonest reason to use this sort
+        of solution is to separate traffic by importance and use a reliable
+        (and perhaps more costly) link for the more important traffic while
+        reserving the less costly Internet connection for other connections.
+        In the above illustrative case, we have simply selected the web
+        traffic for the less reliable (DSL) provider.
+      </p><p>
+        Once again, if you would like to split load over multiple links
+        regardless of classification of traffic, then you really want a
+        multipath default route, which is described and documented very well
+        <a class="ulink" href="http://lartc.org/howto/lartc.rpdb.multiple-links.html" target="_top">in
+        the LARTC HOWTO</a>.
+      </p></div><div class="section"><div class="titlepage"><div><div><h3 class="title"><a name="adv-multi-internet-inbound"></a>4.2. Inbound traffic Using Multiple Connections to the
+        Internet</h3></div></div></div><p>
+        There are many different ways to handle hosting servers to multiple
+        ISPs, and most of them are out of the scope of this document.  If
+        you are in need of this sort of advanced networking, you probably
+        already know where to research.  If not, I'd suggest starting your
+        research in load balancing, global load balancing, failover, and
+        layer 4-7 switching.  These are networking tools which can
+        facilitate the management of a highly available service.
+      </p><p>
+        Publishing the same service on two different ISPs is can be
+        formidable challenge.  While this is possible using
+        some of the advanced networking features under linux, one should
+        understand the greater issues involved with publishing a service on
+        two public IPs, especially if the idea is to provide service to the
+        general Internet even if one of the ISPs go down.  For a
+        thorough examination of the topics involved with load balancing of
+        all kinds, see Chandra Kopparapu's book Load Balancing Servers,
+        Firewalls and Caches.
+      </p><p>
+        If you are aware of the many difficult issues involved in handling
+        inbound connections to a network, and still want to publish a
+        service on two different ISPs (perhaps before you have a more robust
+        load balancing/upper layer switching technology in place), you'll
+        find the recipe below.
+      </p><p>
+        Before we examine the recipe, let's look at a complex scenario to
+        see what the crucial points are.  If you do not have the
+        <a class="ulink" href="http://www.docum.org/stef.coene/qos/kptd/" target="_top">kernel
+        packet traveling diagram</a> memorized, you may wish to refer to
+        it in the following discussion.  One other item to remember is that
+        routing decisions are stateless
+        <a href="#ftn.idm3426" class="footnote" name="idm3426"><sup class="footnote">[39]</sup></a>.
+      </p><p>
+        We'll assume that the client IP is a fixed IP (64.70.12.210) and
+        we'll discuss how this client IP would reach each of the services 
+        published on <code class="systemitem">masq-gw</code>'s two public networks.  The IPs used for
+        the services will be 67.17.28.10 and 205.254.211.17.
+        Now, whether you are using NAT with <span class="command"><strong>iproute2</strong></span> or
+        with iptables, you'll run across the problem here outlined.  Here
+        is the flow of the packet through <code class="systemitem">masq-gw</code> to the server and back
+        to the client.
+      </p><a name="ol-adv-multi-internet-inbound"></a><div class="orderedlist"><p class="title"><b>Inbound NAT to the same server via two public IPs in two
+          different networks</b></p><ol class="orderedlist" type="1"><li class="listitem"><p>
+            inbound packet from 64.70.12.210 to 67.17.28.10 arrives on eth4
+          </p></li><li class="listitem"><p>
+            packet is accepted, rewritten, and routed; from 64.70.12.210 to
+            192.168.100.17;  if <span class="command"><strong>iptables</strong></span> DNAT,
+            packet is rewritten in PREROUTING chain of nat table, then
+            routed;  if <span class="command"><strong>iproute2</strong></span>, packet is routed and
+            rewritten simultaneously
+          </p></li><li class="listitem"><p>
+            rewritten packet is transmitted out eth0
+          </p></li><li class="listitem"><p>
+            <code class="systemitem">isolde</code> receives packet, accepts, responds
+          </p></li><li class="listitem"><p>
+            inbound packet from 192.168.100.17 to 64.70.12.210
+          </p></li><li class="listitem"><p>
+            routing decision is made; default route (via 205.254.211.254) is
+            selected; if <span class="command"><strong>iproute2</strong></span> is used, packet is
+            also rewritten from 67.17.28.10 to 64.70.12.210
+          </p></li><li class="listitem"><p>
+            if <span class="command"><strong>iptables</strong></span> DNAT is used, connection tracking
+            will take care of rewriting this packet from 67.17.28.10 to
+            64.70.12.210
+          </p></li><li class="listitem"><p>
+            packet is transmitted out eth1
+          </p></li></ol></div><p>
+        This is the problem!  The packet may have the correct source
+        address, but it is leaving via the wrong interface.  Many ISPs
+        filter traffic entering their network and will block traffic from
+        your network with source IPs outside your allocated range.  To an
+        ISP this looks like spoofed traffic.
+      </p><p>
+        The solution is marvelously elegant and simple.  Select one IP on
+        the internal server which will be reachable via one provider and one
+        IP which will be reachable via the other provider.  By using two IP
+        addresses on the internal machine, we can use <span class="command"><strong>ip
+        rule</strong></span> on <code class="systemitem">masq-gw</code> to select a routing table with a
+        different default route based upon the source IP of the response
+        packets to clients.  Below, we'll assume the same routing tables as
+        in the previous section (cf.
+        <a class="xref" href="ch10s04.html#adv-multi-internet-outbound" title="4.1. Outbound traffic Using Multiple Connections to the Internet">Section 4.1, &#8220;Outbound traffic Using Multiple Connections to the
+        Internet&#8221;</a>).
+      </p><p>
+        Here we have a server <code class="systemitem">isolde</code> which needs to be accessible via two
+        different public IP addresses.  We'll add an IP address to <code class="systemitem">isolde</code>
+        so that it is reachable on 192.168.100.10 as well as 192.168.100.17.
+        Then, the following rules on <code class="systemitem">masq-gw</code> will ensure that packets are
+        rewritten and routed in order to avoid the problem pointed out
+        <a class="link" href="ch10s04.html#ol-adv-multi-internet-inbound">above</a>.
+      </p><div class="example"><a name="ex-adv-multi-internet-inbound"></a><p class="title"><b>Example 10.4. Multiple Internet links, inbound traffic; using
+          <span class="command">iproute2</span> only
+          <a href="#ftn.idm3470" class="footnote" name="idm3470"><sup class="footnote">[40]</sup></a>
+        </b></p><div class="example-contents"><pre class="programlisting">
+<code class="prompt">[root@masq-gw]# </code><strong class="userinput"><code>ip route add nat 67.17.28.10 via 192.168.100.10</code></strong>
+<code class="prompt">[root@masq-gw]# </code><strong class="userinput"><code>ip rule add nat 67.17.28.10 from 192.168.100.10 table 4</code></strong>
+<code class="prompt">[root@masq-gw]# </code><strong class="userinput"><code>ip route add nat 205.254.211.17 via 192.168.100.17</code></strong>
+<code class="prompt">[root@masq-gw]# </code><strong class="userinput"><code>ip rule add nat 205.254.211.17 from 192.168.100.17</code></strong>
+<code class="prompt">[root@masq-gw]# </code><strong class="userinput"><code>ip rule show</code></strong>
+<code class="computeroutput">0:      from all lookup local 
+32765:  from 192.168.100.17 lookup main map-to 205.254.211.17
+32765:  from 192.168.100.10 lookup 4 map-to 67.17.28.10
+32766:  from all lookup main 
+32767:  from all lookup 253</code>
+<code class="prompt">[root@masq-gw]# </code><strong class="userinput"><code>ip route show table local | grep ^nat</code></strong>
+<code class="computeroutput">nat 205.254.211.17 via 192.168.100.17  scope host 
+nat 67.17.28.10 via 192.168.100.10  scope host</code>
+        </pre></div></div><br class="example-break"><p>
+      </p><p>
+      </p></div><div class="section"><div class="titlepage"><div><div><h3 class="title"><a name="adv-multi-internet-bidirectional"></a>4.3. Using Multiple Connections to the Internet for Inbound and
+        Outbound Connections</h3></div></div></div><p>
+      </p><p>
+      </p><p>
+      </p></div><div class="footnotes"><br><hr style="width:100; text-align:left;margin-left: 0"><div id="ftn.idm3309" class="footnote"><p><a href="#idm3309" class="para"><sup class="para">[37] </sup></a>
+              Anybody who has any experience with linux as a firewall behind
+              a BGP device?  Linux as a firewall/router running BGP?
+              Thoughts?  Things I should include here?  Yeah, I know about
+              <a class="ulink" href="http://www.zebra.org/" target="_top">Zebra</a>, but I
+              haven't ever used it.
+            </p></div><div id="ftn.idm3340" class="footnote"><p><a href="#idm3340" class="para"><sup class="para">[38] </sup></a>
+                Sometimes it may not be quite proper to simply copy the main
+                routing table to another routing table.  You may want a
+                subset of hosts on the internal network to access the
+                alternate link.  Anybody have any sage advice here for the
+                newbie in multiple routing tables?
+              </p></div><div id="ftn.idm3426" class="footnote"><p><a href="#idm3426" class="para"><sup class="para">[39] </sup></a>
+            The following discussion is actually a restatement of
+            <a class="ulink" href="http://lists.netfilter.org/pipermail/netfilter/2001-May/011697.html" target="_top">Wes
+            Hodges' posting</a> on his solution to this problem.
+          </p></div><div id="ftn.idm3470" class="footnote"><p><a href="#idm3470" class="para"><sup class="para">[40] </sup></a>
+              This example makes no reference to packet filtering.  If you are
+              reading this, I assume you are competent at determining the
+              packet filtering issues.  If you have doubts about what rules to
+              add, see <a class="xref" href="ch05s04.html" title="4. Stateless NAT and Packet Filtering">Section 4, &#8220;Stateless NAT and Packet Filtering&#8221;</a>.
+            </p></div></div></div><div class="navfooter"><hr><table width="100%" summary="Navigation footer"><tr><td width="40%" align="left"><a accesskey="p" href="ch10s03.html">Prev</a> </td><td width="20%" align="center"><a accesskey="u" href="ch10.html">Up</a></td><td width="40%" align="right"> <a accesskey="n" href="ch11.html">Next</a></td></tr><tr><td width="40%" align="left" valign="top">3. Using the Routing Policy Database and Multiple Routing
+      Tables </td><td width="20%" align="center"><a accesskey="h" href="index.html">Home</a></td><td width="40%" align="right" valign="top"> Chapter 11. Scripts for Managing IP</td></tr></table></div></body></html>
